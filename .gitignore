@@ -1,0 +1,76 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+jspm_packages
+flow-typed
+!/yarn.lock
+test/node_modules
+vendor
+.pnp
+.pnp.js
+.yarn/*
+!.yarn/cache
+!.yarn/releases
+!.yarn/plugins
+.turbo
+.turbo/**
+
+# testing
+coverage
+logs
+tmp
+report.*
+.test_temp
+
+# next.js
+.next
+out
+build/**
+dist/**
+.next/**
+
+# production
+build
+dist
+
+# misc
+.DS_Store
+package.json.lerna_backup
+rh_client.toml
+rathole.toml
+.campaigns
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env files
+.env
+.env.*
+!.env.example
+
+# Now
+.now
+.vercel
+
+# Auth0 deployment
+.auth0
+
+# serverless
+.serverless
+
+# Local certs for development
+*.pem
+
+# Supabase
+**/supabase/.branches
+**/supabase/.temp
+**/supabase/.env
+
+# Typescript
+tsconfig.tsbuildinfo
+
+# Local Netlify folder
+.netlify

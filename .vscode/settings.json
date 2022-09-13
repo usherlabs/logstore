@@ -1,0 +1,6 @@
+{
+	"eslint.workingDirectories": ["./", "./packages/contracts", "packages/node"],
+	"eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+	"prettier.configPath": "./.prettierrc",
+	"prettier.prettierPath": "./node_modules/prettier"
+}

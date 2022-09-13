@@ -1,0 +1,12 @@
+{
+	"name": "@etl-network/contracts",
+	"version": "0.0.1",
+	"description": "ETL Network Solidity Contracts",
+	"main": "index.ts",
+	"author": "Ryan Soury <ryan@usher.so>",
+	"license": "UNLICENSED",
+	"repository": "git@github.com:usherlabs/etl.git",
+	"private": false,
+	"dependencies": {},
+	"devDependencies": {}
+}
