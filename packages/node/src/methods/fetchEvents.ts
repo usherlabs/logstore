@@ -1,8 +1,16 @@
 import { ethers } from "ethers";
+import StreamrClient from "streamr-client";
+
 import { PoolConfig, SupporedSourcesChains } from "../types";
-import { fetchABIJSONFromURL, getDefaultProvider, parseBlockEvent } from "../utils/helpers";
+import {
+	fetchABIJSONFromURL,
+	getDefaultProvider,
+	parseBlockEvent
+} from "../utils/helpers";
 
-
+const STREAM_TIMEOUT_DURATION = 3000; //if there are no new messages for the next 10 seconds then resolve
+const MAINNET_CHAIN_ID = "1";
+const POLYGON_CHAIN_ID = "137";
 /**
  * Fetches the onchain events from a data source passed in
  * @returns
@@ -31,10 +39,10 @@ export async function fetchEventsFromSource(
 					sourceAddress,
 					sourceABIURL,
 					sourceEvent,
-					"1"
+					MAINNET_CHAIN_ID
 				);
 				break;
-			
+
 			case "polygon":
 				sourceData = fetchEVMEvents(
 					sourceConfig,
@@ -42,15 +50,22 @@ export async function fetchEventsFromSource(
 					sourceAddress,
 					sourceABIURL,
 					sourceEvent,
-					"137"
+					POLYGON_CHAIN_ID
 				);
+				break;
+
+			case "streamr":
+				sourceData = fetchStreamrEvents(sourceConfig, key, sourceAddress);
 				break;
 		}
 
 		return sourceData;
 	});
 	const response = await Promise.all(responsePromise);
+
+	// TODO return a response of format {datasource:data}
 	console.log(response);
+	return response;
 }
 
 const fetchEVMEvents = async (
@@ -61,13 +76,14 @@ const fetchEVMEvents = async (
 	eventname: string,
 	chainId: SupporedSourcesChains
 ) => {
+	// TODO remove hardcoded values
 	const { startBlock: initialBlock, interval, rpc } = config;
 	const startBlock = 15574440; //+key * interval + initialBlock;
 	const endBlock = 15574540; //(+key + 1) * interval + initialBlock;
 
 	// initialise contracct
 	const contractABIJSON = await fetchABIJSONFromURL(contractABIURL);
-	const provider = getDefaultProvider(1);
+	const provider = getDefaultProvider(chainId);
 	const contract = new ethers.Contract(
 		contractAddress,
 		contractABIJSON,
@@ -83,21 +99,51 @@ const fetchEVMEvents = async (
 
 const fetchStreamrEvents = async (
 	config: any,
-	streamAddress: string,
-	key: string
+	key: string,
+	streamAddress: string
 ) => {
 	const { startTimestamp: initialTimestamp, interval } = config;
 	const startTime = +key * interval + initialTimestamp;
 	const endTime = (+key + 1) * interval + initialTimestamp;
-	// const streamr = new StreamrClient();
-	// const sub3 = await streamr.resend(streamAddress, {
-	// 	from: {
-	// 		timestamp: startTime
-	// 	},
-	// 	to: {
-	// 		timestamp: endTime
-	// 	}
-	// });
+	const streamr = new StreamrClient();
+	return new Promise(async (resolve, reject) => {
+		let STREAM_TIMEOUT; //use variable for debouncing
+		try {
+			const streamResponse = [];
+			await streamr.resend(
+				streamAddress,
+				{
+					last: 10
+					// TODO disable hardcoding after proper testing
+					// 	from: {
+					// 		timestamp: startTime
+					// 	},
+					// 	to: {
+					// 		timestamp: endTime
+					// 	}
+				},
+				// use this callback to
+				(singleMessage) => {
+					// if there was a timeout, clear it.
+					clearTimeout(STREAM_TIMEOUT);
+					streamResponse.push(singleMessage);
+					// use debouncing to return the array of there are no new items after a certain period
+					// this would indicate that there are no new events
+					STREAM_TIMEOUT = setTimeout(() => {
+						resolve(streamResponse);
+					}, STREAM_TIMEOUT_DURATION);
+				}
+			);
 
-	// console.log(sub3);
+			// set a timeout to return an empty array if there are no streams
+			// this gets canceled if the above callbacl is triggered
+			STREAM_TIMEOUT = setTimeout(() => {
+				console.log("There was no item in the stream, timing out...");
+				resolve(streamResponse);
+			}, STREAM_TIMEOUT_DURATION * 2);
+		} catch (err) {
+			reject(err);
+			clearTimeout(STREAM_TIMEOUT);
+		}
+	});
 };

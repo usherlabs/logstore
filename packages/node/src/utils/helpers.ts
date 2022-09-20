@@ -19,9 +19,9 @@ export const fetchABIJSONFromURL = (url: string) => {
  * @param networkChainId {string} the chain id of the network
  * @returns
  */
-export const getDefaultProvider = (networkChainId: number) => {
+export const getDefaultProvider = (networkChainId: string) => {
 	return new ethers.providers.InfuraProvider(
-		networkChainId,
+		+networkChainId,
 		process.env.INFURA_API_KEY
 	);
 };

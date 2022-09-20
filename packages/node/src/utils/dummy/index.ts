@@ -30,7 +30,7 @@ export const DUMMY_PIPELINE_DATA = [
 		sources: [
 			["ethereum", "0xc5e9ddebb09cd64dfacab4011a0d5cedaf7c9bdb","abilink.json", "VouchAdded"],
 			// ["polygon", "0x_my_NFT_contract","abilink.json", "nft_transfer"],
-			// ["streamr", "streamr.stream_id.eth"]
+			["streamr", "streamr.eth/demos/helsinki-trams"]
 		],
 		contract: "arweave_tx_id_of_contract"
 	}
