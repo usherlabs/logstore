@@ -74,3 +74,7 @@ tsconfig.tsbuildinfo
 
 # Local Netlify folder
 .netlify
+
+# keyfiles
+keyfile.json
+cache
