@@ -7,6 +7,12 @@
 	"license": "UNLICENSED",
 	"repository": "git@github.com:usherlabs/etl.git",
 	"private": false,
+  "scripts": {
+    "deploy:pipeline": "npx hardhat run scripts/deploy.ts"
+  }
 	"dependencies": {},
-	"devDependencies": {}
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "hardhat": "^2.11.2"
+  }
 }
