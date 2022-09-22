@@ -1,5 +1,5 @@
-export type SupportedDataSources = "ethereum" | "polygon" | "streamr";
-export type SupporedSourcesChains = "1" | "137";
+export type SupportedDataSources = 'ethereum' | 'polygon' | 'streamr';
+export type SupporedSourcesChains = '1' | '137';
 
 /**
  * Interface of Pipeline

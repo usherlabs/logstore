@@ -1,11 +1,31 @@
 {
+	"$schema": "https://json.schemastore.org/tsconfig",
+	"display": "Node",
 	"compilerOptions": {
+		"target": "es6",
 		"module": "commonjs",
-		"target": "es2015",
-		"strict": true,
-		"outDir": "dist",
+		"moduleResolution": "node",
+		"rootDir": ".",
+		"outDir": "build",
+		"allowSyntheticDefaultImports": true,
+		"importHelpers": true,
+		"alwaysStrict": true,
+		"sourceMap": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitAny": false,
+		"noImplicitThis": false,
+		"strictNullChecks": false,
+		"forceConsistentCasingInFileNames": true,
 		"esModuleInterop": true,
+		"paths": {
+			"@/*": ["./src/*"],
+			"@tests/*": ["./tests/*"]
+		},
 		"resolveJsonModule": true
 	},
-	"files": ["src/index.ts"]
+	"exclude": ["node_modules", "build", "dist"],
+	"include": ["**/*.ts"]
 }

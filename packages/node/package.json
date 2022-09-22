@@ -6,9 +6,9 @@
 	"description": "ETL Network Node",
 	"private": false,
 	"scripts": {
-		"build": "del dist && tsc",
+		"build": "del dist && tsc && resolve-tspaths",
 		"build:binaries": "yarn build && del out && pkg --no-bytecode --public-packages '*' --output out/kyve package.json && node ./node_modules/@kyve/core/dist/src/scripts/checksum.js",
-		"format": "prettier --write .",
+		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md}\"",
 		"start": "node ./dist/src/index.js --poolId 0 -m 'behind field portion tent move cross case other call senior obtain seminar' --keyfile ./keyfile.json -s 175.2 --verbose",
 		"start:fresh": "npm-run-all -s build start",
 		"ts": "tsc --noEmit",
@@ -28,9 +28,13 @@
 		"singleQuote": true
 	},
 	"dependencies": {
+		"@sentry/node": "^7.13.0",
+		"@sentry/tracing": "^7.13.0",
+		"commander": "^9.4.0",
 		"dotenv": "^16.0.2",
 		"ethers": "^5.7.1",
-		"streamr-client": "^6.0.1"
+		"streamr-client": "^6.0.1",
+		"tslog": "^3.3.4"
 	},
 	"devDependencies": {
 		"@types/node": "^18.7.18",
@@ -39,9 +43,11 @@
 		"@types/websocket": "^1.0.5",
 		"@types/ws": "^8.5.3",
 		"del-cli": "^5.0.0",
+		"jest": "^29.0.3",
 		"npm-run-all": "^4.1.5",
 		"pkg": "^5.6.0",
 		"prettier": "^2.6.2",
+		"resolve-tspaths": "^0.8.0",
 		"typescript": "^4.6.4",
 		"webhook-discord": "^3.7.8"
 	}

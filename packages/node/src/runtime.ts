@@ -1,10 +1,10 @@
-import { DataItem, IRuntime, Node } from "@kyve/core";
-import { ethers, providers } from "ethers";
-import { POOL_CONFIG_DATA } from "./utils/dummy";
-import { fetchPipelines, fetchEventsFromSource } from "./methods";
-import ".";
+import { DataItem, IRuntime, Node } from '@kyve/core';
+import { ethers, providers } from 'ethers';
+import { POOL_CONFIG_DATA } from './utils/dummy';
+import { fetchPipelines, fetchEventsFromSource } from './methods';
+import '.';
 
-import { name, version } from "../package.json";
+import { name, version } from '../package.json';
 
 export default class Runtime implements IRuntime {
 	public name = name;
@@ -28,7 +28,7 @@ export default class Runtime implements IRuntime {
 			// STEP 4: coming soon ...
 			return {
 				key,
-				value: "value"
+				value: 'value',
 			};
 		} catch (error) {
 			throw error;
