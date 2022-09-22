@@ -1,10 +1,13 @@
 import { Node as KyveNode } from '@kyve/core';
 import { sleep } from '@kyve/core/dist/src/utils';
+import { IRuntime } from '@/types';
 
 // import {runCache} from '@/methods/runCache';
 
 export class Node extends KyveNode {
-	protected runCache: (this: KyveNode) => Promise<void> = async () => {
+	protected runtime!: IRuntime;
+
+	protected runCache: () => Promise<void> = async () => {
 		let createdAt = 0;
 		let currentHeight = 0;
 		let toHeight = 0;
