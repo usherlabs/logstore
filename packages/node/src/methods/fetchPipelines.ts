@@ -1,5 +1,5 @@
-import { Pipeline } from '../types';
-import { DUMMY_PIPELINE_DATA } from '../utils/dummy';
+import { Pipeline } from "../types";
+import { DUMMY_PIPELINE_DATA } from "../utils/dummy";
 
 /**
  * Gets the several pipeline configurations present in the smart contract which collects them

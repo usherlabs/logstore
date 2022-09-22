@@ -1,16 +1,16 @@
-import { ethers } from 'ethers';
-import StreamrClient from 'streamr-client';
+import { ethers } from "ethers";
+import StreamrClient from "streamr-client";
 
-import { PoolConfig, SupporedSourcesChains } from '../types';
+import { PoolConfig, SupporedSourcesChains } from "../types";
 import {
 	fetchABIJSONFromURL,
 	getDefaultProvider,
-	parseBlockEvent,
-} from '../utils/helpers';
+	parseBlockEvent
+} from "../utils/helpers";
 
 const STREAM_TIMEOUT_DURATION = 3000; //if there are no new messages for the next 10 seconds then resolve
-const MAINNET_CHAIN_ID = '1';
-const POLYGON_CHAIN_ID = '137';
+const MAINNET_CHAIN_ID = "1";
+const POLYGON_CHAIN_ID = "137";
 /**
  * Fetches the onchain events from a data source passed in
  * @returns
@@ -32,7 +32,7 @@ export async function fetchEventsFromSource(
 		}
 
 		switch (sourcename) {
-			case 'ethereum':
+			case "ethereum":
 				sourceData = fetchEVMEvents(
 					sourceConfig,
 					key,
@@ -43,7 +43,7 @@ export async function fetchEventsFromSource(
 				);
 				break;
 
-			case 'polygon':
+			case "polygon":
 				sourceData = fetchEVMEvents(
 					sourceConfig,
 					key,
@@ -54,7 +54,7 @@ export async function fetchEventsFromSource(
 				);
 				break;
 
-			case 'streamr':
+			case "streamr":
 				sourceData = fetchStreamrEvents(sourceConfig, key, sourceAddress);
 				break;
 		}
@@ -113,7 +113,7 @@ const fetchStreamrEvents = async (
 			await streamr.resend(
 				streamAddress,
 				{
-					last: 10,
+					last: 10
 					// TODO disable hardcoding after proper testing
 					// 	from: {
 					// 		timestamp: startTime
@@ -138,7 +138,7 @@ const fetchStreamrEvents = async (
 			// set a timeout to return an empty array if there are no streams
 			// this gets canceled if the above callbacl is triggered
 			STREAM_TIMEOUT = setTimeout(() => {
-				console.log('There was no item in the stream, timing out...');
+				console.log("There was no item in the stream, timing out...");
 				resolve(streamResponse);
 			}, STREAM_TIMEOUT_DURATION * 2);
 		} catch (err) {
