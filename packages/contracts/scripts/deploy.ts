@@ -11,6 +11,7 @@ async function main() {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
+// 0x709ba82c3D1E1089E29D0354C131CF62fA46D134 -- contract in use on goerli network
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
