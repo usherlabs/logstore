@@ -1,5 +1,18 @@
+import { IRuntime as IKyveRuntime } from '@kyve/core';
+
 export type SupportedDataSources = 'ethereum' | 'polygon' | 'streamr';
 export type SupporedSourcesChains = '1' | '137';
+
+export type TransformerResponse = {
+	response: Object;
+	submit: {
+		polygon: {
+			contract: string;
+			method: string;
+			params: (string | number)[]; // ? Dev note: We may need to expand the types that can be passed as params to the contract
+		}[];
+	};
+};
 
 /**
  * Interface of Pipeline
@@ -30,6 +43,14 @@ export interface Pipeline {
 	 * @type {string}
 	 */
 	contract: string;
+
+	/**
+	 * The transformer function
+	 * loaded after the pipelines contract addresses have been resolved
+	 *
+	 * @property transformer
+	 */
+	transformer?: (events: Object[]) => TransformerResponse;
 }
 
 /**
@@ -58,4 +79,8 @@ export interface PoolConfig {
 
 export interface Sources {
 	[name: string]: any;
+}
+
+export interface IRuntime extends IKyveRuntime {
+	setup: () => Promise<void>;
 }

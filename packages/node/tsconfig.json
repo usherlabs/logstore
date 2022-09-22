@@ -20,11 +20,12 @@
 		"strictNullChecks": false,
 		"forceConsistentCasingInFileNames": true,
 		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
 		"paths": {
 			"@/*": ["./src/*"],
 			"@tests/*": ["./tests/*"]
-		},
-		"resolveJsonModule": true
+		}
 	},
 	"exclude": ["node_modules", "build", "dist"],
 	"include": ["**/*.ts"]

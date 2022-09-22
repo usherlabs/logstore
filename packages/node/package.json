@@ -28,6 +28,7 @@
 		"singleQuote": true
 	},
 	"dependencies": {
+		"@kyve/core": "^1.3.5",
 		"@sentry/node": "^7.13.0",
 		"@sentry/tracing": "^7.13.0",
 		"commander": "^9.4.0",

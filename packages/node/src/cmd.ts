@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import { Command } from 'commander';
 
-import { Node, Arweave, Gzip, JsonFileCache } from '@kyve/core';
+import { Arweave, Gzip, JsonFileCache } from '@kyve/core';
 import Runtime from './runtime';
+import { Node } from './node';
 
 const startCmd = new Command();
 

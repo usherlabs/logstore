@@ -28,6 +28,9 @@
 	],
 	"rules": {
 		"import/prefer-default-export": "off",
-		"no-underscore-dangle": "off"
+		"no-underscore-dangle": "off",
+		"class-methods-use-this": "off",
+		"no-await-in-loop": "off",
+		"no-constant-condition": "off"
 	}
 }
