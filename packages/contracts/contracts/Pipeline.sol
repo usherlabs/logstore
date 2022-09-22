@@ -17,17 +17,19 @@ contract Pipeline {
     string sourceContractABI;
   }
 
-  mapping (address => bool) public pipelineOwners;
+  mapping (address => bool) public isPipelineOwner;
   mapping (address => string) public pipelineContractAddresses;
   mapping (address => Source[]) public pipelineContractSources;
+  address[] public pipelineOwnersAddresses;
 
   /**
    * @dev Allows the user to indicate their intention to create a pipeline,
    * more actions could be taken here like staking etc
    */
   function createPipeline() external {
-    require(!pipelineOwners[msg.sender], "You already have a pipeline created");
-    pipelineOwners[msg.sender] = true;
+    require(!isPipelineOwner[msg.sender], "You already have a pipeline created");
+    isPipelineOwner[msg.sender] = true;
+    pipelineOwnersAddresses.push(msg.sender);
   }
 
   /**
@@ -35,7 +37,7 @@ contract Pipeline {
    * @param _contractAddress The address of the JS contract.
    */
   function updatePipelineContract(string calldata _contractAddress) external {
-    require(pipelineOwners[msg.sender], "You do not have a pipeline created");
+    require(isPipelineOwner[msg.sender], "You do not have a pipeline created");
     pipelineContractAddresses[msg.sender] = _contractAddress;
   }
 
@@ -61,6 +63,13 @@ contract Pipeline {
    */
   function getTotalSourcesCount() public view returns (uint){
     return pipelineContractSources[msg.sender].length;
+  }
+
+  /**
+  * @dev get the total number of pipelines created
+  */
+  function getPipelinesCount() public view returns(uint){
+    return pipelineOwnersAddresses.length;
   }
 
   /**
