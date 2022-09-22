@@ -7,6 +7,14 @@
 	"license": "UNLICENSED",
 	"repository": "git@github.com:usherlabs/etl.git",
 	"private": false,
-	"dependencies": {},
-	"devDependencies": {}
+	"scripts": {
+		"deploypipeline:goerli": "npx hardhat run scripts/deploy.ts --network goerli"
+	},
+	"dependencies": {
+		"dotenv": "^16.0.2"
+	},
+	"devDependencies": {
+		"@nomicfoundation/hardhat-toolbox": "^2.0.0",
+		"hardhat": "^2.11.2"
+	}
 }

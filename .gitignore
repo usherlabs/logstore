@@ -78,3 +78,4 @@ tsconfig.tsbuildinfo
 # keyfiles
 keyfile.json
 cache
+package-lock.json
