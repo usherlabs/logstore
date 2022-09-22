@@ -1,46 +1,48 @@
 {
-  "name": "@etl-network/node",
-  "version": "0.0.1",
-  "author": "Ryan Soury <ryan@usher.so>",
-  "license": "UNLICENSED",
-  "description": "ETL Network Node",
-  "private": false,
-  "scripts": {
-    "build": "rimraf dist && tsc",
-    "build:binaries": "yarn build && rimraf out && pkg --no-bytecode --public-packages '*' --output out/kyve package.json && node ./node_modules/@kyve/core/dist/src/scripts/checksum.js",
-    "format": "prettier --write .",
-    "startvalidator": "node ./dist/src/index.js --poolId 0 -m 'behind field portion tent move cross case other call senior obtain seminar' --keyfile ./keyfile.json -s 175.2 --verbose",
-    "start": "npm run startvalidator",
-    "start:fresh": "npm run build && npm run start"
-  },
-  "bin": "./dist/src/index.js",
-  "pkg": {
-    "scripts": "./dist/src/index.js",
-    "assets": "./node_modules/@kyve/sdk/dist/proto/*",
-    "targets": [
-      "latest-linux-x64",
-      "latest-macos-x64"
-    ],
-    "outputPath": "out"
-  },
-  "prettier": {
-    "singleQuote": true
-  },
-  "dependencies": {
-    "dotenv": "^16.0.2",
-    "ethers": "^5.7.1",
-    "streamr-client": "^6.0.1"
-  },
-  "devDependencies": {
-    "@types/node": "^18.7.18",
-    "@types/node-fetch": "^2.6.2",
-    "@types/pino": "^7.0.5",
-    "@types/websocket": "^1.0.5",
-    "@types/ws": "^8.5.3",
-    "pkg": "^5.6.0",
-    "prettier": "^2.6.2",
-    "rimraf": "^3.0.2",
-    "typescript": "^4.6.4",
-    "webhook-discord": "^3.7.8"
-  }
+	"name": "@etl-network/node",
+	"version": "0.0.1",
+	"author": "Ryan Soury <ryan@usher.so>",
+	"license": "UNLICENSED",
+	"description": "ETL Network Node",
+	"private": false,
+	"scripts": {
+		"build": "del dist && tsc",
+		"build:binaries": "yarn build && del out && pkg --no-bytecode --public-packages '*' --output out/kyve package.json && node ./node_modules/@kyve/core/dist/src/scripts/checksum.js",
+		"format": "prettier --write .",
+		"start": "node ./dist/src/index.js --poolId 0 -m 'behind field portion tent move cross case other call senior obtain seminar' --keyfile ./keyfile.json -s 175.2 --verbose",
+		"start:fresh": "npm-run-all -s build start",
+		"ts": "tsc --noEmit",
+		"lint": "eslint -c ./.eslintrc ./src/**/*.ts"
+	},
+	"bin": "./dist/src/index.js",
+	"pkg": {
+		"scripts": "./dist/src/index.js",
+		"assets": "./node_modules/@kyve/sdk/dist/proto/*",
+		"targets": [
+			"latest-linux-x64",
+			"latest-macos-x64"
+		],
+		"outputPath": "out"
+	},
+	"prettier": {
+		"singleQuote": true
+	},
+	"dependencies": {
+		"dotenv": "^16.0.2",
+		"ethers": "^5.7.1",
+		"streamr-client": "^6.0.1"
+	},
+	"devDependencies": {
+		"@types/node": "^18.7.18",
+		"@types/node-fetch": "^2.6.2",
+		"@types/pino": "^7.0.5",
+		"@types/websocket": "^1.0.5",
+		"@types/ws": "^8.5.3",
+		"del-cli": "^5.0.0",
+		"npm-run-all": "^4.1.5",
+		"pkg": "^5.6.0",
+		"prettier": "^2.6.2",
+		"typescript": "^4.6.4",
+		"webhook-discord": "^3.7.8"
+	}
 }

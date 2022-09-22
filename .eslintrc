@@ -19,7 +19,8 @@
     ],
 		"no-unused-vars": ["error", { "ignoreRestSiblings": true }],
 		"no-underscore-dangle": "off",
-		"no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"]
+		"no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
+		"no-console": "off"
   },
   "overrides": [
     // Configuration for TypeScript files

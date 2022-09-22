@@ -5,7 +5,8 @@ import { fetchPipelines, fetchEventsFromSource } from "./methods";
 import ".";
 
 import { name, version } from "../package.json";
-export default class EVM implements IRuntime {
+
+export default class Runtime implements IRuntime {
 	public name = name;
 	public version = version;
 
@@ -14,8 +15,12 @@ export default class EVM implements IRuntime {
 			// STEP 1: Fetch pipelines configuration from contracts
 			const pipelines = await fetchPipelines();
 			// STEP 2: fetch actual data sources as specified from the contract
-			const responsePromise = pipelines.map(async ({sources, contract}) => {
-				const events = await fetchEventsFromSource(POOL_CONFIG_DATA, sources, key);
+			const responsePromise = pipelines.map(async ({ sources, contract }) => {
+				const events = await fetchEventsFromSource(
+					POOL_CONFIG_DATA,
+					sources,
+					key
+				);
 			});
 			const response = await Promise.all(responsePromise);
 			// STEP 3: pass data loaded into the speecified transformation function

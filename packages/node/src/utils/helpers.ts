@@ -1,5 +1,5 @@
-import { ethers } from "ethers";
-import { DUMMY_ETH_ABI } from "../utils/dummy";
+import { ethers } from 'ethers';
+import { DUMMY_ETH_ABI } from '../utils/dummy';
 
 /**
  * It recieves a url which points to the ABI of a contract
@@ -28,7 +28,7 @@ export const getDefaultProvider = (networkChainId: string) => {
 /**
  * Parse an event block into a suitable format
  * @param eventLog an event log instance from ethers
- * @returns 
+ * @returns
  */
 export const parseBlockEvent = (eventLog: any) => {
 	let { blockNumber, event, args } = eventLog;
@@ -43,6 +43,6 @@ export const parseBlockEvent = (eventLog: any) => {
 	return {
 		parsedArgs,
 		blockNumber,
-		event
+		event,
 	};
 };

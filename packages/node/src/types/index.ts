@@ -1,5 +1,5 @@
-export type SupportedDataSources = "ethereum" | "polygon" | "streamr";
-export type SupporedSourcesChains = "1" | "137";
+export type SupportedDataSources = 'ethereum' | 'polygon' | 'streamr';
+export type SupporedSourcesChains = '1' | '137';
 
 /**
  * Interface of Pipeline
@@ -49,13 +49,13 @@ export interface PoolConfig {
 	github?: string;
 	/**
 	 * An object representing the several data sources and their configurations
-	 * 
+	 *
 	 * @property sources
 	 * @type {Object}
 	 */
-	sources: Sources
+	sources: Sources;
 }
 
-export interface Sources{
-	[name: string] : any
+export interface Sources {
+	[name: string]: any;
 }

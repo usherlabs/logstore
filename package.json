@@ -1,5 +1,5 @@
 {
-	"name": "etl-network-node",
+	"name": "etl-network",
 	"version": "0.0.1",
 	"description": "ETL Network",
 	"repository": "git@github.com:usherlabs/etl.git",

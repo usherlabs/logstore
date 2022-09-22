@@ -1,11 +1,10 @@
-// import { Node, Arweave, Gzip, JsonFileCache } from "@etl-network/core";
 import { Node, Arweave, Gzip, JsonFileCache } from "@kyve/core";
-import EVM from "./runtime";
+import Runtime from "./runtime";
 
-require('dotenv').config();
+require("dotenv").config();
 
 new Node()
-	.addRuntime(new EVM())
+	.addRuntime(new Runtime())
 	.addStorageProvider(new Arweave())
 	.addCompression(new Gzip())
 	.addCache(new JsonFileCache())
