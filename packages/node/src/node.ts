@@ -1,11 +1,30 @@
 import { Node as KyveNode } from '@kyve/core';
 import { sleep } from '@kyve/core/dist/src/utils';
 import { IRuntime } from '@/types';
+import { cmd } from './cmd';
 
 // import {runCache} from '@/methods/runCache';
 
 export class Node extends KyveNode {
 	protected runtime!: IRuntime;
+
+	protected evmPrivateKey: string = '';
+
+	/**
+	 * Defines node options for CLI and initializes those inputs
+	 * Node name is generated here depending on inputs
+	 *
+	 * @method constructor
+	 */
+	constructor() {
+		super();
+
+		// define extended program
+		const options = cmd.parse().opts();
+		this.evmPrivateKey = options.evmPrivateKey;
+
+		// TODO: setup listeners for each source -- such that new conditions determined by pipelines can modify the listeners
+	}
 
 	protected runCache: () => Promise<void> = async () => {
 		let createdAt = 0;
