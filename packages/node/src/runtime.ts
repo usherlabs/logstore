@@ -58,20 +58,28 @@ export default class Runtime implements IRuntime {
 	 * A method to use the an instance of the events database layer to produce a read-only version specifically for the pipeline transformer.
 	 */
 	public async transform() {
-		// STEP 7: iterate over the transformer functions and pass an isolated read-only instance of the events database to the transformer
+		// STEP 7: then iterate over the transformer functions and pass an isolated read-only instance of the events database to the transformer
 
-		return {
-			response: 'some_modified_data_to_include_in_the_bundle',
-			submit: {
-				ethereum: [
-					{
-						contract: '0x....',
-						method: 'method(data type, data type)',
-						params: ['param1', 'param2'],
-					},
-				],
-			},
-		};
+		// this.pipelines.map -- iteration
+		// Produces responses
+		/**
+		 * A single response example:
+			{
+				pipeline: "identifer"
+				response: 'some_modified_data_to_include_in_the_bundle',
+				submit: {
+					polygon: [
+						{
+							contract: '0x....',
+							method: 'method(data type, data type)',
+							params: ['param1', 'param2'],
+						},
+					],
+				},
+			}
+		 */
+
+		return []; // Array of transformations
 	}
 
 	public async getNextKey(key: string): Promise<string> {

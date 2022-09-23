@@ -80,6 +80,7 @@ export class Node extends KyveNode {
 
 			this.runtime.setup();
 
+			// Bundle creation
 			while (height < maxHeight) {
 				try {
 					let nextKey;
@@ -103,10 +104,40 @@ export class Node extends KyveNode {
 				}
 			}
 
+			// After bundling -- We need expose the Storage Layer to the Transformers.
+			// Create a version of the Storage Layer this.cache that is read only, and isolated to given pipeline that the Transformer belongs to.
+			// const transformations = this.runtime.transform();
+
+			// Add the entire transformation responses to the bundles
+
+			// Iterate over the transformations to begin execution/proposing or voting/validation of blockchain transactions.
+
 			// wait until new bundle proposal gets created
 			while (createdAt === +this.pool.bundle_proposal!.created_at) {
 				await sleep(1000);
 			}
 		}
 	};
+
+	/**
+	 * Main method of ETL Node.
+	 *
+	 * This method will run indefinetely and only exits on specific exit conditions like running
+	 * an incorrect runtime or version.
+	 *
+	 * @method start
+	 * @return {Promise<void>}
+	 */
+	public async start(): Promise<void> {
+		this.start();
+
+		try {
+			// this.runListener();
+		} catch (error) {
+			this.logger.error(`Unexpected runtime error. Exiting ...`);
+			this.logger.debug(error);
+
+			process.exit(1);
+		}
+	}
 }
