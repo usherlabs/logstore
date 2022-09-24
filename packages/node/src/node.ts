@@ -1,12 +1,12 @@
 import { Node as KyveNode } from '@kyve/core';
 import { sleep } from '@kyve/core/dist/src/utils';
-import { IRuntime } from '@/types';
+import { IRuntime, ICache } from '@/types';
 import { cmd } from './cmd';
-
-// import {runCache} from '@/methods/runCache';
 
 export class Node extends KyveNode {
 	protected runtime!: IRuntime;
+
+	protected cache!: ICache;
 
 	protected evmPrivateKey: string = '';
 
@@ -36,7 +36,7 @@ export class Node extends KyveNode {
 			// a smaller to_height means a bundle got dropped or invalidated
 			if (+this.pool.bundle_proposal!.to_height < toHeight) {
 				this.logger.debug(`Attempting to clear cache`);
-				await this.cache.drop();
+				await this.cache.drop(+this.pool.current_height);
 				this.logger.info(`Cleared cache\n`);
 			}
 
