@@ -1,5 +1,12 @@
 import { Node as KyveNode } from '@kyve/core';
+import { ethers } from 'ethers';
 import { IRuntime, ICache, Pipeline } from '@/types';
+import {
+	polygonRpc,
+	ethereumRpc,
+	polygonChainId,
+	ethereumChainId,
+} from './env-config';
 import { cmd } from './cmd';
 import { runCache } from './methods/runCache';
 import { runListener } from './methods/runListener';
@@ -15,6 +22,12 @@ export class Node extends KyveNode {
 
 	protected evmPrivateKey: string = '';
 
+	protected connections: {
+		signer: ethers.Wallet;
+		ethProvider: ethers.providers.JsonRpcProvider;
+		polygonProvider: ethers.providers.JsonRpcProvider;
+	};
+
 	protected pipelines: Pipeline[];
 
 	/**
@@ -29,6 +42,26 @@ export class Node extends KyveNode {
 		// define extended program
 		const options = cmd.parse().opts();
 		this.evmPrivateKey = options.evmPrivateKey;
+
+		const connections = {
+			signer: new ethers.Wallet(this.evmPrivateKey),
+			ethProvider: null,
+			polygonProvider: null,
+		};
+		if (ethereumChainId && ethereumRpc) {
+			connections.ethProvider = new ethers.providers.JsonRpcProvider(
+				ethereumRpc,
+				+ethereumChainId
+			);
+		}
+		if (polygonChainId && polygonRpc) {
+			connections.polygonProvider = new ethers.providers.JsonRpcProvider(
+				polygonRpc,
+				+polygonChainId
+			);
+		}
+
+		this.connections = connections;
 	}
 
 	/**
@@ -69,8 +102,6 @@ export class Node extends KyveNode {
 	 * @return {Promise<void>}
 	 */
 	public async start(): Promise<void> {
-		this.start();
-
 		try {
 			this.runListener();
 		} catch (error) {
@@ -79,5 +110,7 @@ export class Node extends KyveNode {
 
 			process.exit(1);
 		}
+
+		this.start();
 	}
 }

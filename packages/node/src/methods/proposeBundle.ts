@@ -1,7 +1,9 @@
 import { sleep, standardizeJSON, sha256 } from '@kyve/core/dist/src/utils';
 import { Bundle } from '@kyve/core';
 import { KYVE_NO_DATA_BUNDLE } from '@kyve/core/dist/src/utils/constants';
+import { SubmitInstructions } from '@/types';
 import type { Node } from '../node';
+import { getBundleInstructions } from '@/utils/bundle-instructions';
 
 export async function proposeBundle(
 	this: Node,
@@ -105,7 +107,9 @@ export async function proposeBundle(
 				bundleProposal.toValue,
 				bundleHash
 			);
-			await this.submitTransactions(storageId);
+
+			const instructions = getBundleInstructions(bundleProposal);
+			await this.submitTransactions(storageId, instructions);
 		} else {
 			this.logger.info(
 				`Creating new bundle proposal of type ${KYVE_NO_DATA_BUNDLE}`

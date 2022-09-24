@@ -1,17 +1,25 @@
 import { IRuntime as IKyveRuntime, ICache as IKyveCache } from '@kyve/core';
 
-export type SupportedDataSources = 'ethereum' | 'polygon' | 'streamr';
-export type SupporedSourcesChains = '1' | '137';
+export enum SupporedSourcesChains {
+	mainnet = '1',
+	goerli = '5',
+	polygon = '137',
+	polygonmum = '80001',
+}
+
+export type SupportedSources = 'ethereum' | 'polygon' | 'streamr';
+
+export type SubmitInstruction = {
+	polygon: {
+		contract: string;
+		method: string;
+		params: (string | number | boolean)[];
+	}[];
+};
 
 export type TransformerResponse = {
-	response: Object;
-	submit: {
-		polygon: {
-			contract: string;
-			method: string;
-			params: (string | number)[]; // ? Dev note: We may need to expand the types that can be passed as params to the contract
-		}[];
-	};
+	response: any;
+	submit: SubmitInstruction;
 };
 
 export interface ICacheIsolate {
@@ -56,7 +64,7 @@ export interface Pipeline {
 	 * the datasource name, the address of the data resource & potentially the event to filter
 	 *
 	 * @property sources
-	 * @type {[SupportedDataSources, string][]}
+	 * @type {[SupportedSources, string][]}
 	 */
 	sources: string[][];
 

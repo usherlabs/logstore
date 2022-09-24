@@ -14,3 +14,9 @@ export const sentry = {
 
 /* ========== TESTING ========== */
 export const arweaveLocalPort = process.env.ARWEAVE_LOCAL_PORT;
+
+/* ========== API ============== */
+export const ethereumRpc = process.env.ETHEREUM_RPC;
+export const ethereumChainId = process.env.ETHEREUM_CHAIN_ID || '1';
+export const polygonRpc = process.env.POLYGON_RPC || 'https://polygon-rpc.com';
+export const polygonChainId = process.env.POLYGON_CHAIN_ID || '137';

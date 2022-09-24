@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { infuraApiKey, alchemyApiKey, ethereumRpc } from '@/env-config';
 import { DUMMY_ETH_ABI } from './dummy';
 
 /**
@@ -13,18 +14,6 @@ export const fetchABIJSONFromURL = (url: string) => {
 	return DUMMY_ETH_ABI;
 };
 
-/**
- * Get the default provider for teh passed in network
- *
- * @param networkChainId {string} the chain id of the network
- * @returns
- */
-export const getDefaultProvider = (networkChainId: string) => {
-	return new ethers.providers.InfuraProvider(
-		+networkChainId,
-		process.env.INFURA_API_KEY
-	);
-};
 /**
  * Parse an event block into a suitable format
  * @param eventLog an event log instance from ethers
