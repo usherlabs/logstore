@@ -21,27 +21,11 @@ export class IsolatedLevelStore {
 		return this.db.get(key.toString());
 	}
 
-	public async filter(filters: Record<string, (value: any) => boolean>) {
-		const filterKeys = Object.keys(filters);
-		const results = [];
+	public async *iterator() {
 		for await (const key of this.isolate.keys()) {
 			console.log(`isolate filter key: ${key}`);
 			const v = this.db.get(key);
-			if (typeof v === 'object') {
-				filterKeys.forEach((fkey) => {
-					// ignores non-function predicates
-					if (typeof filters[fkey] !== 'function') {
-						return true;
-					}
-					const match = filters[fkey](v[fkey]);
-					if (match) {
-						results.push({
-							key,
-							value: v,
-						});
-					}
-				});
-			}
+			yield v;
 		}
 	}
 
