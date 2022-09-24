@@ -20,13 +20,8 @@ export const fetchABIJSONFromURL = (url: string) => {
  */
 export const parseBlockEvent = (eventLog: any) => {
 	let { blockNumber, event, args } = eventLog;
-	args = { ...args }; // convert the argument to an object
 	// filter through the args to remove duplicates
-	const parsedArgs = Object.create({});
-	Object.keys(args).forEach((key) => {
-		if (+key || +key === 0) return; // if the index is a number, it means it is a duplicate key we dont need
-		parsedArgs[key] = args[key];
-	});
+	const parsedArgs = parseStruct(args)
 	// filter through the args to remove duplicates
 	return {
 		parsedArgs,
@@ -40,4 +35,26 @@ export const getChainName = (chainId: string | number) => {
 		(entry) => entry[1] === chainId
 	);
 	return res[0] || '';
+};
+
+/**
+ * A function used to return from 0 to count - 1
+ * @param count {number} The uppoer limit of range we want to get
+ * @returns {array} returns and array with ordered elements from 0 to count - 1
+ */
+export const range = (count: number | string) => [...new Array(+count).keys()];
+
+/**
+ * A function used to format a struct object gotten from the blockchain
+ * @param struct {Array} a strut onject directly from the blockchain
+ * @returns
+ */
+export const parseStruct = (struct: [] | {}) => {
+	const initialArgs = { ...struct };
+	const parsedArgs = Object.create({});
+	Object.keys(initialArgs).forEach((key) => {
+		if (+key || +key === 0) return; // if the index is a number, it means it is a duplicate key we dont need
+		parsedArgs[key] = initialArgs[key].toString();
+	});
+	return parsedArgs;
 };
