@@ -9,7 +9,7 @@
 		"build": "del dist && tsc && resolve-tspaths",
 		"build:binaries": "yarn build && del out && pkg --no-bytecode --public-packages '*' --output out/kyve package.json && node ./node_modules/@kyve/core/dist/src/scripts/checksum.js",
 		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md}\"",
-		"start": "node ./dist/src/index.js --poolId 0 -m 'behind field portion tent move cross case other call senior obtain seminar' --keyfile ./keyfile.json -s 175.2 --verbose",
+		"start": "node ./build/src/index.js --poolId 0 -m 'behind field portion tent move cross case other call senior obtain seminar' --keyfile ./keyfile.json -s 175.2 --verbose",
 		"start:fresh": "npm-run-all -s build start",
 		"ts": "tsc --noEmit",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts"

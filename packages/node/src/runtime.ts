@@ -13,7 +13,7 @@ export default class Runtime implements IRuntime {
 
 	public async setup() {
 		// STEP 1: Fetch pipelines configuration from contracts
-		const pipelines = await fetchPipelines();
+		const pipelines = await fetchPipelines.call(this);
 
 		// STEP 2: load JS contracts referenced by pipelines
 		// ... TODO: interate over pipelines and pull contracts to load them as executable functions on the transformer property.
