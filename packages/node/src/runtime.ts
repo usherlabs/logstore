@@ -1,6 +1,6 @@
 import { DataItem } from '@kyve/core';
-import { ethers, providers } from 'ethers';
-import { IRuntime, Pipeline } from '@/types';
+import { standardizeJSON, sha256 } from '@kyve/core/dist/src/utils';
+import { IRuntime, ICache, Pipeline, ICacheIsolate } from '@/types';
 import { Node } from '@/node';
 import { POOL_CONFIG_DATA } from './utils/dummy';
 import { fetchPipelines, fetchEventsFromSource } from './methods';
@@ -11,11 +11,9 @@ export default class Runtime implements IRuntime {
 
 	public version = appVersion;
 
-	protected pipelines: Pipeline[];
-
 	public async setup() {
 		// STEP 1: Fetch pipelines configuration from contracts
-		this.pipelines = await fetchPipelines();
+		const pipelines = await fetchPipelines();
 
 		// STEP 2: load JS contracts referenced by pipelines
 		// ... TODO: interate over pipelines and pull contracts to load them as executable functions on the transformer property.
@@ -24,6 +22,8 @@ export default class Runtime implements IRuntime {
 		// ...
 
 		// STEP 4: Modify listeners -- ie. add new Streamr Listeners, or modify the conditions/rules that yield events from the active Blockchain listeners
+
+		return pipelines;
 	}
 
 	// ? Dev note: Try/Catch should be added at more granular level
@@ -33,17 +33,17 @@ export default class Runtime implements IRuntime {
 		// Priority = Streamr, Polygon, Ethereum
 
 		// ? Dev note: We may need to optimise the way we read pipeline data to prevent memory overload.
-		const responsePromise = this.pipelines.map(
-			async ({ sources, contract }) => {
-				const events = await fetchEventsFromSource(
-					POOL_CONFIG_DATA,
-					sources,
-					key
-				);
-				return events;
-			}
-		);
-		const response = await Promise.all(responsePromise);
+		// const responsePromise = pipelines.map(
+		// 	async ({ sources, contract }) => {
+		// 		const events = await fetchEventsFromSource(
+		// 			POOL_CONFIG_DATA,
+		// 			sources,
+		// 			key
+		// 		);
+		// 		return events;
+		// 	}
+		// );
+		// const response = await Promise.all(responsePromise);
 
 		// STEP 6: return the data into the bundle using the key
 		// ? Dev note: Imagine that all the bundles combine form an append-only event log
@@ -57,29 +57,8 @@ export default class Runtime implements IRuntime {
 	/**
 	 * A method to use the an instance of the events database layer to produce a read-only version specifically for the pipeline transformer.
 	 */
-	public async transform() {
-		// STEP 7: then iterate over the transformer functions and pass an isolated read-only instance of the events database to the transformer
-
-		// this.pipelines.map -- iteration
-		// Produces responses
-		/**
-		 * A single response example:
-			{
-				pipeline: "identifer"
-				response: 'some_modified_data_to_include_in_the_bundle',
-				submit: {
-					polygon: [
-						{
-							contract: '0x....',
-							method: 'method(data type, data type)',
-							params: ['param1', 'param2'],
-						},
-					],
-				},
-			}
-		 */
-
-		return []; // Array of transformations
+	public async transform(pipeline: Pipeline, db: ICacheIsolate) {
+		return pipeline.transformer(db);
 	}
 
 	public async getNextKey(key: string): Promise<string> {
@@ -87,6 +66,14 @@ export default class Runtime implements IRuntime {
 	}
 
 	public async formatValue(value: any): Promise<string> {
-		return value.hash;
+		if (value.hash) {
+			return value.hash;
+		}
+
+		let v = value;
+		if (typeof v === 'object') {
+			v = standardizeJSON(v);
+		}
+		return sha256(v);
 	}
 }

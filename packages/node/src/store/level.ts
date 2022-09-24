@@ -52,7 +52,7 @@ export class LevelStore implements ICache {
 		if (typeof height === 'number') {
 			await db.clear({ gte: height });
 		} else {
-			await db.clear();
+			throw new Error('Height must be provided to drop from cache');
 		}
 	}
 

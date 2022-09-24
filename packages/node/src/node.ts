@@ -1,7 +1,12 @@
 import { Node as KyveNode } from '@kyve/core';
-import { sleep } from '@kyve/core/dist/src/utils';
-import { IRuntime, ICache } from '@/types';
+import { IRuntime, ICache, Pipeline } from '@/types';
 import { cmd } from './cmd';
+import { runCache } from './methods/runCache';
+import { runListener } from './methods/runListener';
+import { proposeBundle } from './methods/proposeBundle';
+import { validateBundleProposal } from './methods/validateBundleProposal';
+import { voteTransactions } from './methods/voteTransactions';
+import { submitTransactions } from './methods/submitTransactions';
 
 export class Node extends KyveNode {
 	protected runtime!: IRuntime;
@@ -9,6 +14,8 @@ export class Node extends KyveNode {
 	protected cache!: ICache;
 
 	protected evmPrivateKey: string = '';
+
+	protected pipelines: Pipeline[];
 
 	/**
 	 * Defines node options for CLI and initializes those inputs
@@ -22,102 +29,35 @@ export class Node extends KyveNode {
 		// define extended program
 		const options = cmd.parse().opts();
 		this.evmPrivateKey = options.evmPrivateKey;
-
-		// TODO: setup listeners for each source -- such that new conditions determined by pipelines can modify the listeners
 	}
 
-	protected runCache: () => Promise<void> = async () => {
-		let createdAt = 0;
-		let currentHeight = 0;
-		let toHeight = 0;
-		let maxHeight = 0;
+	/**
+	 * Process to run the Cache and handle Storage
+	 */
+	protected runCache = runCache;
 
-		while (true) {
-			// a smaller to_height means a bundle got dropped or invalidated
-			if (+this.pool.bundle_proposal!.to_height < toHeight) {
-				this.logger.debug(`Attempting to clear cache`);
-				await this.cache.drop(+this.pool.current_height);
-				this.logger.info(`Cleared cache\n`);
-			}
+	/**
+	 * Process to run the Listener
+	 */
+	protected runListener = runListener;
 
-			// cache data items from current height to required height
-			createdAt = +this.pool.bundle_proposal!.created_at;
-			currentHeight = +this.pool.current_height;
-			toHeight =
-				+this.pool.bundle_proposal!.to_height || +this.pool.current_height;
-			maxHeight = +this.pool.max_bundle_size + toHeight;
+	/**
+	 * Extending Validate Bundle Proposal -- to include Transactions Validation
+	 *
+	 * @var {[type]}
+	 */
+	protected validateBundleProposal = validateBundleProposal;
 
-			// clear finalized items
-			let current = currentHeight;
+	/**
+	 * Extending Propose Bundle -- to include Transactions Submission/Proposal
+	 *
+	 * @var {[type]}
+	 */
+	protected proposeBundle = proposeBundle;
 
-			while (current > 0) {
-				current -= 1;
+	protected voteTransactions = voteTransactions;
 
-				try {
-					await this.cache.del(current.toString());
-				} catch {
-					break;
-				}
-			}
-
-			let startHeight: number;
-			let key: string;
-
-			// determine from which height to continue caching
-			if (await this.cache.exists((toHeight - 1).toString())) {
-				startHeight = toHeight;
-				key = this.pool.bundle_proposal!.to_key;
-			} else {
-				startHeight = currentHeight;
-				key = this.pool.current_key;
-			}
-
-			this.logger.debug(
-				`Caching from height ${startHeight} to ${maxHeight} ...`
-			);
-
-			let height = startHeight;
-
-			this.runtime.setup();
-
-			// Bundle creation
-			while (height < maxHeight) {
-				try {
-					let nextKey;
-
-					if (key) {
-						nextKey = await this.runtime.getNextKey(key);
-					} else {
-						nextKey = this.pool.start_key;
-					}
-
-					const item = await this.runtime.getDataItem(this, nextKey);
-
-					await this.cache.put(height.toString(), item);
-					await sleep(50);
-
-					key = nextKey;
-					height += 1;
-				} catch {
-					this.logger.warn(` Failed to get data item from height ${height}`);
-					await sleep(10 * 1000);
-				}
-			}
-
-			// After bundling -- We need expose the Storage Layer to the Transformers.
-			// Create a version of the Storage Layer this.cache that is read only, and isolated to given pipeline that the Transformer belongs to.
-			// const transformations = this.runtime.transform();
-
-			// Add the entire transformation responses to the bundles
-
-			// Iterate over the transformations to begin execution/proposing or voting/validation of blockchain transactions.
-
-			// wait until new bundle proposal gets created
-			while (createdAt === +this.pool.bundle_proposal!.created_at) {
-				await sleep(1000);
-			}
-		}
-	};
+	protected submitTransactions = submitTransactions;
 
 	/**
 	 * Main method of ETL Node.
@@ -132,7 +72,7 @@ export class Node extends KyveNode {
 		this.start();
 
 		try {
-			// this.runListener();
+			this.runListener();
 		} catch (error) {
 			this.logger.error(`Unexpected runtime error. Exiting ...`);
 			this.logger.debug(error);

@@ -14,6 +14,26 @@ export type TransformerResponse = {
 	};
 };
 
+export interface ICacheIsolate {
+	get: (key: string | number) => any;
+	iterator: () => AsyncGenerator<string, void, unknown>;
+	exists: (key: string | number) => Promise<boolean>;
+}
+
+export interface ICache extends IKyveCache {
+	db: () => Promise<any>;
+	drop: (height?: number) => Promise<void>;
+	isolate: (id: string) => ICacheIsolate;
+}
+
+export interface IRuntime extends IKyveRuntime {
+	setup: () => Promise<Pipeline[]>;
+	transform: (
+		pipeline: Pipeline,
+		db: ICacheIsolate
+	) => Promise<TransformerResponse>;
+}
+
 /**
  * Interface of Pipeline
  *
@@ -25,6 +45,11 @@ export type TransformerResponse = {
  * @interface Pipeline
  */
 export interface Pipeline {
+	/**
+	 * An identifier for the pipeline
+	 */
+	id: string;
+
 	/**
 	 * An array of array's which contain information about a datasource
 	 * it typically contains the following
@@ -50,7 +75,7 @@ export interface Pipeline {
 	 *
 	 * @property transformer
 	 */
-	transformer?: (events: Object[]) => TransformerResponse;
+	transformer?: (events: ICacheIsolate) => TransformerResponse;
 }
 
 /**
@@ -79,12 +104,4 @@ export interface PoolConfig {
 
 export interface Sources {
 	[name: string]: any;
-}
-
-export interface IRuntime extends IKyveRuntime {
-	setup: () => Promise<void>;
-}
-
-export interface ICache extends IKyveCache {
-	drop: (height?: number) => Promise<void>;
 }

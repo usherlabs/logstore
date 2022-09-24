@@ -32,6 +32,7 @@
 		"class-methods-use-this": "off",
 		"no-await-in-loop": "off",
 		"no-constant-condition": "off",
-		"no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"]
+		"no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
+		"no-continue": "off"
 	}
 }

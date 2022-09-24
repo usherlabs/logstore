@@ -1,17 +1,8 @@
 import { ClassicLevel } from 'classic-level';
-import { AbstractSublevel } from 'abstract-level';
+import { ICacheIsolate } from '@/types';
 
-export class IsolatedLevelStore {
-	protected isolate!: AbstractSublevel<
-		ClassicLevel<string, string>,
-		string | Buffer,
-		string,
-		string
-	>;
-
-	constructor(protected db: ClassicLevel, protected id: string) {
-		this.isolate = this.db.sublevel(id);
-	}
+export class IsolatedLevelStore implements ICacheIsolate {
+	constructor(protected db: ClassicLevel, protected id: string) {}
 
 	public async get(key: string | number) {
 		if (!(await this.exists(key))) {
@@ -22,17 +13,21 @@ export class IsolatedLevelStore {
 	}
 
 	public async *iterator() {
-		for await (const key of this.isolate.keys()) {
+		for await (const [key, value] of this.db.iterator()) {
 			console.log(`isolate filter key: ${key}`);
-			const v = this.db.get(key);
-			yield v;
+			const v = value as any;
+			if (v?.pipeline === this.id) {
+				yield v;
+			}
 		}
 	}
 
 	public async exists(key: string | number) {
 		try {
-			await this.isolate.get(key.toString());
-			return true;
+			const value = (await this.db.get(key.toString())) as any;
+			if (value?.pipeline === this.id) {
+				return true;
+			}
 		} catch (e) {
 			if (e.code !== 'LEVEL_NOT_FOUND') {
 				throw e;
