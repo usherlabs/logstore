@@ -27,6 +27,7 @@ export const POOL_CONFIG_DATA = {
 
 export const DUMMY_PIPELINE_DATA = [
 	{
+		id: "random32bytes",
 		sources: [
 			[
 				'ethereum',

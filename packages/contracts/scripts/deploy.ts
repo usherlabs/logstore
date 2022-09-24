@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const Pipeline = await ethers.getContractFactory("Pipeline");
+  const Pipeline = await ethers.getContractFactory("PipelineContract");
   const pipeline = await Pipeline.deploy();
 
   await pipeline.deployed();
@@ -11,7 +11,7 @@ async function main() {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-// 0x1850f080eb4C7f824B1Db2550Ea828467adc6b9B -- contract in use on goerli network
+// 0xDA50a7A41e5ac1d9d49A56A2647123Ed65F3e4B7 -- contract in use on mumbai network
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
