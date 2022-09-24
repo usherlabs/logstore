@@ -1,6 +1,7 @@
 import { ClassicLevel } from 'classic-level';
 import { existsSync, mkdirSync } from 'fs';
 import { ICache } from '@/types';
+import { IsolatedLevelStore } from './isolated';
 
 export class LevelStore implements ICache {
 	public name = 'Level';
@@ -21,7 +22,7 @@ export class LevelStore implements ICache {
 		return this;
 	}
 
-	private async db(): Promise<ClassicLevel> {
+	public async db(): Promise<ClassicLevel> {
 		if (!this._db) {
 			throw new Error('Database is not initialised');
 		}
@@ -56,11 +57,31 @@ export class LevelStore implements ICache {
 	}
 
 	public async exists(key: string | number): Promise<boolean> {
-		const v = await this.get(key);
-		if (typeof v !== 'undefined') {
+		try {
+			await this.get(key);
 			return true;
+		} catch (e) {
+			if (e.code !== 'LEVEL_NOT_FOUND') {
+				throw e;
+			}
 		}
-
 		return false;
+	}
+
+	public async isolatePut(
+		id: string,
+		key: string | number,
+		value: any
+	): Promise<void> {
+		const db = await this.db();
+		const instance = db.sublevel(id);
+		await instance.put(key.toString(), value);
+	}
+
+	public async isolate(id: string) {
+		const db = await this.db();
+		const isolate = new IsolatedLevelStore(db, id);
+
+		return isolate;
 	}
 }
