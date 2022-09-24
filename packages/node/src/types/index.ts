@@ -1,4 +1,8 @@
-import { IRuntime as IKyveRuntime, ICache as IKyveCache } from '@kyve/core';
+import {
+	IRuntime as IKyveRuntime,
+	ICache as IKyveCache,
+	IStorageProvider as IKyveStorageProvider,
+} from '@kyve/core';
 
 export enum SupporedSourcesChains {
 	mainnet = '1',
@@ -9,12 +13,15 @@ export enum SupporedSourcesChains {
 
 export type SupportedSources = 'ethereum' | 'polygon' | 'streamr';
 
+export type EVMSubmitInstruction = {
+	contract: string;
+	method: string;
+	params: (string | number | boolean)[];
+};
+
 export type SubmitInstruction = {
-	polygon: {
-		contract: string;
-		method: string;
-		params: (string | number | boolean)[];
-	}[];
+	polygon?: EVMSubmitInstruction[];
+	ethereum?: EVMSubmitInstruction[];
 };
 
 export type TransformerResponse = {
@@ -40,6 +47,10 @@ export interface IRuntime extends IKyveRuntime {
 		pipeline: Pipeline,
 		db: ICacheIsolate
 	) => Promise<TransformerResponse>;
+}
+
+export interface IStorageProvider extends IKyveStorageProvider {
+	retrieveBundleMetadata: (storageId: string) => Promise<string[2][]>;
 }
 
 /**

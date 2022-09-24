@@ -1,9 +1,10 @@
 import 'dotenv/config';
 
-import { Arweave, Gzip } from '@kyve/core';
+import { Gzip } from '@kyve/core';
 import Runtime from './runtime';
 import { Node } from './node';
-import { LevelStore } from './store';
+import { LevelStore } from './localstore';
+import { Arweave } from './storage';
 
 new Node()
 	.addRuntime(new Runtime())

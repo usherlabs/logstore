@@ -1,33 +1,25 @@
 // import { sleep } from '@kyve/core/dist/src/utils';
 import ethers, { BigNumber } from 'ethers';
-import EthersAdapter from '@gnosis.pm/safe-ethers-lib';
 import { SafeTransactionDataPartial } from '@gnosis.pm/safe-core-sdk-types';
-import Safe from '@gnosis.pm/safe-core-sdk';
-import { randomString } from '@stablelib/random';
 
-import { MULTISIG_GOERLI } from '@/utils/constants';
+import { TREASURY } from '@/utils/constants';
 import { SubmitInstruction } from '@/types/index';
+import { getSafe } from '@/utils/safe';
 
 import type { Node } from '../node';
 
-export async function submitTransactions(
+export async function createTransactions(
 	this: Node,
-	id: string,
 	instructions: SubmitInstruction[]
-): Promise<void> {
-	// Setup the EthersAdapter
-	const adapter = new EthersAdapter({
-		ethers,
-		signer: this.connections.signer,
-	});
-	const safeSdk: Safe = await Safe.create({
-		ethAdapter: adapter,
-		safeAddress: MULTISIG_GOERLI,
-	});
+): Promise<string[]> {
+	const safeSdk = await getSafe(
+		this.connections.signer,
+		TREASURY[this.connections.eth.chainId]
+	);
 
 	const txDataItems = [];
 	instructions.forEach((instruction) => {
-		instruction.polygon.forEach((txRequest) => {
+		instruction.ethereum.forEach((txRequest) => {
 			const methodSig = ethers.utils.keccak256(
 				ethers.utils.toUtf8Bytes(txRequest.method)
 			);
@@ -64,6 +56,7 @@ export async function submitTransactions(
 		});
 	});
 
+	const hashes = [];
 	for (let i = 0; i < txDataItems.length; i += 1) {
 		const txData = txDataItems[i];
 
@@ -74,9 +67,8 @@ export async function submitTransactions(
 		// 	safeTransaction
 		// );
 		const txHash = await safeSdk.getTransactionHash(safeTransaction);
-		const approveTxResponse = await safeSdk.approveTransactionHash(txHash, {
-			nonce: [randomString(16), id].join('_'),
-		});
-		await approveTxResponse.transactionResponse?.wait();
+		hashes.push(txHash);
 	}
+
+	return hashes;
 }

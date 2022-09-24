@@ -1,6 +1,6 @@
 import { Node as KyveNode } from '@kyve/core';
 import { ethers } from 'ethers';
-import { IRuntime, ICache, Pipeline } from '@/types';
+import { IRuntime, ICache, Pipeline, IStorageProvider } from '@/types';
 import {
 	polygonRpc,
 	ethereumRpc,
@@ -13,19 +13,28 @@ import { runListener } from './methods/runListener';
 import { proposeBundle } from './methods/proposeBundle';
 import { validateBundleProposal } from './methods/validateBundleProposal';
 import { voteTransactions } from './methods/voteTransactions';
-import { submitTransactions } from './methods/submitTransactions';
+import { createTransactions } from './methods/createTransactions';
+import { approveTransactions } from './methods/approveTransactions';
+
+type EVMConnection = {
+	chainId: string;
+	rpc: string;
+	provider: ethers.providers.JsonRpcProvider;
+};
 
 export class Node extends KyveNode {
 	protected runtime!: IRuntime;
 
 	protected cache!: ICache;
 
+	protected storageProvider!: IStorageProvider;
+
 	protected evmPrivateKey: string = '';
 
 	protected connections: {
 		signer: ethers.Wallet;
-		ethProvider: ethers.providers.JsonRpcProvider;
-		polygonProvider: ethers.providers.JsonRpcProvider;
+		eth: EVMConnection;
+		polygon: EVMConnection;
 	};
 
 	protected pipelines: Pipeline[];
@@ -45,17 +54,25 @@ export class Node extends KyveNode {
 
 		const connections = {
 			signer: new ethers.Wallet(this.evmPrivateKey),
-			ethProvider: null,
-			polygonProvider: null,
+			eth: {
+				chainId: ethereumChainId,
+				rpc: ethereumRpc,
+				provider: null,
+			},
+			polygon: {
+				chainId: polygonChainId,
+				rpc: polygonRpc,
+				provider: null,
+			},
 		};
 		if (ethereumChainId && ethereumRpc) {
-			connections.ethProvider = new ethers.providers.JsonRpcProvider(
+			connections.eth.provider = new ethers.providers.JsonRpcProvider(
 				ethereumRpc,
 				+ethereumChainId
 			);
 		}
 		if (polygonChainId && polygonRpc) {
-			connections.polygonProvider = new ethers.providers.JsonRpcProvider(
+			connections.polygon.provider = new ethers.providers.JsonRpcProvider(
 				polygonRpc,
 				+polygonChainId
 			);
@@ -90,7 +107,9 @@ export class Node extends KyveNode {
 
 	protected voteTransactions = voteTransactions;
 
-	protected submitTransactions = submitTransactions;
+	protected createTransactions = createTransactions;
+
+	protected approveTransactions = approveTransactions;
 
 	/**
 	 * Main method of ETL Node.

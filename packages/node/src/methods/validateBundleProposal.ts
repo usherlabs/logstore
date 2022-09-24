@@ -197,10 +197,11 @@ export async function validateBundleProposal(
 				this.pool.bundle_proposal!.storage_id,
 				VOTE.INVALID
 			);
-			await this.voteTransactions(
-				this.pool.bundle_proposal!.storage_id,
-				VOTE.INVALID
-			);
+			// TODO: Add repurcussions to invalid transaction management
+			// await this.voteTransactions(
+			// 	this.pool.bundle_proposal!.storage_id,
+			// 	VOTE.INVALID
+			// );
 		}
 	} catch (error) {
 		this.logger.warn(` Failed to validate bundle`);

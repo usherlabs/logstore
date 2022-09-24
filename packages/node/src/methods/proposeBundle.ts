@@ -1,9 +1,8 @@
 import { sleep, standardizeJSON, sha256 } from '@kyve/core/dist/src/utils';
 import { Bundle } from '@kyve/core';
 import { KYVE_NO_DATA_BUNDLE } from '@kyve/core/dist/src/utils/constants';
-import { SubmitInstructions } from '@/types';
-import type { Node } from '../node';
 import { getBundleInstructions } from '@/utils/bundle-instructions';
+import type { Node } from '../node';
 
 export async function proposeBundle(
 	this: Node,
@@ -17,6 +16,7 @@ export async function proposeBundle(
 	let storageId: string;
 	let bundleProposal: Bundle;
 	let bundleCompressed: Buffer;
+	let txHashes: string[];
 
 	while (true) {
 		await this.syncPoolState();
@@ -37,6 +37,9 @@ export async function proposeBundle(
 		if (!bundleProposal.bundle.length) {
 			break;
 		}
+
+		const txSubmitInstructions = getBundleInstructions(bundleProposal);
+		txHashes = await this.createTransactions(txSubmitInstructions);
 
 		try {
 			// upload bundle to Arweave
@@ -63,6 +66,9 @@ export async function proposeBundle(
 				['ToKey', bundleProposal.toKey],
 				['Value', bundleProposal.toValue],
 			];
+			txHashes.forEach((txHash, i) => {
+				tags.push([`ETL-Network-Tx-${i}`, txHash]);
+			});
 
 			this.logger.debug(`Attempting to save bundle on storage provider`);
 
@@ -108,8 +114,7 @@ export async function proposeBundle(
 				bundleHash
 			);
 
-			const instructions = getBundleInstructions(bundleProposal);
-			await this.submitTransactions(storageId, instructions);
+			await this.approveTransactions(txHashes);
 		} else {
 			this.logger.info(
 				`Creating new bundle proposal of type ${KYVE_NO_DATA_BUNDLE}`

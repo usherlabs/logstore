@@ -1,6 +1,5 @@
-import { ethers } from 'ethers';
-import { infuraApiKey, alchemyApiKey, ethereumRpc } from '@/env-config';
 import { DUMMY_ETH_ABI } from './dummy';
+import { SupporedSourcesChains } from '@/types';
 
 /**
  * It recieves a url which points to the ABI of a contract
@@ -34,4 +33,11 @@ export const parseBlockEvent = (eventLog: any) => {
 		blockNumber,
 		event,
 	};
+};
+
+export const getChainName = (chainId: string | number) => {
+	const res = Object.entries(SupporedSourcesChains).find(
+		(entry) => entry[1] === chainId
+	);
+	return res[0] || '';
 };
