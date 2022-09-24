@@ -1,4 +1,4 @@
-import { IRuntime as IKyveRuntime } from '@kyve/core';
+import { IRuntime as IKyveRuntime, ICache as IKyveCache } from '@kyve/core';
 
 export type SupportedDataSources = 'ethereum' | 'polygon' | 'streamr';
 export type SupporedSourcesChains = '1' | '137';
@@ -83,4 +83,8 @@ export interface Sources {
 
 export interface IRuntime extends IKyveRuntime {
 	setup: () => Promise<void>;
+}
+
+export interface ICache extends IKyveCache {
+	drop: (height?: number) => Promise<void>;
 }
