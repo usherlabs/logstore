@@ -43,8 +43,7 @@
 		"ethers": "^5.7.1",
 		"object-hash": "^3.0.0",
 		"streamr-client": "^6.0.1",
-		"tslog": "^3.3.4",
-		"web3.storage": "^4.4.0"
+		"tslog": "^3.3.4"
 	},
 	"devDependencies": {
 		"@types/node": "^18.7.18",

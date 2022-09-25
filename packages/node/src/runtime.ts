@@ -1,12 +1,7 @@
 import { DataItem } from '@kyve/core';
 import { standardizeJSON, sha256 } from '@kyve/core/dist/src/utils';
-import {
-	IRuntime,
-	Pipeline,
-	ICacheIsolate,
-	SupportedSources,
-	SourceCache,
-} from '@/types';
+import { IRuntime, Pipeline, ICacheIsolate, SupportedSources } from '@/types';
+import { Node } from './node';
 import { appPackageName, appVersion } from './env-config';
 
 const itemPriorityBySource = [
@@ -22,10 +17,7 @@ export default class Runtime implements IRuntime {
 
 	// ? Dev note: Try/Catch should be added at more granular level
 	// ? Dev note #2: getDataItem is executed inside of a while-loop, whereby a key is passed to the method for each block in a range.
-	public async getDataItem(
-		sourceCache: SourceCache,
-		key: string
-	): Promise<DataItem | null> {
+	public async getDataItem(core: Node, key: string): Promise<DataItem> {
 		// read the NEXT event from the source cache in order of priority. Move onto the next source in priority based on whether events no longer exist in cache.
 		// Priority = Streamr, Polygon, Ethereum
 		let source: SupportedSources;
@@ -33,7 +25,7 @@ export default class Runtime implements IRuntime {
 		for (let i = 0; i < itemPriorityBySource.length; i += 1) {
 			source = itemPriorityBySource[i];
 
-			const cache = sourceCache[source];
+			const cache = core.getSourceCache(source);
 
 			const height = await cache.height;
 			for (let j = height - 1; j > 0; j -= 1) {
@@ -47,7 +39,7 @@ export default class Runtime implements IRuntime {
 		}
 
 		if (typeof sourceKey === 'number' && typeof source === 'string') {
-			const cache = sourceCache[source];
+			const cache = core.getSourceCache(source);
 			const sourceValue = await cache.get(sourceKey.toString());
 			const value = {
 				...sourceValue,
@@ -67,8 +59,10 @@ export default class Runtime implements IRuntime {
 			};
 		}
 
-		// Return null where no new data was found for the source.
-		return null;
+		return {
+			key: '',
+			value: '',
+		};
 	}
 
 	/**

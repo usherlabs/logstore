@@ -133,6 +133,10 @@ export class Node extends KyveNode {
 		};
 	};
 
+	public getSourceCache(source: SupportedSources) {
+		return this.sourceCache[source];
+	}
+
 	/**
 	 * Main method of ETL Node.
 	 *

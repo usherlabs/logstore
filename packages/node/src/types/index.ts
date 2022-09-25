@@ -2,7 +2,6 @@ import type {
 	IRuntime as IKyveRuntime,
 	ICache as IKyveCache,
 	IStorageProvider as IKyveStorageProvider,
-	DataItem,
 } from '@kyve/core';
 
 export enum SupportedSourcesChains {
@@ -111,23 +110,12 @@ export interface ICache extends IKyveCache {
 	source: (name: SupportedSources) => Promise<ISourceCache>;
 }
 
-export interface IRuntime extends Omit<IKyveRuntime, 'getDataItem'> {
+export interface IRuntime extends IKyveRuntime {
 	// setup: () => Promise<void>;
 	transform: (
 		pipeline: Pipeline,
 		db: ICacheIsolate
 	) => Promise<TransformerResponse>;
-	/**
-	 * Gets the data item from a specific key and returns both key and the value.
-	 *
-	 * Deterministic behavior is required
-	 *
-	 * @method getDataItem
-	 * @param {string} key which gets inserted by @kyve/core
-	 * @param {any} config pool config which usually holds rpc endpoints for example
-	 * @return {Promise<DataItem>}
-	 */
-	getDataItem(sourceCache: SourceCache, key: string): Promise<DataItem | null>;
 }
 
 export interface IStorageProvider extends IKyveStorageProvider {
