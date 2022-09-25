@@ -1,30 +1,13 @@
 import { DataItem } from '@kyve/core';
 import { standardizeJSON, sha256 } from '@kyve/core/dist/src/utils';
-import { IRuntime, ICache, Pipeline, ICacheIsolate } from '@/types';
+import { IRuntime, Pipeline, ICacheIsolate } from '@/types';
 import { Node } from '@/node';
-import { POOL_CONFIG_DATA } from './utils/dummy';
-import { fetchPipelines, fetchEventsFromSource } from './methods';
 import { appPackageName, appVersion } from './env-config';
 
 export default class Runtime implements IRuntime {
 	public name = appPackageName;
 
 	public version = appVersion;
-
-	public async setup() {
-		// STEP 1: Fetch pipelines configuration from contracts
-		const pipelines = await fetchPipelines.call(this);
-
-		// STEP 2: load JS contracts referenced by pipelines
-		// ... TODO: interate over pipelines and pull contracts to load them as executable functions on the transformer property.
-
-		// STEP 3: determine which pipelines are valid and should be included in ETL process
-		// ...
-
-		// STEP 4: Modify listeners -- ie. add new Streamr Listeners, or modify the conditions/rules that yield events from the active Blockchain listeners
-
-		return pipelines;
-	}
 
 	// ? Dev note: Try/Catch should be added at more granular level
 	// ? Dev note #2: getDataItem is executed inside of a while-loop, whereby a key is passed to the method for each block in a range.

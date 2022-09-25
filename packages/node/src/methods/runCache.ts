@@ -16,7 +16,8 @@ export async function runCache(this: Node): Promise<void> {
 			this.logger.info(`Cleared cache\n`);
 		}
 
-		this.pipelines = await this.runtime.setup();
+		// setup pipelines
+		await this.setupPipelines();
 
 		// cache data items from current height to required height
 		createdAt = +this.pool.bundle_proposal!.created_at;

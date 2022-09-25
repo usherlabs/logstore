@@ -68,20 +68,17 @@ export class LevelStore implements ICache {
 		return false;
 	}
 
-	public async isolatePut(
-		id: string,
-		key: string | number,
-		value: any
-	): Promise<void> {
-		const db = await this.db();
-		const instance = db.sublevel(id);
-		await instance.put(key.toString(), value);
-	}
-
 	public async isolate(id: string) {
 		const db = await this.db();
 		const isolate = new IsolatedLevelStore(db, id);
 
 		return isolate;
+	}
+
+	public async newCache(name: string) {
+		const db = await this.db();
+		const cache = db.sublevel(name);
+
+		return cache;
 	}
 }

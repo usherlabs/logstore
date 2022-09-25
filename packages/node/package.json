@@ -28,6 +28,7 @@
 		"singleQuote": true
 	},
 	"dependencies": {
+		"@etl-network/contracts": "*",
 		"@gnosis.pm/safe-core-sdk": "^3.1.1",
 		"@gnosis.pm/safe-core-sdk-types": "^1.6.1",
 		"@gnosis.pm/safe-ethers-lib": "^1.6.1",

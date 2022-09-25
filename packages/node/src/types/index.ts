@@ -1,8 +1,10 @@
-import {
+import type {
 	IRuntime as IKyveRuntime,
 	ICache as IKyveCache,
 	IStorageProvider as IKyveStorageProvider,
 } from '@kyve/core';
+import type { AbstractSublevel } from 'abstract-level';
+import type { ClassicLevel } from 'classic-level';
 
 export enum SupporedSourcesChains {
 	mainnet = '1',
@@ -38,7 +40,17 @@ export interface ICacheIsolate {
 export interface ICache extends IKyveCache {
 	db: () => Promise<any>;
 	drop: (height?: number) => Promise<void>;
-	isolate: (id: string) => ICacheIsolate;
+	isolate: (id: string) => Promise<ICacheIsolate>;
+	newCache: (
+		name: string
+	) => Promise<
+		AbstractSublevel<
+			ClassicLevel<string, string>,
+			string | Buffer,
+			string,
+			string
+		>
+	>;
 }
 
 export interface IRuntime extends IKyveRuntime {

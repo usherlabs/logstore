@@ -15,6 +15,7 @@ import { validateBundleProposal } from './methods/validateBundleProposal';
 import { voteTransactions } from './methods/voteTransactions';
 import { createTransactions } from './methods/createTransactions';
 import { approveTransactions } from './methods/approveTransactions';
+import { setupPipelines } from './methods/setupPipelines';
 
 type EVMConnection = {
 	chainId: string;
@@ -110,6 +111,8 @@ export class Node extends KyveNode {
 	protected createTransactions = createTransactions;
 
 	protected approveTransactions = approveTransactions;
+
+	protected setupPipelines = setupPipelines;
 
 	/**
 	 * Main method of ETL Node.
