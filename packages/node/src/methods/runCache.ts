@@ -1,3 +1,4 @@
+import { SupportedSources } from '@/types';
 import { sleep } from '@kyve/core/dist/src/utils';
 
 import type { Node } from '../node';
@@ -13,6 +14,12 @@ export async function runCache(this: Node): Promise<void> {
 		if (+this.pool.bundle_proposal!.to_height < toHeight) {
 			this.logger.debug(`Attempting to clear cache`);
 			await this.cache.drop(+this.pool.current_height);
+			this.logger.debug(`Reset source cache values to current height`);
+			await Promise.all(
+				Object.entries(SupportedSources).map(([, sourceName]) => {
+					return this.sourceCache[sourceName].reset(+this.pool.current_height);
+				})
+			);
 			this.logger.info(`Cleared cache\n`);
 		}
 
@@ -54,11 +61,17 @@ export async function runCache(this: Node): Promise<void> {
 					nextKey = this.pool.start_key;
 				}
 
-				const item = await this.runtime.getDataItem(this, nextKey);
+				const item = await this.runtime.getDataItem(this.sourceCache, nextKey);
 
-				await this.cache.put(height.toString(), item);
-				await sleep(50);
+				if (item) {
+					await this.cache.put(height.toString(), item);
+					await sleep(50);
+				}
 
+				// TODO: Solve for this -- data is going to be stored such that keys are going to be skipped
+				// ? The reason for this -- the Node is constantly producing bundles using a height range
+				// ? Also, idleing here would pause the interval, preventing transformation functions from executing.
+				// Heights are still required here to ensure that cache is cleared for dropped/invalid bundles.
 				key = nextKey;
 				height += 1;
 			} catch {
@@ -71,7 +84,7 @@ export async function runCache(this: Node): Promise<void> {
 		for (let i = 0; i < this.pipelines.length; i += 1) {
 			const pipeline = this.pipelines[i];
 			// Create a version of the Storage Layer this.cache that is read only, and isolated to given pipeline that the Transformer belongs to.
-			const instance = this.cache.isolate(pipeline.id);
+			const instance = await this.cache.isolate(pipeline.id);
 
 			let transformation = {};
 			if (pipeline.transformer) {

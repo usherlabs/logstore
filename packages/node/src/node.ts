@@ -1,6 +1,13 @@
 import { Node as KyveNode } from '@kyve/core';
 import { ethers } from 'ethers';
-import { IRuntime, ICache, Pipeline, IStorageProvider } from '@/types';
+import {
+	IRuntime,
+	ICache,
+	Pipeline,
+	IStorageProvider,
+	SupportedSources,
+	SourceCache,
+} from '@/types';
 import {
 	polygonRpc,
 	ethereumRpc,
@@ -39,6 +46,8 @@ export class Node extends KyveNode {
 	};
 
 	protected pipelines: Pipeline[];
+
+	protected sourceCache: SourceCache;
 
 	protected resetListener: () => Promise<void>;
 
@@ -116,6 +125,14 @@ export class Node extends KyveNode {
 
 	protected setupPipelines = setupPipelines;
 
+	protected setupSourceCache = async () => {
+		this.sourceCache = {
+			polygon: await this.cache.source(SupportedSources.polygon),
+			ethereum: await this.cache.source(SupportedSources.ethereum),
+			streamr: await this.cache.source(SupportedSources.streamr),
+		};
+	};
+
 	/**
 	 * Main method of ETL Node.
 	 *
@@ -127,6 +144,8 @@ export class Node extends KyveNode {
 	 */
 	public async start(): Promise<void> {
 		try {
+			this.setupSourceCache();
+
 			this.resetListener = await this.runListener();
 		} catch (error) {
 			this.logger.error(`Unexpected runtime error. Exiting ...`);

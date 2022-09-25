@@ -1,6 +1,6 @@
-import { SupporedSourcesChains } from '@/types';
+import { SupportedSourcesChains } from '@/types';
 
-import { DUMMY_ETH_ABI } from './dummy';
+// import { DUMMY_ETH_ABI } from './dummy';
 
 /**
  * A function used to format a struct object gotten from the blockchain
@@ -17,37 +17,8 @@ export const parseStruct = (struct: [] | {}) => {
 	return parsedArgs;
 };
 
-/**
- * It recieves a url which points to the ABI of a contract
- * it then fetches the ABI and returns it
- *
- * @param url  {string} the url of the ABI of the contract
- * @returns {Object} the json representation of the abi
- */
-export const fetchABIJSONFromURL = (url: string) => {
-	// TODO: perform fetch operation to return an ABI
-	return DUMMY_ETH_ABI;
-};
-
-/**
- * Parse an event block into a suitable format
- * @param eventLog an event log instance from ethers
- * @returns
- */
-export const parseBlockEvent = (eventLog: any) => {
-	let { blockNumber, event, args } = eventLog;
-	// filter through the args to remove duplicates
-	const parsedArgs = parseStruct(args);
-	// filter through the args to remove duplicates
-	return {
-		parsedArgs,
-		blockNumber,
-		event,
-	};
-};
-
 export const getChainName = (chainId: string | number) => {
-	const res = Object.entries(SupporedSourcesChains).find(
+	const res = Object.entries(SupportedSourcesChains).find(
 		(entry) => entry[1] === chainId
 	);
 	return res[0] || '';

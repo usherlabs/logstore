@@ -7,13 +7,9 @@ import { SupportedSources } from '@/types';
 import type { Node } from '../node';
 
 export async function runListener(this: Node): Promise<() => Promise<void>> {
-	const polygonCache = await this.cache.newCache(SupportedSources.polygon);
-	const ethereumCache = await this.cache.newCache(SupportedSources.ethereum);
-	const streamrCache = await this.cache.newCache(SupportedSources.streamr);
-
-	let polygonCacheHeight = await polygonCache.keys().count;
-	let ethereumCacheHeight = await ethereumCache.keys().count;
-	let streamrCacheHeight = await streamrCache.keys().count;
+	let polygonCacheHeight = await this.sourceCache.polygon.height;
+	let ethereumCacheHeight = await this.sourceCache.ethereum.height;
+	let streamrCacheHeight = await this.sourceCache.streamr.height;
 
 	// To unsubscribe from all streams -- https://github.com/streamr-dev/examples/blob/master/LightNodeJs/src/unsubscribeAll.js#L23
 	const streamrClient = new StreamrClient({
@@ -23,9 +19,9 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 	});
 
 	const setupListeners = async () => {
-		const polygonFilters: EventFilter[] = [];
-		const ethereumFilters: EventFilter[] = [];
-		const streamrFilters: string[] = [];
+		const polygonFilters: { pipeline: string; filter: EventFilter }[] = [];
+		const ethereumFilters: { pipeline: string; filter: EventFilter }[] = [];
+		const streamrFilters: { pipeline: string; filter: string }[] = [];
 
 		this.pipelines.forEach((p) => {
 			p.sources.forEach((source) => {
@@ -34,20 +30,29 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 				switch (sourceIdentifier) {
 					case SupportedSources.ethereum: {
 						ethereumFilters.push({
-							address: sourceAddress,
-							topics: [ethers.utils.id(eSel)],
+							pipeline: p.id,
+							filter: {
+								address: sourceAddress,
+								topics: [ethers.utils.id(eSel)],
+							},
 						});
 						break;
 					}
 					case SupportedSources.polygon: {
 						polygonFilters.push({
-							address: sourceAddress,
-							topics: [ethers.utils.id(eSel)],
+							pipeline: p.id,
+							filter: {
+								address: sourceAddress,
+								topics: [ethers.utils.id(eSel)],
+							},
 						});
 						break;
 					}
 					case SupportedSources.streamr: {
-						streamrFilters.push(sourceAddress);
+						streamrFilters.push({
+							pipeline: p.id,
+							filter: sourceAddress,
+						});
 						break;
 					}
 					default: {
@@ -60,9 +65,12 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 		if (this.connections.polygon.provider !== null) {
 			await this.connections.polygon.provider.ready;
 			this.logger.info('Polygon provider is ready to listen for events...');
-			polygonFilters.forEach((filter) => {
+			polygonFilters.forEach(({ pipeline, filter }) => {
 				this.connections.polygon.provider.on(filter, async (event) => {
-					polygonCache.put(polygonCacheHeight.toString(), event);
+					this.sourceCache.polygon.put(polygonCacheHeight.toString(), {
+						pipeline,
+						event,
+					});
 					polygonCacheHeight += 1;
 				});
 			});
@@ -71,9 +79,12 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 		if (this.connections.eth.provider !== null) {
 			await this.connections.eth.provider.ready;
 			this.logger.info('Ethereum provider is ready to listen for events...');
-			ethereumFilters.forEach((filter) => {
+			ethereumFilters.forEach(({ pipeline, filter }) => {
 				this.connections.eth.provider.on(filter, async (event) => {
-					ethereumCache.put(ethereumCacheHeight.toString(), event);
+					this.sourceCache.ethereum.put(ethereumCacheHeight.toString(), {
+						pipeline,
+						event,
+					});
 					ethereumCacheHeight += 1;
 				});
 			});
@@ -81,14 +92,20 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 		}
 
 		this.logger.info('Readying Steamr listeners...');
-		const steamrListener = (message) => {
-			streamrCache.put(streamrCacheHeight.toString(), message as any);
+		const steamrListener = (pipeline) => (message) => {
+			this.sourceCache.streamr.put(streamrCacheHeight.toString(), {
+				pipeline,
+				event: message as any,
+			});
 			streamrCacheHeight += 1;
 		};
 		for (let i = 0; i < streamrFilters.length; i += 1) {
-			const filter = streamrFilters[i];
+			const { pipeline, filter } = streamrFilters[i];
 			const stream = await streamrClient.getStream(filter);
-			await streamrClient.subscribe({ stream: stream.id }, steamrListener);
+			await streamrClient.subscribe(
+				{ stream: stream.id },
+				steamrListener(pipeline)
+			);
 		}
 	};
 

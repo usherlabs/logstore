@@ -1,7 +1,8 @@
 import { ClassicLevel } from 'classic-level';
 import { existsSync, mkdirSync } from 'fs';
-import { ICache } from '@/types';
+import { ICache, SupportedSources } from '@/types';
 import { IsolatedLevelStore } from './isolated';
+import { SourceLevelStore } from './source';
 
 export class LevelStore implements ICache {
 	public name = 'Level';
@@ -75,10 +76,12 @@ export class LevelStore implements ICache {
 		return isolate;
 	}
 
-	public async newCache(name: string) {
+	public async source(name: SupportedSources) {
 		const db = await this.db();
 		const cache = db.sublevel(name);
 
-		return cache;
+		const sourceCache = new SourceLevelStore(cache);
+
+		return sourceCache;
 	}
 }

@@ -2,11 +2,10 @@ import type {
 	IRuntime as IKyveRuntime,
 	ICache as IKyveCache,
 	IStorageProvider as IKyveStorageProvider,
+	DataItem,
 } from '@kyve/core';
-import type { AbstractSublevel } from 'abstract-level';
-import type { ClassicLevel } from 'classic-level';
 
-export enum SupporedSourcesChains {
+export enum SupportedSourcesChains {
 	mainnet = '1',
 	goerli = '5',
 	polygon = '137',
@@ -35,6 +34,70 @@ export type TransformerResponse = {
 	submit: SubmitInstruction;
 };
 
+export type SourceCache = {
+	[SupportedSources.ethereum]: ISourceCache;
+	[SupportedSources.polygon]: ISourceCache;
+	[SupportedSources.streamr]: ISourceCache;
+};
+
+export interface ISourceCache {
+	height: number;
+
+	/**
+	 * Saves the value with a key
+	 *
+	 * @method put
+	 * @param {string} key
+	 * @param {any} value
+	 * @return {Promise<void>}
+	 */
+	put(key: string, value: any): Promise<void>;
+
+	/**
+	 * Loads the value from a key
+	 *
+	 * @method get
+	 * @param {string} key
+	 * @return {Promise<any>}
+	 */
+	get(key: string): Promise<any>;
+
+	/**
+	 * Checks whether a value exists for a key
+	 *
+	 * @method exists
+	 * @param {string} key
+	 * @return {Promise<boolean>}
+	 */
+	exists(key: string): Promise<boolean>;
+
+	/**
+	 * Deletes the value from a key
+	 *
+	 * @method del
+	 * @param {string} key
+	 * @return {Promise<void>}
+	 */
+	del(key: string): Promise<void>;
+
+	/**
+	 * Deletes the entire cache and therefore all values
+	 *
+	 * @method drop
+	 * @return {Promise<void>}
+	 */
+	drop(): Promise<void>;
+
+	/**
+	 * Resets cache values by remove assigned `key` property which would be added during bundling
+	 *
+	 * @param   {number<void>}  height  [height description]
+	 *
+	 * @return  {<void>}                [return description]
+	 */
+	reset: (height: number) => Promise<void>;
+}
+
 export interface ICacheIsolate {
 	get: (key: string | number) => any;
 	iterator: () => AsyncGenerator<string, void, unknown>;
@@ -45,24 +108,26 @@ export interface ICache extends IKyveCache {
 	db: () => Promise<any>;
 	drop: (height?: number) => Promise<void>;
 	isolate: (id: string) => Promise<ICacheIsolate>;
-	newCache: (
-		name: string
-	) => Promise<
-		AbstractSublevel<
-			ClassicLevel<string, string>,
-			string | Buffer,
-			string,
-			string
-		>
-	>;
+	source: (name: SupportedSources) => Promise<ISourceCache>;
 }
 
-export interface IRuntime extends IKyveRuntime {
-	setup: () => Promise<Pipeline[]>;
+export interface IRuntime extends Omit<IKyveRuntime, 'getDataItem'> {
+	// setup: () => Promise<void>;
 	transform: (
 		pipeline: Pipeline,
 		db: ICacheIsolate
 	) => Promise<TransformerResponse>;
+	/**
+	 * Gets the data item from a specific key and returns both key and the value.
+	 *
+	 * Deterministic behavior is required
+	 *
+	 * @method getDataItem
+	 * @param {string} key which gets inserted by @kyve/core
+	 * @param {any} config pool config which usually holds rpc endpoints for example
+	 * @return {Promise<DataItem>}
+	 */
+	getDataItem(sourceCache: SourceCache, key: string): Promise<DataItem | null>;
 }
 
 export interface IStorageProvider extends IKyveStorageProvider {
