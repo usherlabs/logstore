@@ -14,8 +14,6 @@ export const sentry = {
 
 /* ========== TESTING ========== */
 export const arweaveLocalPort = process.env.ARWEAVE_LOCAL_PORT;
-// export const polygonMumbaiChainId = '8001';
-// export const polygonMumbaiRpc = "https://rpc-mumbai.maticvigil.com";
 
 /* ========== API ============== */
 export const ethereumRpc = process.env.ETHEREUM_RPC;

@@ -27,7 +27,7 @@ contract PipelineContract {
     Source[] sources;
     string contractAddress;
     address owner;
-    bool initialised; 
+    bool initialised;
     uint sourcesCount;
   }
 

@@ -30,3 +30,15 @@ export const getChainName = (chainId: string | number) => {
  * @returns {array} returns and array with ordered elements from 0 to count - 1
  */
 export const range = (count: number | string) => [...new Array(+count).keys()];
+
+export const isObject = (value) =>
+	value !== null && (typeof value === 'object' || typeof value === 'function');
+
+export function isPromise(value) {
+	return (
+		value instanceof Promise ||
+		(isObject(value) &&
+			typeof value.then === 'function' &&
+			typeof value.catch === 'function')
+	);
+}

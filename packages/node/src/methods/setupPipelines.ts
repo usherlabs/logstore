@@ -3,7 +3,7 @@ import { NodeVM } from 'vm2';
 
 import { fetchPipelines } from '@/utils/fetchPipelines';
 import { pipelineContractAddress } from '@/utils/constants';
-import { ICacheIsolate } from '@/types';
+import { ICacheIsolate, Pipeline } from '@/types';
 
 import type { Node } from '../node';
 
@@ -19,7 +19,9 @@ export async function setupPipelines(this: Node): Promise<void> {
 		pipelineContractAddress[this.connections.polygon.chainId],
 		this.connections.polygon.provider
 	);
-	const usedPipelines = [];
+	this.logger.debug('pipelines fetched', pipelines);
+
+	const usedPipelines: Pipeline[] = [];
 	for (let i = 0; i < pipelines.length; i += 1) {
 		const pipeline = pipelines[i];
 		let contractData;
@@ -35,23 +37,31 @@ export async function setupPipelines(this: Node): Promise<void> {
 		// STEP 3: determine which pipelines are valid and should be included in ETL process
 		if (contractData) {
 			const fn = vm.run(contractData);
-			const transformer = (events: ICacheIsolate) => {
+			const transformer = async (events: ICacheIsolate) => {
 				try {
 					this.logger.info(`Running transformer for pipeline ${pipeline.id}`);
-					const out = fn(events);
+					const out = await fn(events);
 					// TODO: Do some checks on output, and secure the vm further -- https://github.com/patriksimek/vm2#nodevm
 					this.logger.info(`Completed transformer for pipeline ${pipeline.id}`);
-					return out;
+					this.logger.debug(`Transformer output: `, out);
+					if (typeof out === 'object') {
+						return {
+							response: out.response,
+							submit: out.submit,
+						};
+					}
 				} catch (e) {
 					this.logger.warn(
 						`An error occured for executing transformer for pipeline ${pipeline.id}`
 					);
-					return {};
 				}
+				return {};
 			};
 			usedPipelines.push({ ...pipeline, transformer });
 		}
 	}
+
+	this.logger.debug('pipelines used', pipelines);
 
 	this.pipelines = usedPipelines;
 	await this.resetListener();

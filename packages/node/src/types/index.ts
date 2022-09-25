@@ -29,8 +29,8 @@ export type SubmitInstruction = {
 };
 
 export type TransformerResponse = {
-	response: any;
-	submit: SubmitInstruction;
+	response?: any;
+	submit?: SubmitInstruction;
 };
 
 export type SourceCache = {
@@ -163,7 +163,7 @@ export interface Pipeline {
 	 *
 	 * @property transformer
 	 */
-	transformer?: (events: ICacheIsolate) => TransformerResponse;
+	transformer?: (events: ICacheIsolate) => Promise<TransformerResponse>;
 }
 
 /**

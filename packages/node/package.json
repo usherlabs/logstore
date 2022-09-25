@@ -60,6 +60,7 @@
 		"prettier": "^2.6.2",
 		"resolve-tspaths": "^0.8.0",
 		"ts-node": "^10.9.1",
+		"tsconfig-paths": "^4.1.0",
 		"typescript": "^4.6.4",
 		"webhook-discord": "^3.7.8"
 	}

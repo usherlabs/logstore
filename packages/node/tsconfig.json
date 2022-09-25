@@ -29,5 +29,8 @@
 		}
 	},
 	"exclude": ["node_modules", "build", "dist"],
-	"include": ["**/*.ts"]
+	"include": ["**/*.ts"],
+	"ts-node": {
+    "require": ["tsconfig-paths/register"]
+  }
 }

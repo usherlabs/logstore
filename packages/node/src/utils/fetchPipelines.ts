@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import PipelineContract from '@etl-network/contracts/artifacts/contracts/PipelineContract.sol/PipelineContract.json';
-import { parseStruct, range } from '@/utils/helpers';
-import { Pipeline } from '@/types';
+import { Pipeline, SupportedSources } from '@/types';
+import { parseStruct, range } from './helpers';
 // import { DUMMY_PIPELINE_DATA } from '../utils/dummy';
 
 export async function fetchPipelineSource(
@@ -68,17 +68,31 @@ export async function fetchPipelines(
 	const allPipelineIdentifiers = await getAllPipelineIds(contract);
 
 	// for each pipeline id, get the corresponding pipeline
-	const allPipelines = await Promise.all(
+	const allPipelines: Pipeline[] = await Promise.all(
 		allPipelineIdentifiers.map(async (oneIdentifier) => {
 			const pipelineDetails = await fetchPipelineDetails(
 				contract,
 				oneIdentifier
 			);
-			return pipelineDetails;
+			const sources = pipelineDetails.sources.map((data) => {
+				const [source, ...rest] = data;
+				return [
+					[
+						SupportedSources.ethereum,
+						SupportedSources.polygon,
+						SupportedSources.streamr,
+					][source],
+					...rest,
+				].filter((item) => typeof item === 'number' || !!item);
+			});
+			return {
+				id: oneIdentifier,
+				sources,
+				contract: pipelineDetails.contractAddress,
+			};
 		})
 	);
 
 	// return the data as gotten from the smart contract
 	return allPipelines;
-	// return DUMMY_PIPELINE_DATA;
 }
