@@ -1,7 +1,7 @@
 import { sleep, standardizeJSON, sha256 } from '@kyve/core/dist/src/utils';
 import { Bundle } from '@kyve/core';
 import { KYVE_NO_DATA_BUNDLE } from '@kyve/core/dist/src/utils/constants';
-import { getBundleInstructions } from '@/utils/bundle-instructions';
+import { getBundleInstructions } from '@/utils/bundleInstructions';
 import type { Node } from '../node';
 
 export async function proposeBundle(
