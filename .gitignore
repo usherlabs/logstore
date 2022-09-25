@@ -40,6 +40,10 @@ package.json.lerna_backup
 rh_client.toml
 rathole.toml
 .campaigns
+keyfile.json
+cache
+package-lock.json
+ipfs
 
 # debug
 npm-debug.log*
@@ -74,8 +78,3 @@ tsconfig.tsbuildinfo
 
 # Local Netlify folder
 .netlify
-
-# keyfiles
-keyfile.json
-cache
-package-lock.json
