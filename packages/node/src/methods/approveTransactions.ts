@@ -1,10 +1,5 @@
-// import { sleep } from '@kyve/core/dist/src/utils';
-import ethers, { BigNumber } from 'ethers';
-import { SafeTransactionDataPartial } from '@gnosis.pm/safe-core-sdk-types';
-
 import { TREASURY } from '@/utils/constants';
 import { getSafe } from '@/utils/safe';
-import { ethereumChainId } from '';
 
 import type { Node } from '../node';
 

@@ -6,8 +6,6 @@ import {
 	ethereumRpc,
 	polygonChainId,
 	ethereumChainId,
-	polygonMumbaiChainId,
-	polygonMumbaiRpc
 } from './env-config';
 import { cmd } from './cmd';
 import { runCache } from './methods/runCache';
@@ -66,11 +64,6 @@ export class Node extends KyveNode {
 				rpc: polygonRpc,
 				provider: null,
 			},
-			mumbai: {
-				chainId: polygonMumbaiChainId,
-				rpc: polygonMumbaiRpc,
-				provider: null
-			}
 		};
 		if (ethereumChainId && ethereumRpc) {
 			connections.eth.provider = new ethers.providers.JsonRpcProvider(
@@ -80,12 +73,6 @@ export class Node extends KyveNode {
 		}
 		if (polygonChainId && polygonRpc) {
 			connections.polygon.provider = new ethers.providers.JsonRpcProvider(
-				polygonRpc,
-				+polygonChainId
-			);
-		}
-		if (polygonMumbaiChainId && polygonMumbaiRpc) {
-			connections.mumbai.provider = new ethers.providers.JsonRpcProvider(
 				polygonRpc,
 				+polygonChainId
 			);
