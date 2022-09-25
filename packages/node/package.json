@@ -41,6 +41,7 @@
 		"commander": "^9.4.0",
 		"dotenv": "^16.0.2",
 		"ethers": "^5.7.1",
+		"object-hash": "^3.0.0",
 		"streamr-client": "^6.0.1",
 		"tslog": "^3.3.4"
 	},
@@ -56,6 +57,7 @@
 		"pkg": "^5.6.0",
 		"prettier": "^2.6.2",
 		"resolve-tspaths": "^0.8.0",
+		"ts-node": "^10.9.1",
 		"typescript": "^4.6.4",
 		"webhook-discord": "^3.7.8"
 	}

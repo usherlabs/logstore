@@ -13,7 +13,11 @@ export enum SupporedSourcesChains {
 	polygonmum = '80001',
 }
 
-export type SupportedSources = 'ethereum' | 'polygon' | 'streamr';
+export enum SupportedSources {
+	ethereum = 'ethereum',
+	polygon = 'polygon',
+	streamr = 'streamr',
+}
 
 export type EVMSubmitInstruction = {
 	contract: string;

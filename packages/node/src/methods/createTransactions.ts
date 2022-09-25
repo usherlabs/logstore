@@ -20,10 +20,9 @@ export async function createTransactions(
 	const txDataItems = [];
 	instructions.forEach((instruction) => {
 		instruction.ethereum.forEach((txRequest) => {
-			const methodSig = ethers.utils.keccak256(
-				ethers.utils.toUtf8Bytes(txRequest.method)
-			);
-			const methodSigBytes = ethers.utils.arrayify(methodSig);
+			const methodSig = txRequest.method.split(' ').join('');
+			const methodSighash = ethers.utils.id(methodSig);
+			const methodSigBytes = ethers.utils.arrayify(methodSighash);
 			const funcSelBytes = methodSigBytes.slice(0, 4);
 			const funcSelector = ethers.utils.hexlify(funcSelBytes);
 

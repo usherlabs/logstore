@@ -20,7 +20,7 @@ import { setupPipelines } from './methods/setupPipelines';
 type EVMConnection = {
 	chainId: string;
 	rpc: string;
-	provider: ethers.providers.JsonRpcProvider;
+	provider: ethers.providers.JsonRpcProvider | null;
 };
 
 export class Node extends KyveNode {
@@ -39,6 +39,8 @@ export class Node extends KyveNode {
 	};
 
 	protected pipelines: Pipeline[];
+
+	protected resetListener: () => Promise<void>;
 
 	/**
 	 * Defines node options for CLI and initializes those inputs
@@ -125,7 +127,7 @@ export class Node extends KyveNode {
 	 */
 	public async start(): Promise<void> {
 		try {
-			this.runListener();
+			this.resetListener = await this.runListener();
 		} catch (error) {
 			this.logger.error(`Unexpected runtime error. Exiting ...`);
 			this.logger.debug(error);
