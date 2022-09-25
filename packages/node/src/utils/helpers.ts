@@ -59,3 +59,14 @@ export const getChainName = (chainId: string | number) => {
  * @returns {array} returns and array with ordered elements from 0 to count - 1
  */
 export const range = (count: number | string) => [...new Array(+count).keys()];
+
+
+/**
+ * A function used to parse a url in the form of IPFS://cid into just cid
+ * @param url 
+ * @returns 
+ */
+export function parseIPFSURL(url:string){
+    const IPFS_PREFIX = "://";
+    return url.split(IPFS_PREFIX)?.[1]
+}
