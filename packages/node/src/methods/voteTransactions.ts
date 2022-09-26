@@ -12,12 +12,14 @@ import type { Node } from '../node';
 
 export async function voteTransactions(
 	this: Node,
-	id: string,
+	storageId: string,
 	// instructions: SubmitInstruction[]
 	bundleVote: number
 ): Promise<void> {
+	this.logger.info(`Voting on transaction for "${storageId}"\n`);
+
 	// Fetch all transactions from the Bundle Tags
-	const metadata = await this.storageProvider.retrieveBundleMetadata(id);
+	const metadata = await this.storageProvider.retrieveBundleMetadata(storageId);
 	const txHashes = metadata
 		.filter(([k]) => k.startsWith('ETL-Network-Tx-'))
 		.map(([, v]) => v);

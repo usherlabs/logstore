@@ -72,6 +72,25 @@ export default class Runtime implements IRuntime {
 		return pipeline.transformer(db);
 	}
 
+	async validate(
+		core: Node,
+		uploadedBundle: DataItem[],
+		validationBundle: DataItem[]
+	) {
+		const uploadedBundleHash = sha256(
+			Buffer.from(JSON.stringify(uploadedBundle))
+		);
+		const validationBundleHash = sha256(
+			Buffer.from(JSON.stringify(validationBundle))
+		);
+
+		core.logger.debug(`Validating bundle proposal by hash`);
+		core.logger.debug(`Uploaded:     ${uploadedBundleHash}`);
+		core.logger.debug(`Validation:   ${validationBundleHash}\n`);
+
+		return uploadedBundleHash === validationBundleHash;
+	}
+
 	public async getNextKey(key: string): Promise<string> {
 		return (parseInt(key, 10) + 1).toString();
 	}

@@ -33,6 +33,7 @@
 		"no-await-in-loop": "off",
 		"no-constant-condition": "off",
 		"no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
-		"no-continue": "off"
+		"no-continue": "off",
+		"import/no-extraneous-dependencies": "off"
 	}
 }

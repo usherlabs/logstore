@@ -45,6 +45,7 @@ cache
 package-lock.json
 ipfs
 .secrets
+notes.txt
 
 # debug
 npm-debug.log*

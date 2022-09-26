@@ -1,6 +1,5 @@
 import { Node as KyveNode } from '@kyve/core';
 import { ethers } from 'ethers';
-import program from '@kyve/core/dist/src/commander';
 import {
 	IRuntime,
 	ICache,
@@ -14,12 +13,13 @@ import {
 	ethereumRpc,
 	polygonChainId,
 	ethereumChainId,
+	evmPrivateKey,
 } from './env-config';
 // import { cmd } from './cmd';
 import { runCache } from './methods/runCache';
 import { runListener } from './methods/runListener';
 import { proposeBundle } from './methods/proposeBundle';
-import { validateBundleProposal } from './methods/validateBundleProposal';
+import { voteBundleProposal } from './methods/voteBundleProposal';
 import { voteTransactions } from './methods/voteTransactions';
 import { createTransactions } from './methods/createTransactions';
 import { approveTransactions } from './methods/approveTransactions';
@@ -53,54 +53,6 @@ export class Node extends KyveNode {
 	protected resetListener: () => Promise<void>;
 
 	/**
-	 * Defines node options for CLI and initializes those inputs
-	 * Node name is generated here depending on inputs
-	 *
-	 * @method constructor
-	 */
-	constructor() {
-		program.requiredOption(
-			'-e, --evm-private-key <string>',
-			'An EVM-compatible Wallet Private Key'
-		);
-
-		super();
-
-		const options = program.parse().opts();
-
-		// define extended program
-		this.evmPrivateKey = options.evmPrivateKey;
-
-		const connections = {
-			signer: new ethers.Wallet(this.evmPrivateKey),
-			eth: {
-				chainId: ethereumChainId,
-				rpc: ethereumRpc,
-				provider: null,
-			},
-			polygon: {
-				chainId: polygonChainId,
-				rpc: polygonRpc,
-				provider: null,
-			},
-		};
-		if (ethereumChainId && ethereumRpc) {
-			connections.eth.provider = new ethers.providers.JsonRpcProvider(
-				ethereumRpc,
-				+ethereumChainId
-			);
-		}
-		if (polygonChainId && polygonRpc) {
-			connections.polygon.provider = new ethers.providers.JsonRpcProvider(
-				polygonRpc,
-				+polygonChainId
-			);
-		}
-
-		this.connections = connections;
-	}
-
-	/**
 	 * Process to run the Cache and handle Storage
 	 */
 	protected runCache = runCache;
@@ -111,11 +63,12 @@ export class Node extends KyveNode {
 	protected runListener = runListener;
 
 	/**
-	 * Extending Validate Bundle Proposal -- to include Transactions Validation
+	 * Extending Vote Bundle Proposal -- to include Transactions Vote
+	 * TODO: We'll eventually want to validate the transaction creation -- such that the outcome of the transaction validation determines the vote.
 	 *
 	 * @var {[type]}
 	 */
-	protected validateBundleProposal = validateBundleProposal;
+	protected voteBundleProposal = voteBundleProposal;
 
 	/**
 	 * Extending Propose Bundle -- to include Transactions Submission/Proposal
@@ -153,7 +106,36 @@ export class Node extends KyveNode {
 	 * @method start
 	 * @return {Promise<void>}
 	 */
-	public async start(): Promise<void> {
+	public async listen(): Promise<void> {
+		const connections = {
+			// TODO: Find a way to manage evmPrivateKey via CLI
+			signer: new ethers.Wallet(evmPrivateKey),
+			eth: {
+				chainId: ethereumChainId,
+				rpc: ethereumRpc,
+				provider: null,
+			},
+			polygon: {
+				chainId: polygonChainId,
+				rpc: polygonRpc,
+				provider: null,
+			},
+		};
+		if (ethereumChainId && ethereumRpc) {
+			connections.eth.provider = new ethers.providers.JsonRpcProvider(
+				ethereumRpc,
+				+ethereumChainId
+			);
+		}
+		if (polygonChainId && polygonRpc) {
+			connections.polygon.provider = new ethers.providers.JsonRpcProvider(
+				polygonRpc,
+				+polygonChainId
+			);
+		}
+
+		this.connections = connections;
+
 		try {
 			await this.setupSourceCache();
 
@@ -164,7 +146,5 @@ export class Node extends KyveNode {
 
 			process.exit(1);
 		}
-
-		super.start();
 	}
 }

@@ -1,6 +1,6 @@
-import { SupportedSources } from '@/types';
-import { sleep } from '@kyve/core/dist/src/utils';
+import { ERROR_IDLE_TIME, sleep } from '@kyve/core';
 
+import { SupportedSources } from '@/types';
 import type { Node } from '../node';
 
 export async function runCache(this: Node): Promise<void> {
@@ -13,11 +13,14 @@ export async function runCache(this: Node): Promise<void> {
 		// a smaller to_height means a bundle got dropped or invalidated
 		if (+this.pool.bundle_proposal!.to_height < toHeight) {
 			this.logger.debug(`Attempting to clear cache`);
-			await this.cache.drop(+this.pool.current_height);
+			await this.cache.drop(+this.pool.data!.current_height);
+			this.prom.cache_current_items.set(+this.pool.data!.current_height);
 			this.logger.debug(`Reset source cache values to current height`);
 			await Promise.all(
 				Object.entries(SupportedSources).map(([, sourceName]) => {
-					return this.sourceCache[sourceName].reset(+this.pool.current_height);
+					return this.sourceCache[sourceName].reset(
+						+this.pool.data!.current_height
+					);
 				})
 			);
 			this.logger.info(`Cleared cache\n`);
@@ -28,11 +31,14 @@ export async function runCache(this: Node): Promise<void> {
 
 		// cache data items from current height to required height
 		createdAt = +this.pool.bundle_proposal!.created_at;
-		currentHeight = +this.pool.current_height;
+		currentHeight = +this.pool.data!.current_height;
 		toHeight =
-			+this.pool.bundle_proposal!.to_height || +this.pool.current_height;
+			+this.pool.bundle_proposal!.to_height || +this.pool.data!.current_height;
 		// Max height should consider the responses from pipeline transformers
-		maxHeight = +this.pool.max_bundle_size - this.pipelines.length + toHeight;
+		maxHeight =
+			+this.pool.data!.max_bundle_size - this.pipelines.length + toHeight;
+
+		this.prom.cache_height_tail.set(currentHeight);
 
 		let startHeight: number;
 		let key: string;
@@ -43,7 +49,7 @@ export async function runCache(this: Node): Promise<void> {
 			key = this.pool.bundle_proposal!.to_key;
 		} else {
 			startHeight = currentHeight;
-			key = this.pool.current_key;
+			key = this.pool.data!.current_key;
 		}
 
 		this.logger.debug(`Caching from height ${startHeight} to ${maxHeight} ...`);
@@ -58,13 +64,16 @@ export async function runCache(this: Node): Promise<void> {
 				if (key) {
 					nextKey = await this.runtime.getNextKey(key);
 				} else {
-					nextKey = this.pool.start_key;
+					nextKey = this.pool.data!.start_key;
 				}
 
 				const item = await this.runtime.getDataItem(this, nextKey);
+				this.prom.runtime_get_data_item_successful.inc();
 
 				if (item.key) {
 					await this.cache.put(height.toString(), item);
+					this.prom.cache_current_items.inc();
+					this.prom.cache_height_head.set(height);
 					await sleep(50);
 				}
 
@@ -76,7 +85,9 @@ export async function runCache(this: Node): Promise<void> {
 				height += 1;
 			} catch {
 				this.logger.warn(`Failed to get data item from height ${height}`);
-				await sleep(10 * 1000);
+				this.prom.runtime_get_data_item_failed.inc();
+
+				await sleep(ERROR_IDLE_TIME);
 			}
 		}
 
@@ -95,6 +106,9 @@ export async function runCache(this: Node): Promise<void> {
 				pipeline: pipeline.id,
 				out: transformation,
 			});
+			this.prom.cache_current_items.inc();
+			this.prom.cache_height_head.set(height);
+
 			height += 1;
 		}
 

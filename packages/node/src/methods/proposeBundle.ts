@@ -1,6 +1,10 @@
-import { sleep, standardizeJSON, sha256 } from '@kyve/core/dist/src/utils';
-import { Bundle } from '@kyve/core';
-import { KYVE_NO_DATA_BUNDLE } from '@kyve/core/dist/src/utils/constants';
+import {
+	Bundle,
+	sleep,
+	sha256,
+	ERROR_IDLE_TIME,
+	bundleToBytes,
+} from '@kyve/core';
 import { getBundleInstructions } from '@/utils/bundleInstructions';
 import type { Node } from '../node';
 
@@ -9,12 +13,14 @@ export async function proposeBundle(
 	createdAt: number
 ): Promise<void> {
 	const fromHeight =
-		+this.pool.bundle_proposal!.to_height || +this.pool.current_height;
-	const toHeight = +this.pool.max_bundle_size + fromHeight;
-	const fromKey = this.pool.bundle_proposal!.to_key || this.pool.current_key;
+		+this.pool.bundle_proposal!.to_height || +this.pool.data!.current_height;
+	const toHeight = +this.pool.data!.max_bundle_size + fromHeight;
+	const fromKey =
+		this.pool.bundle_proposal!.to_key || this.pool.data!.current_key;
 
 	let storageId: string;
 	let bundleProposal: Bundle;
+	let bundleHash: string = '';
 	let bundleCompressed: Buffer;
 	let txHashes: string[];
 
@@ -50,7 +56,10 @@ export async function proposeBundle(
 				`Compressing bundle with compression type ${this.compression.name}`
 			);
 
-			bundleCompressed = await this.compression.compress(bundleProposal.bundle);
+			const bundleBytes = bundleToBytes(bundleProposal.bundle);
+
+			bundleHash = sha256(bundleBytes);
+			bundleCompressed = await this.compression.compress(bundleBytes);
 
 			const tags: [string, string][] = [
 				['Application', 'KYVE'],
@@ -73,6 +82,7 @@ export async function proposeBundle(
 			this.logger.debug(`Attempting to save bundle on storage provider`);
 
 			storageId = await this.storageProvider.saveBundle(bundleCompressed, tags);
+			this.prom.storage_provider_save_successful.inc();
 
 			this.logger.info(
 				`Saved bundle on ${this.storageProvider.name} with Storage Id "${storageId}"\n`
@@ -84,56 +94,38 @@ export async function proposeBundle(
 				` Failed to save bundle on ${this.storageProvider.name}. Retrying in 10s ...`
 			);
 			this.logger.debug(error);
-			await sleep(10 * 1000);
+			this.prom.storage_provider_save_failed.inc();
+
+			await sleep(ERROR_IDLE_TIME);
 		}
 	}
 
-	while (true) {
-		await this.syncPoolState();
+	await this.syncPoolState();
 
-		if (+this.pool.bundle_proposal!.created_at > createdAt) {
-			// check if new proposal is available in the meantime
-			return;
-		}
-		if (this.shouldIdle()) {
-			// check if pool got paused in the meantime
-			return;
-		}
+	if (+this.pool.bundle_proposal!.created_at > createdAt) {
+		// check if new proposal is available in the meantime
+		return;
+	}
+	if (this.shouldIdle()) {
+		// check if pool got paused in the meantime
+		return;
+	}
 
-		if (storageId!) {
-			const bundleHash = sha256(standardizeJSON(bundleProposal.bundle));
+	if (storageId!) {
+		await this.submitBundleProposal(
+			storageId,
+			bundleCompressed!.byteLength,
+			fromHeight,
+			fromHeight + bundleProposal.bundle.length,
+			fromKey,
+			bundleProposal.toKey,
+			bundleProposal.toValue,
+			bundleHash
+		);
+		await this.approveTransactions(txHashes);
+	} else {
+		this.logger.info(`Skipping uploader role because no data was found`);
 
-			await this.submitBundleProposal(
-				storageId,
-				bundleCompressed!.byteLength,
-				fromHeight,
-				fromHeight + bundleProposal.bundle.length,
-				fromKey,
-				bundleProposal.toKey,
-				bundleProposal.toValue,
-				bundleHash
-			);
-
-			await this.approveTransactions(txHashes);
-		} else {
-			this.logger.info(
-				`Creating new bundle proposal of type ${KYVE_NO_DATA_BUNDLE}`
-			);
-
-			storageId = `KYVE_NO_DATA_BUNDLE_${this.poolId}_${Math.floor(
-				Date.now() / 1000
-			)}`;
-
-			await this.submitBundleProposal(
-				storageId,
-				0,
-				fromHeight,
-				fromHeight,
-				fromKey,
-				'',
-				'',
-				''
-			);
-		}
+		await this.skipUploaderRole(fromHeight);
 	}
 }
