@@ -15,11 +15,12 @@ const vm = new NodeVM({
 
 export async function setupPipelines(this: Node): Promise<void> {
 	// STEP 1: Fetch pipelines configuration from contracts
+	this.logger.debug('Fetching pipelines...');
 	const pipelines = await fetchPipelines(
 		pipelineContractAddress[this.connections.polygon.chainId],
 		this.connections.polygon.provider
 	);
-	this.logger.debug('pipelines fetched', pipelines);
+	this.logger.debug('Pipelines fetched', pipelines);
 
 	const usedPipelines: Pipeline[] = [];
 	for (let i = 0; i < pipelines.length; i += 1) {

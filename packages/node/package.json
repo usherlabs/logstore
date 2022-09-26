@@ -10,7 +10,7 @@
 		"build:binaries": "yarn build && del out && pkg --no-bytecode --public-packages '*' --output out/etlnetwork package.json && node ./node_modules/@kyve/core/dist/src/scripts/checksum.js",
 		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md}\"",
 		"start": "node ./dist/src/index.js",
-		"start:local": "yarn start --poolId 0 -m 'add coast sell simple century early layer disagree fame sad head crystal warm say critic shop example moon wasp grant sad left amateur beyond' --keyfile ./.secrets/keyfile.json -s 175.2 --verbose",
+		"start:local": "yarn start --poolId 0 -m 'add coast sell simple century early layer disagree fame sad head crystal warm say critic shop example moon wasp grant sad left amateur beyond' --keyfile ./.secrets/keyfile.json -s 1000 --network local --verbose",
 		"start:fresh": "npm-run-all -s build start",
 		"ts": "tsc --noEmit",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts"
@@ -45,7 +45,6 @@
 		"ethers": "^5.7.1",
 		"object-hash": "^3.0.0",
 		"streamr-client": "^6.0.1",
-		"tslog": "^3.3.4",
 		"vm2": "^3.9.11"
 	},
 	"devDependencies": {

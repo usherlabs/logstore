@@ -59,7 +59,7 @@ export class Node extends KyveNode {
 	 * @method constructor
 	 */
 	constructor() {
-		program.option(
+		program.requiredOption(
 			'-e, --evm-private-key <string>',
 			'An EVM-compatible Wallet Private Key'
 		);
@@ -155,7 +155,7 @@ export class Node extends KyveNode {
 	 */
 	public async start(): Promise<void> {
 		try {
-			this.setupSourceCache();
+			await this.setupSourceCache();
 
 			this.resetListener = await this.runListener();
 		} catch (error) {
@@ -165,6 +165,6 @@ export class Node extends KyveNode {
 			process.exit(1);
 		}
 
-		this.start();
+		super.start();
 	}
 }

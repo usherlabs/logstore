@@ -19,6 +19,13 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 	});
 
 	const setupListeners = async () => {
+		this.logger.info('Setting up listeners...');
+		this.logger.debug('Source cache heights', {
+			polygonCacheHeight,
+			ethereumCacheHeight,
+			streamrCacheHeight,
+		});
+
 		const polygonFilters: { pipeline: string; filter: EventFilter }[] = [];
 		const ethereumFilters: { pipeline: string; filter: EventFilter }[] = [];
 		const streamrFilters: { pipeline: string; filter: string }[] = [];
@@ -62,6 +69,12 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 			});
 		});
 
+		this.logger.info(`Listeners to setup:`, {
+			ethereum: ethereumFilters.length,
+			polygon: polygonFilters.length,
+			streamr: streamrFilters.length,
+		});
+
 		if (this.connections.polygon.provider !== null) {
 			await this.connections.polygon.provider.ready;
 			this.logger.info('Polygon provider is ready to listen for events...');
@@ -74,7 +87,7 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 					polygonCacheHeight += 1;
 				});
 			});
-			this.logger.info('Listening to Polygon events.');
+			this.logger.info('Listening to Polygon events');
 		}
 		if (this.connections.eth.provider !== null) {
 			await this.connections.eth.provider.ready;
@@ -88,7 +101,7 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 					ethereumCacheHeight += 1;
 				});
 			});
-			this.logger.info('Listening to Ethereum events.');
+			this.logger.info('Listening to Ethereum events');
 		}
 
 		this.logger.info('Readying Steamr listeners...');
@@ -107,9 +120,12 @@ export async function runListener(this: Node): Promise<() => Promise<void>> {
 				steamrListener(pipeline)
 			);
 		}
+		this.logger.info('Listening to Streamr events');
 	};
 
 	const resetListeners = async () => {
+		this.logger.info('Resetting listeners...');
+
 		if (this.connections.polygon.provider !== null) {
 			this.connections.polygon.provider.removeAllListeners();
 		}
