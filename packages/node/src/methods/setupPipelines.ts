@@ -1,4 +1,4 @@
-import got from 'got';
+import axios from 'axios';
 import { NodeVM } from 'vm2';
 
 import { fetchPipelines } from '@/utils/fetchPipelines';
@@ -29,9 +29,11 @@ export async function setupPipelines(this: Node): Promise<void> {
 		if (pipeline.contract.startsWith('ipfs://')) {
 			const path = pipeline.contract.substring('ipfs://'.length);
 			// TODO: Replace request from http public gateway with an in-process IPFS node for better decentralisation... or allow for HTTP gateway to be provided.
-			const { body } = await got.get(`https://ipfs.io/ipfs/${path}`);
-			this.logger.debug(`JS Contract fetch Body: `, body);
-			contractData = body;
+			const { data } = await axios.get(`https://ipfs.io/ipfs/${path}`, {
+				responseType: 'arraybuffer',
+			});
+			this.logger.debug(`JS Contract fetch Body: `, data);
+			contractData = data;
 		}
 
 		// STEP 3: determine which pipelines are valid and should be included in ETL process

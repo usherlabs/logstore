@@ -6,7 +6,7 @@
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"rootDir": ".",
-		"outDir": "build",
+		"outDir": "dist",
 		"allowSyntheticDefaultImports": true,
 		"importHelpers": true,
 		"alwaysStrict": true,

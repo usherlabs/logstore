@@ -1,5 +1,6 @@
 import { Node as KyveNode } from '@kyve/core';
 import { ethers } from 'ethers';
+import program from '@kyve/core/dist/src/commander';
 import {
 	IRuntime,
 	ICache,
@@ -14,7 +15,7 @@ import {
 	polygonChainId,
 	ethereumChainId,
 } from './env-config';
-import { cmd } from './cmd';
+// import { cmd } from './cmd';
 import { runCache } from './methods/runCache';
 import { runListener } from './methods/runListener';
 import { proposeBundle } from './methods/proposeBundle';
@@ -58,10 +59,16 @@ export class Node extends KyveNode {
 	 * @method constructor
 	 */
 	constructor() {
+		program.option(
+			'-e, --evm-private-key <string>',
+			'An EVM-compatible Wallet Private Key'
+		);
+
 		super();
 
+		const options = program.parse().opts();
+
 		// define extended program
-		const options = cmd.parse().opts();
 		this.evmPrivateKey = options.evmPrivateKey;
 
 		const connections = {
