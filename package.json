@@ -1,9 +1,9 @@
 {
-	"name": "etl-network",
+	"name": "@concertodao/logstore",
 	"version": "0.0.1",
-	"description": "ETL Network",
-	"repository": "git@github.com:usherlabs/etl.git",
-	"homepage": "https://etl.network/",
+	"description": "Log Store Repository",
+	"repository": "git@github.com:usherlabs/logstore.git",
+	"homepage": "https://concerto.technology/logstore",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "UNLICENSED",
 	"private": true,

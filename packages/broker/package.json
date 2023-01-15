@@ -1,0 +1,29 @@
+{
+	"name": "@concertodao/logstore-broker",
+	"version": "0.0.0",
+	"description": "Log Store Broker Node",
+	"main": "src/index.ts",
+	"repository": "https://github.com/usherlabs/logstore.git",
+	"author": "Ryan Soury <ryan@usher.so>",
+	"license": "GPL-2.0",
+	"private": false,
+	"scripts": {
+		"build": "del dist && tsc && resolve-tspaths",
+		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md}\"",
+		"start": "node ./dist/src/index.js",
+		"start:fresh": "npm-run-all -s build start",
+		"ts": "tsc --noEmit",
+		"lint": "eslint -c ./.eslintrc ./src/**/*.ts"
+	},
+	"dependencies": {
+		"hypercore": "^10.5.4",
+		"hyperswarm": "^4.3.6",
+		"moment": "^2.29.4",
+		"pump": "^3.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^18.11.18",
+		"tsc": "^2.0.4",
+		"typescript": "^4.9.4"
+	}
+}

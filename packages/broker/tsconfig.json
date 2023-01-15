@@ -1,6 +1,6 @@
- {
+{
 	"$schema": "https://json.schemastore.org/tsconfig",
-	"display": "Node",
+	"display": "Broker",
 	"compilerOptions": {
 		"target": "es6",
 		"module": "commonjs",

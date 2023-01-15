@@ -1,9 +1,9 @@
 {
-	"name": "@etl-network/node",
+	"name": "@concertodao/logstore-validator",
 	"version": "0.0.1",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "UNLICENSED",
-	"description": "ETL Network Node",
+	"description": "Log Store Validator Node",
 	"private": false,
 	"scripts": {
 		"build": "del dist && tsc && resolve-tspaths",
@@ -59,7 +59,6 @@
 		"resolve-tspaths": "^0.8.0",
 		"ts-node": "^10.9.1",
 		"tsconfig-paths": "^4.1.0",
-		"typescript": "^4.6.4",
-		"webhook-discord": "^3.7.8"
+		"typescript": "^4.6.4"
 	}
 }
