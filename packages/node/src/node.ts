@@ -19,10 +19,6 @@ import {
 import { runCache } from './methods/runCache';
 import { runListener } from './methods/runListener';
 import { proposeBundle } from './methods/proposeBundle';
-import { voteBundleProposal } from './methods/voteBundleProposal';
-import { voteTransactions } from './methods/voteTransactions';
-import { createTransactions } from './methods/createTransactions';
-import { approveTransactions } from './methods/approveTransactions';
 import { setupPipelines } from './methods/setupPipelines';
 
 type EVMConnection = {
@@ -63,25 +59,11 @@ export class Node extends KyveNode {
 	protected runListener = runListener;
 
 	/**
-	 * Extending Vote Bundle Proposal -- to include Transactions Vote
-	 * TODO: We'll eventually want to validate the transaction creation -- such that the outcome of the transaction validation determines the vote.
-	 *
-	 * @var {[type]}
-	 */
-	protected voteBundleProposal = voteBundleProposal;
-
-	/**
 	 * Extending Propose Bundle -- to include Transactions Submission/Proposal
 	 *
 	 * @var {[type]}
 	 */
 	protected proposeBundle = proposeBundle;
-
-	protected voteTransactions = voteTransactions;
-
-	protected createTransactions = createTransactions;
-
-	protected approveTransactions = approveTransactions;
 
 	protected setupPipelines = setupPipelines;
 
