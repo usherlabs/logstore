@@ -15,12 +15,7 @@
 		"ts": "tsc --noEmit",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts"
 	},
-	"dependencies": {
-		"hypercore": "^10.5.4",
-		"hyperswarm": "^4.3.6",
-		"moment": "^2.29.4",
-		"pump": "^3.0.0"
-	},
+	"dependencies": {},
 	"devDependencies": {
 		"@types/node": "^18.11.18",
 		"tsc": "^2.0.4",
