@@ -1,23 +1,14 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-node_modules
-jspm_packages
-flow-typed
-!/yarn.lock
-test/node_modules
 vendor
 .pnp
 .pnp.js
 .yarn/*
-!.yarn/cache
-!.yarn/releases
-!.yarn/plugins
 .turbo
 .turbo/**
 
 # testing
-coverage
 logs
 tmp
 report.*
@@ -26,9 +17,6 @@ report.*
 # next.js
 .next
 out
-build/**
-dist/**
-.next/**
 
 # production
 build
@@ -53,30 +41,32 @@ yarn-debug.log*
 yarn-error.log*
 
 # env files
-.env
-.env.*
 !.env.example
-
-# Now
-.now
-.vercel
-
-# Auth0 deployment
-.auth0
-
-# serverless
-.serverless
-
-# Local certs for development
-*.pem
-
-# Supabase
-**/supabase/.branches
-**/supabase/.temp
-**/supabase/.env
+*.env
 
 # Typescript
 tsconfig.tsbuildinfo
 
-# Local Netlify folder
-.netlify
+# Contracts
+# directories
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+**/artifacts
+**/build
+**/cache
+**/coverage
+**/.coverage_artifacts
+**/.coverage_cache
+**/.coverage_contracts
+**/dist
+**/node_modules
+**/types
+
+# files
+*.log
+.pnp.*
+coverage.json

@@ -1,10 +1,10 @@
 {
-	"name": "@etl-network/contracts",
+	"name": "@concertodao/logstore-contracts",
 	"version": "0.0.1",
-	"description": "ETL Network Solidity Contracts",
+	"description": "Concerto Log Store Solidity Contracts",
 	"main": "index.ts",
-	"author": "Ryan Soury <ryan@usher.so>",
-	"license": "UNLICENSED",
+	"author": "Ryan Soury <ryan@concerto.technology>",
+	"license": "GPL-2.0",
 	"repository": "git@github.com:usherlabs/etl.git",
 	"private": false,
 	"scripts": {
@@ -14,7 +14,12 @@
 		"dotenv": "^16.0.2"
 	},
 	"devDependencies": {
-		"@nomicfoundation/hardhat-toolbox": "^2.0.0",
-		"hardhat": "^2.11.2"
+		"@nomicfoundation/hardhat-toolbox": "^2.0.1",
+		"@nomiclabs/hardhat-etherscan": "^3.1.5",
+		"@nomiclabs/hardhat-waffle": "^2.0.3",
+		"hardhat": "^2.12.6",
+		"hardhat-abi-exporter": "^2.10.1",
+		"hardhat-contract-sizer": "^2.7.0",
+		"hardhat-deploy": "^0.11.22"
 	}
 }

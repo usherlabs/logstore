@@ -1,10 +1,10 @@
 {
 	"name": "@concertodao/logstore-broker",
 	"version": "0.0.0",
-	"description": "Log Store Broker Node",
+	"description": "Concerto Log Store Broker Node",
 	"main": "src/index.ts",
 	"repository": "https://github.com/usherlabs/logstore.git",
-	"author": "Ryan Soury <ryan@usher.so>",
+	"author": "Ryan Soury <ryan@concerto.technology>",
 	"license": "GPL-2.0",
 	"private": false,
 	"scripts": {

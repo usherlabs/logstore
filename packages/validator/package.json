@@ -1,9 +1,9 @@
 {
 	"name": "@concertodao/logstore-validator",
 	"version": "0.0.1",
-	"author": "Ryan Soury <ryan@usher.so>",
-	"license": "UNLICENSED",
-	"description": "Log Store Validator Node",
+	"author": "Ryan Soury <ryan@concerto.technology>",
+	"license": "GPL-2.0",
+	"description": "Concerto Log Store Validator Node",
 	"private": false,
 	"scripts": {
 		"build": "del dist && tsc && resolve-tspaths",
@@ -28,10 +28,6 @@
 		"singleQuote": true
 	},
 	"dependencies": {
-		"@etl-network/contracts": "*",
-		"@gnosis.pm/safe-core-sdk": "^3.1.1",
-		"@gnosis.pm/safe-core-sdk-types": "^1.6.1",
-		"@gnosis.pm/safe-ethers-lib": "^1.6.1",
 		"@sentry/node": "^7.13.0",
 		"@sentry/tracing": "^7.13.0",
 		"abstract-level": "^1.0.3",

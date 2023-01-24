@@ -3,7 +3,8 @@
 		"../",
 		"./",
 		"./packages/contracts",
-		"packages/node"
+		"packages/validator",
+		"packages/broker",
 	],
 	"eslint.validate": [
 		"javascript",
