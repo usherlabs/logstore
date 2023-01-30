@@ -3,6 +3,7 @@
 pragma solidity 0.8.17;
 
 // Open Zeppelin libraries for controlling upgradability and access.
+import '@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
@@ -18,6 +19,10 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	event NodeWhitelistApproved(address indexed nodeAddress);
 	event NodeWhitelistRejected(address indexed nodeAddress);
 	event RequiresWhitelistChanged(bool indexed value);
+	event CurrencyAdded(
+		address indexed tokenAddress,
+		uint256 indexed requiredAmount
+	);
 
 	enum WhitelistState {
 		None,
@@ -31,6 +36,13 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		uint lastSeen; // what's the best way to store timestamps in smart contracts?
 	}
 
+	struct Currency {
+		IERC20Upgradeable token;
+		uint256 requiredAmount; // Required amount of currency to be staked
+		mapping(address => uint256) balanceOf;
+		uint256 totalSupply;
+	}
+
 	modifier onlyWhitelist() {
 		require(
 			!requiresWhitelist ||
@@ -40,23 +52,50 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		_;
 	}
 
+	modifier onlyStaked(address tokenAddress) {
+		require(
+			currencies[tokenAddress].requiredAmount > 0 &&
+				currencies[tokenAddress].balanceOf[msg.sender] >=
+				currencies[tokenAddress].requiredAmount,
+			'error_stakeRequired'
+		);
+		_;
+	}
+
 	uint64 public nodeCount;
 	bool public requiresWhitelist;
-	mapping(address => uint256) public currencies;
+	mapping(address => Currency) public currencies;
 	mapping(address => Node) public nodes;
 	mapping(address => WhitelistState) public whitelist;
+	mapping(address => uint256) internal index;
 
 	function initialize(
 		address owner,
 		bool requiresWhitelist_,
 		address[] memory initialNodes,
-		string[] memory initialMetadata
+		string[] memory initialMetadata,
+		address[] memory currencyAddresses,
+		uint256[] memory currencyRequiredAmounts
 	) public initializer {
 		__Ownable_init();
 		__UUPSUpgradeable_init();
 		requiresWhitelist = requiresWhitelist_;
+		require(
+			initialNodes.length == initialMetadata.length,
+			'error_badTrackerData'
+		);
+		require(
+			currencyAddresses.length == currencyRequiredAmounts.length,
+			'error_badTrackerData'
+		);
 		for (uint i = 0; i < initialNodes.length; i++) {
 			upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
+		}
+		for (uint i = 0; i < currencyAddresses.length; i++) {
+			addNewOperatorStakeCurrency(
+				currencyAddresses[i],
+				currencyRequiredAmounts[i]
+			);
 		}
 		transferOwnership(owner);
 	}
@@ -68,7 +107,8 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		address tokenAddress,
 		uint256 amount
 	) public onlyOwner {
-		currencies[tokenAddress] = amount;
+		currencies[tokenAddress].token = IERC20Upgradeable(tokenAddress);
+		currencies[tokenAddress].requiredAmount = amount;
 	}
 
 	function upsertNodeAdmin(
@@ -82,12 +122,40 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		_removeNode(nodeAddress);
 	}
 
-	function upsertNode(string memory metadata_) public onlyWhitelist {
+	function upsertNode(
+		string memory metadata_
+	) public onlyWhitelist onlyStaked {
 		_upsertNode(msg.sender, metadata_);
 	}
 
 	function removeNode() public {
 		_removeNode(msg.sender);
+	}
+
+	function stake(address tokenAddress, uint amount) external {
+		require(
+			currencies[tokenAddress].requiredAmount > 0,
+			'error_invalidCurrency'
+		);
+		require(amount > 0, 'error_insufficientStake');
+		currencies[tokenAddress].token.transferFrom(
+			msg.sender,
+			address(this),
+			amount
+		);
+		currencies[tokenAddress].balanceOf[msg.sender] += amount;
+		currencies[tokenAddress].totalSupply += amount;
+	}
+
+	function withdraw(address tokenAddress, uint amount) external {
+		require(
+			currencies[tokenAddress].requiredAmount > 0,
+			'error_invalidCurrency'
+		);
+		require(amount > 0, 'error_insufficientStake');
+		currencies[tokenAddress].balanceOf[msg.sender] -= amount;
+		currencies[tokenAddress].totalSupply -= amount;
+		currencies[tokenAddress].token.transfer(msg.sender, amount);
 	}
 
 	function _upsertNode(
