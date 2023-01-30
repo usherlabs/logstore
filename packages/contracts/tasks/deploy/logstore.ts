@@ -1,20 +1,20 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { task } from 'hardhat/config';
-import type { TaskArguments } from 'hardhat/types';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
-import type { Greeter } from '../../types/Greeter';
-import type { Greeter__factory } from '../../types/factories/Greeter__factory';
+import type { LogStore } from '../../types/LogStore';
+import type { LogStore__factory } from '../../types/factories/LogStore__factory';
 
-task('deploy:LogStore')
-	.addParam('greeting', 'Say hello, be nice')
-	.setAction(async function (taskArguments: TaskArguments, { ethers }) {
+task('deploy:LogStore').setAction(
+	async ({ ethers }: HardhatRuntimeEnvironment) => {
 		const signers: SignerWithAddress[] = await ethers.getSigners();
-		const greeterFactory: Greeter__factory = <Greeter__factory>(
-			await ethers.getContractFactory('Greeter')
+		const logstoreFactory: LogStore__factory = <LogStore__factory>(
+			await ethers.getContractFactory('LogStore')
 		);
-		const greeter: Greeter = <Greeter>(
-			await greeterFactory.connect(signers[0]).deploy(taskArguments.greeting)
+		const logstore: LogStore = <LogStore>(
+			await logstoreFactory.connect(signers[0]).deploy()
 		);
-		await greeter.deployed();
-		console.log('Greeter deployed to: ', greeter.address);
-	});
+		await logstore.deployed();
+		console.log('logstore deployed to: ', logstore.address);
+	}
+);

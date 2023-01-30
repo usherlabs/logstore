@@ -8,18 +8,59 @@
 	"repository": "git@github.com:usherlabs/etl.git",
 	"private": false,
 	"scripts": {
-		"deploy-pipeline:mumbai": "npx hardhat run scripts/deploy.ts --network mumbai"
+		"clean": "del ./artifacts ./cache ./coverage ./types ./coverage.json && yarn typechain",
+		"compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
+		"coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"test/**/*.ts\" && yarn typechain",
+		"deploy:mumbai": "npx hardhat deploy:LogStore --network mumbai",
+		"lint": "yarn lint:sol && yarn lint:ts && yarn prettier:check",
+		"lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
+		"lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
+		"test": "hardhat test",
+		"typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain"
+	},
+	"files": [
+		"/contracts"
+	],
+	"keywords": [
+		"blockchain",
+		"ethers",
+		"ethereum",
+		"hardhat",
+		"smart-contracts",
+		"solidity",
+		"logstore",
+		"typescript"
+	],
+	"publishConfig": {
+		"access": "public"
 	},
 	"dependencies": {
 		"dotenv": "^16.0.2"
 	},
 	"devDependencies": {
+		"@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
+		"@nomicfoundation/hardhat-network-helpers": "^1.0.7",
 		"@nomicfoundation/hardhat-toolbox": "^2.0.1",
+		"@nomiclabs/hardhat-ethers": "^2.2.2",
 		"@nomiclabs/hardhat-etherscan": "^3.1.5",
 		"@nomiclabs/hardhat-waffle": "^2.0.3",
+		"@typechain/ethers-v5": "^10.2.0",
+		"@typechain/hardhat": "^6.1.5",
+		"@types/chai": "^4.3.4",
+		"@types/mocha": "^10.0.1",
+		"@types/node": "^18.11.18",
+		"chai": "^4.3.7",
+		"cross-env": "^7.0.3",
+		"del-cli": "^5.0.0",
+		"ethers": "^5.7.2",
 		"hardhat": "^2.12.6",
 		"hardhat-abi-exporter": "^2.10.1",
 		"hardhat-contract-sizer": "^2.7.0",
-		"hardhat-deploy": "^0.11.22"
+		"hardhat-deploy": "^0.11.22",
+		"hardhat-gas-reporter": "^1.0.9",
+		"ts-generator": "^0.1.1",
+		"ts-node": "^10.9.1",
+		"typechain": "^8.1.1",
+		"typescript": "^4.9.4"
 	}
 }

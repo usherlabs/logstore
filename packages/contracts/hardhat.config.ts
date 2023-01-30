@@ -1,11 +1,10 @@
+import './tasks/accounts';
+import './tasks/deploy';
 import '@nomicfoundation/hardhat-toolbox';
 import { config as dotenvConfig } from 'dotenv';
 import type { HardhatUserConfig } from 'hardhat/config';
 import type { NetworkUserConfig } from 'hardhat/types';
 import { resolve } from 'path';
-
-import './tasks/accounts';
-import './tasks/deploy';
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || './.env';
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });
@@ -16,9 +15,9 @@ if (!mnemonic) {
 	throw new Error('Please set your MNEMONIC in a .env file');
 }
 
-const infuraApiKey: string | undefined = process.env.INFURA_API_KEY;
-if (!infuraApiKey) {
-	throw new Error('Please set your INFURA_API_KEY in a .env file');
+const alchemyApiKey: string | undefined = process.env.ALCHEMY_API_KEY;
+if (!alchemyApiKey) {
+	throw new Error('Please set your ALCHEMY_API_KEY in a .env file');
 }
 
 const chainIds = {
@@ -26,7 +25,8 @@ const chainIds = {
 	avalanche: 43114,
 	bsc: 56,
 	hardhat: 31337,
-	mainnet: 1,
+	'eth-mainnet': 1,
+	'eth-goerli': 5,
 	'optimism-mainnet': 10,
 	'polygon-mainnet': 137,
 	'polygon-mumbai': 80001,
@@ -43,7 +43,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 			jsonRpcUrl = 'https://bsc-dataseed1.binance.org';
 			break;
 		default:
-			jsonRpcUrl = 'https://' + chain + '.infura.io/v3/' + infuraApiKey;
+			jsonRpcUrl = `https://${chain}.g.alchemy.com/v2/${alchemyApiKey}`;
 	}
 	return {
 		accounts: {
@@ -72,7 +72,7 @@ const config: HardhatUserConfig = {
 	},
 	gasReporter: {
 		currency: 'USD',
-		enabled: process.env.REPORT_GAS ? true : false,
+		enabled: !!process.env.REPORT_GAS,
 		excludeContracts: [],
 		src: './contracts',
 	},
@@ -86,7 +86,8 @@ const config: HardhatUserConfig = {
 		arbitrum: getChainConfig('arbitrum-mainnet'),
 		avalanche: getChainConfig('avalanche'),
 		bsc: getChainConfig('bsc'),
-		mainnet: getChainConfig('mainnet'),
+		mainnet: getChainConfig('eth-mainnet'),
+		goerli: getChainConfig('eth-goerli'),
 		optimism: getChainConfig('optimism-mainnet'),
 		'polygon-mainnet': getChainConfig('polygon-mainnet'),
 		'polygon-mumbai': getChainConfig('polygon-mumbai'),
