@@ -35,6 +35,8 @@
 		"access": "public"
 	},
 	"dependencies": {
+		"@openzeppelin/contracts": "^4.8.1",
+		"@openzeppelin/contracts-upgradeable": "^4.8.1",
 		"dotenv": "^16.0.2"
 	},
 	"devDependencies": {
@@ -44,6 +46,7 @@
 		"@nomiclabs/hardhat-ethers": "^2.2.2",
 		"@nomiclabs/hardhat-etherscan": "^3.1.5",
 		"@nomiclabs/hardhat-waffle": "^2.0.3",
+		"@openzeppelin/hardhat-upgrades": "^1.22.1",
 		"@typechain/ethers-v5": "^10.2.0",
 		"@typechain/hardhat": "^6.1.5",
 		"@types/chai": "^4.3.4",
