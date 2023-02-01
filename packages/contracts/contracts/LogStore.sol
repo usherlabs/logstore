@@ -20,6 +20,7 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	event NodeWhitelistRejected(address indexed nodeAddress);
 	event RequiresWhitelistChanged(bool indexed value);
 	event StakeUpdate(uint256 indexed requiredAmount);
+	event Report(bool indexed accepted);
 
 	enum WhitelistState {
 		None,
@@ -28,7 +29,7 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	}
 
 	struct Node {
-		uint256 stake;
+		uint index; // index of node address
 		string metadata; // Connection metadata, for example wss://node-domain-name:port
 		uint lastSeen; // what's the best way to store timestamps in smart contracts?
 	}
@@ -51,11 +52,13 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		_;
 	}
 
-	uint64 public nodeCount;
 	bool public requiresWhitelist;
 	uint256 public totalSupply;
 	uint256 public stakeRequiredAmount;
 	address public stakeTokenAddress;
+	address[] public nodeAddresses;
+	address[] public reportList;
+	uint256 public lastAcceptedReportBlockHeight;
 	mapping(address => Node) public nodes;
 	mapping(address => WhitelistState) public whitelist;
 	mapping(address => uint256) public balanceOf;
@@ -137,6 +140,17 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		removeNode();
 	}
 
+	// recieve report data broken up into a series of arrays
+	function report() public onlyStaked {
+		if (reportList.length == 0) {
+			// A condition that will be true on the first report
+			reportList = nodeAddresses;
+		}
+
+		// Consume report data
+		// Produce new reportList
+	}
+
 	function stake(uint amount) public {
 		require(amount > 0, 'error_insufficientStake');
 		bool success = stakeToken.transferFrom(
@@ -165,15 +179,15 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		uint isNew = 0;
 		if (n.lastSeen == 0) {
 			isNew = 1;
+			nodeAddresses.push(nodeAddress);
 			nodes[nodeAddress] = Node({
-				stake: 0,
+				index: nodeAddresses.length - 1,
 				metadata: metadata_,
-				lastSeen: block.timestamp
+				lastSeen: block.timestamp // block timestamp should suffice
 			});
-			nodeCount++;
 		} else {
 			nodes[nodeAddress] = Node({
-				stake: n.stake,
+				index: n.index,
 				metadata: metadata_,
 				lastSeen: block.timestamp
 			});
@@ -184,9 +198,15 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	function _removeNode(address nodeAddress) internal {
 		Node memory n = nodes[nodeAddress];
 		require(n.lastSeen != 0, 'error_notFound');
+		nodes[nodeAddresses[nodeAddresses.length - 1]].index = n.index; // set index of last node to the index of removed node
+		nodeAddresses[n.index] = nodeAddresses[nodeAddresses.length - 1]; // replace removed node with last node
 		delete nodes[nodeAddress];
-		nodeCount--;
+		nodeAddresses.pop();
 		emit NodeRemoved(nodeAddress);
+	}
+
+	function nodeCount() public view returns (uint count) {
+		return nodeAddresses.length;
 	}
 
 	function whitelistApproveNode(address nodeAddress) public onlyOwner {
