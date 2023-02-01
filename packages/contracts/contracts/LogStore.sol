@@ -58,8 +58,7 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	address public stakeTokenAddress;
 	mapping(address => Node) public nodes;
 	mapping(address => WhitelistState) public whitelist;
-	mapping(address => uint256) internal index;
-	mapping(address => uint256) internal balanceOf;
+	mapping(address => uint256) public balanceOf;
 	IERC20Upgradeable internal stakeToken;
 
 	function initialize(
@@ -109,14 +108,19 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		_removeNode(nodeAddress);
 	}
 
+	function treasuryWithdraw(uint256 amount) public onlyOwner {
+		require(
+			amount <= stakeToken.balanceOf(address(this)),
+			'error_notEnoughStake'
+		);
+		bool success = stakeToken.transfer(msg.sender, amount);
+		require(success == true, 'error_unsuccessfulWithdraw');
+	}
+
 	function upsertNode(
 		string memory metadata_
 	) public onlyWhitelist onlyStaked {
 		_upsertNode(msg.sender, metadata_);
-	}
-
-	function getBalance() public view returns (uint256 balance) {
-		return balanceOf[msg.sender];
 	}
 
 	function removeNode() public {
@@ -146,7 +150,7 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	}
 
 	function withdraw(uint amount) public {
-		require(amount <= balanceOf[msg.sender], 'error_insufficientStake');
+		require(amount <= balanceOf[msg.sender], 'error_notEnoughStake');
 		bool success = stakeToken.transfer(msg.sender, amount);
 		require(success == true, 'error_unsuccessfulWithdraw');
 		balanceOf[msg.sender] -= amount;
