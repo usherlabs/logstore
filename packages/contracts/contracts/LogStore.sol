@@ -19,10 +19,7 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	event NodeWhitelistApproved(address indexed nodeAddress);
 	event NodeWhitelistRejected(address indexed nodeAddress);
 	event RequiresWhitelistChanged(bool indexed value);
-	event CurrencyAdded(
-		address indexed tokenAddress,
-		uint256 indexed requiredAmount
-	);
+	event StakeUpdate(uint256 indexed requiredAmount);
 
 	enum WhitelistState {
 		None,
@@ -36,13 +33,6 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		uint lastSeen; // what's the best way to store timestamps in smart contracts?
 	}
 
-	struct Currency {
-		IERC20Upgradeable token;
-		uint256 requiredAmount; // Required amount of currency to be staked
-		mapping(address => uint256) balanceOf;
-		uint256 totalSupply;
-	}
-
 	modifier onlyWhitelist() {
 		require(
 			!requiresWhitelist ||
@@ -52,11 +42,10 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		_;
 	}
 
-	modifier onlyStaked(address tokenAddress) {
+	modifier onlyStaked() {
 		require(
-			currencies[tokenAddress].requiredAmount > 0 &&
-				currencies[tokenAddress].balanceOf[msg.sender] >=
-				currencies[tokenAddress].requiredAmount,
+			stakeRequiredAmount > 0 &&
+				balanceOf[msg.sender] >= stakeRequiredAmount,
 			'error_stakeRequired'
 		);
 		_;
@@ -64,18 +53,22 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
 	uint64 public nodeCount;
 	bool public requiresWhitelist;
-	mapping(address => Currency) public currencies;
+	uint256 public totalSupply;
+	uint256 public stakeRequiredAmount;
+	address public stakeTokenAddress;
 	mapping(address => Node) public nodes;
 	mapping(address => WhitelistState) public whitelist;
 	mapping(address => uint256) internal index;
+	mapping(address => uint256) internal balanceOf;
+	IERC20Upgradeable internal stakeToken;
 
 	function initialize(
 		address owner,
 		bool requiresWhitelist_,
+		address stakeTokenAddress_,
+		uint256 stakeRequiredAmount_,
 		address[] memory initialNodes,
-		string[] memory initialMetadata,
-		address[] memory currencyAddresses,
-		uint256[] memory currencyRequiredAmounts
+		string[] memory initialMetadata
 	) public initializer {
 		__Ownable_init();
 		__UUPSUpgradeable_init();
@@ -85,17 +78,14 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 			'error_badTrackerData'
 		);
 		require(
-			currencyAddresses.length == currencyRequiredAmounts.length,
+			stakeTokenAddress != address(0) && stakeRequiredAmount_ > 0,
 			'error_badTrackerData'
 		);
+		stakeToken = IERC20Upgradeable(stakeTokenAddress_);
+		stakeTokenAddress = stakeTokenAddress_;
+		stakeRequiredAmount = stakeRequiredAmount_;
 		for (uint i = 0; i < initialNodes.length; i++) {
 			upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
-		}
-		for (uint i = 0; i < currencyAddresses.length; i++) {
-			addNewOperatorStakeCurrency(
-				currencyAddresses[i],
-				currencyRequiredAmounts[i]
-			);
 		}
 		transferOwnership(owner);
 	}
@@ -103,12 +93,9 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	/// @dev required by the OZ UUPS module
 	function _authorizeUpgrade(address) internal override onlyOwner {}
 
-	function addNewOperatorStakeCurrency(
-		address tokenAddress,
-		uint256 amount
-	) public onlyOwner {
-		currencies[tokenAddress].token = IERC20Upgradeable(tokenAddress);
-		currencies[tokenAddress].requiredAmount = amount;
+	function updateStakeRequiredAmount(uint256 amount) public onlyOwner {
+		stakeRequiredAmount = amount;
+		emit StakeUpdate(amount);
 	}
 
 	function upsertNodeAdmin(
@@ -128,34 +115,42 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		_upsertNode(msg.sender, metadata_);
 	}
 
+	function getBalance() public view returns (uint256 balance) {
+		return balanceOf[msg.sender];
+	}
+
 	function removeNode() public {
 		_removeNode(msg.sender);
 	}
 
-	function stake(address tokenAddress, uint amount) external {
-		require(
-			currencies[tokenAddress].requiredAmount > 0,
-			'error_invalidCurrency'
-		);
+	function join(uint amount, string memory metadata_) public {
+		stake(amount);
+		upsertNode(metadata_);
+	}
+
+	function leave() public {
+		withdraw(balanceOf[msg.sender]);
+		removeNode();
+	}
+
+	function stake(uint amount) public {
 		require(amount > 0, 'error_insufficientStake');
-		currencies[tokenAddress].token.transferFrom(
+		bool success = stakeToken.transferFrom(
 			msg.sender,
 			address(this),
 			amount
 		);
-		currencies[tokenAddress].balanceOf[msg.sender] += amount;
-		currencies[tokenAddress].totalSupply += amount;
+		require(success == true, 'error_unsuccessfulStake');
+		balanceOf[msg.sender] += amount;
+		totalSupply += amount;
 	}
 
-	function withdraw(address tokenAddress, uint amount) external {
-		require(
-			currencies[tokenAddress].requiredAmount > 0,
-			'error_invalidCurrency'
-		);
-		require(amount > 0, 'error_insufficientStake');
-		currencies[tokenAddress].balanceOf[msg.sender] -= amount;
-		currencies[tokenAddress].totalSupply -= amount;
-		currencies[tokenAddress].token.transfer(msg.sender, amount);
+	function withdraw(uint amount) public {
+		require(amount <= balanceOf[msg.sender], 'error_insufficientStake');
+		bool success = stakeToken.transfer(msg.sender, amount);
+		require(success == true, 'error_unsuccessfulWithdraw');
+		balanceOf[msg.sender] -= amount;
+		totalSupply -= amount;
 	}
 
 	function _upsertNode(
