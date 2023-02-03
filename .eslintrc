@@ -34,6 +34,7 @@
 		"no-constant-condition": "off",
 		"no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
 		"no-continue": "off",
+		"no-console": "off",
 		"import/no-extraneous-dependencies": "off",
 		"@typescript-eslint/no-floating-promises": ["error", {"ignoreIIFE": true, "ignoreVoid": true}],
 		"@typescript-eslint/no-inferrable-types": "off",
