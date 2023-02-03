@@ -1,4 +1,6 @@
 #!/usr/bin/env node
-import {cmd } '../src';
+import { Cmd } from '../src';
 
-cmd();
+const cmd = new Cmd();
+
+cmd.boostrap();

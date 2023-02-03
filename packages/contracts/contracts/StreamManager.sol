@@ -45,6 +45,16 @@ contract LogStoreStreamManager is
 	/// @dev required by the OZ UUPS module
 	function _authorizeUpgrade(address) internal override onlyOwner {}
 
+	function create(string memory stream, uint amount) public {
+		// TODO: Add public log store stream creation
+		stake(stream, amount);
+	}
+
+	function destroy(string memory stream, uint amount) public {
+		// TODO: Add public log store stream destroy
+		withdraw(stream, amount);
+	}
+
 	function stake(string memory stream, uint amount) public {
 		require(amount > 0, 'error_insufficientStake');
 		bool success = stakeToken.transferFrom(
