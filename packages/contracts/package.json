@@ -35,9 +35,9 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"@openzeppelin/contracts": "^4.8.1",
 		"@openzeppelin/contracts-upgradeable": "^4.8.1",
-		"dotenv": "^16.0.2"
+		"dotenv": "^16.0.2",
+		"streamr-contracts": "github://streamr-dev/network-contracts"
 	},
 	"devDependencies": {
 		"@nomicfoundation/hardhat-chai-matchers": "^1.0.5",

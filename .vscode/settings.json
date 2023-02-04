@@ -2,7 +2,7 @@
 	"eslint.workingDirectories": [
 		"../",
 		"./",
-		"./packages/contracts",
+		"packages/contracts",
 		"packages/validator",
 		"packages/broker",
 	],

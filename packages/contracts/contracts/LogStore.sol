@@ -111,6 +111,7 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		_removeNode(nodeAddress);
 	}
 
+	// TODO: Update only access the funds in treasury
 	function treasuryWithdraw(uint256 amount) public onlyOwner {
 		require(
 			amount <= stakeToken.balanceOf(address(this)),
