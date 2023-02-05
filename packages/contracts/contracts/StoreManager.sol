@@ -9,6 +9,7 @@ import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import 'streamr-contracts/packages/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol'; // https://github.com/streamr-dev/network-contracts/blob/master/packages/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol
 
+// Owned by the NodeManager Contract
 contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	event StoreUpdated(
 		string indexed store,
@@ -64,6 +65,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		}
 	}
 
+	// Only the LogStore Contract can call the capture method
 	function capture(
 		string memory streamId,
 		uint256 amount,

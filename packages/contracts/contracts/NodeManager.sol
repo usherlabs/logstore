@@ -8,7 +8,14 @@ import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 
-contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+import './StoreManager.sol';
+import './QueryManager.sol';
+
+contract LogStoreNodeManager is
+	Initializable,
+	UUPSUpgradeable,
+	OwnableUpgradeable
+{
 	event NodeUpdated(
 		address indexed nodeAddress,
 		string metadata,
@@ -63,6 +70,8 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	mapping(address => WhitelistState) public whitelist;
 	mapping(address => uint256) public balanceOf;
 	IERC20Upgradeable internal stakeToken;
+	LogStoreManager private _storeManager;
+	LogStoreQueryManager private _queryManager;
 
 	function initialize(
 		address owner,
@@ -98,6 +107,14 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	function updateStakeRequiredAmount(uint256 amount) public onlyOwner {
 		stakeRequiredAmount = amount;
 		emit StakeUpdate(amount);
+	}
+
+	function registerStoreManager(address contractAddress) public onlyOwner {
+		_storeManager = LogStoreManager(contractAddress);
+	}
+
+	function registerQueryManager(address contractAddress) public onlyOwner {
+		_queryManager = LogStoreQueryManager(contractAddress);
 	}
 
 	function upsertNodeAdmin(
@@ -150,6 +167,8 @@ contract LogStore is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
 		// Consume report data
 		// Produce new reportList
+		// Capture fees from LogStoreManager
+		// _storeManager.captureBundle(streamIds, amounts, bytesStored);
 	}
 
 	function stake(uint amount) public {
