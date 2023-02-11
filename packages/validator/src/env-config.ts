@@ -9,13 +9,3 @@ export const sentry = {
 	dsn: process.env.SENTRY_DSN || '',
 	release: process.env.SENTRY_RELEASE || appName,
 };
-
-/* ========== TESTING ========== */
-export const arweaveLocalPort = process.env.ARWEAVE_LOCAL_PORT;
-
-/* ========== API ============== */
-export const ethereumRpc = process.env.ETHEREUM_RPC;
-export const ethereumChainId = process.env.ETHEREUM_CHAIN_ID || '1';
-export const polygonRpc = process.env.POLYGON_RPC || 'https://polygon-rpc.com';
-export const polygonChainId = process.env.POLYGON_CHAIN_ID || '137';
-export const evmPrivateKey = process.env.EVM_PRIVATE_KEY;

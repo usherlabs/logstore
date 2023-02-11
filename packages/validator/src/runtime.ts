@@ -1,109 +1,95 @@
-import { DataItem } from '@kyve/core';
-import { standardizeJSON, sha256 } from '@kyve/core/dist/src/utils';
-import { IRuntime, Pipeline, ICacheIsolate, SupportedSources } from '@/types';
-import { Node } from './node';
+import { DataItem, IRuntime, Node, sha256 } from '@kyve/core-beta';
+
 import { appPackageName, appVersion } from './env-config';
 
-const itemPriorityBySource = [
-	SupportedSources.streamr,
-	SupportedSources.polygon,
-	SupportedSources.ethereum,
-];
+let dataItemCounter = 0; // Must be reset based on reaching max_bundle_size.
 
 export default class Runtime implements IRuntime {
 	public name = appPackageName;
-
 	public version = appVersion;
 
-	// ? Dev note: Try/Catch should be added at more granular level
-	// ? Dev note #2: getDataItem is executed inside of a while-loop, whereby a key is passed to the method for each block in a range.
-	public async getDataItem(core: Node, key: string): Promise<DataItem> {
-		// read the NEXT event from the source cache in order of priority. Move onto the next source in priority based on whether events no longer exist in cache.
-		// Priority = Streamr, Polygon, Ethereum
-		let source: SupportedSources;
-		let sourceKey;
-		for (let i = 0; i < itemPriorityBySource.length; i += 1) {
-			source = itemPriorityBySource[i];
-
-			const cache = core.getSourceCache(source);
-
-			const height = await cache.height;
-			for (let j = height - 1; j > 0; j -= 1) {
-				// iterate backwards over source cache -- until an source item is fetched with a key
-				const value = await cache.get(j.toString());
-				if (value?.key) {
-					break;
-				}
-				sourceKey = j; // Source key becomes the key of the item just after an item with a key
-			}
+	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
+	async getDataItem(
+		core: Node,
+		source: string,
+		key: string
+	): Promise<DataItem> {
+		dataItemCounter++;
+		if (dataItemCounter === parseInt(core.pool.data!.max_bundle_size, 10)) {
+			dataItemCounter = 0;
 		}
-
-		if (typeof sourceKey === 'number' && typeof source === 'string') {
-			const cache = core.getSourceCache(source);
-			const sourceValue = await cache.get(sourceKey.toString());
-			const value = {
-				...sourceValue,
-				source,
-			};
-			await cache.put(sourceKey.toString(), {
-				...sourceValue,
-				key,
-			});
-
-			// return the data into the bundle using the key
-			// ? Dev note: Imagine that all the bundles combine form an append-only event log
-			// ? -- The key would represent the event to fetch from that append-only event log, and the height range would determine the bundle to extract from that event log.
+		if (dataItemCounter === 0) {
+			// Insert the report from system listener process.
 			return {
 				key,
-				value,
+				value: [],
 			};
 		}
 
+		// TODO: Fetch batch items from broker nodes
+		// TODO: Unify data items that share the same content and timestamps.
+		// const streamr = new StreamrClient();
+		// const group = [];
+
+		// const fromTimestamp = parseInt(key);
+		// const toTimestamp = parseInt(await this.nextKey(core, key));
+
+		// if (Date.now() < toTimestamp) {
+		//   throw new Error('reached live limit');
+		// }
+
+		// const stream = await streamr.resend(source, {
+		//   from: {
+		//     timestamp: fromTimestamp,
+		//   },
+		//   to: {
+		//     timestamp: toTimestamp,
+		//   },
+		// });
+
+		// for await (const item of stream) {
+		//   group.push(item);
+		// }
+
 		return {
-			key: '',
-			value: '',
+			key,
+			value: [],
 		};
 	}
 
-	/**
-	 * A method to use the an instance of the events database layer to produce a read-only version specifically for the pipeline transformer.
-	 */
-	public async transform(pipeline: Pipeline, db: ICacheIsolate) {
-		return pipeline.transformer(db);
+	// https://github.com/KYVENetwork/node/blob/main/common/core/src/methods/helpers/saveGetTransformDataItem.ts#L33
+	async prevalidateDataItem(_: Node, __: DataItem): Promise<boolean> {
+		// TODO: validate if signature is valid?
+		return true;
 	}
 
-	async validate(
-		core: Node,
-		uploadedBundle: DataItem[],
-		validationBundle: DataItem[]
-	) {
-		const uploadedBundleHash = sha256(
-			Buffer.from(JSON.stringify(uploadedBundle))
+	// https://github.com/KYVENetwork/node/blob/main/common/core/src/methods/helpers/saveGetTransformDataItem.ts#L44
+	async transformDataItem(_: Node, item: DataItem): Promise<DataItem> {
+		// TODO: only save content of message or metadata aswell?
+		return item;
+	}
+
+	async validateDataItem(
+		_: Node,
+		proposedDataItem: DataItem,
+		validationDataItem: DataItem
+	): Promise<boolean> {
+		const proposedDataItemHash = sha256(
+			Buffer.from(JSON.stringify(proposedDataItem))
 		);
-		const validationBundleHash = sha256(
-			Buffer.from(JSON.stringify(validationBundle))
+		const validationDataItemHash = sha256(
+			Buffer.from(JSON.stringify(validationDataItem))
 		);
 
-		core.logger.debug(`Validating bundle proposal by hash`);
-		core.logger.debug(`Uploaded:     ${uploadedBundleHash}`);
-		core.logger.debug(`Validation:   ${validationBundleHash}\n`);
-
-		return uploadedBundleHash === validationBundleHash;
+		return proposedDataItemHash === validationDataItemHash;
 	}
 
-	public async getNextKey(key: string): Promise<string> {
-		return (parseInt(key, 10) + 1).toString();
+	async summarizeDataBundle(_: Node, bundle: DataItem[]): Promise<string> {
+		// TODO: save latest timestamp or nothing?
+		return `${bundle.at(-1)?.value?.at(-1)?.timestamp ?? ''}`;
 	}
 
-	public async formatValue(value: any): Promise<string> {
-		if (value.hash) {
-			return value.hash;
-		}
-
-		let v = value;
-		if (typeof v === 'object') {
-			v = standardizeJSON(v);
-		}
-		return sha256(v);
+	async nextKey(key: string): Promise<string> {
+		return (parseInt(key) + 1000).toString(); // The larger the data item, the less items required in a bundle, otherwise increase interval.
 	}
 }

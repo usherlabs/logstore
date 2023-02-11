@@ -1,16 +1,10 @@
-import 'dotenv/config';
+import { Node } from '@kyve/core-beta';
 
-import { Gzip } from '@kyve/core';
-import Runtime from './runtime';
-import { Node } from './node';
-import { LevelStore } from './localstore';
-import { Arweave } from './storage';
+import LogStore from './runtime';
 
-const node = new Node()
-	.addRuntime(new Runtime())
-	.addStorageProvider(new Arweave())
-	.addCompression(new Gzip())
-	.addCache(new LevelStore());
+const runtime = new LogStore();
 
-node.listen();
+const node = new Node(runtime);
 node.bootstrap();
+
+// TODO: Create second listener process for System Stream

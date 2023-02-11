@@ -19,10 +19,10 @@
 			}
 		}
 	},
-	"plugins": ["@typescript-eslint", "import", "unused-imports", "jest"],
+	"plugins": ["@typescript-eslint", "plugin:prettier/recommended", "import", "unused-imports", "jest"],
 	"extends": [
-		"airbnb-base",
-		"airbnb-typescript/base",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
 		"plugin:prettier/recommended",
 		"plugin:jest/recommended"
 	],
