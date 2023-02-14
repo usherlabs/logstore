@@ -7,7 +7,16 @@ import '@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import 'streamr-contracts/packages/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol'; // https://github.com/streamr-dev/network-contracts/blob/master/packages/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol
+
+// import 'streamr-contracts/packages/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol'; // https://github.com/streamr-dev/network-contracts/blob/master/packages/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol
+
+contract StreamRegistryV4 {
+	mapping(string => string) public streamIdToMetadata;
+
+	function exists(string calldata streamId) public view returns (bool) {
+		return bytes(streamIdToMetadata[streamId]).length != 0;
+	}
+}
 
 // Owned by the NodeManager Contract
 contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
@@ -31,6 +40,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	mapping(address => uint256) public balanceOf; // map of addresses and their total balanace
 	mapping(address => mapping(string => uint256)) public storeBalanceOf; // map of addresses and the stores they're staked in
 	IERC20Upgradeable internal stakeToken;
+	StreamRegistryV4 internal streamrRegistry;
 
 	function initialize(
 		address owner,
@@ -69,7 +79,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 	function capture(
 		string memory streamId,
 		uint256 amount,
-		uint256 memory bytesStored
+		uint256 bytesStored
 	) public onlyOwner {
 		require(
 			amount <= stakeToken.balanceOf(address(this)),
@@ -88,8 +98,8 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 			storeBalanceOf[stakeholder][streamId] -= deduction;
 			if (storeBalanceOf[stakeholder][streamId] == 0) {
 				storeStakeholders[streamId] = [];
-				for (uint256 i = 0; i < stakeholders.length; i++) {
-					if (stakeholders[i] != stakeholder) {
+				for (uint256 j = 0; j < stakeholders.length; j++) {
+					if (stakeholders[j] != stakeholder) {
 						storeStakeholders[streamId].push(stakeholder);
 					}
 				}
@@ -130,7 +140,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		require(amount < balanceOf[msg.sender], 'error_notEnoughStake');
 		bool success = stakeToken.transfer(msg.sender, amount);
 		require(success == true, 'error_unsuccessfulWithdraw');
-		stores[stream] -= amount;
+		stores[streamId] -= amount;
 		balanceOf[msg.sender] -= amount;
 		storeBalanceOf[msg.sender][streamId] -= amount;
 		if (storeBalanceOf[msg.sender][streamId] == 0) {

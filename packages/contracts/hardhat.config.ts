@@ -3,6 +3,7 @@ import '@openzeppelin/hardhat-upgrades';
 import { config as dotenvConfig } from 'dotenv';
 import type { HardhatUserConfig } from 'hardhat/config';
 import type { NetworkUserConfig } from 'hardhat/types';
+import snakeCase from 'lodash.snakecase';
 import { resolve } from 'path';
 
 import './tasks/accounts';
@@ -13,13 +14,11 @@ dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });
 
 // Ensure that we have all the environment variables we need.
 const mnemonic: string | undefined = process.env.MNEMONIC;
-if (!mnemonic) {
-	throw new Error('Please set your MNEMONIC in a .env file');
-}
-
-const alchemyApiKey: string | undefined = process.env.ALCHEMY_API_KEY;
-if (!alchemyApiKey) {
-	throw new Error('Please set your ALCHEMY_API_KEY in a .env file');
+const ownerPrivateKey: string = process.env.OWNER_PRIVATE_KEY || '';
+if (!mnemonic && !ownerPrivateKey) {
+	throw new Error(
+		'Please set your MNEMONIC or OWNER_PRIVATE_KEY in a .env file'
+	);
 }
 
 const chainIds = {
@@ -45,14 +44,10 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 			jsonRpcUrl = 'https://bsc-dataseed1.binance.org';
 			break;
 		default:
-			jsonRpcUrl = `https://${chain}.g.alchemy.com/v2/${alchemyApiKey}`;
+			jsonRpcUrl = process.env[snakeCase(chain).toUpperCase()] || '';
 	}
 	return {
-		accounts: {
-			count: 10,
-			mnemonic,
-			path: "m/44'/60'/0'/0",
-		},
+		accounts: [ownerPrivateKey],
 		chainId: chainIds[chain],
 		url: jsonRpcUrl,
 	};
@@ -85,15 +80,14 @@ const config: HardhatUserConfig = {
 			},
 			chainId: chainIds.hardhat,
 		},
-		arbitrum: getChainConfig('arbitrum-mainnet'),
-		avalanche: getChainConfig('avalanche'),
-		bsc: getChainConfig('bsc'),
-		mainnet: getChainConfig('eth-mainnet'),
-		goerli: getChainConfig('eth-goerli'),
-		optimism: getChainConfig('optimism-mainnet'),
+		// avalanche: getChainConfig('avalanche'),
+		// bsc: getChainConfig('bsc'),
+		// mainnet: getChainConfig('eth-mainnet'),
+		// goerli: getChainConfig('eth-goerli'),
+		// optimism: getChainConfig('optimism-mainnet'),
 		'polygon-mainnet': getChainConfig('polygon-mainnet'),
 		'polygon-mumbai': getChainConfig('polygon-mumbai'),
-		sepolia: getChainConfig('sepolia'),
+		// sepolia: getChainConfig('sepolia'),
 	},
 	paths: {
 		artifacts: './artifacts',

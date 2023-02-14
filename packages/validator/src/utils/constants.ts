@@ -1,4 +1,4 @@
-import { POLYGON } from '../env-config';
+// import { POLYGON } from '../env-config';
 
 export const SystemStreamId = 'ryanwould.eth/logstore-system' as const;
 
