@@ -1,12 +1,15 @@
 import { DataItem, IRuntime, Node, sha256 } from '@kyve/core-beta';
 
 import { appPackageName, appVersion } from './env-config';
+import SystemMesh from './system';
 
 let dataItemCounter = 0; // Must be reset based on reaching max_bundle_size.
 
 export default class Runtime implements IRuntime {
 	public name = appPackageName;
 	public version = appVersion;
+
+	constructor(private systemMesh: SystemMesh) {}
 
 	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
 	async getDataItem(
@@ -20,9 +23,10 @@ export default class Runtime implements IRuntime {
 		}
 		if (dataItemCounter === 0) {
 			// Insert the report from system listener process.
+			const report = this.systemMesh.pick();
 			return {
 				key,
-				value: [],
+				value: report,
 			};
 		}
 

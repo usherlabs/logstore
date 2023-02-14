@@ -1,7 +1,3 @@
-import { SupportedSourcesChains } from '@/types';
-
-// import { DUMMY_ETH_ABI } from './dummy';
-
 /**
  * A function used to format a struct object gotten from the blockchain
  * @param struct {Array} a strut onject directly from the blockchain
@@ -15,13 +11,6 @@ export const parseStruct = (struct: [] | {}) => {
 		parsedArgs[key] = initialArgs[key].toString();
 	});
 	return parsedArgs;
-};
-
-export const getChainName = (chainId: string | number) => {
-	const res = Object.entries(SupportedSourcesChains).find(
-		(entry) => entry[1] === chainId
-	);
-	return res[0] || '';
 };
 
 /**
