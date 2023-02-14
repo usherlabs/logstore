@@ -1,11 +1,11 @@
+import { Chains } from '@streamr/config';
 import ethers from 'ethers';
-import StreamrClient from 'streamr-client';
-import { MessageMetadata } from 'streamr-client';
+import StreamrClient, { MessageMetadata } from 'streamr-client';
 
 // import abi from '@concertodao/logstore-contracts';
 import {
-	LogStoreNodeManagerContractAddress,
-	SteamrStreamRegistryContractAddress,
+	DefaultNetworkEndpoints,
+	LogStoreNetworkConfig,
 	SystemStreamId,
 } from './utils/constants';
 
@@ -52,6 +52,8 @@ type Report = {
 	}[];
 };
 
+type Source = { id: number; endpoint: string };
+
 export default class SystemMesh {
 	private streamr = new StreamrClient();
 	private reports: Report[] = [];
@@ -59,16 +61,38 @@ export default class SystemMesh {
 	// private messages: SystemMessage[] = [];
 	private activeBundleId = '';
 
-	constructor(private sources = []) {}
+	constructor(private source: Source = { id: 137, endpoint: '' }) {}
 
 	public async start() {
 		// Start listening to system messages.
 		this.streamr.subscribe(SystemStreamId, this.onMessage);
 
 		// Produce a list of logstores -- and there associated streams
-		// const contract = new ethers.Contract(address, abi, provider.getSigner(0));
-		// let eventFilter = contract.filters.ContractEvent();
-		// let events = await contract.queryFilter(eventFilter);
+		const provider = new ethers.WebSocketProvider(
+			this.source.endpoint || DefaultNetworkEndpoints[this.source.id]
+		);
+		const contract = new ethers.Contract(
+			LogStoreNetworkConfig[this.source.id].StoreManager,
+			// abi,
+			{},
+			provider
+		);
+		// https://moralis.io/how-to-listen-to-smart-contract-events-using-ethers-js/
+		const eventsToDate = await contract.queryFilter('StoreUpdated');
+		console.log(eventsToDate);
+		contract.on(
+			'StoreUpdated',
+			(
+				store: string,
+				isNew: boolean,
+				amount: ethers.BigNumberish,
+				updatedBy: string
+			) => {
+				console.log(
+					JSON.stringify({ store, isNew, amount, updatedBy }, null, 4)
+				);
+			}
+		);
 	}
 
 	public onMessage(content: SystemMessageContent, metadata: MessageMetadata) {
@@ -113,7 +137,7 @@ export default class SystemMesh {
 				id,
 				nodes: [],
 			};
-			this.reports.push(report);
+			// this.reports.push(report);
 		}
 		this.setActiveBundle(id);
 	}
@@ -122,8 +146,14 @@ export default class SystemMesh {
 		this.activeBundleId = id;
 	}
 
-	public setSources(sources: string[]) {
-		this.sources = sources;
+	public setSource(source: string) {
+		const [chainIdStr, ...chainEndpointParts] = source.split('|');
+		const endpoint = chainEndpointParts.join('|');
+		const id = parseInt(chainIdStr, 10);
+		this.source = {
+			id,
+			endpoint,
+		};
 	}
 
 	public pick(): Report {

@@ -9,3 +9,6 @@ export const sentry = {
 	dsn: process.env.SENTRY_DSN || '',
 	release: process.env.SENTRY_RELEASE || appName,
 };
+
+/* ========== RPC ENDPOINTS ========== */
+export const POLYGON = process.env.POLYGON;

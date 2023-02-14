@@ -2942,6 +2942,11 @@
   dependencies:
     antlr4ts "^0.5.0-alpha.4"
 
+"@streamr/config@^2.5.8":
+  version "2.5.8"
+  resolved "https://registry.yarnpkg.com/@streamr/config/-/config-2.5.8.tgz#4be04dc1921b26cf5625aca8ed52b10a2c42edaa"
+  integrity sha512-vtnbrj8S3ky4sog+0FQeoKOul+OsgUm4yYAfdSz2o3r4RhopCugmJ+7Jk76Cz62gw1oRX56hQpHgXGB4ELK3VQ==
+
 "@streamr/network-node@7.2.1":
   version "7.2.1"
   resolved "https://registry.yarnpkg.com/@streamr/network-node/-/network-node-7.2.1.tgz#362316e5dd3526bcf517777fc2509e321d77be32"
@@ -5771,7 +5776,7 @@ dot-prop@^6.0.1:
   dependencies:
     is-obj "^2.0.0"
 
-dotenv@^16.0.2:
+dotenv@^16.0.2, dotenv@^16.0.3:
   version "16.0.3"
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.0.3.tgz#115aec42bac5053db3c456db30cc243a5a836a07"
   integrity sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==

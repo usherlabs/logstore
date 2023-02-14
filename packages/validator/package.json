@@ -31,6 +31,8 @@
 		"@kyve/core-beta": "^1.23.0",
 		"@sentry/node": "^7.13.0",
 		"@sentry/tracing": "^7.13.0",
+		"@streamr/config": "^2.5.8",
+		"dotenv": "^16.0.3",
 		"ethers": "^6.0.3",
 		"eventemitter3": "^5.0.0",
 		"streamr-client": "^7.3.0"

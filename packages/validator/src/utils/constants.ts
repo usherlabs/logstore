@@ -1,11 +1,16 @@
+import { POLYGON } from '../env-config';
+
 export const SystemStreamId = 'ryanwould.eth/logstore-system' as const;
 
-export const LogStoreNodeManagerContractAddress = {
-	137: '0x', // Polygon Mainnet
-	80001: '0x', // Polygon Testnet
-} as const; // Polygon Log Store Node Management Address
+export const LogStoreNetworkConfig = {
+	137: {
+		NodeManager: '0x',
+		StoreManager: '0x',
+		QueryManager: '0x',
+	},
+} as const;
 
-export const SteamrStreamRegistryContractAddress = {
-	137: '0x', // Polygon Mainnet
-	80001: '0x', // Polygon Testnet
-} as const; // Polygon StreamrStreamRegistry Contract Address -- for managing which streams ar partitioned.
+export const DefaultNetworkEndpoints = {
+	137: POLYGON || 'wss://polygon-bor.publicnode.com',
+	// 80001: POLYGON || 'wss://rpc.ankr.com/polygon_mumbai',
+} as const;
