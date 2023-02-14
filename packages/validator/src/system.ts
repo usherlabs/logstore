@@ -68,31 +68,31 @@ export default class SystemMesh {
 		this.streamr.subscribe(SystemStreamId, this.onMessage);
 
 		// Produce a list of logstores -- and there associated streams
-		const provider = new ethers.WebSocketProvider(
-			this.source.endpoint || DefaultNetworkEndpoints[this.source.id]
-		);
-		const contract = new ethers.Contract(
-			LogStoreNetworkConfig[this.source.id].StoreManager,
-			// abi,
-			{},
-			provider
-		);
-		// https://moralis.io/how-to-listen-to-smart-contract-events-using-ethers-js/
-		const eventsToDate = await contract.queryFilter('StoreUpdated');
-		console.log(eventsToDate);
-		contract.on(
-			'StoreUpdated',
-			(
-				store: string,
-				isNew: boolean,
-				amount: ethers.BigNumberish,
-				updatedBy: string
-			) => {
-				console.log(
-					JSON.stringify({ store, isNew, amount, updatedBy }, null, 4)
-				);
-			}
-		);
+		// const provider = new ethers.WebSocketProvider(
+		// 	this.source.endpoint || DefaultNetworkEndpoints[this.source.id]
+		// );
+		// const contract = new ethers.Contract(
+		// 	LogStoreNetworkConfig[this.source.id].StoreManager,
+		// 	// abi,
+		// 	{},
+		// 	provider
+		// );
+		// // https://moralis.io/how-to-listen-to-smart-contract-events-using-ethers-js/
+		// const eventsToDate = await contract.queryFilter('StoreUpdated');
+		// console.log(eventsToDate);
+		// contract.on(
+		// 	'StoreUpdated',
+		// 	(
+		// 		store: string,
+		// 		isNew: boolean,
+		// 		amount: ethers.BigNumberish,
+		// 		updatedBy: string
+		// 	) => {
+		// 		console.log(
+		// 			JSON.stringify({ store, isNew, amount, updatedBy }, null, 4)
+		// 		);
+		// 	}
+		// );
 	}
 
 	public onMessage(content: SystemMessageContent, metadata: MessageMetadata) {
