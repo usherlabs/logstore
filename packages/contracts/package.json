@@ -13,15 +13,13 @@
 		"coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"test/**/*.ts\" && yarn typechain",
 		"deploy:mumbai": "npx hardhat deploy:LogStore --network mumbai",
 		"lint": "yarn lint:sol && yarn lint:ts && yarn prettier:check",
-		"lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
+		"lint:sol": "solhint --max-warnings 0 \"**/*.sol\"",
 		"lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
 		"test": "hardhat test",
 		"typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
-		"format": "prettier --write 'contracts/**/*.sol'"
+		"format": "prettier --write 'src/**/*.sol'"
 	},
-	"files": [
-		"/contracts"
-	],
+	"files": [],
 	"keywords": [
 		"blockchain",
 		"ethers",

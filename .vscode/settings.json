@@ -2,7 +2,7 @@
 	"eslint.workingDirectories": [
 		"./packages/contracts",
 		"./packages/validator",
-		"./packages/broker",
+		"./packages/broker"
 	],
 	"eslint.validate": [
 		"javascript",
@@ -12,5 +12,6 @@
 	],
 	"prettier.configPath": "./.prettierrc",
 	"prettier.prettierPath": "./node_modules/prettier",
-	"solidity.formatter": "prettier"
+	"solidity.formatter": "prettier",
+	"solidity.telemetry": false
 }

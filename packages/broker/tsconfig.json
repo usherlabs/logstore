@@ -31,6 +31,6 @@
 	"exclude": ["node_modules", "build", "dist"],
 	"include": ["**/*.ts"],
 	"ts-node": {
-    "require": ["tsconfig-paths/register"]
-  }
+		"require": ["tsconfig-paths/register"]
+	}
 }

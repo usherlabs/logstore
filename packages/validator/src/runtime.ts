@@ -1,7 +1,6 @@
-import { DataItem, IRuntime, Node, sha256 } from '@kyve/core-beta';
-
 import { appPackageName, appVersion } from './env-config';
 import SystemMesh from './system';
+import { DataItem, IRuntime, Node, sha256 } from '@kyve/core-beta';
 
 let dataItemCounter = 0; // Must be reset based on reaching max_bundle_size.
 

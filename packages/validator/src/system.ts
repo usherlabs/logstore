@@ -1,13 +1,12 @@
-import { Chains } from '@streamr/config';
-import ethers from 'ethers';
-import StreamrClient, { MessageMetadata } from 'streamr-client';
-
 // import abi from '@concertodao/logstore-contracts';
 import {
 	DefaultNetworkEndpoints,
 	LogStoreNetworkConfig,
 	SystemStreamId,
 } from './utils/constants';
+import { Chains } from '@streamr/config';
+import ethers from 'ethers';
+import StreamrClient, { MessageMetadata } from 'streamr-client';
 
 enum SystemMessageType {
 	MESSAGE = 1,

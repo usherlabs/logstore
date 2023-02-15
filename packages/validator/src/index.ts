@@ -1,9 +1,8 @@
-import 'dotenv/config';
-
 import Node from './node';
 import LogStore from './runtime';
 import SystemMesh from './system';
 import { events } from './utils/events';
+import 'dotenv/config';
 
 const mesh = new SystemMesh();
 

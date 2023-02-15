@@ -5,11 +5,12 @@
 	"repository": "git@github.com:usherlabs/logstore.git",
 	"homepage": "https://concerto.technology/logstore",
 	"author": "Ryan Soury <ryan@usher.so>",
-	"license": "UNLICENSED",
+	"license": "GPL-2.0",
 	"private": true,
 	"scripts": {
 		"clean": "del packages/*/node_modules node_modules",
-		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md}\""
+		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md,sol}\"",
+		"lint": "solhint --max-warnings 0 \"**/*.sol\""
 	},
 	"devDependencies": {
 		"@trivago/prettier-plugin-sort-imports": "^4.0.0",
