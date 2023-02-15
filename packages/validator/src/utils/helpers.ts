@@ -3,7 +3,7 @@
  * @param struct {Array} a strut onject directly from the blockchain
  * @returns
  */
-export const parseStruct = (struct: [] | {}) => {
+export const parseStruct = (struct: [] | Record<string, unknown>) => {
 	const initialArgs = { ...struct };
 	const parsedArgs = Object.create({});
 	Object.keys(initialArgs).forEach((key) => {

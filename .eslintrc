@@ -1,7 +1,6 @@
 {
 	"root": true,
 	"env": {
-		"browser": false,
 		"es6": true,
 		"node": true
 	},
@@ -19,12 +18,11 @@
 			}
 		}
 	},
-	"plugins": ["@typescript-eslint", "plugin:prettier/recommended", "import", "unused-imports", "jest"],
+	"plugins": ["@typescript-eslint", "import", "unused-imports", "jest", "simple-import-sort"],
 	"extends": [
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
 		"plugin:prettier/recommended",
-		"plugin:jest/recommended"
+    "plugin:@typescript-eslint/recommended"
 	],
 	"rules": {
 		"import/prefer-default-export": "off",

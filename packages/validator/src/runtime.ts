@@ -1,6 +1,6 @@
 import { appPackageName, appVersion } from './env-config';
 import SystemMesh from './system';
-import { DataItem, IRuntime, Node, sha256 } from '@kyve/core-beta';
+import { DataItem, IRuntime, Validator, sha256 } from '@kyvejs/protocol';
 
 let dataItemCounter = 0; // Must be reset based on reaching max_bundle_size.
 
@@ -12,7 +12,7 @@ export default class Runtime implements IRuntime {
 
 	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
 	async getDataItem(
-		core: Node,
+		core: Validator,
 		source: string,
 		key: string
 	): Promise<DataItem> {
@@ -29,7 +29,7 @@ export default class Runtime implements IRuntime {
 			};
 		}
 
-		// TODO: Fetch batch items from broker nodes
+		// TODO: Fetch batch items from broker Validators
 		// TODO: Unify data items that share the same content and timestamps.
 		// const streamr = new StreamrClient();
 		// const group = [];
@@ -60,20 +60,20 @@ export default class Runtime implements IRuntime {
 		};
 	}
 
-	// https://github.com/KYVENetwork/node/blob/main/common/core/src/methods/helpers/saveGetTransformDataItem.ts#L33
-	async prevalidateDataItem(_: Node, __: DataItem): Promise<boolean> {
+	// https://github.com/KYVENetwork/Validator/blob/main/common/core/src/methods/helpers/saveGetTransformDataItem.ts#L33
+	async prevalidateDataItem(_: Validator, __: DataItem): Promise<boolean> {
 		// TODO: validate if signature is valid?
 		return true;
 	}
 
-	// https://github.com/KYVENetwork/node/blob/main/common/core/src/methods/helpers/saveGetTransformDataItem.ts#L44
-	async transformDataItem(_: Node, item: DataItem): Promise<DataItem> {
+	// https://github.com/KYVENetwork/Validator/blob/main/common/core/src/methods/helpers/saveGetTransformDataItem.ts#L44
+	async transformDataItem(_: Validator, item: DataItem): Promise<DataItem> {
 		// TODO: only save content of message or metadata aswell?
 		return item;
 	}
 
 	async validateDataItem(
-		_: Node,
+		_: Validator,
 		proposedDataItem: DataItem,
 		validationDataItem: DataItem
 	): Promise<boolean> {
@@ -87,12 +87,12 @@ export default class Runtime implements IRuntime {
 		return proposedDataItemHash === validationDataItemHash;
 	}
 
-	async summarizeDataBundle(_: Node, bundle: DataItem[]): Promise<string> {
+	async summarizeDataBundle(_: Validator, bundle: DataItem[]): Promise<string> {
 		// TODO: save latest timestamp or nothing?
 		return `${bundle.at(-1)?.value?.at(-1)?.timestamp ?? ''}`;
 	}
 
-	async nextKey(key: string): Promise<string> {
+	async nextKey(_: Validator, key: string): Promise<string> {
 		return (parseInt(key) + 1000).toString(); // The larger the data item, the less items required in a bundle, otherwise increase interval.
 	}
 }
