@@ -97,7 +97,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 			balanceOf[stakeholder] -= deduction;
 			storeBalanceOf[stakeholder][streamId] -= deduction;
 			if (storeBalanceOf[stakeholder][streamId] == 0) {
-				storeStakeholders[streamId] = [];
+				storeStakeholders[streamId] = new address[](0);
 				for (uint256 j = 0; j < stakeholders.length; j++) {
 					if (stakeholders[j] != stakeholder) {
 						storeStakeholders[streamId].push(stakeholder);
@@ -145,7 +145,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 		storeBalanceOf[msg.sender][streamId] -= amount;
 		if (storeBalanceOf[msg.sender][streamId] == 0) {
 			address[] memory stakeholders = storeStakeholders[streamId];
-			storeStakeholders[streamId] = [];
+			storeStakeholders[streamId] = new address[](0);
 			for (uint256 i = 0; i < stakeholders.length; i++) {
 				if (stakeholders[i] != msg.sender) {
 					storeStakeholders[streamId].push(msg.sender);

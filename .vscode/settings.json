@@ -1,10 +1,8 @@
 {
 	"eslint.workingDirectories": [
-		"../",
-		"./",
-		"packages/contracts",
-		"packages/validator",
-		"packages/broker",
+		"./packages/contracts",
+		"./packages/validator",
+		"./packages/broker",
 	],
 	"eslint.validate": [
 		"javascript",
@@ -13,5 +11,6 @@
 		"typescriptreact"
 	],
 	"prettier.configPath": "./.prettierrc",
-	"prettier.prettierPath": "./node_modules/prettier"
+	"prettier.prettierPath": "./node_modules/prettier",
+	"solidity.formatter": "prettier"
 }
