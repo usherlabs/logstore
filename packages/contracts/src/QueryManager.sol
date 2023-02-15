@@ -61,10 +61,12 @@ contract LogStoreQueryManager is
         }
     }
 
-    /**
-     * Capture funds for a given query
-     * Only the LogStore Contract can call the capture method
-     */
+    /// Capture funds for a given query
+    /// Only the LogStore Contract can call the capture method
+    /// @param streamId
+    /// @param amount
+    /// @param consumer
+    /// @param bytesProcessed
     function capture(
         string memory streamId,
         uint256 amount,
