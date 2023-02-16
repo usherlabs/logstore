@@ -8,14 +8,15 @@ const mesh = new SystemMesh();
 
 const runtime = new LogStore(mesh);
 const validator = new Validator(runtime);
-events.once('config', (poolConfig) => {
+events.once('config', async (poolConfig) => {
 	const [source] = poolConfig.sources;
 	mesh.setSource(source || '');
-	mesh.start();
 
 	events.on('config', (poolConfig) => {
 		const [source] = poolConfig.sources;
 		mesh.setSource(source || '');
 	});
+
+	await mesh.start();
 });
 validator.bootstrap();

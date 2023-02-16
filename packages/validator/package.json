@@ -1,8 +1,8 @@
 {
 	"name": "@concertodao/logstore-validator",
 	"version": "0.0.1",
-	"author": "Ryan Soury <ryan@concerto.technology>",
-	"license": "GPL-2.0",
+	"author": "Ryan Soury <ryan@usher.so>",
+	"license": "GPL-3.0",
 	"description": "Concerto Log Store Validator Node",
 	"private": false,
 	"scripts": {

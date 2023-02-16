@@ -17,7 +17,7 @@ export default class Runtime implements IRuntime {
 		key: string
 	): Promise<DataItem> {
 		dataItemCounter++;
-		if (dataItemCounter === parseInt(core.pool.data!.max_bundle_size, 10)) {
+		if (dataItemCounter === parseInt(core.pool.data.max_bundle_size, 10)) {
 			dataItemCounter = 0;
 		}
 		if (dataItemCounter === 0) {
@@ -62,16 +62,15 @@ export default class Runtime implements IRuntime {
 
 	// https://github.com/KYVENetwork/Validator/blob/main/common/core/src/methods/helpers/saveGetTransformDataItem.ts#L33
 	async prevalidateDataItem(_: Validator, __: DataItem): Promise<boolean> {
-		// TODO: validate if signature is valid?
 		return true;
 	}
 
 	// https://github.com/KYVENetwork/Validator/blob/main/common/core/src/methods/helpers/saveGetTransformDataItem.ts#L44
 	async transformDataItem(_: Validator, item: DataItem): Promise<DataItem> {
-		// TODO: only save content of message or metadata aswell?
 		return item;
 	}
 
+	// Check if data items from different sources are the same. Fantastic 👏
 	async validateDataItem(
 		_: Validator,
 		proposedDataItem: DataItem,
@@ -88,11 +87,12 @@ export default class Runtime implements IRuntime {
 	}
 
 	async summarizeDataBundle(_: Validator, bundle: DataItem[]): Promise<string> {
-		// TODO: save latest timestamp or nothing?
-		return `${bundle.at(-1)?.value?.at(-1)?.timestamp ?? ''}`;
+		// Get last item's key
+		return `${bundle.at(-1).key || ``}`;
 	}
 
 	async nextKey(_: Validator, key: string): Promise<string> {
-		return (parseInt(key) + 1000).toString(); // The larger the data item, the less items required in a bundle, otherwise increase interval.
+		// TODO: Key management for report data items.
+		return (parseInt(key, 10) + 1000).toString(); // The larger the data item, the less items required in a bundle, otherwise increase interval.
 	}
 }

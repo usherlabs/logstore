@@ -3,8 +3,8 @@
 	"version": "0.0.1",
 	"description": "Concerto Log Store Solidity Contracts",
 	"main": "index.ts",
-	"author": "Ryan Soury <ryan@concerto.technology>",
-	"license": "GPL-2.0",
+	"author": "Ryan Soury <ryan@usher.so>",
+	"license": "GPL-3.0",
 	"repository": "git@github.com:usherlabs/etl.git",
 	"private": false,
 	"scripts": {
