@@ -1,22 +1,7 @@
-import Validator from './validator';
-import LogStore from './runtime';
-import SystemMesh from './system';
-import { events } from './utils/events';
 import 'dotenv/config';
+import { Validator } from '@kyvejs/protocol';
+import LogStore from './runtime';
 
-const mesh = new SystemMesh();
-
-const runtime = new LogStore(mesh);
+const runtime = new LogStore();
 const validator = new Validator(runtime);
-events.once('config', async (poolConfig) => {
-	const [source] = poolConfig.sources;
-	mesh.setSource(source || '');
-
-	events.on('config', (poolConfig) => {
-		const [source] = poolConfig.sources;
-		mesh.setSource(source || '');
-	});
-
-	await mesh.start();
-});
 validator.bootstrap();

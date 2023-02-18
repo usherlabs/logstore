@@ -34,7 +34,6 @@
 		"@streamr/config": "^2.5.8",
 		"dotenv": "^16.0.3",
 		"ethers": "^6.0.3",
-		"eventemitter3": "^5.0.0",
 		"streamr-client": "^7.3.0"
 	},
 	"devDependencies": {
