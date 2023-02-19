@@ -35,14 +35,31 @@ contract LogStoreNodeManager is
         Rejected
     }
 
+    enum Currencies {
+        Kyve,
+        Ar
+    }
+
     struct Node {
         uint index; // index of node address
         string metadata; // Connection metadata, for example wss://node-domain-name:port
         uint lastSeen; // what's the best way to store timestamps in smart contracts?
     }
 
+    struct ReportNode {
+        address id;
+        string[] streams;
+        uint256 observations;
+        uint256 missed;
+        uint256 bytesObserved;
+        uint256 bytesQueried;
+    }
+
     struct Report {
         string id; // bundle id
+        uint256 height;
+        mapping(Currencies => uint256) fees;
+        ReportNode[] nodes;
     }
 
     modifier onlyWhitelist() {
@@ -164,13 +181,22 @@ contract LogStoreNodeManager is
     }
 
     // recieve report data broken up into a series of arrays
-    function report() public onlyStaked {
+    function report(
+        string memory bundleId,
+        address[] memory addresses,
+        string[] memory streamsPerNode,
+        uint256[] memory observationsPerNode,
+        uint256[] memory missedPerNode,
+        uint256[] memory bytesObservedPerNode,
+        uint256[] memory bytesQueriedPerNode
+    ) public onlyStaked {
         if (reporters.length == 0) {
             // A condition that will be true on the first report
-            // reportList = nodeAddresses;
+            reporters = nodeAddresses;
         }
 
         // Consume report data
+
         // Produce new reportList
         // Capture fees from LogStoreManager
         // _storeManager.captureBundle(streamIds, amounts, bytesStored);
