@@ -3,21 +3,12 @@
 pragma solidity 0.8.17;
 
 // Open Zeppelin libraries for controlling upgradability and access.
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-// import 'streamr-contracts/packages/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol';
-// https://github.com/streamr-dev/network-contracts/blob/master/packages/network-contracts/contracts/StreamRegistry/StreamRegistryV4.sol
-
-contract StreamRegistryV4 {
-    mapping(string => string) public streamIdToMetadata;
-
-    function exists(string calldata streamId) public view returns (bool) {
-        return bytes(streamIdToMetadata[streamId]).length != 0;
-    }
-}
+import "./interfaces/StreamRegistry.sol";
 
 // Owned by the NodeManager Contract
 contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
@@ -31,13 +22,12 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
     uint256 public totalSupply;
     address public stakeTokenAddress;
-    address public streamrRegistryAddress;
     mapping(string => uint256) public stores; // map of stores and their total balance
     mapping(string => address[]) public storeStakeholders; // map of stores and their stakeholders.
     mapping(address => uint256) public balanceOf; // map of addresses and their total balanace
     mapping(address => mapping(string => uint256)) public storeBalanceOf; // map of addresses and the stores they're staked in
     IERC20Upgradeable internal stakeToken;
-    StreamRegistryV4 internal streamrRegistry;
+    IStreamRegistry internal streamrRegistry;
 
     function initialize(
         address owner,
@@ -48,9 +38,8 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         __UUPSUpgradeable_init();
         require(stakeTokenAddress != address(0), "error_badTrackerData");
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
-        streamrRegistry = StreamRegistryV4(streamrRegistryAddress_);
+        streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
         stakeTokenAddress = stakeTokenAddress_;
-        streamrRegistryAddress = streamrRegistryAddress_;
         transferOwnership(owner);
     }
 

@@ -3,10 +3,10 @@
 pragma solidity 0.8.17;
 
 // Open Zeppelin libraries for controlling upgradability and access.
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import "./StoreManager.sol";
 import "./QueryManager.sol";

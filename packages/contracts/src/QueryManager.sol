@@ -3,12 +3,12 @@
 pragma solidity 0.8.17;
 
 // Open Zeppelin libraries for controlling upgradability and access.
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import "./StoreManager.sol";
+import "./interfaces/StreamRegistry.sol";
 
 // Owned by the NodeManager Contract
 contract LogStoreQueryManager is
@@ -30,20 +30,20 @@ contract LogStoreQueryManager is
     mapping(address => uint256) public balanceOf; // map of addresses and their total balanace
     mapping(address => mapping(string => uint256)) public storeBalanceOf; // map of addresses and the stores they're staked in
     IERC20Upgradeable internal stakeToken;
-    LogStoreManager private _storeManager;
+    IStreamRegistry internal streamrRegistry;
 
     function initialize(
         address owner,
         address stakeTokenAddress_,
-        address storeManagerAddress_
+        address streamrRegistryAddress_
     ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         require(stakeTokenAddress != address(0), "error_badTrackerData");
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
+        streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
         stakeTokenAddress = stakeTokenAddress_;
         transferOwnership(owner);
-        _storeManager = LogStoreManager(storeManagerAddress_);
     }
 
     /// @dev required by the OZ UUPS module
@@ -63,10 +63,10 @@ contract LogStoreQueryManager is
 
     /// Capture funds for a given query
     /// Only the LogStore Contract can call the capture method
-    /// @param streamId
-    /// @param amount
-    /// @param consumer
-    /// @param bytesProcessed
+    /// @param streamId id of stream in store
+    /// @param amount amount of tokens to capture
+    /// @param consumer address of the data consumer
+    /// @param bytesProcessed number of bytes in the response
     function capture(
         string memory streamId,
         uint256 amount,
@@ -103,7 +103,8 @@ contract LogStoreQueryManager is
 
     function stake(string memory streamId, uint amount) public {
         // Validate stream is inside of StreamrRegiststry
-        require(_storeManager.exists(streamId), "error_invalidStore");
+        // We use the registry here because a store is removed when stake expires, and queries can persist even after the store is lost.
+        require(streamrRegistry.exists(streamId), "error_invalidStream");
         require(amount > 0, "error_insufficientStake");
 
         stores[streamId] += amount;
@@ -130,7 +131,7 @@ contract LogStoreQueryManager is
         storeBalanceOf[msg.sender][streamId] -= amount;
         if (storeBalanceOf[msg.sender][streamId] == 0) {
             address[] memory stakeholders = storeStakeholders[streamId];
-            storeStakeholders[streamId] = [];
+            storeStakeholders[streamId] = new address[](0);
             for (uint256 i = 0; i < stakeholders.length; i++) {
                 if (stakeholders[i] != msg.sender) {
                     storeStakeholders[streamId].push(msg.sender);

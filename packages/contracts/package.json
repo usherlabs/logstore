@@ -34,7 +34,6 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"@chainlink/contracts": "^0.6.1",
 		"@openzeppelin/contracts-upgradeable": "^4.8.1"
 	},
 	"devDependencies": {
