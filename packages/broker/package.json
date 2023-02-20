@@ -16,7 +16,7 @@
 		"start": "node ./dist/src/index.js",
 		"start:fresh": "npm-run-all -s build start",
 		"ts": "tsc --noEmit",
-		"lint": "eslint -c ./.eslintrc ./src/**/*.ts"
+		"lint": "eslint ./src/**/*.ts ./test/**/*.ts"
 	},
 	"dependencies": {
 		"@ethersproject/hdnode": "^5.7.0",
