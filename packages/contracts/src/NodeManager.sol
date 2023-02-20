@@ -10,6 +10,7 @@ import "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgrad
 
 import "./StoreManager.sol";
 import "./QueryManager.sol";
+import "./lib/VerifySignature.sol";
 
 contract LogStoreNodeManager is
     Initializable,
@@ -58,8 +59,8 @@ contract LogStoreNodeManager is
     struct Report {
         string id; // bundle id
         uint256 height;
-        mapping(Currencies => uint256) fees;
-        ReportNode[] nodes;
+        uint256[2] fees; // Kyve, Ar
+        mapping(address => ReportNode) nodes;
     }
 
     modifier onlyWhitelist() {
@@ -182,22 +183,90 @@ contract LogStoreNodeManager is
 
     // recieve report data broken up into a series of arrays
     function report(
-        string memory bundleId,
-        address[] memory addresses,
-        string[] memory streamsPerNode,
-        uint256[] memory observationsPerNode,
-        uint256[] memory missedPerNode,
-        uint256[] memory bytesObservedPerNode,
-        uint256[] memory bytesQueriedPerNode
+        string calldata bundleId,
+        string calldata blockHeight,
+        uint256[2] calldata fees,
+        address[] calldata addresses,
+        string[][] calldata streamsPerNode,
+        uint256[] calldata observationsPerNode,
+        uint256[] calldata missedPerNode,
+        uint256[] calldata bytesObservedPerNode,
+        uint256[] calldata bytesQueriedPerNode,
+        bytes[] calldata signatures // these are signatures of the constructed payload.
     ) public onlyStaked {
         if (reporters.length == 0) {
             // A condition that will be true on the first report
             reporters = nodeAddresses;
         }
+        // TODO: Ensure msg.sender is the next reporter.
 
         // Consume report data
+        Report memory report = Report({
+            id: bundleId,
+            height: block.number,
+            fees: fees
+        });
+        for (uint256 i = 0; i < addresses.length; i++) {
+            ReportNode[] memory reportNodes = report.nodes;
+            ReportNode memory node = ReportNode({
+                id: addresses[i],
+                streams: streamsPerNode[i],
+                observations: observationsPerNode[i],
+                missed: missedPerNode[i],
+                bytesObserved: bytesObservedPerNode[i],
+                bytesQueried: bytesQueriedPerNode[i]
+            });
+            reportNodes.push(node);
+            report.nodes = reportNodes;
+        }
+        // Produce json blob that signatures correspond to
+        string memory nodesJson = "";
+        for (uint256 i = 0; i < addresses.length; i++) {
+            string memory formattedStreams = "";
+            for (uint256 j = 0; j < streamsPerNode[i].length; j++) {
+                if (j != streamsPerNode[i].length - 1) {
+                    formattedStreams = string.concat(nodesJson, ",");
+                }
+            }
+            nodesJson = string.concat(
+                nodesJson,
+                '{ "address": "',
+                addresses[i],
+                '", "streams": "[',
+                formattedStreams,
+                ']", "observations": "',
+                observationsPerNode[i],
+                '", "missed": "',
+                missedPerNode[i],
+                '", "bytesObserved", "',
+                bytesObservedPerNode[i],
+                '", "bytesQueried": "',
+                bytesQueriedPerNode[i],
+                '" }'
+            );
+            if (i != addresses.length - 1) {
+                nodesJson = string.concat(nodesJson, ",");
+            }
+        }
+        string memory reportJson = string.concat(
+            '{ "bundleId": "',
+            bundleId,
+            '", "height": "',
+            blockHeight,
+            '", "fees": {"kyve": "',
+            fees[0],
+            '", "ar": "',
+            fees[1],
+            '"}", "nodes": [',
+            nodesJson,
+            "]"
+        );
+        bytes32 reportHash = keccak256(reportJson);
+        // Verify signatures
+        for (uint256 i = 0; i < addresses.length; i++) {
+            VerifySignature.verify(addresses[i], reportHash, signatures[i]);
+        }
 
-        // Produce new reportList
         // Capture fees from LogStoreManager
         // _storeManager.captureBundle(streamIds, amounts, bytesStored);
     }
