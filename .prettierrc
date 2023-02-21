@@ -29,7 +29,8 @@
 				"importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
 				"importOrderParserPlugins": ["typescript"],
 				"importOrderSeparation": true,
-				"importOrderSortSpecifiers": true
+				"importOrderSortSpecifiers": true,
+				"importOrderCaseInsensitive": true
 			}
 		}
 	]
