@@ -7,6 +7,7 @@ import "../node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Up
 import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "../node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
 import "./StoreManager.sol";
 import "./QueryManager.sol";
@@ -28,7 +29,7 @@ contract LogStoreNodeManager is
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
     event StakeUpdate(uint256 indexed requiredAmount);
-    event ReportUpdated(uint256 indexed height, bool indexed accepted);
+    event ReportUpdated(bool indexed accepted, string raw);
 
     enum WhitelistState {
         None,
@@ -41,26 +42,39 @@ contract LogStoreNodeManager is
         Ar
     }
 
+    struct Currency {
+        uint256 marketPriceToStable;
+        uint256 marketPriceToStaked;
+        uint256 pricePerByte;
+    }
+
     struct Node {
         uint index; // index of node address
         string metadata; // Connection metadata, for example wss://node-domain-name:port
         uint lastSeen; // what's the best way to store timestamps in smart contracts?
+        uint reputation;
+        uint bytesObserved;
+        uint bytesMissed;
+        uint bytesQueried;
+    }
+
+    struct ReportStream {
+        string id;
+        uint256 observed; // Byte count
+        uint256 missed;
+        uint256 queried;
     }
 
     struct ReportNode {
         address id;
-        string[] streams;
-        uint256 observations;
-        uint256 missed;
-        uint256 bytesObserved;
-        uint256 bytesQueried;
+        ReportStream[] streams;
     }
 
     struct Report {
         string id; // bundle id
         uint256 height;
         uint256[2] fees; // Kyve, Ar
-        mapping(address => ReportNode) nodes;
+        ReportNode[] nodes;
     }
 
     modifier onlyWhitelist() {
@@ -88,10 +102,11 @@ contract LogStoreNodeManager is
     address[] public nodeAddresses;
     address[] public reporters;
     uint256 public lastAcceptedReportBlockHeight;
-    mapping(uint256 => Report) public reports;
+    mapping(string => Report) public reports;
     mapping(address => Node) public nodes;
     mapping(address => WhitelistState) public whitelist;
     mapping(address => uint256) public balanceOf;
+    mapping(Currencies => Currency) internal currencyPrice;
     IERC20Upgradeable internal stakeToken;
     LogStoreManager private _storeManager;
     LogStoreQueryManager private _queryManager;
@@ -188,10 +203,9 @@ contract LogStoreNodeManager is
         uint256[2] calldata fees,
         address[] calldata addresses,
         string[][] calldata streamsPerNode,
-        uint256[] calldata observationsPerNode,
-        uint256[] calldata missedPerNode,
-        uint256[] calldata bytesObservedPerNode,
-        uint256[] calldata bytesQueriedPerNode,
+        uint256[][] calldata bytesObservedPerStream,
+        uint256[][] calldata bytesMissedPerStream,
+        uint256[][] calldata bytesQueriedPerStream,
         bytes[] calldata signatures // these are signatures of the constructed payload.
     ) public onlyStaked {
         if (reporters.length == 0) {
@@ -200,49 +214,60 @@ contract LogStoreNodeManager is
         }
         // TODO: Ensure msg.sender is the next reporter.
 
-        // Consume report data
-        Report memory report = Report({
-            id: bundleId,
-            height: block.number,
-            fees: fees
-        });
+        ReportNode[] memory reportNodes = new ReportNode[](addresses.length);
         for (uint256 i = 0; i < addresses.length; i++) {
-            ReportNode[] memory reportNodes = report.nodes;
-            ReportNode memory node = ReportNode({
+            ReportStream[] memory reportStreamsPerNode = new ReportStream[](
+                streamsPerNode[i].length
+            );
+            for (uint256 j = 0; j < addresses.length; j++) {
+                reportStreamsPerNode[j] = ReportStream({
+                    id: streamsPerNode[i][j],
+                    observed: bytesObservedPerStream[i][j],
+                    missed: bytesMissedPerStream[i][j],
+                    queried: bytesQueriedPerStream[i][j]
+                });
+            }
+            reportNodes[i] = ReportNode({
                 id: addresses[i],
-                streams: streamsPerNode[i],
-                observations: observationsPerNode[i],
-                missed: missedPerNode[i],
-                bytesObserved: bytesObservedPerNode[i],
-                bytesQueried: bytesQueriedPerNode[i]
+                streams: reportStreamsPerNode
             });
-            reportNodes.push(node);
-            report.nodes = reportNodes;
         }
+        // Consume report data
+        uint256 currentHeight = block.number;
+        Report memory currentReport = Report({
+            id: bundleId,
+            height: currentHeight,
+            fees: fees,
+            nodes: reportNodes
+        });
         // Produce json blob that signatures correspond to
         string memory nodesJson = "";
         for (uint256 i = 0; i < addresses.length; i++) {
             string memory formattedStreams = "";
             for (uint256 j = 0; j < streamsPerNode[i].length; j++) {
+                formattedStreams = string.concat(
+                    formattedStreams,
+                    '{ "id": "',
+                    streamsPerNode[i][j],
+                    '", "observed": ',
+                    StringsUpgradeable.toString(bytesObservedPerStream[i][j]),
+                    ', "missed": ',
+                    StringsUpgradeable.toString(bytesMissedPerStream[i][j]),
+                    ', "queried": ',
+                    StringsUpgradeable.toString(bytesQueriedPerStream[i][j]),
+                    " }"
+                );
                 if (j != streamsPerNode[i].length - 1) {
-                    formattedStreams = string.concat(nodesJson, ",");
+                    formattedStreams = string.concat(formattedStreams, ",");
                 }
             }
             nodesJson = string.concat(
                 nodesJson,
                 '{ "address": "',
-                addresses[i],
+                StringsUpgradeable.toHexString(addresses[i]),
                 '", "streams": "[',
                 formattedStreams,
-                ']", "observations": "',
-                observationsPerNode[i],
-                '", "missed": "',
-                missedPerNode[i],
-                '", "bytesObserved", "',
-                bytesObservedPerNode[i],
-                '", "bytesQueried": "',
-                bytesQueriedPerNode[i],
-                '" }'
+                ']"}'
             );
             if (i != addresses.length - 1) {
                 nodesJson = string.concat(nodesJson, ",");
@@ -254,21 +279,64 @@ contract LogStoreNodeManager is
             '", "height": "',
             blockHeight,
             '", "fees": {"kyve": "',
-            fees[0],
+            StringsUpgradeable.toString(fees[0]),
             '", "ar": "',
-            fees[1],
+            StringsUpgradeable.toString(fees[1]),
             '"}", "nodes": [',
             nodesJson,
             "]"
         );
-        bytes32 reportHash = keccak256(reportJson);
+        bytes32 reportHash = keccak256(abi.encodePacked(reportJson));
         // Verify signatures
+        bool accepted = true;
         for (uint256 i = 0; i < addresses.length; i++) {
-            VerifySignature.verify(addresses[i], reportHash, signatures[i]);
+            bool verified = VerifySignature.verify(
+                addresses[i],
+                reportHash,
+                signatures[i]
+            );
+            if (verified != true) {
+                accepted = false;
+                break;
+            }
         }
 
-        // Capture fees from LogStoreManager
-        // _storeManager.captureBundle(streamIds, amounts, bytesStored);
+        if (accepted) {
+            reports[currentReport.id] = currentReport;
+
+            // Determine fee amounts on a per stream basis
+            string[] memory captureStreamIds = new string[](0);
+            mapping(string => uint256) memory captureAmounts;
+            mapping(string => uint256) memory captureBytesStored;
+            mapping(string => bool) memory captured;
+            for (uint256 i = 0; i < currentReport.nodes.length; i++) {
+                ReportNode memory reportNode = currentReport.nodes[i];
+                for (uint256 j = 0; j < reportNode.streams.length; i++) {
+                    ReportStream memory reportStream = reportNode.streams[i];
+                    // TODO: Insert Pricing Algorithm
+                    if (captured[reportStream.id] == false) {
+                        captureStreamIds.push(reportStream.id);
+                        captured[reportStream.id] = true;
+                    }
+
+                    uint256 amount = reportStream.observed *
+                        currencyPrice[Currencies.Ar] *
+                        captureAmounts[reportStream.id] =
+                        captureAmounts[reportStream.id] +
+                        amount;
+                }
+            }
+            // Reproduce ReportList based on the performance of each node.
+
+            // Capture fees from LogStoreManager
+            _storeManager.captureBundle(
+                captureStreamIds,
+                captureAmounts,
+                captureBytesStored
+            );
+        }
+
+        emit ReportUpdated(accepted, reportJson);
     }
 
     function stake(uint amount) public {
@@ -352,4 +420,10 @@ contract LogStoreNodeManager is
         requiresWhitelist = value;
         emit RequiresWhitelistChanged(value);
     }
+
+    function getStorageFee(uint256 bytesStored) public returns (uint256 fee) {
+        // Need to get the KYVE/STAKE_TOKEN & AR/STAKE_TOKEN prices
+    }
+
+    function getQueryFee(uint256 bytesQueried) public returns (uint256 fee) {}
 }
