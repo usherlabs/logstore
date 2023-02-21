@@ -1,35 +1,34 @@
 import { Provider } from '@ethersproject/providers';
 import { StreamID, toStreamID } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
-// TODO: Get back StreamFactory
-// import { StreamFactory } from '../client/StreamFactory'
 import { min } from 'lodash';
-import { Stream } from 'streamr-client';
-import { inject, Lifecycle, scoped } from 'tsyringe';
-
 import {
 	Authentication,
 	AuthenticationInjectionToken,
-} from '../client/Authentication';
-import {
-	ConfigInjectionToken,
-	StrictStreamrClientConfig,
-} from '../client/Config';
-import { ContractFactory } from '../client/ContractFactory';
-import {
-	getStreamRegistryChainProviders,
-	getStreamRegistryOverrides,
-} from '../client/Ethereum';
+} from 'streamr-client/types/src/Authentication';
+import { ContractFactory } from 'streamr-client/types/src/ContractFactory';
 import {
 	initEventGateway,
 	StreamrClientEventEmitter,
 	StreamrClientEvents,
-} from '../client/events';
-import { StreamIDBuilder } from '../client/StreamIDBuilder';
+} from 'streamr-client/types/src/events';
+import { Stream } from 'streamr-client/types/src/Stream';
+import { StreamFactory } from 'streamr-client/types/src/StreamFactory';
+import { StreamIDBuilder } from 'streamr-client/types/src/StreamIDBuilder';
+import { collect } from 'streamr-client/types/src/utils/iterators';
+import { LoggerFactory } from 'streamr-client/types/src/utils/LoggerFactory';
+import { SynchronizedGraphQLClient } from 'streamr-client/types/src/utils/SynchronizedGraphQLClient';
+import { delay, inject, Lifecycle, scoped } from 'tsyringe';
+
+import {
+	ConfigInjectionToken,
+	StrictStreamrClientConfig,
+} from '../client/Config';
+import {
+	getStreamRegistryChainProviders,
+	getStreamRegistryOverrides,
+} from '../client/Ethereum';
 import { queryAllReadonlyContracts, waitForTx } from '../client/utils/contract';
-import { collect } from '../client/utils/iterators';
-import { LoggerFactory } from '../client/utils/LoggerFactory';
-import { SynchronizedGraphQLClient } from '../client/utils/SynchronizedGraphQLClient';
 import type { StreamStorageRegistryV2 as StreamStorageRegistryContract } from '../ethereumArtifacts/StreamStorageRegistryV2';
 import StreamStorageRegistryArtifact from '../ethereumArtifacts/StreamStorageRegistryV2Abi.json';
 
@@ -51,8 +50,7 @@ interface NodeQueryResult {
 @scoped(Lifecycle.ContainerScoped)
 export class LogStoreRegistry {
 	private contractFactory: ContractFactory;
-	// TODO: Get back StreamFactory
-	// private streamFactory: StreamFactory
+	private streamFactory: StreamFactory;
 	private streamIdBuilder: StreamIDBuilder;
 	private graphQLClient: SynchronizedGraphQLClient;
 	private authentication: Authentication;
@@ -63,8 +61,7 @@ export class LogStoreRegistry {
 
 	constructor(
 		contractFactory: ContractFactory,
-		// TODO: Get back StreamFactory
-		// @inject(delay(() => StreamFactory)) streamFactory: StreamFactory,
+		@inject(delay(() => StreamFactory)) streamFactory: StreamFactory,
 		@inject(StreamIDBuilder) streamIdBuilder: StreamIDBuilder,
 		@inject(SynchronizedGraphQLClient) graphQLClient: SynchronizedGraphQLClient,
 		@inject(StreamrClientEventEmitter) eventEmitter: StreamrClientEventEmitter,
@@ -74,8 +71,7 @@ export class LogStoreRegistry {
 		config: Pick<StrictStreamrClientConfig, 'contracts'>
 	) {
 		this.contractFactory = contractFactory;
-		// TODO: Get back StreamFactory
-		// this.streamFactory = streamFactory
+		this.streamFactory = streamFactory;
 		this.streamIdBuilder = streamIdBuilder;
 		this.graphQLClient = graphQLClient;
 		this.authentication = authentication;

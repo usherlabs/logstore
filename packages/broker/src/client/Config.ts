@@ -9,10 +9,10 @@ import Ajv, { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import cloneDeep from 'lodash/cloneDeep';
 import 'reflect-metadata';
+import { generateClientId } from 'streamr-client/types/src/utils/utils';
 import { DeepRequired, MarkOptional } from 'ts-essentials';
 
 import CONFIG_SCHEMA from './config.schema.json';
-import { generateClientId } from './utils/utils';
 
 export interface ProviderAuthConfig {
 	ethereum: ExternalProvider;
