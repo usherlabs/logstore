@@ -24,6 +24,7 @@
 		{
 			"files": ["*.ts"],
 			"options": {
+				"plugins": ["@trivago/prettier-plugin-sort-imports"],
 				"parser": "typescript",
 				"importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
 				"importOrderParserPlugins": ["typescript"],
