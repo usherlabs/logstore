@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+
 import { createBroker } from '../../src/broker';
 
 const PATH = './configs';

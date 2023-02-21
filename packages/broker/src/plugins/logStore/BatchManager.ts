@@ -2,6 +2,7 @@ import type { StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
 import { Client } from 'cassandra-driver';
 import { EventEmitter } from 'events';
+
 import { Batch, BatchId, DoneCallback } from './Batch';
 import { BucketId } from './Bucket';
 

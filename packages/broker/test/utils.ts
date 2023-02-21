@@ -1,22 +1,23 @@
-import StreamrClient, {
-	ConfigTest,
-	Stream,
-	StreamPermission,
-	StreamMetadata,
-	StreamrClientConfig,
-} from 'streamr-client';
-import _ from 'lodash';
-import { Wallet } from 'ethers';
-import { Tracker, startTracker } from '@streamr/network-tracker';
-import { Broker, createBroker } from '../src/broker';
-import { Config } from '../src/config/config';
+import { TEST_CONFIG } from '@streamr/network-node';
+import { startTracker, Tracker } from '@streamr/network-tracker';
 import { StreamPartID } from '@streamr/protocol';
 import {
 	EthereumAddress,
 	MetricsContext,
 	toEthereumAddress,
 } from '@streamr/utils';
-import { TEST_CONFIG } from '@streamr/network-node';
+import { Wallet } from 'ethers';
+import _ from 'lodash';
+import StreamrClient, {
+	ConfigTest,
+	Stream,
+	StreamMetadata,
+	StreamPermission,
+	StreamrClientConfig,
+} from 'streamr-client';
+
+import { Broker, createBroker } from '../src/broker';
+import { Config } from '../src/config/config';
 
 export const STREAMR_DOCKER_DEV_HOST =
 	process.env.STREAMR_DOCKER_DEV_HOST || '127.0.0.1';

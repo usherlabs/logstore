@@ -1,6 +1,7 @@
 import { Schema } from 'ajv';
 import express from 'express';
 import { StreamrClient } from 'streamr-client';
+
 import { ApiAuthenticator } from './apiAuthenticator';
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';

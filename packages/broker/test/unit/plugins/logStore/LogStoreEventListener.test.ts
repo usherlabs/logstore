@@ -1,12 +1,13 @@
 import { toStreamID } from '@streamr/protocol';
-import { LogStoreEventListener } from '../../../../src/plugins/logStore/LogStoreEventListener';
+import { EthereumAddress, toEthereumAddress, wait } from '@streamr/utils';
 import {
 	StorageNodeAssignmentEvent,
 	Stream,
 	StreamrClient,
 	StreamrClientEvents,
 } from 'streamr-client';
-import { EthereumAddress, toEthereumAddress, wait } from '@streamr/utils';
+
+import { LogStoreEventListener } from '../../../../src/plugins/logStore/LogStoreEventListener';
 
 const MOCK_STREAM = {
 	id: 'streamId',

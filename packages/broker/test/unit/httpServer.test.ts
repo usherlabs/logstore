@@ -1,8 +1,9 @@
 import express, { Request, Response } from 'express';
 import { Server } from 'http';
 import fetch from 'node-fetch';
-import { startServer, stopServer } from '../../src/httpServer';
+
 import { createApiAuthenticator } from '../../src/apiAuthenticator';
+import { startServer, stopServer } from '../../src/httpServer';
 
 const MOCK_API_KEY = 'mock-api-key';
 const PORT = 18888;

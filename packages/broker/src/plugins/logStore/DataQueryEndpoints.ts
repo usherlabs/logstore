@@ -5,6 +5,7 @@ import { StreamMessage } from '@streamr/protocol';
 import { Logger, Metric, MetricsContext, RateMetric } from '@streamr/utils';
 import express, { Request, Response, Router } from 'express';
 import { pipeline, Readable, Transform } from 'stream';
+
 import { Format, getFormat } from './DataQueryFormat';
 import { LogStore } from './LogStore';
 

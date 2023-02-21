@@ -4,6 +4,7 @@ import { Plugin, PluginOptions } from './Plugin';
 // import { WebsocketPlugin } from './plugins/websocket/WebsocketPlugin'
 // import { MqttPlugin } from './plugins/mqtt/MqttPlugin'
 import { LogStorePlugin } from './plugins/logStore/LogStorePlugin';
+
 // import { BrubeckMinerPlugin } from './plugins/brubeckMiner/BrubeckMinerPlugin'
 // import { SubscriberPlugin } from './plugins/subscriber/SubscriberPlugin'
 // import { InfoPlugin } from './plugins/info/InfoPlugin'

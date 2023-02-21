@@ -1,6 +1,7 @@
-import express from 'express';
 import { StreamPartIDUtils } from '@streamr/protocol';
+import express from 'express';
 import request from 'supertest';
+
 import { router } from '../../../../src/plugins/logStore/LogStoreConfigEndpoints';
 import { createMockLogStoreConfig } from '../../../integration/plugins/logStore/MockLogStoreConfig';
 

@@ -2,6 +2,7 @@ import type { StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
+
 import { BucketId } from './Bucket';
 
 export type BatchId = string;

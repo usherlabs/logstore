@@ -1,5 +1,6 @@
 import Ajv, { ErrorObject, Schema } from 'ajv';
 import addFormats from 'ajv-formats';
+
 import { StrictConfig } from './config';
 
 export const validateConfig = (

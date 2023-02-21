@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { program } from 'commander';
-import pkg from '../package.json';
 
+import pkg from '../package.json';
 import { createBroker } from '../src/broker';
 import { overrideConfigToEnvVarsIfGiven } from '../src/config/config';
 import { readConfigAndMigrateIfNeeded } from '../src/config/migration';

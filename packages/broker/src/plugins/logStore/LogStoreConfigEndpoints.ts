@@ -1,5 +1,6 @@
 import { toStreamID, toStreamPartID } from '@streamr/protocol';
 import express, { Request, Response, Router } from 'express';
+
 import { LogStoreConfig } from './LogStoreConfig';
 
 const createHandler = (logStoreConfig: LogStoreConfig) => {

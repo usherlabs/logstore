@@ -5,6 +5,7 @@ import StreamrClient, {
 	NetworkNodeStub,
 	validateConfig as validateClientConfig,
 } from 'streamr-client';
+
 import { version as CURRENT_VERSION } from '../package.json';
 import { createApiAuthenticator } from './apiAuthenticator';
 import { Config } from './config/config';

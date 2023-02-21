@@ -1,16 +1,17 @@
-import express from 'express';
-import request from 'supertest';
+import { MessageID, StreamMessage, toStreamID } from '@streamr/protocol';
 import { toReadableStream } from '@streamr/test-utils';
+import { MetricsContext, toEthereumAddress } from '@streamr/utils';
+import express from 'express';
+import { PassThrough } from 'stream';
+import request from 'supertest';
+
 import {
-	router as restEndpointRouter,
-	MIN_SEQUENCE_NUMBER_VALUE,
 	MAX_SEQUENCE_NUMBER_VALUE,
+	MIN_SEQUENCE_NUMBER_VALUE,
+	router as restEndpointRouter,
 } from '../../../../src/plugins/logStore/DataQueryEndpoints';
 import { toObject } from '../../../../src/plugins/logStore/DataQueryFormat';
 import { LogStore } from '../../../../src/plugins/logStore/LogStore';
-import { PassThrough } from 'stream';
-import { MessageID, StreamMessage, toStreamID } from '@streamr/protocol';
-import { MetricsContext, toEthereumAddress } from '@streamr/utils';
 
 const createEmptyStream = () => {
 	const stream = new PassThrough();

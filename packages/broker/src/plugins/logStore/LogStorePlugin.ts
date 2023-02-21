@@ -2,6 +2,7 @@ import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 import { formStorageNodeAssignmentStreamId, Stream } from 'streamr-client';
+
 import { Plugin } from '../../Plugin';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { router as dataMetadataEndpoint } from './DataMetadataEndpoints';

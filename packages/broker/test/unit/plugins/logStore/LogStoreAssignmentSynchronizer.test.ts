@@ -1,9 +1,11 @@
+import { StreamPartID, StreamPartIDUtils } from '@streamr/protocol';
+
 import {
 	Diff,
 	EMPTY_DIFF,
 	SetMembershipSynchronizer,
 } from '../../../../src/plugins/logStore/SetMembershipSynchronizer';
-import { StreamPartID, StreamPartIDUtils } from '@streamr/protocol';
+
 const { parse } = StreamPartIDUtils;
 
 const SP1 = parse('s1#0');

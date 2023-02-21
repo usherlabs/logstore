@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { cloneDeep } from 'lodash';
 import path from 'path';
+
 import { ConfigFile, getDefaultFile, getLegacyDefaultFile } from './config';
 
 export const CURRENT_CONFIGURATION_VERSION = 2;

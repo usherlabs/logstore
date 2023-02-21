@@ -1,22 +1,23 @@
-import { mkdtempSync, existsSync } from 'fs';
+import { fastPrivateKey } from '@streamr/test-utils';
+import { existsSync, mkdtempSync } from 'fs';
+import { readFileSync } from 'fs';
 import os from 'os';
 import path from 'path';
+
+import { createBroker } from '../../src/broker';
 import {
-	PROMPTS,
-	DEFAULT_CONFIG_PORTS,
 	createLogStoreFile,
+	DEFAULT_CONFIG_PORTS,
 	getConfig,
-	getPrivateKey,
 	getNodeIdentity,
-	start,
+	getPrivateKey,
+	LogStoreAnswers,
 	PluginAnswers,
 	PrivateKeyAnswers,
-	LogStoreAnswers,
+	PROMPTS,
+	start,
 } from '../../src/config/ConfigWizard';
-import { readFileSync } from 'fs';
-import { createBroker } from '../../src/broker';
 import { needsMigration } from '../../src/config/migration';
-import { fastPrivateKey } from '@streamr/test-utils';
 
 const MOCK_PRIVATE_KEY =
 	'0x1234567890123456789012345678901234567890123456789012345678901234';

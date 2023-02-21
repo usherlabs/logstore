@@ -5,6 +5,7 @@ import { EventEmitter } from 'events';
 import merge2 from 'merge2';
 import { pipeline, Readable, Transform } from 'stream';
 import { v1 as uuidv1 } from 'uuid';
+
 import { BatchManager } from './BatchManager';
 import { Bucket, BucketId } from './Bucket';
 import { BucketManager, BucketManagerOptions } from './BucketManager';

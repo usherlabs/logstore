@@ -1,10 +1,3 @@
-import { LogStoreConfig } from '../../../../src/plugins/logStore/LogStoreConfig';
-import {
-	StorageNodeAssignmentEvent,
-	Stream,
-	StreamrClient,
-	StreamrClientEvents,
-} from 'streamr-client';
 import {
 	StreamPartID,
 	StreamPartIDUtils,
@@ -13,6 +6,14 @@ import {
 } from '@streamr/protocol';
 import { EthereumAddress, toEthereumAddress, wait } from '@streamr/utils';
 import { range } from 'lodash';
+import {
+	StorageNodeAssignmentEvent,
+	Stream,
+	StreamrClient,
+	StreamrClientEvents,
+} from 'streamr-client';
+
+import { LogStoreConfig } from '../../../../src/plugins/logStore/LogStoreConfig';
 
 const { parse } = StreamPartIDUtils;
 

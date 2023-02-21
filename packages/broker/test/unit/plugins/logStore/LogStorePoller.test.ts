@@ -1,6 +1,7 @@
-import { LogStorePoller } from '../../../../src/plugins/logStore/LogStorePoller';
-import { Stream, StreamrClient } from 'streamr-client';
 import { EthereumAddress, wait } from '@streamr/utils';
+import { Stream, StreamrClient } from 'streamr-client';
+
+import { LogStorePoller } from '../../../../src/plugins/logStore/LogStorePoller';
 
 const POLL_TIME = 5;
 

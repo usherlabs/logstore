@@ -1,7 +1,9 @@
 import { Logger } from '@streamr/utils';
-import { Client, types as cassandraTypes } from 'cassandra-driver';
+import { types as cassandraTypes, Client } from 'cassandra-driver';
 import Heap from 'heap';
+
 import { Bucket, BucketId } from './Bucket';
+
 const { TimeUuid } = cassandraTypes;
 
 const logger = new Logger(module);

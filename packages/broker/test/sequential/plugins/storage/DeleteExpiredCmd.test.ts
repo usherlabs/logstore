@@ -1,10 +1,12 @@
 import { Wallet } from '@ethersproject/wallet';
-import { Client, types as cassandraTypes } from 'cassandra-driver';
-import StreamrClient, { ConfigTest } from 'streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import { types as cassandraTypes, Client } from 'cassandra-driver';
+import StreamrClient, { ConfigTest } from 'streamr-client';
+
 import { BucketId } from '../../../../src/plugins/logStore/Bucket';
 import { DeleteExpiredCmd } from '../../../../src/plugins/logStore/DeleteExpiredCmd';
-import { STREAMR_DOCKER_DEV_HOST, createTestStream } from '../../../utils';
+import { createTestStream, STREAMR_DOCKER_DEV_HOST } from '../../../utils';
+
 const { TimeUuid } = cassandraTypes;
 
 const contactPoints = [STREAMR_DOCKER_DEV_HOST];

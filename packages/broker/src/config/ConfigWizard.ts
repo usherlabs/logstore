@@ -1,13 +1,13 @@
-import inquirer, { Answers } from 'inquirer';
-import { Wallet } from 'ethers';
-import path from 'path';
-import { writeFileSync, existsSync, mkdirSync, chmodSync } from 'fs';
-import chalk from 'chalk';
-import { v4 as uuid } from 'uuid';
-
 // import * as WebsocketConfigSchema from '../plugins/websocket/config.schema.json'
 // import * as MqttConfigSchema from '../plugins/mqtt/config.schema.json'
 import { toEthereumAddress } from '@streamr/utils';
+import chalk from 'chalk';
+import { Wallet } from 'ethers';
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import inquirer, { Answers } from 'inquirer';
+import path from 'path';
+import { v4 as uuid } from 'uuid';
+
 import {
 	CURRENT_CONFIGURATION_VERSION,
 	formSchemaUrl,

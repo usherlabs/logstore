@@ -5,6 +5,7 @@ import express, { Request, Response } from 'express';
 import fs from 'fs';
 import { Server as HttpServer } from 'http';
 import https, { Server as HttpsServer } from 'https';
+
 import { ApiAuthenticator } from './apiAuthenticator';
 import { StrictConfig } from './config/config';
 

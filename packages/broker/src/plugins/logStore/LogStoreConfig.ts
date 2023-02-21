@@ -1,6 +1,7 @@
 import { StreamPartID } from '@streamr/protocol';
 import { EthereumAddress, keyToArrayIndex, Logger } from '@streamr/utils';
 import { Stream, StreamrClient } from 'streamr-client';
+
 import { LogStoreEventListener } from './LogStoreEventListener';
 import { LogStorePoller } from './LogStorePoller';
 import { Diff, SetMembershipSynchronizer } from './SetMembershipSynchronizer';

@@ -1,4 +1,5 @@
 import express, { Request, Response, Router } from 'express';
+
 import { LogStore } from './LogStore';
 
 const parseIntIfExists = (x: string | undefined): number | undefined => {

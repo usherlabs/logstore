@@ -1,14 +1,15 @@
-import { Client, types as cassandraTypes } from 'cassandra-driver';
-import toArray from 'stream-to-array';
-import { BucketId } from '../../../../src/plugins/logStore/Bucket';
-import { STREAMR_DOCKER_DEV_HOST } from '../../../utils';
-import {
-	startCassandraLogStore,
-	LogStore,
-} from '../../../../src/plugins/logStore/LogStore';
 import { MessageID, StreamMessage, toStreamID } from '@streamr/protocol';
 import { randomEthereumAddress } from '@streamr/test-utils';
 import { toEthereumAddress } from '@streamr/utils';
+import { types as cassandraTypes, Client } from 'cassandra-driver';
+import toArray from 'stream-to-array';
+
+import { BucketId } from '../../../../src/plugins/logStore/Bucket';
+import {
+	LogStore,
+	startCassandraLogStore,
+} from '../../../../src/plugins/logStore/LogStore';
+import { STREAMR_DOCKER_DEV_HOST } from '../../../utils';
 
 jest.setTimeout(30000);
 
