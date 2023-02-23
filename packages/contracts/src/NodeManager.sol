@@ -3,15 +3,15 @@
 pragma solidity 0.8.17;
 
 // Open Zeppelin libraries for controlling upgradability and access.
-import "../node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "../node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
+import {IERC20Upgradeable} from "../node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {Initializable} from "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable, __UUPSUpgradeable_init} from "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable, __Ownable_init} from "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {StringsUpgradeable} from "../node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
-import "./StoreManager.sol";
-import "./QueryManager.sol";
-import "./lib/VerifySignature.sol";
+import {LogStoreManager} from "./StoreManager.sol";
+import {LogStoreQueryManager} from "./QueryManager.sol";
+import {VerifySignature} from "./lib/VerifySignature.sol";
 
 contract LogStoreNodeManager is
     Initializable,
@@ -25,7 +25,7 @@ contract LogStoreNodeManager is
         uint lastSeen
     );
     event NodeRemoved(address indexed nodeAddress);
-    event NodeWhitelistApproved(address indexed nodeAddress);p
+    event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
     event StakeUpdate(uint256 indexed requiredAmount);
@@ -48,7 +48,7 @@ contract LogStoreNodeManager is
         string id;
         uint256 observed; // Byte count
         uint256 missed;
-        uint256 queried;
+        mapping(address => uint256) queried;
     }
 
     struct ReportNode {
@@ -145,7 +145,7 @@ contract LogStoreNodeManager is
         uint256 reportBlockBuffer_,
         uint256 storageFeeBP_,
         uint256 treasuryBP_,
-        uint256 queryFeeFlatPerByte_,
+        uint256 queryFeeFlatPerByte_
     ) public onlyOwner {
         stakeRequiredAmount = stakeRequiredAmount_;
         reportBlockBuffer = reportBlockBuffer_;
@@ -285,6 +285,7 @@ contract LogStoreNodeManager is
         string memory nodesJson = "";
         uint256 totalStoredBytes = 0;
         uint256 totalQueriedBytes = 0;
+        /* solhint-disable quotes */
         for (uint256 i = 0; i < addresses.length; i++) {
             ReportStream[] memory reportStreamsPerNode = new ReportStream[](
                 streamsPerNode[i].length
@@ -354,6 +355,7 @@ contract LogStoreNodeManager is
             nodesJson,
             "]"
         );
+        /* solhint-enable quotes */
         bytes32 reportHash = keccak256(abi.encodePacked(reportJson));
         // Verify signatures
         bool accepted = true;
@@ -392,8 +394,11 @@ contract LogStoreNodeManager is
                 }
                 captured[reportStream.id] = true;
                 // Capture fees from LogStoreManager -- We only capture for observed data. Nodes will pay for missing data.
-                uint256 storageCaptureAmount = reportStream.observed * feePerStoredByte;
-                uint256 queryCaptureAmount = reportStream.queried * queryFeeFlatPerByte;
+                // Once captured, partition between node and treasury
+                uint256 storageCaptureAmount = reportStream.observed *
+                    feePerStoredByte;
+                uint256 queryCaptureAmount = reportStream.queried *
+                    queryFeeFlatPerByte;
                 _storeManager.capture(
                     reportStream.id,
                     storageCaptureAmount,
@@ -407,14 +412,17 @@ contract LogStoreNodeManager is
                     reportStream.queried
                 );
 
-
+                balanceOf[reportNode.id] +=
+                    reportStream.observed *
+                    nodeFeePerStoredByte +
+                    reportStream.queried *
+                    queryCaptureAmount;
+                treasurySupply +=
+                    reportStream.observed *
+                    treasuryFeePerStoredByte;
                 totalSupply += queryCaptureAmount + storageCaptureAmount;
-                balanceOf[reportNode.id] += reportStream.observed *
-                    nodeFeePerStoredByte + reportStream.queried * queryCaptureAmount;
-                treasurySupply += reportStream.observed * treasuryFeePerStoredByte;
             }
         }
-
 
         reports[currentReport.id] = currentReport;
         lastReportId = currentReport.id;

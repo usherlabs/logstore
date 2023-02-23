@@ -2,8 +2,8 @@ import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { task } from 'hardhat/config';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
-import type { LogStore } from '../../types/LogStore';
 import type { LogStore__factory } from '../../types/factories/LogStore__factory';
+import type { LogStore } from '../../types/LogStore';
 
 task('deploy:LogStore').setAction(
 	async ({ ethers }: HardhatRuntimeEnvironment) => {

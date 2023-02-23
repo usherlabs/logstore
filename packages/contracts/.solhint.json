@@ -13,6 +13,8 @@
 				"endOfLine": "auto"
 			}
 		],
-		"reason-string": ["warn", { "maxLength": 64 }]
+		"reason-string": ["warn", { "maxLength": 64 }],
+		"no-inline-assembly": "off",
+		"no-empty-blocks": "off"
 	}
 }

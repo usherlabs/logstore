@@ -8,3 +8,5 @@ vendor
 out
 logs
 db
+cache
+artifacts
