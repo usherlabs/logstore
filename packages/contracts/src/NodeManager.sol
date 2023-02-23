@@ -5,8 +5,8 @@ pragma solidity 0.8.17;
 // Open Zeppelin libraries for controlling upgradability and access.
 import {IERC20Upgradeable} from "../node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {Initializable} from "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {UUPSUpgradeable, __UUPSUpgradeable_init} from "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable, __Ownable_init} from "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {UUPSUpgradeable} from "../node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StringsUpgradeable} from "../node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
 import {LogStoreManager} from "./StoreManager.sol";
@@ -48,7 +48,8 @@ contract LogStoreNodeManager is
         string id;
         uint256 observed; // Byte count
         uint256 missed;
-        mapping(address => uint256) queried;
+        address[] consumers;
+        uint256[] queried;
     }
 
     struct ReportNode {
@@ -99,7 +100,7 @@ contract LogStoreNodeManager is
     LogStoreQueryManager private _queryManager;
     uint256 private storageFeeBP = 10000;
     uint256 private treasuryBP = 2000;
-    uint256 private queryFeeFlatPerByte = 100000000; // 0.0000000001 * 10^18
+    uint256 private queryFeeFlatPerByte = 100000000; // 0.0000000001 * 10^18 -- this is relevant to MATIC
 
     function initialize(
         address owner,
@@ -220,10 +221,12 @@ contract LogStoreNodeManager is
         }
 
         // Determine an array of addresses
-        address[] memory reporterAddresses = [];
+        address[] memory reporterAddresses = new address[](
+            nodeAddresses.length
+        );
         uint256 ceilingReputation = 0;
         for (uint256 i = 0; i < nodeAddresses.length; i++) {
-            string memory nextReporterAddress = "";
+            address nextReporterAddress = address(0);
             for (uint256 j = 0; j < nodeAddresses.length; j++) {
                 Node memory jNode = nodes[nodeAddresses[j]];
                 if (
@@ -232,7 +235,7 @@ contract LogStoreNodeManager is
                 ) {
                     continue;
                 }
-                if (nextReporterAddress == "") {
+                if (nextReporterAddress == address(0)) {
                     nextReporterAddress = nodeAddresses[j];
                     continue;
                 }
@@ -242,7 +245,7 @@ contract LogStoreNodeManager is
             }
             Node memory nextReporterNode = nodes[nextReporterAddress];
             ceilingReputation = nextReporterNode.reputation;
-            reporterAddresses.push(nextReporterAddress);
+            reporterAddresses[i] = nextReporterAddress;
         }
 
         reportersOf[id] = reporterAddresses;
@@ -259,7 +262,8 @@ contract LogStoreNodeManager is
         string[][] calldata streamsPerNode,
         uint256[][] calldata bytesObservedPerStream,
         uint256[][] calldata bytesMissedPerStream,
-        uint256[][] calldata bytesQueriedPerStream,
+        address[][][] calldata consumerAddressesPerStream,
+        uint256[][][] calldata bytesQueriedByConsumerPerStream,
         bytes[] calldata signatures // these are signatures of the constructed payload.
     ) public onlyStaked {
         require(
@@ -292,13 +296,45 @@ contract LogStoreNodeManager is
             );
             string memory formattedStreams = "";
             for (uint256 j = 0; j < streamsPerNode[i].length; j++) {
+                totalStoredBytes +=
+                    bytesObservedPerStream[i][j] +
+                    bytesMissedPerStream[i][j];
+
                 reportStreamsPerNode[j] = ReportStream({
                     id: streamsPerNode[i][j],
                     observed: bytesObservedPerStream[i][j],
                     missed: bytesMissedPerStream[i][j],
-                    queried: bytesQueriedPerStream[i][j]
+                    consumers: consumerAddressesPerStream[i][j],
+                    queried: bytesQueriedByConsumerPerStream[i][j]
                 });
 
+                string memory formattedQueriedData = "";
+                for (
+                    uint256 l = 0;
+                    l < consumerAddressesPerStream[i][j].length;
+                    l++
+                ) {
+                    totalQueriedBytes += bytesQueriedByConsumerPerStream[i][j][
+                        l
+                    ];
+
+                    formattedQueriedData = string.concat(
+                        '"',
+                        StringsUpgradeable.toHexString(
+                            consumerAddressesPerStream[i][j][l]
+                        ),
+                        '": ',
+                        StringsUpgradeable.toString(
+                            bytesQueriedByConsumerPerStream[i][j][l]
+                        )
+                    );
+                    if (l != consumerAddressesPerStream[i][j].length - 1) {
+                        formattedQueriedData = string.concat(
+                            formattedQueriedData,
+                            ","
+                        );
+                    }
+                }
                 formattedStreams = string.concat(
                     formattedStreams,
                     '{ "id": "',
@@ -307,18 +343,13 @@ contract LogStoreNodeManager is
                     StringsUpgradeable.toString(bytesObservedPerStream[i][j]),
                     ', "missed": ',
                     StringsUpgradeable.toString(bytesMissedPerStream[i][j]),
-                    ', "queried": ',
-                    StringsUpgradeable.toString(bytesQueriedPerStream[i][j]),
-                    " }"
+                    ', "queried": {',
+                    formattedQueriedData,
+                    "}}"
                 );
                 if (j != streamsPerNode[i].length - 1) {
                     formattedStreams = string.concat(formattedStreams, ",");
                 }
-
-                totalStoredBytes +=
-                    bytesObservedPerStream[i][j] +
-                    bytesMissedPerStream[i][j];
-                totalQueriedBytes += bytesQueriedPerStream[i][j];
             }
             reportNodes[i] = ReportNode({
                 id: addresses[i],
@@ -348,7 +379,7 @@ contract LogStoreNodeManager is
             '{ "id": "',
             bundleId,
             '", "height": "',
-            blockHeight,
+            StringsUpgradeable.toString(blockHeight),
             '", "fee": ',
             StringsUpgradeable.toString(fee),
             '", "nodes": [',
@@ -377,50 +408,55 @@ contract LogStoreNodeManager is
         // 1. Take the total fees/expense, priced in staked currency, and evaluate a fee per stored byte (observed + missed)
         // 2. Fee per stored byte is a multiplier on the fees/expense that incorporates the Treasury delegation
         uint256 expensePerStoredByte = fee / totalStoredBytes;
-        uint256 feePerStoredByte = (storageFeeBasisPoints / 10000 + 1) *
+        uint256 feePerStoredByte = (storageFeeBP / 10000 + 1) *
             expensePerStoredByte;
-        uint256 treasuryFeePerStoredByte = (treasuryBasisPoints / 10000) *
+        uint256 treasuryFeePerStoredByte = (treasuryBP / 10000) *
             (feePerStoredByte - expensePerStoredByte);
         uint256 nodeFeePerStoredByte = feePerStoredByte -
             treasuryFeePerStoredByte;
 
-        mapping(string => bool) memory captured;
         for (uint256 i = 0; i < currentReport.nodes.length; i++) {
             ReportNode memory reportNode = currentReport.nodes[i];
             for (uint256 j = 0; j < reportNode.streams.length; i++) {
                 ReportStream memory reportStream = reportNode.streams[i];
-                if (captured[reportStream.id] == true) {
-                    continue;
-                }
-                captured[reportStream.id] = true;
                 // Capture fees from LogStoreManager -- We only capture for observed data. Nodes will pay for missing data.
                 // Once captured, partition between node and treasury
                 uint256 storageCaptureAmount = reportStream.observed *
                     feePerStoredByte;
-                uint256 queryCaptureAmount = reportStream.queried *
-                    queryFeeFlatPerByte;
                 _storeManager.capture(
                     reportStream.id,
                     storageCaptureAmount,
                     reportStream.observed
                 );
-                address dataConsumer = address(this); // TODO: Update.
-                _queryManager.capture(
-                    reportStream.id,
-                    queryCaptureAmount,
-                    dataConsumer,
-                    reportStream.queried
-                );
+
+                uint256 totalQueried = 0;
+                for (uint256 l = 0; l < reportStream.consumers.length; l++) {
+                    uint256 queryCaptureAmount = reportStream.queried[l] *
+                        queryFeeFlatPerByte;
+                    totalQueried += reportStream.queried[l];
+                    _queryManager.capture(
+                        reportStream.id,
+                        queryCaptureAmount,
+                        reportStream.consumers[l],
+                        reportStream.queried[l]
+                    );
+                }
+
+                uint256 totalQueryCaptureAmount = totalQueried *
+                    queryFeeFlatPerByte;
+                uint256 treasuryQueryFee = (treasuryBP / 10000) *
+                    totalQueryCaptureAmount;
+                uint256 nodeQueryFee = totalQueryCaptureAmount -
+                    treasuryQueryFee;
 
                 balanceOf[reportNode.id] +=
-                    reportStream.observed *
-                    nodeFeePerStoredByte +
-                    reportStream.queried *
-                    queryCaptureAmount;
+                    (reportStream.observed * nodeFeePerStoredByte) +
+                    nodeQueryFee;
                 treasurySupply +=
                     reportStream.observed *
-                    treasuryFeePerStoredByte;
-                totalSupply += queryCaptureAmount + storageCaptureAmount;
+                    treasuryFeePerStoredByte +
+                    treasuryQueryFee;
+                totalSupply += totalQueryCaptureAmount + storageCaptureAmount;
             }
         }
 
@@ -466,13 +502,15 @@ contract LogStoreNodeManager is
             nodes[nodeAddress] = Node({
                 index: nodeAddresses.length - 1,
                 metadata: metadata_,
-                lastSeen: block.timestamp // block timestamp should suffice
+                lastSeen: block.timestamp, // block timestamp should suffice
+                reputation: 0
             });
         } else {
             nodes[nodeAddress] = Node({
                 index: n.index,
                 metadata: metadata_,
-                lastSeen: block.timestamp
+                lastSeen: block.timestamp,
+                reputation: n.reputation
             });
         }
         emit NodeUpdated(nodeAddress, n.metadata, isNew, n.lastSeen);

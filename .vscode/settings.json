@@ -12,6 +12,5 @@
 	],
 	"prettier.configPath": "./.prettierrc",
 	"prettier.prettierPath": "./node_modules/prettier",
-	"solidity.formatter": "prettier",
 	"solidity.telemetry": false
 }

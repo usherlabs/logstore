@@ -16,7 +16,8 @@
 		"lint:sol": "solhint \"**/*.sol\"",
 		"lint:ts": "eslint --ext .js,.ts .",
 		"test": "hardhat test",
-		"typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain"
+		"typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
+		"format": "prettier --write \"**/*.sol\""
 	},
 	"files": [],
 	"keywords": [
