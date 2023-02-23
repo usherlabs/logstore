@@ -66,7 +66,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         string memory streamId,
         uint256 amount,
         uint256 bytesStored
-    ) public onlyOwner {
+    ) public onlyOwner returns (bool success) {
         require(
             amount <= stakeToken.balanceOf(address(this)),
             "error_notEnoughStake"
@@ -93,10 +93,12 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         stores[streamId] -= amount;
         totalSupply -= amount;
 
-        bool success = stakeToken.transfer(msg.sender, amount);
-        require(success == true, "error_unsuccessfulCapture");
+        bool transferSuccess = stakeToken.transfer(msg.sender, amount);
+        require(transferSuccess == true, "error_unsuccessfulCapture");
 
         emit DataStored(streamId, amount, bytesStored);
+
+        return transferSuccess;
     }
 
     function stake(string memory streamId, uint amount) public {

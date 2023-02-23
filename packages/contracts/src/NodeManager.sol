@@ -25,11 +25,11 @@ contract LogStoreNodeManager is
         uint lastSeen
     );
     event NodeRemoved(address indexed nodeAddress);
-    event NodeWhitelistApproved(address indexed nodeAddress);
+    event NodeWhitelistApproved(address indexed nodeAddress);p
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
     event StakeUpdate(uint256 indexed requiredAmount);
-    event ReportUpdated(bool indexed accepted, string raw);
+    event ReportAccepted(string raw);
 
     enum WhitelistState {
         None,
@@ -37,25 +37,11 @@ contract LogStoreNodeManager is
         Rejected
     }
 
-    enum Currencies {
-        Kyve,
-        Ar
-    }
-
-    struct Currency {
-        uint256 marketPriceToStable;
-        uint256 marketPriceToStaked;
-        uint256 pricePerByte;
-    }
-
     struct Node {
         uint index; // index of node address
         string metadata; // Connection metadata, for example wss://node-domain-name:port
         uint lastSeen; // what's the best way to store timestamps in smart contracts?
         uint reputation;
-        uint bytesObserved;
-        uint bytesMissed;
-        uint bytesQueried;
     }
 
     struct ReportStream {
@@ -73,7 +59,7 @@ contract LogStoreNodeManager is
     struct Report {
         string id; // bundle id
         uint256 height;
-        uint256[2] fees; // Kyve, Ar
+        uint256 fee;
         ReportNode[] nodes;
     }
 
@@ -95,27 +81,35 @@ contract LogStoreNodeManager is
         _;
     }
 
+    uint256 public reportBlockBuffer = 10;
     bool public requiresWhitelist;
     uint256 public totalSupply;
+    uint256 public treasurySupply;
     uint256 public stakeRequiredAmount;
     address public stakeTokenAddress;
     address[] public nodeAddresses;
-    address[] public reporters;
-    uint256 public lastAcceptedReportBlockHeight;
+    string public lastReportId;
+    mapping(string => address[]) public reportersOf;
     mapping(string => Report) public reports;
     mapping(address => Node) public nodes;
     mapping(address => WhitelistState) public whitelist;
     mapping(address => uint256) public balanceOf;
-    mapping(Currencies => Currency) internal currencyPrice;
     IERC20Upgradeable internal stakeToken;
     LogStoreManager private _storeManager;
     LogStoreQueryManager private _queryManager;
+    uint256 private storageFeeBP = 10000;
+    uint256 private treasuryBP = 2000;
+    uint256 private queryFeeFlatPerByte = 100000000; // 0.0000000001 * 10^18
 
     function initialize(
         address owner,
         bool requiresWhitelist_,
         address stakeTokenAddress_,
         uint256 stakeRequiredAmount_,
+        uint256 reportBlockBuffer_,
+        uint256 storageFeeBP_,
+        uint256 treasuryBP_,
+        uint256 queryFeeFlatPerByte_,
         address[] memory initialNodes,
         string[] memory initialMetadata
     ) public initializer {
@@ -132,11 +126,32 @@ contract LogStoreNodeManager is
         );
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         stakeTokenAddress = stakeTokenAddress_;
+
+        // Configure
         stakeRequiredAmount = stakeRequiredAmount_;
+        reportBlockBuffer = reportBlockBuffer_;
+        storageFeeBP = storageFeeBP_;
+        treasuryBP = treasuryBP_;
+        queryFeeFlatPerByte = queryFeeFlatPerByte_;
+
         for (uint i = 0; i < initialNodes.length; i++) {
             upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
         }
         transferOwnership(owner);
+    }
+
+    function configure(
+        uint256 stakeRequiredAmount_,
+        uint256 reportBlockBuffer_,
+        uint256 storageFeeBP_,
+        uint256 treasuryBP_,
+        uint256 queryFeeFlatPerByte_,
+    ) public onlyOwner {
+        stakeRequiredAmount = stakeRequiredAmount_;
+        reportBlockBuffer = reportBlockBuffer_;
+        storageFeeBP = storageFeeBP_;
+        treasuryBP = treasuryBP_;
+        queryFeeFlatPerByte = queryFeeFlatPerByte_;
     }
 
     /// @dev required by the OZ UUPS module
@@ -166,12 +181,12 @@ contract LogStoreNodeManager is
         _removeNode(nodeAddress);
     }
 
-    // TODO: Update only access the funds in treasury
     function treasuryWithdraw(uint256 amount) public onlyOwner {
-        require(
-            amount <= stakeToken.balanceOf(address(this)),
-            "error_notEnoughStake"
-        );
+        require(amount <= treasurySupply, "error_notEnoughStake");
+
+        totalSupply -= amount;
+        treasurySupply -= amount;
+
         bool success = stakeToken.transfer(msg.sender, amount);
         require(success == true, "error_unsuccessfulWithdraw");
     }
@@ -196,11 +211,50 @@ contract LogStoreNodeManager is
         removeNode();
     }
 
+    function getReportersList(
+        string calldata id
+    ) internal returns (address[] memory reporters) {
+        if (reportersOf[id].length > 0) {
+            // Use cache in case previous report attempt was invalid.
+            return reportersOf[id];
+        }
+
+        // Determine an array of addresses
+        address[] memory reporterAddresses = [];
+        uint256 ceilingReputation = 0;
+        for (uint256 i = 0; i < nodeAddresses.length; i++) {
+            string memory nextReporterAddress = "";
+            for (uint256 j = 0; j < nodeAddresses.length; j++) {
+                Node memory jNode = nodes[nodeAddresses[j]];
+                if (
+                    jNode.reputation >= ceilingReputation &&
+                    ceilingReputation > 0
+                ) {
+                    continue;
+                }
+                if (nextReporterAddress == "") {
+                    nextReporterAddress = nodeAddresses[j];
+                    continue;
+                }
+                if (jNode.reputation > nodes[nextReporterAddress].reputation) {
+                    nextReporterAddress = nodeAddresses[jNode.index];
+                }
+            }
+            Node memory nextReporterNode = nodes[nextReporterAddress];
+            ceilingReputation = nextReporterNode.reputation;
+            reporterAddresses.push(nextReporterAddress);
+        }
+
+        reportersOf[id] = reporterAddresses;
+
+        return reporterAddresses;
+    }
+
     // recieve report data broken up into a series of arrays
     function report(
         string calldata bundleId,
-        string calldata blockHeight,
-        uint256[2] calldata fees,
+        uint256 blockHeight,
+        uint256 fee,
         address[] calldata addresses,
         string[][] calldata streamsPerNode,
         uint256[][] calldata bytesObservedPerStream,
@@ -208,43 +262,42 @@ contract LogStoreNodeManager is
         uint256[][] calldata bytesQueriedPerStream,
         bytes[] calldata signatures // these are signatures of the constructed payload.
     ) public onlyStaked {
-        if (reporters.length == 0) {
-            // A condition that will be true on the first report
-            reporters = nodeAddresses;
+        require(
+            reports[lastReportId].height < blockHeight,
+            "error_invalidReport"
+        );
+        require(blockHeight <= block.number, "error_invalidReport");
+
+        // validate that the appropriate reporters can submit reports based on the current block
+        address[] memory orderedReportersList = getReportersList(bundleId);
+        for (uint256 i = 0; i < orderedReportersList.length; i++) {
+            if (orderedReportersList[i] == msg.sender) {
+                require(
+                    i * reportBlockBuffer + blockHeight < block.number,
+                    "error_invalidReporter"
+                );
+                break;
+            }
         }
-        // TODO: Ensure msg.sender is the next reporter.
 
         ReportNode[] memory reportNodes = new ReportNode[](addresses.length);
+        // Produce json blob that signatures correspond to
+        string memory nodesJson = "";
+        uint256 totalStoredBytes = 0;
+        uint256 totalQueriedBytes = 0;
         for (uint256 i = 0; i < addresses.length; i++) {
             ReportStream[] memory reportStreamsPerNode = new ReportStream[](
                 streamsPerNode[i].length
             );
-            for (uint256 j = 0; j < addresses.length; j++) {
+            string memory formattedStreams = "";
+            for (uint256 j = 0; j < streamsPerNode[i].length; j++) {
                 reportStreamsPerNode[j] = ReportStream({
                     id: streamsPerNode[i][j],
                     observed: bytesObservedPerStream[i][j],
                     missed: bytesMissedPerStream[i][j],
                     queried: bytesQueriedPerStream[i][j]
                 });
-            }
-            reportNodes[i] = ReportNode({
-                id: addresses[i],
-                streams: reportStreamsPerNode
-            });
-        }
-        // Consume report data
-        uint256 currentHeight = block.number;
-        Report memory currentReport = Report({
-            id: bundleId,
-            height: currentHeight,
-            fees: fees,
-            nodes: reportNodes
-        });
-        // Produce json blob that signatures correspond to
-        string memory nodesJson = "";
-        for (uint256 i = 0; i < addresses.length; i++) {
-            string memory formattedStreams = "";
-            for (uint256 j = 0; j < streamsPerNode[i].length; j++) {
+
                 formattedStreams = string.concat(
                     formattedStreams,
                     '{ "id": "',
@@ -260,7 +313,17 @@ contract LogStoreNodeManager is
                 if (j != streamsPerNode[i].length - 1) {
                     formattedStreams = string.concat(formattedStreams, ",");
                 }
+
+                totalStoredBytes +=
+                    bytesObservedPerStream[i][j] +
+                    bytesMissedPerStream[i][j];
+                totalQueriedBytes += bytesQueriedPerStream[i][j];
             }
+            reportNodes[i] = ReportNode({
+                id: addresses[i],
+                streams: reportStreamsPerNode
+            });
+
             nodesJson = string.concat(
                 nodesJson,
                 '{ "address": "',
@@ -273,16 +336,21 @@ contract LogStoreNodeManager is
                 nodesJson = string.concat(nodesJson, ",");
             }
         }
+        // Consume report data
+        Report memory currentReport = Report({
+            id: bundleId,
+            height: blockHeight,
+            fee: fee,
+            nodes: reportNodes
+        });
         string memory reportJson = string.concat(
-            '{ "bundleId": "',
+            '{ "id": "',
             bundleId,
             '", "height": "',
             blockHeight,
-            '", "fees": {"kyve": "',
-            StringsUpgradeable.toString(fees[0]),
-            '", "ar": "',
-            StringsUpgradeable.toString(fees[1]),
-            '"}", "nodes": [',
+            '", "fee": ',
+            StringsUpgradeable.toString(fee),
+            '", "nodes": [',
             nodesJson,
             "]"
         );
@@ -301,42 +369,57 @@ contract LogStoreNodeManager is
             }
         }
 
-        if (accepted) {
-            reports[currentReport.id] = currentReport;
+        require(accepted, "error_invalidReportSignatures");
 
-            // Determine fee amounts on a per stream basis
-            string[] memory captureStreamIds = new string[](0);
-            mapping(string => uint256) memory captureAmounts;
-            mapping(string => uint256) memory captureBytesStored;
-            mapping(string => bool) memory captured;
-            for (uint256 i = 0; i < currentReport.nodes.length; i++) {
-                ReportNode memory reportNode = currentReport.nodes[i];
-                for (uint256 j = 0; j < reportNode.streams.length; i++) {
-                    ReportStream memory reportStream = reportNode.streams[i];
-                    // TODO: Insert Pricing Algorithm
-                    if (captured[reportStream.id] == false) {
-                        captureStreamIds.push(reportStream.id);
-                        captured[reportStream.id] = true;
-                    }
+        // Determine fee amounts on a per stream basis
+        // 1. Take the total fees/expense, priced in staked currency, and evaluate a fee per stored byte (observed + missed)
+        // 2. Fee per stored byte is a multiplier on the fees/expense that incorporates the Treasury delegation
+        uint256 expensePerStoredByte = fee / totalStoredBytes;
+        uint256 feePerStoredByte = (storageFeeBasisPoints / 10000 + 1) *
+            expensePerStoredByte;
+        uint256 treasuryFeePerStoredByte = (treasuryBasisPoints / 10000) *
+            (feePerStoredByte - expensePerStoredByte);
+        uint256 nodeFeePerStoredByte = feePerStoredByte -
+            treasuryFeePerStoredByte;
 
-                    uint256 amount = reportStream.observed *
-                        currencyPrice[Currencies.Ar] *
-                        captureAmounts[reportStream.id] =
-                        captureAmounts[reportStream.id] +
-                        amount;
+        mapping(string => bool) memory captured;
+        for (uint256 i = 0; i < currentReport.nodes.length; i++) {
+            ReportNode memory reportNode = currentReport.nodes[i];
+            for (uint256 j = 0; j < reportNode.streams.length; i++) {
+                ReportStream memory reportStream = reportNode.streams[i];
+                if (captured[reportStream.id] == true) {
+                    continue;
                 }
-            }
-            // Reproduce ReportList based on the performance of each node.
+                captured[reportStream.id] = true;
+                // Capture fees from LogStoreManager -- We only capture for observed data. Nodes will pay for missing data.
+                uint256 storageCaptureAmount = reportStream.observed * feePerStoredByte;
+                uint256 queryCaptureAmount = reportStream.queried * queryFeeFlatPerByte;
+                _storeManager.capture(
+                    reportStream.id,
+                    storageCaptureAmount,
+                    reportStream.observed
+                );
+                address dataConsumer = address(this); // TODO: Update.
+                _queryManager.capture(
+                    reportStream.id,
+                    queryCaptureAmount,
+                    dataConsumer,
+                    reportStream.queried
+                );
 
-            // Capture fees from LogStoreManager
-            _storeManager.captureBundle(
-                captureStreamIds,
-                captureAmounts,
-                captureBytesStored
-            );
+
+                totalSupply += queryCaptureAmount + storageCaptureAmount;
+                balanceOf[reportNode.id] += reportStream.observed *
+                    nodeFeePerStoredByte + reportStream.queried * queryCaptureAmount;
+                treasurySupply += reportStream.observed * treasuryFeePerStoredByte;
+            }
         }
 
-        emit ReportUpdated(accepted, reportJson);
+
+        reports[currentReport.id] = currentReport;
+        lastReportId = currentReport.id;
+
+        emit ReportAccepted(reportJson);
     }
 
     function stake(uint amount) public {
@@ -420,10 +503,4 @@ contract LogStoreNodeManager is
         requiresWhitelist = value;
         emit RequiresWhitelistChanged(value);
     }
-
-    function getStorageFee(uint256 bytesStored) public returns (uint256 fee) {
-        // Need to get the KYVE/STAKE_TOKEN & AR/STAKE_TOKEN prices
-    }
-
-    function getQueryFee(uint256 bytesQueried) public returns (uint256 fee) {}
 }
