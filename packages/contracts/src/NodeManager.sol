@@ -25,6 +25,7 @@ contract LogStoreNodeManager is
         uint indexed isNew,
         uint lastSeen
     );
+    event NodeStakeUpdated(address indexed nodeAddress, uint stake);
     event NodeRemoved(address indexed nodeAddress);
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
@@ -43,6 +44,8 @@ contract LogStoreNodeManager is
         uint lastSeen; // what's the best way to store timestamps in smart contracts?
         address next;
         address prev;
+        uint256 stake;
+        address[] delegates;
     }
 
     modifier onlyWhitelist() {
@@ -66,6 +69,7 @@ contract LogStoreNodeManager is
     mapping(address => Node) public nodes;
     mapping(address => WhitelistState) public whitelist;
     mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public delegatesOf;
     address internal headNode;
     IERC20Upgradeable internal stakeToken;
     uint256 internal writeFeePoints = 10000;
@@ -100,10 +104,12 @@ contract LogStoreNodeManager is
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
 
         // Configure
-        stakeRequiredAmount = stakeRequiredAmount_;
-        writeFeePoints = writeFeePoints_;
-        treasuryFeePoints = treasuryFeePoints_;
-        readFee = readFee_;
+        configure(
+            stakeRequiredAmount_,
+            writeFeePoints_,
+            treasuryFeePoints_,
+            readFee_
+        );
 
         for (uint i = 0; i < initialNodes.length; i++) {
             upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
@@ -181,21 +187,22 @@ contract LogStoreNodeManager is
 
     // recieve report data broken up into a series of arrays
     function processReport(string calldata id) public onlyStaked {
-        LogStoreReportManager.Report memory report = _reportManager[id];
-
-        require(
-            report.metadata.processed == false,
-            "error_reportAlreadyProcessed"
+        LogStoreReportManager.Report memory report = _reportManager.getReport(
+            id
         );
+
+        require(report._processed == false, "error_reportAlreadyProcessed");
 
         // Determine fee amounts on a per stream basis
         // 1. Take the total fees/expense, priced in staked currency, and evaluate a fee per stored byte (observed + missed)
         // 2. Fee per stored byte is a multiplier on the fees/expense that incorporates the Treasury delegation
-        uint256 writeExpense = report.fee / report.metadata.write;
+        uint256 writeExpense = report.fee / report._write;
         uint256 writeFee = (writeFeePoints / 10000 + 1) * writeExpense;
         uint256 writeTreasuryFee = (treasuryFeePoints / 10000) *
             (writeFee - writeExpense);
         uint256 writeNodeFee = writeFee - writeTreasuryFee;
+        uint256 readTreasuryFee = readFee * (treasuryFeePoints / 10000);
+        uint256 readNodeFee = readFee - readTreasuryFee;
 
         for (uint256 i = 0; i < report.streams.length; i++) {
             // Capture fees from LogStoreManager
@@ -204,8 +211,9 @@ contract LogStoreNodeManager is
             _storeManager.capture(
                 report.streams[i].id,
                 writeCapture,
-                report.streams[i].write
+                report.streams[i]._write
             );
+            totalSupply += writeCapture;
 
             for (uint256 j = 0; j < report.streams.length; j++) {
                 uint256 readCapture = report.streams[i].queried[j] * readFee;
@@ -215,6 +223,44 @@ contract LogStoreNodeManager is
                     report.streams[i].consumers[j],
                     report.streams[i].queried[j]
                 );
+                totalSupply += readCapture;
+            }
+
+            // Allocate treasury write fees
+            treasurySupply +=
+                (report.streams[i]._write * writeTreasuryFee) +
+                (report.streams[i]._read * readTreasuryFee);
+            // Allocate node write fees
+            // To do so, we need to determine the portions allocated to each node proportional to their performance
+            for (uint256 j = 0; j < report.streams[i].nodes.length; j++) {
+                uint256 portion = report.streams[i].nodes[j].observed /
+                    report.streams[i]._write;
+                uint256 nodeCapturePortion = portion *
+                    report.streams[i]._write *
+                    writeNodeFee;
+
+                // Determine which balances to allocate this capture portion to
+                for (
+                    uint256 x = 0;
+                    x < nodes[report.streams[i].nodes[j].id].delegates.length;
+                    x++
+                ) {
+                    address nodeDelegate = nodes[report.streams[i].nodes[j].id]
+                        .delegates[x];
+                    uint256 delegateAmount = delegatesOf[nodeDelegate][
+                        report.streams[i].nodes[j].id
+                    ];
+                    uint256 delegatePortion = delegateAmount /
+                        nodes[report.streams[i].nodes[j].id].stake;
+                    uint256 delegateCapturePortion = delegatePortion *
+                        nodeCapturePortion;
+                    delegatesOf[nodeDelegate][
+                        report.streams[i].nodes[j].id
+                    ] += delegateCapturePortion;
+                }
+
+                nodes[report.streams[i].nodes[j].id]
+                    .stake += nodeCapturePortion;
             }
         }
 
@@ -222,9 +268,8 @@ contract LogStoreNodeManager is
         emit ReportProcessed(id);
     }
 
-    function upsertNode(
-        string memory metadata_
-    ) public onlyWhitelist onlyStaked {
+    // Nodes can join the network, but they will not earn rewards or participate unless they're staked.
+    function upsertNode(string memory metadata_) public onlyWhitelist {
         _upsertNode(msg.sender, metadata_);
     }
 
@@ -234,6 +279,7 @@ contract LogStoreNodeManager is
 
     function join(uint amount, string memory metadata_) public {
         stake(amount);
+        delegate(amount, msg.sender);
         upsertNode(metadata_);
     }
 
@@ -256,6 +302,56 @@ contract LogStoreNodeManager is
         require(success == true, "error_unsuccessfulStake");
     }
 
+    function delegate(uint amount, address node) public onlyStaked {
+        require(amount > 0, "error_insufficientDelegateAmount");
+        require(nodes[node].lastSeen > 0, "error_invalidNode");
+
+        balanceOf[msg.sender] -= amount;
+        delegatesOf[msg.sender][node] += amount;
+        nodes[node].stake += amount;
+
+        bool delegateExists = false;
+        for (uint256 i = 0; i < nodes[node].delegates.length; i++) {
+            if (msg.sender == nodes[node].delegates[i]) {
+                delegateExists = true;
+                break;
+            }
+        }
+        if (!delegateExists) {
+            nodes[node].delegates.push(msg.sender);
+        }
+
+        emit NodeStakeUpdated(node, nodes[node].stake);
+    }
+
+    function undelegate(uint amount, address node) public onlyStaked {
+        require(amount > 0, "error_insufficientDelegateAmount");
+        require(nodes[node].lastSeen > 0, "error_invalidNode");
+
+        delegatesOf[msg.sender][node] -= amount;
+        nodes[node].stake -= amount;
+        balanceOf[msg.sender] += amount;
+
+        uint256 removeIndex = 0;
+        for (uint256 i = 0; i < nodes[node].delegates.length; i++) {
+            if (msg.sender == nodes[node].delegates[i]) {
+                removeIndex = i;
+                break;
+            }
+        }
+        nodes[node].delegates[removeIndex] = nodes[node].delegates[
+            nodes[node].delegates.length - 1
+        ];
+        nodes[node].delegates.pop();
+
+        emit NodeStakeUpdated(node, nodes[node].stake);
+    }
+
+    function delegateStake(uint amount, address node) public {
+        stake(amount);
+        delegate(amount, node);
+    }
+
     function withdraw(uint amount) public {
         require(amount <= balanceOf[msg.sender], "error_notEnoughStake");
 
@@ -264,6 +360,11 @@ contract LogStoreNodeManager is
 
         bool success = stakeToken.transfer(msg.sender, amount);
         require(success == true, "error_unsuccessfulWithdraw");
+    }
+
+    function undelegateWithdraw(uint amount, address node) public {
+        undelegate(amount, node);
+        withdraw(amount);
     }
 
     function _upsertNode(
@@ -298,7 +399,9 @@ contract LogStoreNodeManager is
                 next: n.next,
                 prev: n.prev,
                 metadata: metadata_,
-                lastSeen: block.timestamp
+                lastSeen: block.timestamp,
+                stake: n.stake,
+                delegates: new address[](0)
             });
         }
         emit NodeUpdated(nodeAddress, n.metadata, isNew, n.lastSeen);
@@ -326,7 +429,7 @@ contract LogStoreNodeManager is
     }
 
     function nodeAddresses()
-        internal
+        public
         view
         returns (address[] memory resultAddresses)
     {
@@ -341,7 +444,7 @@ contract LogStoreNodeManager is
         return result;
     }
 
-    function nodeCount() public view returns (uint count) {
+    function nodeCount() public view returns (uint) {
         uint256 index = 0;
         address tailAddress = headNode;
         while (nodes[tailAddress].next != address(0)) {
@@ -351,9 +454,12 @@ contract LogStoreNodeManager is
         return index + 1;
     }
 
-    function isStaked() public view returns (bool staked) {
+    function nodeStake(address node) public view returns (uint256) {
+        return nodes[node].stake;
+    }
+
+    function isStaked(address node) public view returns (bool) {
         return
-            stakeRequiredAmount > 0 &&
-            balanceOf[msg.sender] >= stakeRequiredAmount;
+            stakeRequiredAmount > 0 && nodes[node].stake >= stakeRequiredAmount;
     }
 }

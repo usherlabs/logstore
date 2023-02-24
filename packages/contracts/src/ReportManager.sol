@@ -39,7 +39,6 @@ contract LogStoreReportManager is
         uint256 height;
         uint256 fee;
         Stream[] streams;
-        Node[] nodes;
         uint256 _read;
         uint256 _write;
         bool _processed;
@@ -50,11 +49,11 @@ contract LogStoreReportManager is
         _;
     }
 
-    uint256 public reportBlockBuffer = 10;
-    string public lastReportId;
-    mapping(address => uint256) public reputationOf;
-    mapping(string => address[]) public reportersOf;
-    mapping(string => Report) public reports;
+    uint256 internal reportBlockBuffer = 10;
+    string internal lastReportId;
+    mapping(address => uint256) internal reputationOf;
+    mapping(string => address[]) internal reportersOf;
+    mapping(string => Report) internal reports;
     LogStoreNodeManager private _nodeManager;
 
     function initialize(address owner) public initializer {
@@ -69,6 +68,12 @@ contract LogStoreReportManager is
     /// @dev required by the OZ UUPS module
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
+    function getReport(
+        string calldata id
+    ) public view onlyOwner returns (Report memory) {
+        return reports[id];
+    }
+
     function getReportersList(
         string calldata id
     ) internal returns (address[] memory reporters) {
@@ -77,7 +82,7 @@ contract LogStoreReportManager is
             return reportersOf[id];
         }
 
-        address[] nodeAddresses = _nodeManager.nodeAddresses();
+        address[] memory nodeAddresses = _nodeManager.nodeAddresses();
 
         // Determine an array of addresses
         address[] memory reporterAddresses = new address[](
@@ -152,13 +157,8 @@ contract LogStoreReportManager is
             "error_badRequest"
         );
 
-        address[] nodeAddresses = _nodeManager.nodeAddresses();
-
         // validate that the appropriate reporters can submit reports based on the current block
-        address[] memory orderedReportersList = getReportersList(
-            bundleId,
-            nodeAddresses
-        );
+        address[] memory orderedReportersList = getReportersList(bundleId);
         for (uint256 i = 0; i < orderedReportersList.length; i++) {
             if (orderedReportersList[i] == msg.sender) {
                 require(
@@ -200,9 +200,9 @@ contract LogStoreReportManager is
                 reportJson = string.concat(
                     reportJson,
                     '"',
-                    consumerAddresses[i][j],
+                    StringsUpgradeable.toHexString(consumerAddresses[i][j]),
                     '":"',
-                    bytesQueriedPerConsumer[i][j],
+                    StringsUpgradeable.toString(bytesQueriedPerConsumer[i][j]),
                     '"'
                 );
                 if (j != consumerAddresses[i].length - 1) {
@@ -218,11 +218,11 @@ contract LogStoreReportManager is
                 reportJson = string.concat(
                     reportJson,
                     '{ "id": "',
-                    nodesPerStream[i][j],
+                    StringsUpgradeable.toHexString(nodesPerStream[i][j]),
                     '", "observed": ',
-                    bytesObservedPerNode[i][j],
+                    StringsUpgradeable.toString(bytesObservedPerNode[i][j]),
                     ', "missed": ',
-                    bytesMissedPerNode[i][j],
+                    StringsUpgradeable.toString(bytesMissedPerNode[i][j]),
                     " }"
                 );
 
@@ -282,6 +282,15 @@ contract LogStoreReportManager is
 
         reports[currentReport.id] = currentReport;
         lastReportId = currentReport.id;
+
+        // Increase reputation of reporter
+        for (uint256 i = 0; i < orderedReportersList.length; i++) {
+            if (msg.sender == orderedReportersList[i]) {
+                reputationOf[msg.sender] += 10;
+            } else {
+                reputationOf[orderedReportersList[i]] += 1;
+            }
+        }
 
         emit ReportAccepted(reportJson);
     }
