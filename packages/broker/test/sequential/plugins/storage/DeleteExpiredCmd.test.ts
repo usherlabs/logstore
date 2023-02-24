@@ -11,7 +11,7 @@ const { TimeUuid } = cassandraTypes;
 
 const contactPoints = [STREAMR_DOCKER_DEV_HOST];
 const localDataCenter = 'datacenter1';
-const keyspace = 'streamr_dev_v2';
+const keyspace = 'logstore_dev';
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
@@ -100,7 +100,7 @@ describe('DeleteExpiredCmd', () => {
 			cassandraPassword: '',
 			cassandraHosts: [STREAMR_DOCKER_DEV_HOST],
 			cassandraDatacenter: 'datacenter1',
-			cassandraKeyspace: 'streamr_dev_v2',
+			cassandraKeyspace: 'logstore_dev',
 			dryRun: false,
 		});
 	});

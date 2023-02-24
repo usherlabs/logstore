@@ -17,7 +17,7 @@ const { TimeUuid } = cassandraTypes;
 
 const contactPoints = [STREAMR_DOCKER_DEV_HOST];
 const localDataCenter = 'datacenter1';
-const keyspace = 'streamr_dev_v2';
+const keyspace = 'logstore_dev';
 
 const insertBucket = async (cassandraClient: Client, streamId: string) => {
 	const dateCreate = Date.now();

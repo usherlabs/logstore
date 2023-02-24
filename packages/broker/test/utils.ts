@@ -50,7 +50,7 @@ export const formConfig = ({
 					datacenter: 'datacenter1',
 					username: '',
 					password: '',
-					keyspace: 'streamr_dev_v2',
+					keyspace: 'logstore_dev',
 				},
 				logStoreConfig: {
 					refreshInterval: logStoreConfigRefreshInterval,
