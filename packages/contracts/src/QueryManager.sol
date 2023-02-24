@@ -122,25 +122,4 @@ contract LogStoreQueryManager is
         );
         require(success == true, "error_unsuccessfulStake");
     }
-
-    function withdraw(string memory streamId, uint amount) public {
-        require(amount < balanceOf[msg.sender], "error_notEnoughStake");
-
-        stores[streamId] -= amount;
-        balanceOf[msg.sender] -= amount;
-        storeBalanceOf[msg.sender][streamId] -= amount;
-        if (storeBalanceOf[msg.sender][streamId] == 0) {
-            address[] memory stakeholders = storeStakeholders[streamId];
-            storeStakeholders[streamId] = new address[](0);
-            for (uint256 i = 0; i < stakeholders.length; i++) {
-                if (stakeholders[i] != msg.sender) {
-                    storeStakeholders[streamId].push(msg.sender);
-                }
-            }
-        }
-        totalSupply -= amount;
-
-        bool success = stakeToken.transfer(msg.sender, amount);
-        require(success == true, "error_unsuccessfulWithdraw");
-    }
 }
