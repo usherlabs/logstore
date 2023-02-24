@@ -1,3 +1,6 @@
+/**
+ * Concerto Log Store Contracts Hardhat!
+ */
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomiclabs/hardhat-ethers';
 import '@openzeppelin/hardhat-upgrades';
@@ -121,6 +124,7 @@ const config: HardhatUserConfig = {
 				enabled: true,
 				runs: 800,
 			},
+			viaIR: true,
 		},
 	},
 	typechain: {

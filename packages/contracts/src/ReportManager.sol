@@ -140,24 +140,11 @@ contract LogStoreReportManager is
         bytes[] calldata signatures
     ) public onlyStaked {
         require(
-            reports[lastReportId].height < blockHeight,
+            bytes(lastReportId).length > 0 && reports[lastReportId].height < blockHeight,
             "error_invalidReport"
         );
         require(blockHeight <= block.number, "error_invalidReport");
-        require(streams.length == nodesPerStream.length, "error_badRequest");
-        require(
-            streams.length == bytesObservedPerNode.length,
-            "error_badRequest"
-        );
-        require(
-            streams.length == bytesMissedPerNode.length,
-            "error_badRequest"
-        );
-        require(streams.length == consumerAddresses.length, "error_badRequest");
-        require(
-            streams.length == bytesQueriedPerConsumer.length,
-            "error_badRequest"
-        );
+        require(streams.length * 6 == nodesPerStream.length + bytesObservedPerNode.length + bytesMissedPerNode.length + bytesQueriedPerNode.length + consumerAddresses.length + bytesQueriedPerConsumer.length, "error_badRequest");
 
         // validate that the appropriate reporters can submit reports based on the current block
         address[] memory orderedReportersList = getReportersList(bundleId);
