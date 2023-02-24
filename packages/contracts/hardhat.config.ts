@@ -1,13 +1,17 @@
 import '@nomicfoundation/hardhat-toolbox';
+import '@nomiclabs/hardhat-ethers';
 import '@openzeppelin/hardhat-upgrades';
+import '@typechain/hardhat';
 import { config as dotenvConfig } from 'dotenv';
 import type { HardhatUserConfig } from 'hardhat/config';
-import type { NetworkUserConfig } from 'hardhat/types';
+import type { MultiSolcUserConfig, NetworkUserConfig } from 'hardhat/types';
 import snakeCase from 'lodash.snakecase';
 import { resolve } from 'path';
+import 'solidity-coverage';
 
 import './tasks/accounts';
-import './tasks/deploy';
+
+// import './tasks/deploy';
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || './.env';
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });
@@ -47,7 +51,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 			jsonRpcUrl = process.env[snakeCase(chain).toUpperCase()] || '';
 	}
 	return {
-		accounts: [ownerPrivateKey],
+		accounts: ownerPrivateKey ? [ownerPrivateKey] : [],
 		chainId: chainIds[chain],
 		url: jsonRpcUrl,
 	};
@@ -55,6 +59,14 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 
 const config: HardhatUserConfig = {
 	defaultNetwork: 'hardhat',
+	// namedAccounts: {
+	// 	deployer: {
+	// 		default: 0,
+	// 	},
+	// },
+	mocha: {
+		timeout: process.env.MOCHA_TIMEOUT || 300000,
+	},
 	etherscan: {
 		apiKey: {
 			arbitrumOne: process.env.ARBISCAN_API_KEY || '',
@@ -70,8 +82,8 @@ const config: HardhatUserConfig = {
 	gasReporter: {
 		currency: 'USD',
 		enabled: !!process.env.REPORT_GAS,
-		excludeContracts: [],
-		src: './contracts',
+		coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+		maxMethodDiff: 10,
 	},
 	networks: {
 		hardhat: {
@@ -92,7 +104,7 @@ const config: HardhatUserConfig = {
 	paths: {
 		artifacts: './artifacts',
 		cache: './cache',
-		sources: './contracts',
+		sources: './src',
 		tests: './test',
 	},
 	solidity: {
@@ -116,5 +128,20 @@ const config: HardhatUserConfig = {
 		target: 'ethers-v5',
 	},
 };
+
+if (process.env.TESTING) {
+	(config.solidity as MultiSolcUserConfig).compilers = (
+		config.solidity as MultiSolcUserConfig
+	).compilers.map((compiler) => {
+		return {
+			...compiler,
+			outputSelection: {
+				'*': {
+					'*': ['storageLayout'],
+				},
+			},
+		};
+	});
+}
 
 export default config;
