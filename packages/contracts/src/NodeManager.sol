@@ -55,11 +55,7 @@ contract LogStoreNodeManager is
     }
 
     modifier onlyStaked() {
-        require(
-            stakeRequiredAmount > 0 &&
-                balanceOf[msg.sender] >= stakeRequiredAmount,
-            "error_stakeRequired"
-        );
+        require(isStaked(msg.sender), "error_stakeRequired");
         _;
     }
 
@@ -72,9 +68,9 @@ contract LogStoreNodeManager is
     mapping(address => uint256) public balanceOf;
     address internal headNode;
     IERC20Upgradeable internal stakeToken;
-    uint256 internal storageFeeBasisPoints = 10000;
-    uint256 internal treasuryFeeBasisPoints = 2000;
-    uint256 internal queryFeeFlatPerByte = 100000000; // 0.0000000001 * 10^18 -- this is relevant to MATIC
+    uint256 internal writeFeePoints = 10000;
+    uint256 internal treasuryFeePoints = 2000;
+    uint256 internal readFee = 100000000; // 0.0000000001 * 10^18 -- this is relevant to MATIC
     LogStoreManager private _storeManager;
     LogStoreQueryManager private _queryManager;
     LogStoreReportManager private _reportManager;
@@ -84,9 +80,9 @@ contract LogStoreNodeManager is
         bool requiresWhitelist_,
         address stakeTokenAddress_,
         uint256 stakeRequiredAmount_,
-        uint256 storageFeeBasisPoints_,
-        uint256 treasuryFeeBasisPoints_,
-        uint256 queryFeeFlatPerByte_,
+        uint256 writeFeePoints_,
+        uint256 treasuryFeePoints_,
+        uint256 readFee_,
         address[] memory initialNodes,
         string[] memory initialMetadata
     ) public initializer {
@@ -105,9 +101,9 @@ contract LogStoreNodeManager is
 
         // Configure
         stakeRequiredAmount = stakeRequiredAmount_;
-        storageFeeBasisPoints = storageFeeBasisPoints_;
-        treasuryFeeBasisPoints = treasuryFeeBasisPoints_;
-        queryFeeFlatPerByte = queryFeeFlatPerByte_;
+        writeFeePoints = writeFeePoints_;
+        treasuryFeePoints = treasuryFeePoints_;
+        readFee = readFee_;
 
         for (uint i = 0; i < initialNodes.length; i++) {
             upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
@@ -117,14 +113,14 @@ contract LogStoreNodeManager is
 
     function configure(
         uint256 stakeRequiredAmount_,
-        uint256 storageFeeBasisPoints_,
-        uint256 treasuryFeeBasisPoints_,
-        uint256 queryFeeFlatPerByte_
+        uint256 writeFeePoints_,
+        uint256 treasuryFeePoints_,
+        uint256 readFee_
     ) public onlyOwner {
         stakeRequiredAmount = stakeRequiredAmount_;
-        storageFeeBasisPoints = storageFeeBasisPoints_;
-        treasuryFeeBasisPoints = treasuryFeeBasisPoints_;
-        queryFeeFlatPerByte = queryFeeFlatPerByte_;
+        writeFeePoints = writeFeePoints_;
+        treasuryFeePoints = treasuryFeePoints_;
+        readFee = readFee_;
     }
 
     /// @dev required by the OZ UUPS module
@@ -184,95 +180,46 @@ contract LogStoreNodeManager is
     }
 
     // recieve report data broken up into a series of arrays
-    function report(
-        string calldata bundleId,
-        uint256 blockHeight,
-        uint256 fee,
-        address[] calldata addresses,
-        string[][] calldata streamsPerNode,
-        uint256[][] calldata bytesObservedPerStream,
-        uint256[][] calldata bytesMissedPerStream,
-        address[][][] calldata consumerAddressesPerStream,
-        uint256[][][] calldata bytesQueriedByConsumerPerStream,
-        bytes[] calldata signatures // these are signatures of the constructed payload.
-    ) public onlyStaked {
-        (
-            LogStoreReportManager.Report memory verifiedReport,
-            uint256 storedBytes,
+    function processReport(string calldata id) public onlyStaked {
+        LogStoreReportManager.Report memory report = _reportManager[id];
 
-        ) = _reportManager.verifyReport(
-                nodeAddresses,
-                bundleId,
-                blockHeight,
-                fee,
-                addresses,
-                streamsPerNode,
-                bytesObservedPerStream,
-                bytesMissedPerStream,
-                consumerAddressesPerStream,
-                bytesQueriedByConsumerPerStream,
-                signatures // these are signatures of the constructed payload.
-            );
+        require(
+            report.metadata.processed == false,
+            "error_reportAlreadyProcessed"
+        );
 
         // Determine fee amounts on a per stream basis
         // 1. Take the total fees/expense, priced in staked currency, and evaluate a fee per stored byte (observed + missed)
         // 2. Fee per stored byte is a multiplier on the fees/expense that incorporates the Treasury delegation
-        uint256 expensePerStoredByte = fee / storedBytes;
-        uint256 feePerStoredByte = (storageFeeBasisPoints / 10000 + 1) *
-            expensePerStoredByte;
-        uint256 treasuryFeePerStoredByte = (treasuryFeeBasisPoints / 10000) *
-            (feePerStoredByte - expensePerStoredByte);
-        uint256 nodeFeePerStoredByte = feePerStoredByte -
-            treasuryFeePerStoredByte;
+        uint256 writeExpense = report.fee / report.metadata.write;
+        uint256 writeFee = (writeFeePoints / 10000 + 1) * writeExpense;
+        uint256 writeTreasuryFee = (treasuryFeePoints / 10000) *
+            (writeFee - writeExpense);
+        uint256 writeNodeFee = writeFee - writeTreasuryFee;
 
-        for (uint256 i = 0; i < verifiedReport.nodes.length; i++) {
-            LogStoreReportManager.ReportNode memory reportNode = verifiedReport
-                .nodes[i];
-            for (uint256 j = 0; j < reportNode.streams.length; i++) {
-                LogStoreReportManager.ReportStream
-                    memory reportStream = reportNode.streams[i];
-                // Capture fees from LogStoreManager -- We only capture for observed data. Nodes will pay for missing data.
-                // Once captured, partition between node and treasury
-                uint256 storageCaptureAmount = reportStream.observed *
-                    feePerStoredByte;
-                _storeManager.capture(
-                    reportStream.id,
-                    storageCaptureAmount,
-                    reportStream.observed
+        for (uint256 i = 0; i < report.streams.length; i++) {
+            // Capture fees from LogStoreManager
+            // Once captured, partition between node and treasury
+            uint256 writeCapture = report.streams[i]._write * writeFee;
+            _storeManager.capture(
+                report.streams[i].id,
+                writeCapture,
+                report.streams[i].write
+            );
+
+            for (uint256 j = 0; j < report.streams.length; j++) {
+                uint256 readCapture = report.streams[i].queried[j] * readFee;
+                _queryManager.capture(
+                    report.streams[i].id,
+                    readCapture,
+                    report.streams[i].consumers[j],
+                    report.streams[i].queried[j]
                 );
-
-                uint256 totalQueriedForStream = 0;
-                for (uint256 x = 0; x < reportStream.consumers.length; x++) {
-                    uint256 queryCaptureAmount = reportStream.queried[x] *
-                        queryFeeFlatPerByte;
-                    totalQueriedForStream += reportStream.queried[x];
-                    _queryManager.capture(
-                        reportStream.id,
-                        queryCaptureAmount,
-                        reportStream.consumers[x],
-                        reportStream.queried[x]
-                    );
-                }
-
-                uint256 totalQueryCaptureAmount = totalQueriedForStream *
-                    queryFeeFlatPerByte;
-                uint256 treasuryQueryFee = (treasuryFeeBasisPoints / 10000) *
-                    totalQueryCaptureAmount;
-                uint256 nodeQueryFee = totalQueryCaptureAmount -
-                    treasuryQueryFee;
-
-                balanceOf[reportNode.id] +=
-                    (reportStream.observed * nodeFeePerStoredByte) +
-                    nodeQueryFee;
-                treasurySupply +=
-                    reportStream.observed *
-                    treasuryFeePerStoredByte +
-                    treasuryQueryFee;
-                totalSupply += totalQueryCaptureAmount + storageCaptureAmount;
             }
         }
 
-        emit ReportProcessed(bundleId);
+        _reportManager.processReport(id);
+        emit ReportProcessed(id);
     }
 
     function upsertNode(
@@ -402,5 +349,11 @@ contract LogStoreNodeManager is
             index++;
         }
         return index + 1;
+    }
+
+    function isStaked() public view returns (bool staked) {
+        return
+            stakeRequiredAmount > 0 &&
+            balanceOf[msg.sender] >= stakeRequiredAmount;
     }
 }

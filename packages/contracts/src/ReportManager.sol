@@ -9,8 +9,7 @@ import {UUPSUpgradeable} from "../node_modules/@openzeppelin/contracts-upgradeab
 import {OwnableUpgradeable} from "../node_modules/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StringsUpgradeable} from "../node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
-import {LogStoreManager} from "./StoreManager.sol";
-import {LogStoreQueryManager} from "./QueryManager.sol";
+import {LogStoreNodeManager} from "./NodeManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
 
 contract LogStoreReportManager is
@@ -20,24 +19,35 @@ contract LogStoreReportManager is
 {
     event ReportAccepted(string raw);
 
-    struct ReportStream {
+    struct Stream {
         string id;
-        uint256 observed; // Byte count
-        uint256 missed;
         address[] consumers;
         uint256[] queried;
+        Node[] nodes;
+        uint256 _read;
+        uint256 _write;
     }
 
-    struct ReportNode {
+    struct Node {
         address id;
-        ReportStream[] streams;
+        uint256 observed; // Byte count
+        uint256 missed;
     }
 
     struct Report {
         string id; // bundle id
         uint256 height;
         uint256 fee;
-        ReportNode[] nodes;
+        Stream[] streams;
+        Node[] nodes;
+        uint256 _read;
+        uint256 _write;
+        bool _processed;
+    }
+
+    modifier onlyStaked() {
+        require(_nodeManager.isStaked(msg.sender), "error_stakeRequired");
+        _;
     }
 
     uint256 public reportBlockBuffer = 10;
@@ -45,10 +55,13 @@ contract LogStoreReportManager is
     mapping(address => uint256) public reputationOf;
     mapping(string => address[]) public reportersOf;
     mapping(string => Report) public reports;
+    LogStoreNodeManager private _nodeManager;
 
     function initialize(address owner) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
+
+        _nodeManager = LogStoreNodeManager(owner);
 
         transferOwnership(owner);
     }
@@ -57,13 +70,14 @@ contract LogStoreReportManager is
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function getReportersList(
-        string calldata id,
-        address[] calldata nodeAddresses
+        string calldata id
     ) internal returns (address[] memory reporters) {
         if (reportersOf[id].length > 0) {
             // Use cache in case previous report attempt was invalid.
             return reportersOf[id];
         }
+
+        address[] nodeAddresses = _nodeManager.nodeAddresses();
 
         // Determine an array of addresses
         address[] memory reporterAddresses = new address[](
@@ -99,33 +113,46 @@ contract LogStoreReportManager is
         return reporterAddresses;
     }
 
+    function processReport(string calldata id) public onlyOwner {
+        reports[id]._processed = true;
+    }
+
     // Verifies a report and adds it to its accepted reports mapping
-    function verifyReport(
-        address[] calldata nodeAddresses,
+    function report(
         string calldata bundleId,
         uint256 blockHeight,
         uint256 fee,
+        string[] calldata streams,
+        address[][] calldata nodesPerStream,
+        uint256[][] calldata bytesObservedPerNode,
+        uint256[][] calldata bytesMissedPerNode,
+        address[][] calldata consumerAddresses,
+        uint256[][] calldata bytesQueriedPerConsumer,
+        // Arrays of addresses and signatures for verification
         address[] calldata addresses,
-        string[][] calldata streamsPerNode,
-        uint256[][] calldata bytesObservedPerStream,
-        uint256[][] calldata bytesMissedPerStream,
-        address[][][] calldata consumerAddressesPerStream,
-        uint256[][][] calldata bytesQueriedByConsumerPerStream,
-        bytes[] calldata signatures // these are signatures of the constructed payload.
-    )
-        public
-        onlyOwner
-        returns (
-            Report memory report,
-            uint256 storedBytes,
-            uint256 queriedBytes
-        )
-    {
+        bytes[] calldata signatures
+    ) public onlyStaked {
         require(
             reports[lastReportId].height < blockHeight,
             "error_invalidReport"
         );
         require(blockHeight <= block.number, "error_invalidReport");
+        require(streams.length == nodesPerStream.length, "error_badRequest");
+        require(
+            streams.length == bytesObservedPerNode.length,
+            "error_badRequest"
+        );
+        require(
+            streams.length == bytesMissedPerNode.length,
+            "error_badRequest"
+        );
+        require(streams.length == consumerAddresses.length, "error_badRequest");
+        require(
+            streams.length == bytesQueriedPerConsumer.length,
+            "error_badRequest"
+        );
+
+        address[] nodeAddresses = _nodeManager.nodeAddresses();
 
         // validate that the appropriate reporters can submit reports based on the current block
         address[] memory orderedReportersList = getReportersList(
@@ -142,97 +169,10 @@ contract LogStoreReportManager is
             }
         }
 
-        ReportNode[] memory reportNodes = new ReportNode[](addresses.length);
         // Produce json blob that signatures correspond to
-        string memory nodesJson = "";
-        uint256 totalStoredBytes = 0;
-        uint256 totalQueriedBytes = 0;
+        uint256 totalWrite = 0;
+        uint256 totalRead = 0;
         /* solhint-disable quotes */
-        for (uint256 i = 0; i < addresses.length; i++) {
-            ReportStream[] memory reportStreamsPerNode = new ReportStream[](
-                streamsPerNode[i].length
-            );
-            string memory formattedStreams = "";
-            for (uint256 j = 0; j < streamsPerNode[i].length; j++) {
-                totalStoredBytes +=
-                    bytesObservedPerStream[i][j] +
-                    bytesMissedPerStream[i][j];
-
-                reportStreamsPerNode[j] = ReportStream({
-                    id: streamsPerNode[i][j],
-                    observed: bytesObservedPerStream[i][j],
-                    missed: bytesMissedPerStream[i][j],
-                    consumers: consumerAddressesPerStream[i][j],
-                    queried: bytesQueriedByConsumerPerStream[i][j]
-                });
-
-                string memory formattedQueriedData = "";
-                for (
-                    uint256 x = 0;
-                    x < consumerAddressesPerStream[i][j].length;
-                    x++
-                ) {
-                    totalQueriedBytes += bytesQueriedByConsumerPerStream[i][j][
-                        x
-                    ];
-
-                    formattedQueriedData = string.concat(
-                        '"',
-                        StringsUpgradeable.toHexString(
-                            consumerAddressesPerStream[i][j][x]
-                        ),
-                        '": ',
-                        StringsUpgradeable.toString(
-                            bytesQueriedByConsumerPerStream[i][j][x]
-                        )
-                    );
-                    if (x != consumerAddressesPerStream[i][j].length - 1) {
-                        formattedQueriedData = string.concat(
-                            formattedQueriedData,
-                            ","
-                        );
-                    }
-                }
-                formattedStreams = string.concat(
-                    formattedStreams,
-                    '{ "id": "',
-                    streamsPerNode[i][j],
-                    '", "observed": ',
-                    StringsUpgradeable.toString(bytesObservedPerStream[i][j]),
-                    ', "missed": ',
-                    StringsUpgradeable.toString(bytesMissedPerStream[i][j]),
-                    ', "queried": {',
-                    formattedQueriedData,
-                    "}}"
-                );
-                if (j != streamsPerNode[i].length - 1) {
-                    formattedStreams = string.concat(formattedStreams, ",");
-                }
-            }
-            reportNodes[i] = ReportNode({
-                id: addresses[i],
-                streams: reportStreamsPerNode
-            });
-
-            nodesJson = string.concat(
-                nodesJson,
-                '{ "address": "',
-                StringsUpgradeable.toHexString(addresses[i]),
-                '", "streams": "[',
-                formattedStreams,
-                ']"}'
-            );
-            if (i != addresses.length - 1) {
-                nodesJson = string.concat(nodesJson, ",");
-            }
-        }
-        // Consume report data
-        Report memory currentReport = Report({
-            id: bundleId,
-            height: blockHeight,
-            fee: fee,
-            nodes: reportNodes
-        });
         string memory reportJson = string.concat(
             '{ "id": "',
             bundleId,
@@ -240,12 +180,88 @@ contract LogStoreReportManager is
             StringsUpgradeable.toString(blockHeight),
             '", "fee": ',
             StringsUpgradeable.toString(fee),
-            '", "nodes": [',
-            nodesJson,
-            "]"
+            '", "streams": ['
         );
+
+        Stream[] memory rStreams = new Stream[](streams.length);
+        for (uint256 i = 0; i < streams.length; i++) {
+            uint256 streamRead = 0;
+            uint256 streamWrite = 0;
+
+            reportJson = string.concat(
+                reportJson,
+                '{ "id": "',
+                streams[i],
+                '", "read": {'
+            );
+            for (uint256 j = 0; j < consumerAddresses[i].length; j++) {
+                streamRead += bytesQueriedPerConsumer[i][j];
+
+                reportJson = string.concat(
+                    reportJson,
+                    '"',
+                    consumerAddresses[i][j],
+                    '":"',
+                    bytesQueriedPerConsumer[i][j],
+                    '"'
+                );
+                if (j != consumerAddresses[i].length - 1) {
+                    reportJson = string.concat(reportJson, ",");
+                }
+            }
+            reportJson = string.concat(reportJson, '}, "write": [');
+            uint256 storedBytesForStream = 0;
+
+            Node[] memory rNodes = new Node[](nodesPerStream[i].length);
+            for (uint256 j = 0; j < nodesPerStream[i].length; j++) {
+                storedBytesForStream += bytesObservedPerNode[i][j];
+                reportJson = string.concat(
+                    reportJson,
+                    '{ "id": "',
+                    nodesPerStream[i][j],
+                    '", "observed": ',
+                    bytesObservedPerNode[i][j],
+                    ', "missed": ',
+                    bytesMissedPerNode[i][j],
+                    " }"
+                );
+
+                rNodes[j] = Node({
+                    id: nodesPerStream[i][j],
+                    observed: bytesObservedPerNode[i][j],
+                    missed: bytesMissedPerNode[i][j]
+                });
+            }
+            reportJson = string.concat(reportJson, "]}");
+            streamWrite = storedBytesForStream / nodesPerStream[i].length;
+            totalWrite += streamWrite;
+            totalRead += streamRead;
+
+            rStreams[i] = Stream({
+                id: streams[i],
+                consumers: consumerAddresses[i],
+                queried: bytesQueriedPerConsumer[i],
+                nodes: rNodes,
+                _read: streamRead,
+                _write: streamWrite
+            });
+        }
+        reportJson = string.concat(reportJson, "]}");
         /* solhint-enable quotes */
+
+        // Consume report data
+        Report memory currentReport = Report({
+            id: bundleId,
+            height: blockHeight,
+            fee: fee,
+            streams: rStreams,
+            _read: totalRead,
+            _write: totalWrite,
+            _processed: false
+        });
+
         bytes32 reportHash = keccak256(abi.encodePacked(reportJson));
+
         // Verify signatures
         bool accepted = true;
         for (uint256 i = 0; i < addresses.length; i++) {
@@ -260,13 +276,13 @@ contract LogStoreReportManager is
             }
         }
 
+        // Remove reporter from list?
+
         require(accepted, "error_invalidReportSignatures");
 
         reports[currentReport.id] = currentReport;
         lastReportId = currentReport.id;
 
         emit ReportAccepted(reportJson);
-
-        return (currentReport, totalStoredBytes, totalQueriedBytes);
     }
 }
