@@ -32,6 +32,7 @@ contract LogStoreReportManager is
         address id;
         uint256 observed; // Byte count
         uint256 missed;
+        uint256 queried;
     }
 
     struct Report {
@@ -131,6 +132,7 @@ contract LogStoreReportManager is
         address[][] calldata nodesPerStream,
         uint256[][] calldata bytesObservedPerNode,
         uint256[][] calldata bytesMissedPerNode,
+        uint256[][] calldata bytesQueriedPerNode,
         address[][] calldata consumerAddresses,
         uint256[][] calldata bytesQueriedPerConsumer,
         // Arrays of addresses and signatures for verification
@@ -210,11 +212,10 @@ contract LogStoreReportManager is
                 }
             }
             reportJson = string.concat(reportJson, '}, "write": [');
-            uint256 storedBytesForStream = 0;
 
             Node[] memory rNodes = new Node[](nodesPerStream[i].length);
             for (uint256 j = 0; j < nodesPerStream[i].length; j++) {
-                storedBytesForStream += bytesObservedPerNode[i][j];
+                streamWrite += bytesObservedPerNode[i][j];
                 reportJson = string.concat(
                     reportJson,
                     '{ "id": "',
@@ -223,18 +224,20 @@ contract LogStoreReportManager is
                     StringsUpgradeable.toString(bytesObservedPerNode[i][j]),
                     ', "missed": ',
                     StringsUpgradeable.toString(bytesMissedPerNode[i][j]),
+                    ', "queried": ',
+                    StringsUpgradeable.toString(bytesQueriedPerNode[i][j]),
                     " }"
                 );
 
                 rNodes[j] = Node({
                     id: nodesPerStream[i][j],
                     observed: bytesObservedPerNode[i][j],
-                    missed: bytesMissedPerNode[i][j]
+                    missed: bytesMissedPerNode[i][j],
+                    queried: bytesQueriedPerNode[i][j]
                 });
             }
             reportJson = string.concat(reportJson, "]}");
-            streamWrite = storedBytesForStream / nodesPerStream[i].length;
-            totalWrite += streamWrite;
+            totalWrite += streamWrite; // the total amount of data cached across nodes for the given stream
             totalRead += streamRead;
 
             rStreams[i] = Stream({

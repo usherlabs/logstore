@@ -235,9 +235,16 @@ contract LogStoreNodeManager is
             for (uint256 j = 0; j < report.streams[i].nodes.length; j++) {
                 uint256 portion = report.streams[i].nodes[j].observed /
                     report.streams[i]._write;
-                uint256 nodeCapturePortion = portion *
-                    report.streams[i]._write *
-                    writeNodeFee;
+                uint256 penalty = report.streams[i].nodes[j].missed /
+                    report.streams[i]._write;
+                uint256 nodeCapturePortion = 0;
+                if (portion > penalty) {
+                    // Penalise nodes for missing writes
+                    nodeCapturePortion =
+                        (portion - penalty) *
+                        report.streams[i]._write *
+                        writeNodeFee;
+                }
 
                 // Determine which balances to allocate this capture portion to
                 for (
@@ -259,8 +266,21 @@ contract LogStoreNodeManager is
                     ] += delegateCapturePortion;
                 }
 
-                nodes[report.streams[i].nodes[j].id]
-                    .stake += nodeCapturePortion;
+                // Allocate node read fees
+                uint256 nodeCaptureQueryPortion = (report
+                    .streams[i]
+                    .nodes[j]
+                    .queried / report.streams[i]._read) *
+                    (report.streams[i]._write * readNodeFee);
+
+                nodes[report.streams[i].nodes[j].id].stake +=
+                    nodeCapturePortion +
+                    nodeCaptureQueryPortion;
+
+                treasurySupply +=
+                    penalty *
+                    report.streams[i]._write *
+                    writeNodeFee;
             }
         }
 
