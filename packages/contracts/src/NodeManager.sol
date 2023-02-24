@@ -327,10 +327,11 @@ contract LogStoreNodeManager is
         uint isNew = 0;
         if (n.lastSeen == 0) {
             isNew = 1;
-            nodes[nodeAddress] = Node({
-                metadata: metadata_,
-                lastSeen: block.timestamp // block timestamp should suffice
-            });
+
+            Node memory newNode;
+            newNode.metadata = metadata_;
+            newNode.lastSeen = block.timestamp; // block timestamp should suffice
+
             if (headNode == address(0)) {
                 headNode = nodeAddress;
             } else {
@@ -342,7 +343,7 @@ contract LogStoreNodeManager is
                 }
                 nodes[nodeAddress].prev = tailAddress;
                 nodes[tailAddress].next = nodeAddress;
-                nodes[nodeAddress].index = index + 1;
+                nodes[nodeAddress].index = nodes[tailAddress].index++;
             }
         } else {
             nodes[nodeAddress] = Node({
@@ -363,18 +364,43 @@ contract LogStoreNodeManager is
         // Delete before loop as to no conflict
         delete nodes[nodeAddress];
 
-        Node memory tailNode = nodes[headNode];
-        while (tailNode.next != address(0)) {
-            tailNode = nodes[tailNode.next];
-            if (tailNode.index > n.index) {
-                nodes[tailNode.next].index--;
-            }
+        nodes[n.next].prev = n.prev;
+        if (headNode == nodeAddress) {
+            headNode = n.next;
         }
+
+        address tailAddress = n.next;
+        do {
+            nodes[tailAddress].index--;
+            tailAddress = nodes[tailAddress].next;
+        } while (tailAddress != address(0));
 
         emit NodeRemoved(nodeAddress);
     }
 
+    function nodeAddresses()
+        internal
+        view
+        returns (address[] memory resultAddresses)
+    {
+        uint256 totalNodes = nodeCount();
+        address[] memory result = new address[](totalNodes);
+
+        address tailAddress = nodes[headNode].next;
+        for (uint256 i = 0; i < totalNodes; i++) {
+            result[i] = tailAddress;
+        }
+
+        return result;
+    }
+
     function nodeCount() public view returns (uint count) {
-        return nodeAddresses.length;
+        uint256 index = 0;
+        address tailAddress = headNode;
+        while (nodes[tailAddress].next != address(0)) {
+            tailAddress = nodes[tailAddress].next;
+            index++;
+        }
+        return index + 1;
     }
 }
