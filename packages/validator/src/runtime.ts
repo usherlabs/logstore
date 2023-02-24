@@ -35,6 +35,7 @@ export default class Runtime implements IRuntime {
 				parseInt(key.substring(reportPrefix.length, key.length), 10),
 			];
 			// TODO: Query system stream from Broker Network
+			// TODO: Determine based on unanimous observations which nodes missed data
 
 			return createItem({
 				key,
