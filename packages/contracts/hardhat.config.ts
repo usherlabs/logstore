@@ -10,8 +10,8 @@ import type { HardhatUserConfig } from 'hardhat/config';
 import type { MultiSolcUserConfig, NetworkUserConfig } from 'hardhat/types';
 import snakeCase from 'lodash.snakecase';
 import { resolve } from 'path';
-import 'solidity-coverage';
 
+// import 'solidity-coverage';
 import './tasks/accounts';
 
 // import './tasks/deploy';
@@ -94,6 +94,7 @@ const config: HardhatUserConfig = {
 				mnemonic,
 			},
 			chainId: chainIds.hardhat,
+			allowUnlimitedContractSize: false,
 		},
 		// avalanche: getChainConfig('avalanche'),
 		// bsc: getChainConfig('bsc'),
@@ -113,11 +114,11 @@ const config: HardhatUserConfig = {
 	solidity: {
 		version: '0.8.17',
 		settings: {
-			metadata: {
-				// Not including the metadata hash
-				// https://github.com/paulrberg/hardhat-template/issues/31
-				bytecodeHash: 'none',
-			},
+			// metadata: {
+			// 	// Not including the metadata hash
+			// 	// https://github.com/paulrberg/hardhat-template/issues/31
+			// 	bytecodeHash: 'none',
+			// },
 			// Disable the optimizer when debugging
 			// https://hardhat.org/hardhat-network/#solidity-optimizer-support
 			optimizer: {

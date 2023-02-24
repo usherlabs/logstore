@@ -9,14 +9,12 @@
 	"private": false,
 	"scripts": {
 		"clean": "del ./artifacts ./cache ./coverage ./types ./coverage.json && yarn typechain",
-		"compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
-		"coverage": "hardhat coverage --solcoverjs ./.solcover.js --temp artifacts --testfiles \"test/**/*.ts\" && yarn typechain",
+		"compile": "hardhat compile",
 		"deploy:mumbai": "npx hardhat deploy:LogStore --network mumbai",
 		"lint": "npm-run-all -s lint:sol lint:ts",
 		"lint:sol": "solhint \"**/*.sol\"",
 		"lint:ts": "eslint --ext .js,.ts .",
 		"test": "hardhat test",
-		"typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",
 		"format": "prettier --write \"**/*.sol\""
 	},
 	"files": [],
