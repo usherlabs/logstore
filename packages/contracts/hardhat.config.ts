@@ -94,6 +94,10 @@ const config: HardhatUserConfig = {
 				mnemonic,
 			},
 			chainId: chainIds.hardhat,
+			forking: {
+				url: String(process.env.FORK_URL),
+				blockNumber: 8624863,
+			},
 			allowUnlimitedContractSize: false,
 		},
 		// avalanche: getChainConfig('avalanche'),
