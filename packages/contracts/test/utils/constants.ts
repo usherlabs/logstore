@@ -17,4 +17,9 @@ export const NODE_MANAGER = {
 
 export const NODE_MANAGER_EVENTS = {
 	NODE_UPDATED: 'NodeUpdated',
+	NODE_REMOVED: 'NodeRemoved',
+};
+
+export const CUSTOM_EXCEPTIONS = {
+	OWNABLE_NOT_OWNER: 'Ownable: caller is not the owner',
 };

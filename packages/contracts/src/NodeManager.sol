@@ -361,13 +361,17 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         if (headNode == nodeAddress) {
             headNode = n.next;
         }
+        if (tailNode == nodeAddress) {
+            tailNode = n.prev;
+        }
 
-        address tailAddress = n.next;
-        do {
-            nodes[tailAddress].index--;
-            tailAddress = nodes[tailAddress].next;
-        } while (tailAddress != address(0));
-
+        // Go through all the nodes after the removed one
+        // and reduce the index value to account for a deduction
+        address nextNodeAddress = n.next;
+        while (nextNodeAddress != address(0)) {
+            nodes[nextNodeAddress].index--;
+            nextNodeAddress = nodes[nextNodeAddress].next;
+        }
         emit NodeRemoved(nodeAddress);
     }
 
