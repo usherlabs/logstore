@@ -16,8 +16,8 @@ import {VerifySignature} from "./lib/VerifySignature.sol";
 
 contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
-    event NodeStakeUpdated(address indexed nodeAddress, uint stake);
     event NodeRemoved(address indexed nodeAddress);
+    event NodeStakeUpdated(address indexed nodeAddress, uint stake);
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
@@ -38,6 +38,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         address prev;
         uint256 stake;
         address[] delegates;
+        mapping(address => bool) delegateExists;
     }
 
     modifier onlyWhitelist() {
@@ -263,7 +264,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         require(success == true, "error_unsuccessfulStake");
     }
 
-    function delegate(uint amount, address node) public onlyStaked {
+    function delegate(uint amount, address node) public {
         require(amount > 0, "error_insufficientDelegateAmount");
         require(nodes[node].lastSeen > 0, "error_invalidNode");
 
@@ -271,21 +272,16 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         delegatesOf[msg.sender][node] += amount;
         nodes[node].stake += amount;
 
-        bool delegateExists = false;
-        for (uint256 i = 0; i < nodes[node].delegates.length; i++) {
-            if (msg.sender == nodes[node].delegates[i]) {
-                delegateExists = true;
-                break;
-            }
-        }
+        bool delegateExists = nodes[node].delegateExists[msg.sender];
         if (!delegateExists) {
             nodes[node].delegates.push(msg.sender);
+            nodes[node].delegateExists[msg.sender] = true;
         }
 
         emit NodeStakeUpdated(node, nodes[node].stake);
     }
 
-    function undelegate(uint amount, address node) public onlyStaked {
+    function undelegate(uint amount, address node) public {
         require(amount > 0, "error_insufficientDelegateAmount");
         require(nodes[node].lastSeen > 0, "error_invalidNode");
 
@@ -351,7 +347,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     }
 
     function _removeNode(address nodeAddress) internal {
-        Node memory n = nodes[nodeAddress];
+        Node storage n = nodes[nodeAddress];
         require(n.lastSeen != 0, "error_notFound");
 
         // Delete before loop as to no conflict

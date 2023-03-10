@@ -93,7 +93,7 @@ const config: HardhatUserConfig = {
 			accounts: {
 				mnemonic,
 			},
-			chainId: chainIds.hardhat,
+			chainId: chainIds['eth-goerli'],
 			forking: {
 				url: String(process.env.FORK_URL),
 				blockNumber: 8624863,
