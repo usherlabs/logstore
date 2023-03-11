@@ -35,4 +35,6 @@ export const CUSTOM_EXCEPTIONS = {
 	NODE_NOT_WHITELISTED: 'error_notApproved',
 	STAKE_INSUFFICIENT_BALANCE: 'error_insufficientStake',
 	INVALID_WITHDRAW_AMOUNT: 'error_notEnoughStake',
+	INSUFFICIENT_DELEGATE_AMOUNT: 'error_insufficientDelegateAmount',
+	NONE_EXISTENT_NODE: 'error_invalidNode',
 };

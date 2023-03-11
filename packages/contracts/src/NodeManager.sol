@@ -244,12 +244,13 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     }
 
     function join(uint amount, string memory metadata_) public {
+        upsertNode(metadata_);
         stake(amount);
         delegate(amount, msg.sender);
-        upsertNode(metadata_);
     }
 
     function leave() public {
+        undelegate(delegatesOf[msg.sender][msg.sender], msg.sender);
         withdraw(balanceOf[msg.sender]);
         removeNode();
     }
@@ -372,18 +373,21 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     }
 
     function nodeAddresses() public view returns (address[] memory resultAddresses) {
-        uint256 totalNodes = nodeCount();
         address[] memory result = new address[](totalNodes);
 
-        address tailAddress = nodes[headNode].next;
-        for (uint256 i = 0; i < totalNodes; i++) {
-            result[i] = tailAddress;
-        }
+        address tailAddress = headNode;
+        uint256 index = 0;
+        do {
+            result[index] = tailAddress;
+
+            tailAddress = nodes[tailAddress].next;
+            index++;
+        } while (tailAddress != address(0));
 
         return result;
     }
 
-    function nodeCount() public view returns (uint) {
+    function countNodes() public view returns (uint) {
         uint256 index = 0;
         address tailAddress = headNode;
         while (nodes[tailAddress].next != address(0)) {
