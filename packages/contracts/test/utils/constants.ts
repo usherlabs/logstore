@@ -2,6 +2,7 @@ import { BigNumber } from 'ethers';
 
 export const SAMPLE_WSS_URL = 'wss://node-domain-name:port';
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const CONSUMER_ADDRESS = '0x57c1D4dbFBc9F8cB77709493cc43eaA3CD505432';
 export const NODE_MANAGER = {
 	// This is a custom token i deployed and minted tokens to all but the last account
 	STAKE_TOKEN: '0xbAf0892F01B8d2F456A80172627A3F6EA0253C80',
@@ -37,4 +38,5 @@ export const CUSTOM_EXCEPTIONS = {
 	INVALID_WITHDRAW_AMOUNT: 'error_notEnoughStake',
 	INSUFFICIENT_DELEGATE_AMOUNT: 'error_insufficientDelegateAmount',
 	NONE_EXISTENT_NODE: 'error_invalidNode',
+	INVALID_REPORT: 'error_invalidReport',
 };

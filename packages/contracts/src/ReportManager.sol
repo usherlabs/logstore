@@ -50,7 +50,7 @@ contract LogStoreReportManager is
         _;
     }
 
-    uint256 internal reportBlockBuffer = 10;
+    uint256 internal reportBlockBuffer;
     string internal lastReportId;
     mapping(address => uint256) internal reputationOf;
     mapping(string => address[]) internal reportersOf;
@@ -62,6 +62,7 @@ contract LogStoreReportManager is
         __UUPSUpgradeable_init();
 
         _nodeManager = LogStoreNodeManager(owner);
+        reportBlockBuffer = 10;
 
         transferOwnership(owner);
     }
@@ -139,10 +140,10 @@ contract LogStoreReportManager is
         address[] calldata addresses,
         bytes[] calldata signatures
     ) public onlyStaked {
-        require(
-            bytes(lastReportId).length > 0 && reports[lastReportId].height < blockHeight,
-            "error_invalidReport"
-        );
+        // require(
+        //     bytes(lastReportId).length > 0 && reports[lastReportId].height < blockHeight,
+        //     "error_invalidReport"
+        // );
         require(blockHeight <= block.number, "error_invalidReport");
         require(streams.length * 6 == nodesPerStream.length + bytesObservedPerNode.length + bytesMissedPerNode.length + bytesQueriedPerNode.length + consumerAddresses.length + bytesQueriedPerConsumer.length, "error_badRequest");
 

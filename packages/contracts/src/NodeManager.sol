@@ -22,7 +22,6 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
     event ReportProcessed(string indexed id);
-    event Logger(address indexed val);
 
     enum WhitelistState {
         None,

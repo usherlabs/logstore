@@ -16,21 +16,16 @@ How to Sign and Verify
 */
 
 library VerifySignature {
-    function verify(
-        address signer,
-        bytes32 message,
-        bytes memory signature
-    ) public pure returns (bool) {
+    function verify(address signer, bytes32 message, bytes memory signature) public pure returns (bool) {
         (bytes32 r, bytes32 s, uint8 v) = splitSignature(signature);
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(message);
 
-        address recovered = ecrecover(message, v, r, s);
+        address recovered = ecrecover(ethSignedMessageHash, v, r, s);
 
         return signer == recovered;
     }
 
-    function splitSignature(
-        bytes memory sig
-    ) public pure returns (bytes32 r, bytes32 s, uint8 v) {
+    function splitSignature(bytes memory sig) public pure returns (bytes32 r, bytes32 s, uint8 v) {
         require(sig.length == 65, "invalid signature length");
 
         assembly {
@@ -52,5 +47,13 @@ library VerifySignature {
         }
 
         // implicitly return (r, s, v)
+    }
+
+    function getEthSignedMessageHash(bytes32 _messageHash) public pure returns (bytes32) {
+        /*
+        Signature is produced by signing a keccak256 hash with the following format:
+        "\x19Ethereum Signed Message\n" + len(msg) + msg
+        */
+        return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _messageHash));
     }
 }
