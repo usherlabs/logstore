@@ -1,26 +1,25 @@
 import { Logger, scheduleAtInterval } from '@streamr/utils';
-import { Stream, StreamrClient } from 'streamr-client';
+import { Stream } from 'streamr-client';
+
+import { LogStoreRegistry } from '../../registry/LogStoreRegistry';
 
 const logger = new Logger(module);
 
 /**
- * Polls full state of LogStore node assignments on an interval.
+ * Polls full state of LogStore on an interval.
  */
 export class LogStorePoller {
-	private readonly clusterId: string;
 	private readonly pollInterval: number;
-	private readonly streamrClient: StreamrClient;
+	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly onNewSnapshot: (streams: Stream[], block: number) => void;
 
 	constructor(
-		clusterId: string,
 		pollInterval: number,
-		streamrClient: StreamrClient,
+		logStoreRegistry: LogStoreRegistry,
 		onNewSnapshot: (streams: Stream[], block: number) => void
 	) {
-		this.clusterId = clusterId;
 		this.pollInterval = pollInterval;
-		this.streamrClient = streamrClient;
+		this.logStoreRegistry = logStoreRegistry;
 		this.onNewSnapshot = onNewSnapshot;
 	}
 
@@ -39,9 +38,8 @@ export class LogStorePoller {
 
 	async poll(): Promise<void> {
 		logger.info('polling...');
-		const { streams, blockNumber } = await this.streamrClient.getStoredStreams(
-			this.clusterId
-		);
+		const { streams, blockNumber } =
+			await this.logStoreRegistry.getStoredStreams();
 		logger.info('found %d streams at block %d', streams.length, blockNumber);
 		this.onNewSnapshot(streams, blockNumber);
 	}

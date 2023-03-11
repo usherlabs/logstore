@@ -1,9 +1,11 @@
 import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
-import { formStorageNodeAssignmentStreamId, Stream } from 'streamr-client';
+import { Stream } from 'streamr-client';
 
-import { Plugin } from '../../Plugin';
+import { formLogStoreSystemStreamId } from '../../client/utils/utils';
+import { Plugin, PluginOptions } from '../../Plugin';
+import { LogStoreRegistry } from '../../registry/LogStoreRegistry';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { router as dataMetadataEndpoint } from './DataMetadataEndpoints';
 import { router as dataQueryEndpoints } from './DataQueryEndpoints';
@@ -23,7 +25,10 @@ export interface LogStorePluginConfig {
 	};
 	logStoreConfig: {
 		refreshInterval: number;
+		logStoreManagerChainAddress: EthereumAddress;
+		theGraphUrl: string;
 	};
+	// TODO: Do we need the cluster config for LogStore
 	cluster: {
 		// If clusterAddress is undefined, the broker's address will be used
 		clusterAddress?: EthereumAddress;
@@ -37,25 +42,28 @@ const isStorableMessage = (msg: StreamMessage): boolean => {
 };
 
 export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
+	private logStoreRegistry: LogStoreRegistry;
+	constructor(options: PluginOptions) {
+		super(options);
+		this.logStoreRegistry = options.logStoreRegistry;
+	}
+
 	private cassandra?: LogStore;
 	private logStoreConfig?: LogStoreConfig;
 	private messageListener?: (msg: StreamMessage) => void;
 
 	async start(): Promise<void> {
-		const clusterId =
-			this.pluginConfig.cluster.clusterAddress ??
-			(await this.streamrClient.getAddress());
 		const assignmentStream = await this.streamrClient.getStream(
-			formStorageNodeAssignmentStreamId(clusterId)
+			formLogStoreSystemStreamId(
+				this.pluginConfig.logStoreConfig.logStoreManagerChainAddress
+			)
 		);
 		const metricsContext = (
 			await this.streamrClient!.getNode()
 		).getMetricsContext();
 		this.cassandra = await this.startCassandraStorage(metricsContext);
-		this.logStoreConfig = await this.startLogStoreConfig(
-			clusterId,
-			assignmentStream
-		);
+
+		this.logStoreConfig = await this.startLogStoreConfig(assignmentStream);
 		this.messageListener = (msg) => {
 			if (
 				isStorableMessage(msg) &&
@@ -108,16 +116,16 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	}
 
 	private async startLogStoreConfig(
-		clusterId: EthereumAddress,
-		assignmentStream: Stream
+		systemStream: Stream
 	): Promise<LogStoreConfig> {
 		const node = await this.streamrClient.getNode();
+
 		const logStoreConfig = new LogStoreConfig(
-			clusterId,
 			this.pluginConfig.cluster.clusterSize,
 			this.pluginConfig.cluster.myIndexInCluster,
 			this.pluginConfig.logStoreConfig.refreshInterval,
 			this.streamrClient,
+			this.logStoreRegistry,
 			{
 				onStreamPartAdded: async (streamPart) => {
 					try {
@@ -126,17 +134,17 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						// no-op
 					}
 					try {
-						await assignmentStream.publish({
+						await systemStream.publish({
 							streamPart,
 						});
 						logger.debug(
 							'published message to assignment stream %s',
-							assignmentStream.id
+							systemStream.id
 						);
 					} catch (e) {
 						logger.warn(
 							'failed to publish to assignment stream %s, reason: %s',
-							assignmentStream.id,
+							systemStream.id,
 							e
 						);
 					}
@@ -150,3 +158,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		return logStoreConfig;
 	}
 }
+
+export const LogStorePluginConfigInjectionToken = Symbol(
+	'LogStorePluginConfig'
+);

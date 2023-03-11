@@ -5,9 +5,18 @@ import StreamrClient, {
 	NetworkNodeStub,
 	validateConfig as validateClientConfig,
 } from 'streamr-client';
+import { container } from 'tsyringe';
 
 import { version as CURRENT_VERSION } from '../package.json';
 import { createApiAuthenticator } from './apiAuthenticator';
+import {
+	AuthenticationInjectionToken,
+	createAuthentication,
+} from './client/Authentication';
+import {
+	ClientConfigInjectionToken,
+	createStrictConfig,
+} from './client/Config';
 import { Config } from './config/config';
 import BROKER_CONFIG_SCHEMA from './config/config.schema.json';
 import { validateConfig } from './config/validateConfig';
@@ -15,6 +24,8 @@ import { generateMnemonicFromAddress } from './helpers/generateMnemonicFromAddre
 import { startServer as startHttpServer, stopServer } from './httpServer';
 import { Plugin, PluginOptions } from './Plugin';
 import { createPlugin } from './pluginRegistry';
+import { LogStorePluginConfigInjectionToken } from './plugins/logStore/LogStorePlugin';
+import { LogStoreRegistry } from './registry/LogStoreRegistry';
 
 const logger = new Logger(module);
 
@@ -33,12 +44,36 @@ export const createBroker = async (
 	const streamrClient = new StreamrClient(config.client);
 	const apiAuthenticator = createApiAuthenticator(config);
 
+	const logStorePluginConfig = config.plugins['logStore'];
+	const clientConfig = createStrictConfig(config.client);
+	const authentication = createAuthentication(clientConfig);
+
+	container.register(StreamrClient, {
+		useValue: streamrClient,
+	});
+
+	container.register(AuthenticationInjectionToken, {
+		useValue: authentication,
+	});
+
+	container.register(ClientConfigInjectionToken, {
+		useValue: clientConfig,
+	});
+
+	container.register(LogStorePluginConfigInjectionToken, {
+		useValue: logStorePluginConfig,
+	});
+
+	const logStoreRegistry =
+		container.resolve<LogStoreRegistry>(LogStoreRegistry);
+
 	const plugins: Plugin<any>[] = Object.keys(config.plugins).map((name) => {
 		const pluginOptions: PluginOptions = {
 			name,
 			streamrClient,
 			apiAuthenticator,
 			brokerConfig: config,
+			logStoreRegistry,
 		};
 		return createPlugin(name, pluginOptions);
 	});
@@ -56,7 +91,7 @@ export const createBroker = async (
 	return {
 		getNode,
 		start: async () => {
-			logger.info(`Starting broker version ${CURRENT_VERSION}`);
+			logger.info(`Starting LogStore broker version ${CURRENT_VERSION}`);
 			await Promise.all(plugins.map((plugin) => plugin.start()));
 			const httpServerRoutes = plugins.flatMap((plugin) =>
 				plugin.getHttpServerRoutes()
@@ -76,8 +111,9 @@ export const createBroker = async (
 			);
 
 			logger.info(
-				`Welcome to the Streamr Network. Your node's generated name is ${mnemonic}.`
+				`Welcome to the LogStore Network. Your node's generated name is ${mnemonic}.`
 			);
+			// TODO: Network Explorer link
 			logger.info(
 				`View your node in the Network Explorer: https://streamr.network/network-explorer/nodes/${encodeURIComponent(
 					nodeId

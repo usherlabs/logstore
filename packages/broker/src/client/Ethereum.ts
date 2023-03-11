@@ -7,8 +7,9 @@ import type { Provider } from '@ethersproject/providers';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 import type { ConnectionInfo } from '@ethersproject/web';
+import { ChainConnectionInfo } from 'streamr-client';
 
-import { ChainConnectionInfo, StrictStreamrClientConfig } from './Config';
+import { StrictStreamrClientConfig } from './Config';
 
 export const generateEthereumAccount = (): {
 	address: string;
@@ -64,10 +65,9 @@ const getOverrides = (
 		return {};
 	}
 	const overrides = chainConfig.overrides ?? {};
-	const gasPriceStrategy = chainConfig.highGasPriceStrategy
-		? (estimatedGasPrice: BigNumber) => estimatedGasPrice.add('10000000000')
-		: chainConfig.gasPriceStrategy;
-	if (gasPriceStrategy !== undefined) {
+	if (chainConfig.highGasPriceStrategy) {
+		const gasPriceStrategy = (estimatedGasPrice: BigNumber) =>
+			estimatedGasPrice.add('10000000000');
 		return {
 			...overrides,
 			gasPrice: provider.getGasPrice().then(gasPriceStrategy),

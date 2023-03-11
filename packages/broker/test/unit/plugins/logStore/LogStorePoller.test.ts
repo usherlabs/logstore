@@ -1,7 +1,8 @@
-import { EthereumAddress, wait } from '@streamr/utils';
-import { Stream, StreamrClient } from 'streamr-client';
+import { wait } from '@streamr/utils';
+import { Stream } from 'streamr-client';
 
 import { LogStorePoller } from '../../../../src/plugins/logStore/LogStorePoller';
+import { LogStoreRegistry } from '../../../../src/registry/LogStoreRegistry';
 
 const POLL_TIME = 5;
 
@@ -16,18 +17,20 @@ const POLL_RESULT = Object.freeze({
 describe(LogStorePoller, () => {
 	let getStoredStreams: jest.Mock<
 		Promise<{ streams: Stream[]; blockNumber: number }>,
-		[nodeAddress: EthereumAddress]
+		[]
 	>;
 	let onNewSnapshot: jest.Mock<void, [streams: Stream[], block: number]>;
-	let stubClient: Pick<StreamrClient, 'getStoredStreams'>;
+	let stubLogStoreRegistry: Pick<LogStoreRegistry, 'getStoredStreams'>;
 	let poller: LogStorePoller;
 	let abortController: AbortController;
 
 	function initPoller(interval: number): LogStorePoller {
+		stubLogStoreRegistry = {
+			getStoredStreams,
+		};
 		return new LogStorePoller(
-			'clusterId',
 			interval,
-			stubClient as StreamrClient,
+			stubLogStoreRegistry as LogStoreRegistry,
 			onNewSnapshot
 		);
 	}
@@ -35,7 +38,6 @@ describe(LogStorePoller, () => {
 	beforeEach(() => {
 		getStoredStreams = jest.fn();
 		onNewSnapshot = jest.fn();
-		stubClient = { getStoredStreams };
 		poller = initPoller(POLL_TIME);
 		abortController = new AbortController();
 	});
@@ -56,10 +58,6 @@ describe(LogStorePoller, () => {
 				POLL_RESULT.streams,
 				POLL_RESULT.blockNumber
 			);
-		});
-
-		it('client.getStoredStreams is invoked with correct argument', () => {
-			expect(getStoredStreams).toHaveBeenCalledWith('clusterId');
 		});
 	});
 

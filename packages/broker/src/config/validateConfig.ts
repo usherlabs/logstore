@@ -13,6 +13,7 @@ export const validateConfig = (
 		useDefaults,
 	});
 	addFormats(ajv);
+	ajv.addFormat('ethereum-address', /^0x[a-zA-Z0-9]{40}$/);
 	if (!ajv.validate(schema, data)) {
 		const prefix = contextName !== undefined ? contextName + ': ' : '';
 		throw new Error(

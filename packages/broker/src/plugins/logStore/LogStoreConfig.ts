@@ -1,7 +1,8 @@
 import { StreamPartID } from '@streamr/protocol';
-import { EthereumAddress, keyToArrayIndex, Logger } from '@streamr/utils';
+import { keyToArrayIndex, Logger } from '@streamr/utils';
 import { Stream, StreamrClient } from 'streamr-client';
 
+import { LogStoreRegistry } from '../../registry/LogStoreRegistry';
 import { LogStoreEventListener } from './LogStoreEventListener';
 import { LogStorePoller } from './LogStorePoller';
 import { Diff, SetMembershipSynchronizer } from './SetMembershipSynchronizer';
@@ -16,7 +17,7 @@ export interface LogStoreConfigListener {
 /**
  * Manages the two data sources for LogStore node assignments (poll-based and
  * event-based), feeding the received full state and partial state updates to
- * `StorageAssignmentSynchronizer`. The state diffs produced by the
+ * `SetMembershipSynchronizer`. The state diffs produced by the
  * synchronizer are then further delivered to the user of this class via
  * listeners.
  *
@@ -43,20 +44,19 @@ export class LogStoreConfig {
 	private readonly abortController: AbortController;
 
 	constructor(
-		clusterId: EthereumAddress,
 		clusterSize: number,
 		myIndexInCluster: number,
 		pollInterval: number,
 		streamrClient: StreamrClient,
+		logStoreRegistry: LogStoreRegistry,
 		listener: LogStoreConfigListener
 	) {
 		this.clusterSize = clusterSize;
 		this.myIndexInCluster = myIndexInCluster;
 		this.listener = listener;
 		this.logStorePoller = new LogStorePoller(
-			clusterId,
 			pollInterval,
-			streamrClient,
+			logStoreRegistry,
 			(streams, block) => {
 				const streamParts = streams.flatMap((stream: Stream) => [
 					...this.createMyStreamParts(stream),
@@ -70,8 +70,8 @@ export class LogStoreConfig {
 			}
 		);
 		this.logStoreEventListener = new LogStoreEventListener(
-			clusterId,
 			streamrClient,
+			logStoreRegistry,
 			(stream, type, block) => {
 				const streamParts = this.createMyStreamParts(stream);
 				this.handleDiff(

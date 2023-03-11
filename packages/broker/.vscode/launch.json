@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // Default launch configuration for VSCode Jest extension
+    {
+      "name": "vscode-jest-tests",
+      "type": "node",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
+      "cwd": "${workspaceFolder}",
+      "args": ["--runInBand", "--watchAll=false"]
+    }
+  ]
+}

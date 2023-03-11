@@ -1,47 +1,53 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
-import { StreamID, toStreamID } from '@streamr/protocol';
-import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
+import { toStreamID, toStreamPartID } from '@streamr/protocol';
+import {
+	EthereumAddress,
+	Logger,
+	toEthereumAddress,
+	withTimeout,
+} from '@streamr/utils';
 import { min } from 'lodash';
+import StreamrClient, { MessageMetadata, Stream } from 'streamr-client';
+import { inject, Lifecycle, scoped } from 'tsyringe';
+
 import {
 	Authentication,
 	AuthenticationInjectionToken,
-} from 'streamr-client/types/src/Authentication';
-import { ContractFactory } from 'streamr-client/types/src/ContractFactory';
+} from '../client/Authentication';
 import {
-	initEventGateway,
-	StreamrClientEventEmitter,
-	StreamrClientEvents,
-} from 'streamr-client/types/src/events';
-import { Stream } from 'streamr-client/types/src/Stream';
-import { StreamFactory } from 'streamr-client/types/src/StreamFactory';
-import { StreamIDBuilder } from 'streamr-client/types/src/StreamIDBuilder';
-import { collect } from 'streamr-client/types/src/utils/iterators';
-import { LoggerFactory } from 'streamr-client/types/src/utils/LoggerFactory';
-import { SynchronizedGraphQLClient } from 'streamr-client/types/src/utils/SynchronizedGraphQLClient';
-import { delay, inject, Lifecycle, scoped } from 'tsyringe';
-
-import {
-	ConfigInjectionToken,
+	ClientConfigInjectionToken,
 	StrictStreamrClientConfig,
 } from '../client/Config';
+import { ContractFactory } from '../client/ContractFactory';
 import {
 	getStreamRegistryChainProviders,
 	getStreamRegistryOverrides,
 } from '../client/Ethereum';
+import {
+	initEventGateway,
+	LogStoreClientEventEmitter,
+	LogStoreClientEvents,
+} from '../client/events';
+import { DEFAULT_PARTITION, StreamIDBuilder } from '../client/StreamIDBuilder';
 import { queryAllReadonlyContracts, waitForTx } from '../client/utils/contract';
-import type { StreamStorageRegistryV2 as StreamStorageRegistryContract } from '../ethereumArtifacts/StreamStorageRegistryV2';
-import StreamStorageRegistryArtifact from '../ethereumArtifacts/StreamStorageRegistryV2Abi.json';
+import { collect } from '../client/utils/iterators';
+import { LoggerFactory } from '../client/utils/LoggerFactory';
+import { SynchronizedGraphQLClient } from '../client/utils/SynchronizedGraphQLClient';
+import { formLogStoreSystemStreamId } from '../client/utils/utils';
+import type { LogStoreManager as LogStoreManagerContract } from '../ethereumArtifacts/LogStoreManager';
+import LogStoreManagerArtifact from '../ethereumArtifacts/LogStoreManager.json';
+import {
+	LogStorePluginConfig,
+	LogStorePluginConfigInjectionToken,
+} from '../plugins/logStore/LogStorePlugin';
 
-export interface StorageNodeAssignmentEvent {
-	readonly streamId: StreamID;
-	readonly nodeAddress: EthereumAddress;
+export interface LogStoreAssignmentEvent {
+	readonly store: string;
+	readonly isNew: boolean;
+	readonly amount: BigNumber;
+	readonly address: string;
 	readonly blockNumber: number;
-}
-
-interface NodeQueryResult {
-	id: string;
-	metadata: string;
-	lastseen: string;
 }
 
 /**
@@ -50,75 +56,111 @@ interface NodeQueryResult {
 @scoped(Lifecycle.ContainerScoped)
 export class LogStoreRegistry {
 	private contractFactory: ContractFactory;
-	private streamFactory: StreamFactory;
+	private streamrClient: StreamrClient;
 	private streamIdBuilder: StreamIDBuilder;
 	private graphQLClient: SynchronizedGraphQLClient;
+	private readonly eventEmitter: LogStoreClientEventEmitter;
 	private authentication: Authentication;
-	private streamStorageRegistryContract?: StreamStorageRegistryContract;
-	private config: Pick<StrictStreamrClientConfig, 'contracts'>;
-	private readonly streamStorageRegistryContractsReadonly: StreamStorageRegistryContract[];
+	private clientConfig: Pick<StrictStreamrClientConfig, 'contracts'>;
+	private pluginConfig: Pick<LogStorePluginConfig, 'logStoreConfig'>;
+	private logStoreManagerContract?: LogStoreManagerContract;
+	private readonly logStoreManagerContractsReadonly: LogStoreManagerContract[];
 	private readonly logger: Logger;
 
 	constructor(
+		@inject(ContractFactory)
 		contractFactory: ContractFactory,
-		@inject(delay(() => StreamFactory)) streamFactory: StreamFactory,
-		@inject(StreamIDBuilder) streamIdBuilder: StreamIDBuilder,
-		@inject(SynchronizedGraphQLClient) graphQLClient: SynchronizedGraphQLClient,
-		@inject(StreamrClientEventEmitter) eventEmitter: StreamrClientEventEmitter,
-		@inject(AuthenticationInjectionToken) authentication: Authentication,
-		@inject(LoggerFactory) loggerFactory: LoggerFactory,
-		@inject(ConfigInjectionToken)
-		config: Pick<StrictStreamrClientConfig, 'contracts'>
+		@inject(StreamrClient)
+		streamrClient: StreamrClient,
+		@inject(StreamIDBuilder)
+		streamIdBuilder: StreamIDBuilder,
+		@inject(SynchronizedGraphQLClient)
+		graphQLClient: SynchronizedGraphQLClient,
+		@inject(LogStoreClientEventEmitter)
+		eventEmitter: LogStoreClientEventEmitter,
+		@inject(AuthenticationInjectionToken)
+		authentication: Authentication,
+		@inject(LoggerFactory)
+		loggerFactory: LoggerFactory,
+		@inject(ClientConfigInjectionToken)
+		clientConfig: Pick<StrictStreamrClientConfig, 'contracts'>,
+		@inject(LogStorePluginConfigInjectionToken)
+		pluginConfig: Pick<LogStorePluginConfig, 'logStoreConfig'>
 	) {
 		this.contractFactory = contractFactory;
-		this.streamFactory = streamFactory;
+		this.streamrClient = streamrClient;
 		this.streamIdBuilder = streamIdBuilder;
 		this.graphQLClient = graphQLClient;
+		this.eventEmitter = eventEmitter;
 		this.authentication = authentication;
-		this.config = config;
+		this.clientConfig = clientConfig;
+		this.pluginConfig = pluginConfig;
 		this.logger = loggerFactory.createLogger(module);
-		this.streamStorageRegistryContractsReadonly =
-			getStreamRegistryChainProviders(config).map((provider: Provider) => {
-				return this.contractFactory.createReadContract(
-					toEthereumAddress(
-						this.config.contracts.streamStorageRegistryChainAddress
-					),
-					StreamStorageRegistryArtifact,
-					provider,
-					'streamStorageRegistry'
-				) as StreamStorageRegistryContract;
-			});
+		this.logStoreManagerContractsReadonly = getStreamRegistryChainProviders(
+			clientConfig
+		).map((provider: Provider) => {
+			return this.contractFactory.createReadContract(
+				toEthereumAddress(
+					this.pluginConfig.logStoreConfig.logStoreManagerChainAddress
+				),
+				LogStoreManagerArtifact.abi,
+				provider,
+				'logStoreManager'
+			) as LogStoreManagerContract;
+		});
 		this.initStreamAssignmentEventListener(
-			'addToStorageNode',
-			'Added',
+			'addToLogStore',
+			'StoreUpdated',
 			eventEmitter
 		);
-		this.initStreamAssignmentEventListener(
-			'removeFromStorageNode',
-			'Removed',
-			eventEmitter
-		);
+		// this.initStreamAssignmentEventListener(
+		// 	'addToLogStore',
+		// 	'Added',
+		// 	eventEmitter
+		// );
+		// this.initStreamAssignmentEventListener(
+		// 	'removeFromLogStore',
+		// 	'Removed',
+		// 	eventEmitter
+		// );
 	}
 
 	private initStreamAssignmentEventListener(
-		clientEvent: keyof StreamrClientEvents,
+		clientEvent: keyof LogStoreClientEvents,
 		contractEvent: string,
-		eventEmitter: StreamrClientEventEmitter
+		eventEmitter: LogStoreClientEventEmitter
 	) {
-		const primaryReadonlyContract =
-			this.streamStorageRegistryContractsReadonly[0];
-		type Listener = (streamId: string, nodeAddress: string, extra: any) => void;
+		const primaryReadonlyContract = this.logStoreManagerContractsReadonly[0];
+		type Listener = (
+			store: string,
+			isNew: boolean,
+			amount: BigNumber,
+			address: string,
+			extra: any
+		) => void;
+		// type Listener = (streamId: string, nodeAddress: string, extra: any) => void;
+		this.logger.debug('initStreamAssignmentEventListener');
 		initEventGateway(
 			clientEvent,
-			(emit: (payload: StorageNodeAssignmentEvent) => void) => {
+			(emit: (payload: LogStoreAssignmentEvent) => void) => {
 				const listener = (
-					streamId: string,
-					nodeAddress: string,
+					store: string,
+					isNew: boolean,
+					amount: BigNumber,
+					address: string,
 					extra: any
 				) => {
+					this.logger.debug(
+						'Emitting event %s stream %s',
+						contractEvent,
+						store
+					);
 					emit({
-						streamId: toStreamID(streamId),
-						nodeAddress: toEthereumAddress(nodeAddress),
+						store,
+						isNew,
+						amount,
+						address,
+						// nodeAddress: toEthereumAddress(nodeAddress),
 						blockNumber: extra.blockNumber,
 					});
 				};
@@ -133,53 +175,126 @@ export class LogStoreRegistry {
 	}
 
 	private async connectToContract() {
-		if (!this.streamStorageRegistryContract) {
+		if (!this.logStoreManagerContract) {
 			const chainSigner =
 				await this.authentication.getStreamRegistryChainSigner();
-			this.streamStorageRegistryContract =
-				this.contractFactory.createWriteContract<StreamStorageRegistryContract>(
+			this.logStoreManagerContract =
+				this.contractFactory.createWriteContract<LogStoreManagerContract>(
 					toEthereumAddress(
-						this.config.contracts.streamStorageRegistryChainAddress
+						this.pluginConfig.logStoreConfig.logStoreManagerChainAddress
 					),
-					StreamStorageRegistryArtifact,
+					LogStoreManagerArtifact.abi,
 					chainSigner,
-					'streamStorageRegistry'
+					'logStoreManager'
 				);
 		}
 	}
 
-	async addStreamToStorageNode(
+	/**
+	 * Assigns the stream to a storage node.
+	 *
+	 * @category Important
+	 *
+	 * @param waitOptions - control how long to wait for storage node to pick up on assignment
+	 * @returns a resolved promise if (1) stream was assigned to storage node and (2) the storage node acknowledged the
+	 * assignment within `timeout`, otherwise rejects. Notice that is possible for this promise to reject but for the
+	 * storage node assignment to go through eventually.
+	 */
+	async addToStorageNode(
 		streamIdOrPath: string,
-		nodeAddress: EthereumAddress
+		waitOptions: { timeout?: number } = {}
 	): Promise<void> {
+		// let assignmentSubscription: Subscription;
+		const normalizedNodeAddress = toEthereumAddress(
+			this.pluginConfig.logStoreConfig.logStoreManagerChainAddress
+		);
+		// const normalizedNodeAddress = toEthereumAddress(storageNodeAddress);
+		try {
+			const streamPartId = toStreamPartID(
+				formLogStoreSystemStreamId(normalizedNodeAddress),
+				DEFAULT_PARTITION
+			);
+
+			// TODO: Perhaps a review is required here. The source logic: Stream.addToStorageNode() with waitForAssignmentsToPropagate()
+			const propagationPromise = new Promise((resolve, reject) => {
+				this.streamrClient
+					.subscribe(
+						streamPartId,
+						(content: unknown, metadata: MessageMetadata) => {
+							this.logger.debug('assignmentSubscription %s', {
+								content,
+								metadata,
+							});
+							resolve(content);
+						}
+					)
+					.catch((err) => {
+						this.logger.error(err);
+						reject(err);
+					});
+			});
+
+			await this.stake(streamIdOrPath);
+
+			// TODO: Take timeouts from config
+			await withTimeout(
+				propagationPromise,
+				// eslint-disable-next-line no-underscore-dangle
+				waitOptions.timeout ?? 30000,
+				// waitOptions.timeout ?? this._config._timeouts.storageNode.timeout,
+				'storage node did not respond'
+			);
+		} finally {
+			// TODO: Research what streamRegistryCached.clearStream() does
+			// this._streamRegistryCached.clearStream(this.id);
+			// await assignmentSubscription?.unsubscribe(); // should never reject...
+		}
+	}
+
+	// TODO: Pass the staking amount to stake function.
+	async stake(streamIdOrPath: string): Promise<void> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
-		this.logger.debug('adding stream %s to node %s', streamId, nodeAddress);
+		this.logger.debug('adding stream %s to LogStore', streamId);
 		await this.connectToContract();
-		const ethersOverrides = getStreamRegistryOverrides(this.config);
+		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
 		await waitForTx(
-			this.streamStorageRegistryContract!.addStorageNode(
+			this.logStoreManagerContract!.stake(
 				streamId,
-				nodeAddress,
+				BigNumber.from('100000000000000000'),
 				ethersOverrides
 			)
 		);
 	}
 
-	async removeStreamFromStorageNode(
+	async addStreamToLogStore(streamIdOrPath: string): Promise<void> {
+		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
+		this.logger.debug('adding stream %s to LogStore', streamId);
+		await this.connectToContract();
+		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
+		await waitForTx(
+			this.logStoreManagerContract!.stake(
+				streamId,
+				BigNumber.from('100000000000000000'),
+				ethersOverrides
+			)
+		);
+	}
+
+	async removeStreamFromLogStore(
 		streamIdOrPath: string,
 		nodeAddress: EthereumAddress
 	): Promise<void> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
 		this.logger.debug('removing stream %s from node %s', streamId, nodeAddress);
 		await this.connectToContract();
-		const ethersOverrides = getStreamRegistryOverrides(this.config);
-		await waitForTx(
-			this.streamStorageRegistryContract!.removeStorageNode(
-				streamId,
-				nodeAddress,
-				ethersOverrides
-			)
-		);
+		// const ethersOverrides = getStreamRegistryOverrides(this.config);
+		// await waitForTx(
+		// 	this.streamStorageRegistryContract!.removeStorageNode(
+		// 		streamId,
+		// 		nodeAddress,
+		// 		ethersOverrides
+		// 	)
+		// );
 	}
 
 	async isStoredStream(
@@ -192,54 +307,112 @@ export class LogStoreRegistry {
 			streamId,
 			nodeAddress
 		);
-		return queryAllReadonlyContracts(
-			(contract: StreamStorageRegistryContract) => {
-				return contract.isStorageNodeOf(streamId, nodeAddress);
-			},
-			this.streamStorageRegistryContractsReadonly
-		);
+		return queryAllReadonlyContracts((contract: LogStoreManagerContract) => {
+			return contract.exists(streamId);
+		}, this.logStoreManagerContractsReadonly);
+		// return queryAllReadonlyContracts(
+		// 	(contract: StreamStorageRegistryContract) => {
+		// 		return contract.isStorageNodeOf(streamId, nodeAddress);
+		// 	},
+		// 	this.streamStorageRegistryContractsReadonly
+		// );
 	}
 
-	async getStoredStreams(
-		nodeAddress: EthereumAddress
-	): Promise<{ streams: Stream[]; blockNumber: number }> {
-		this.logger.debug('getting stored streams of node %s', nodeAddress);
+	// async getStoredStreams(
+	// 	nodeAddress: EthereumAddress
+	// ): Promise<{ streams: Stream[]; blockNumber: number }> {
+	async getStoredStreams(): Promise<{
+		streams: Stream[];
+		blockNumber: number;
+	}> {
+		this.logger.debug('getting stored streams');
 		const blockNumbers: number[] = [];
-		// const res = await collect(
-		await collect(
+		// await collect(
+		const res = await collect(
 			this.graphQLClient.fetchPaginatedResults(
 				(lastId: string, pageSize: number) => {
-					const query = `{
-                    node (id: "${nodeAddress}") {
-                        id
-                        metadata
-                        lastSeen
-                        storedStreams (first: ${pageSize} orderBy: "id" where: { id_gt: "${lastId}"}) {
-                            id,
-                            metadata
-                        }
-                    }
-                    _meta {
-                        block {
-                            number
-                        }
-                    }
-                }`;
+					const query = `
+{
+	storeUpdateds(first: ${pageSize}, orderBy: store where: {store_gt: "${lastId}"}) {
+		store
+	}
+	_meta {
+		block {
+			number
+		}
+	}
+}`;
+					// 					const query = `
+					// {
+					// 	storeUpdateds(first: ${pageSize}, orderBy: store, where: {store_gt: "${lastId}"}) {
+					// 		store
+					// 	}
+					// 	_meta {
+					// 		deployment
+					// 		block {
+					// 			number
+					// 		}
+					// 	}
+					// }`;
+					// const query = `{
+					//           node (id: "${nodeAddress}") {
+					//               id
+					//               metadata
+					//               lastSeen
+					//               storedStreams (first: ${pageSize} orderBy: "id" where: { id_gt: "${lastId}"}) {
+					//                   id,
+					//                   metadata
+					//               }
+					//           }
+					//           _meta {
+					//               block {
+					//                   number
+					//               }
+					//           }
+					//       }`;
 					return { query };
 				},
 				(response: any) => {
 					// eslint-disable-next-line no-underscore-dangle
 					blockNumbers.push(response._meta.block.number);
-					return response.node !== null ? response.node.storedStreams : [];
+					return response.storeUpdateds;
+					// return response.node !== null ? response.node.storedStreams : [];
 				}
 			)
 		);
-		const streams: Stream[] = [];
-		// TODO: Get back StreamFactory
+		this.logger.debug('res: %s', res);
+		const streams = (
+			await Promise.all(
+				res.map(async (storeUpdated: any) => {
+					try {
+						return await this.streamrClient.getStream(
+							toStreamID(storeUpdated.store)
+						);
+						// return await this.streamrClient.createStream(
+						// 	toStreamID(storeUpdated.store)
+						// );
+					} catch (err) {
+						this.logger.error(err);
+						return null;
+					}
+				})
+			)
+		).filter((stream) => stream != null) as Stream[];
+
+		// const streams = [] as Stream[];
+
+		this.logger.debug(
+			'streams: %s',
+			JSON.stringify(
+				streams.map((stream) => stream.id.toString()),
+				null,
+				2
+			)
+		);
 		// const streams = res.map((stream: any) => {
-		//     const props = Stream.parseMetadata(stream.metadata)
-		//     return this.streamFactory.createStream(toStreamID(stream.id), props) // toStreamID() not strictly necessary
-		// })
+		// 	const props = Stream.parseMetadata(stream.metadata);
+		// 	return this.streamFactory.createStream(toStreamID(stream.id), props); // toStreamID() not strictly necessary
+		// });
 		return {
 			streams,
 			blockNumber: min(blockNumbers)!,
@@ -247,48 +420,91 @@ export class LogStoreRegistry {
 	}
 
 	async getStorageNodes(streamIdOrPath?: string): Promise<EthereumAddress[]> {
-		let queryResults: NodeQueryResult[];
-		if (streamIdOrPath !== undefined) {
-			const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
-			this.logger.debug('getting storage nodes of stream %s', streamId);
-			queryResults = await collect(
-				this.graphQLClient.fetchPaginatedResults<NodeQueryResult>(
-					(lastId: string, pageSize: number) => {
-						const query = `{
-                        stream (id: "${streamId}") {
-                            id
-                            metadata
-                            storageNodes (first: ${pageSize} orderBy: "id" where: { id_gt: "${lastId}"}) {
-                                id
-                                metadata
-                                lastSeen
-                            }
-                        }
-                    }`;
-						return { query };
-					},
-					(response: any) => {
-						return response.stream !== null ? response.stream.storageNodes : [];
-					}
-				)
-			);
-		} else {
-			this.logger.debug('getting all storage nodes');
-			queryResults = await collect(
-				this.graphQLClient.fetchPaginatedResults<NodeQueryResult>(
-					(lastId: string, pageSize: number) => {
-						const query = `{
-                        nodes (first: ${pageSize} orderBy: "id" where: { id_gt: "${lastId}"}) {
-                            id
-                            metadata
-                            lastSeen
-                        }
-                    }`;
-						return { query };
-					}
-				)
-			);
-		}
-		return queryResults.map((node) => toEthereumAddress(node.id));
+		this.logger.debug('getStorageNodes %s', streamIdOrPath);
+		return [];
+
+		// let queryResults: NodeQueryResult[];
+		// if (streamIdOrPath !== undefined) {
+		// 	const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
+		// 	this.logger.debug('getting storage nodes of stream %s', streamId);
+		// 	queryResults = await collect(
+		// 		this.graphQLClient.fetchPaginatedResults<NodeQueryResult>(
+		// 			(lastId: string, pageSize: number) => {
+		// 				const query = `{
+		//                     stream (id: "${streamId}") {
+		//                         id
+		//                         metadata
+		//                         storageNodes (first: ${pageSize} orderBy: "id" where: { id_gt: "${lastId}"}) {
+		//                             id
+		//                             metadata
+		//                             lastSeen
+		//                         }
+		//                     }
+		//                 }`;
+		// 				return { query };
+		// 			},
+		// 			(response: any) => {
+		// 				return response.stream !== null ? response.stream.storageNodes : [];
+		// 			}
+		// 		)
+		// 	);
+		// } else {
+		// 	this.logger.debug('getting all storage nodes');
+		// 	queryResults = await collect(
+		// 		this.graphQLClient.fetchPaginatedResults<NodeQueryResult>(
+		// 			(lastId: string, pageSize: number) => {
+		// 				const query = `{
+		//                     nodes (first: ${pageSize} orderBy: "id" where: { id_gt: "${lastId}"}) {
+		//                         id
+		//                         metadata
+		//                         lastSeen
+		//                     }
+		//                 }`;
+		// 				return { query };
+		// 			}
+		// 		)
+		// 	);
+		// }
+		// return queryResults.map((node) => toEthereumAddress(node.id));
+	}
+
+	// --------------------------------------------------------------------------------------------
+	// Events
+	// --------------------------------------------------------------------------------------------
+
+	/**
+	 * Adds an event listener to the client.
+	 * @param eventName - event name, see {@link LogStoreClientEvents} for options
+	 * @param listener - the callback function
+	 */
+	on<T extends keyof LogStoreClientEvents>(
+		eventName: T,
+		listener: LogStoreClientEvents[T]
+	): void {
+		this.eventEmitter.on(eventName, listener as any);
+	}
+
+	/**
+	 * Adds an event listener to the client that is invoked only once.
+	 * @param eventName - event name, see {@link LogStoreClientEvents} for options
+	 * @param listener - the callback function
+	 */
+	once<T extends keyof LogStoreClientEvents>(
+		eventName: T,
+		listener: LogStoreClientEvents[T]
+	): void {
+		this.eventEmitter.once(eventName, listener as any);
+	}
+
+	/**
+	 * Removes an event listener from the client.
+	 * @param eventName - event name, see {@link LogStoreClientEvents} for options
+	 * @param listener - the callback function to remove
+	 */
+	off<T extends keyof LogStoreClientEvents>(
+		eventName: T,
+		listener: LogStoreClientEvents[T]
+	): void {
+		this.eventEmitter.off(eventName, listener as any);
 	}
 }

@@ -1,9 +1,10 @@
-import { EthereumAddress, Logger } from '@streamr/utils';
+import { Logger } from '@streamr/utils';
+import { Stream, StreamrClient } from 'streamr-client';
+
 import {
-	StorageNodeAssignmentEvent,
-	Stream,
-	StreamrClient,
-} from 'streamr-client';
+	LogStoreAssignmentEvent,
+	LogStoreRegistry,
+} from '../../registry/LogStoreRegistry';
 
 const logger = new Logger(module);
 
@@ -12,44 +13,39 @@ const logger = new Logger(module);
  * stream assignment and removal events in real-time.
  */
 export class LogStoreEventListener {
-	private readonly clusterId: EthereumAddress;
 	private readonly streamrClient: StreamrClient;
+	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly onEvent: (
 		stream: Stream,
 		type: 'added' | 'removed',
 		block: number
 	) => void;
-	private readonly onAddToStorageNode: (
-		event: StorageNodeAssignmentEvent
-	) => void;
-	private readonly onRemoveFromStorageNode: (
-		event: StorageNodeAssignmentEvent
+	private readonly onAddToLogStore: (event: LogStoreAssignmentEvent) => void;
+	private readonly onRemoveFromLogStore: (
+		event: LogStoreAssignmentEvent
 	) => void;
 
 	constructor(
-		clusterId: EthereumAddress,
 		streamrClient: StreamrClient,
+		logStoreRegistry: LogStoreRegistry,
 		onEvent: (stream: Stream, type: 'added' | 'removed', block: number) => void
 	) {
-		this.clusterId = clusterId;
 		this.streamrClient = streamrClient;
+		this.logStoreRegistry = logStoreRegistry;
 		this.onEvent = onEvent;
-		this.onAddToStorageNode = (event: StorageNodeAssignmentEvent) =>
+		this.onAddToLogStore = (event: LogStoreAssignmentEvent) =>
 			this.handleEvent(event, 'added');
-		this.onRemoveFromStorageNode = (event: StorageNodeAssignmentEvent) =>
+		this.onRemoveFromLogStore = (event: LogStoreAssignmentEvent) =>
 			this.handleEvent(event, 'removed');
 	}
 
 	private async handleEvent(
-		event: StorageNodeAssignmentEvent,
+		event: LogStoreAssignmentEvent,
 		type: 'added' | 'removed'
 	) {
-		if (event.nodeAddress !== this.clusterId) {
-			return;
-		}
-		logger.info('received StorageNodeAssignmentEvent type=%s: %j', type, event);
+		logger.info('received LogStoreAssignmentEvent type=%s: %j', type, event);
 		try {
-			const stream = await this.streamrClient.getStream(event.streamId);
+			const stream = await this.streamrClient.getStream(event.store);
 			this.onEvent(stream, type, event.blockNumber);
 		} catch (e) {
 			logger.warn('chainEventsListener: %s', e);
@@ -57,18 +53,12 @@ export class LogStoreEventListener {
 	}
 
 	async start(): Promise<void> {
-		this.streamrClient.on('addToStorageNode', this.onAddToStorageNode);
-		this.streamrClient.on(
-			'removeFromStorageNode',
-			this.onRemoveFromStorageNode
-		);
+		this.logStoreRegistry.on('addToLogStore', this.onAddToLogStore);
+		this.logStoreRegistry.on('removeFromLogStore', this.onRemoveFromLogStore);
 	}
 
 	async destroy(): Promise<void> {
-		this.streamrClient.off('addToStorageNode', this.onAddToStorageNode);
-		this.streamrClient.off(
-			'removeFromStorageNode',
-			this.onRemoveFromStorageNode
-		);
+		this.logStoreRegistry.off('addToLogStore', this.onAddToLogStore);
+		this.logStoreRegistry.off('removeFromLogStore', this.onRemoveFromLogStore);
 	}
 }

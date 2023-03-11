@@ -5,12 +5,14 @@ import { StreamrClient } from 'streamr-client';
 import { ApiAuthenticator } from './apiAuthenticator';
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';
+import { LogStoreRegistry } from './registry/LogStoreRegistry';
 
 export interface PluginOptions {
 	name: string;
 	streamrClient: StreamrClient;
 	apiAuthenticator: ApiAuthenticator;
 	brokerConfig: StrictConfig;
+	logStoreRegistry: LogStoreRegistry;
 }
 
 export abstract class Plugin<T> {
