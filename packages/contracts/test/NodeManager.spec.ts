@@ -51,7 +51,7 @@ describe('NodeManager', function () {
 	});
 
 	describe('Manage Nodes', () => {
-		it('ManageNode - Admin can create node', async function () {
+		it('ManageNode ---- Admin can add a node', async function () {
 			const newNodeAddress = generateWallet();
 			const initialNodeCount = await nodeManagerContract.functions.totalNodes();
 			const upsertNodeTx = await nodeManagerContract.functions.upsertNodeAdmin(
@@ -91,7 +91,7 @@ describe('NodeManager', function () {
 			);
 		});
 
-		it('ManageNode - Admin can update a nodes', async function () {
+		it('ManageNode ---- Admin can update a nodes', async function () {
 			// update the metadata of the initially inserted node
 			const nodeToEditAddress = NODE_MANAGER.INITIAL_NODES[0];
 			const updatedNodeMetadata = `${SAMPLE_WSS_URL}/updated`;
@@ -130,7 +130,7 @@ describe('NodeManager', function () {
 			expect(+updatedRecord.lastSeen).to.equal(+timeStamp);
 		});
 
-		it('ManageNode - Admin can remove node', async function () {
+		it('ManageNode ---- Admin can remove a node', async function () {
 			const nodeToDeleteAddress = NODE_MANAGER.INITIAL_NODES[0];
 			const deleteNodeTx = await nodeManagerContract.functions.removeNodeAdmin(
 				nodeToDeleteAddress
@@ -150,7 +150,7 @@ describe('NodeManager', function () {
 			expect(+response.lastSeen).to.equal(0);
 		});
 
-		it('ManageNode - Only Admin can remove other nodes', async function () {
+		it('ManageNode ---- Only Admin can remove other nodes', async function () {
 			const nodeToDeleteAddress = NODE_MANAGER.INITIAL_NODES[0];
 			const otherUser = otherSigners[1];
 			const deleteNodeTx = nodeManagerContract
@@ -162,7 +162,7 @@ describe('NodeManager', function () {
 			);
 		});
 
-		it('ManageNode - Only Admin can upsert other nodes', async function () {
+		it('ManageNode ---- Only Admin can upsert other nodes', async function () {
 			const nodeAddress = NODE_MANAGER.INITIAL_NODES[0];
 			const otherUser = otherSigners[1];
 			const upsertNodeTx = nodeManagerContract

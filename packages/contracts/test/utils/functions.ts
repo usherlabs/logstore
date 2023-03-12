@@ -5,10 +5,13 @@ import { ethers as hEthers, upgrades } from 'hardhat';
 
 import {
 	CONSUMER_ADDRESS,
+	FAKE_STREAMR_REGISTRY,
 	NODE_MANAGER,
+	SAMPLE_STREAM_ID,
 	SAMPLE_WSS_URL,
 } from '../utils/constants';
 import ERC20 from './abi/ERC20.json';
+import { ReportData } from './types';
 
 export const generateWallet = () => Wallet.generate().getAddressString();
 
@@ -42,11 +45,65 @@ export async function loadNodeManager(adminAddress: SignerWithAddress) {
 	return nodeManagerContract;
 }
 
+export async function loadQueryManager(
+	signer: SignerWithAddress,
+	adminAddress: undefined | string = undefined
+) {
+	const queryManager = await hEthers.getContractFactory(
+		'LogStoreQueryManager',
+		signer
+	);
+	const queryManagerContract = await upgrades.deployProxy(queryManager, [
+		adminAddress || signer.address,
+		NODE_MANAGER.STAKE_TOKEN,
+		FAKE_STREAMR_REGISTRY,
+	]);
+	// approve all accounts so all can stake
+	const nodes = await hEthers.getSigners();
+	await Promise.all(
+		nodes.map(async (node) =>
+			ApproveFundsForContract(
+				queryManagerContract.address,
+				getDecimalBN(100),
+				node
+			)
+		)
+	);
+	return queryManagerContract;
+}
+
+export async function loadStoreManager(
+	signer: SignerWithAddress,
+	adminAddress: undefined | string = undefined
+) {
+	const queryManager = await hEthers.getContractFactory(
+		'LogStoreManager',
+		signer
+	);
+	const storeManagerContract = await upgrades.deployProxy(queryManager, [
+		adminAddress || signer.address,
+		NODE_MANAGER.STAKE_TOKEN,
+		FAKE_STREAMR_REGISTRY,
+	]);
+	// approve all accounts so all can stake
+	const nodes = await hEthers.getSigners();
+	await Promise.all(
+		nodes.map(async (node) =>
+			ApproveFundsForContract(
+				storeManagerContract.address,
+				getDecimalBN(100),
+				node
+			)
+		)
+	);
+	return storeManagerContract;
+}
+
 export async function setupNodeManager(
 	adminAddress: SignerWithAddress,
 	nodes: SignerWithAddress[]
 ) {
-	const approveAmount = getDecimalBN(10);
+	const approveAmount = getDecimalBN(1000);
 	const nodeManagerContract = await loadNodeManager(adminAddress);
 
 	await Promise.all(
@@ -105,19 +162,14 @@ export async function generateReportData({
 	blockheight: number;
 	signer: SignerWithAddress;
 	bundleId: string;
-}) {
+}): Promise<ReportData> {
 	const nodeAddress = signer.address;
-	// this value was emmited from the contract for a give payload and then copied here
-	// if any of these values are changed then the 'reportHash' value would need to be recomputed
-	const reportHash =
-		'0xa7bdc0e630d1cf995eb3746d3fc858e9040f177ccc032538384962733e1d8e8a';
-	const signature = await signer.signMessage(ethers.utils.arrayify(reportHash));
-	// return the same value everytime so the signature calculates checks out
-	return {
+
+	const reportdata: ReportData = {
 		bundleId,
 		blockheight,
 		fee: getDecimalBN(10),
-		streams: ['xand6r.eth/demos/twitter/sample'],
+		streams: [SAMPLE_STREAM_ID],
 		nodesPerStream: [[nodeAddress]],
 		bytesObservedPerNode: [[10]],
 		bytesMissedPerNode: [[1]],
@@ -125,8 +177,50 @@ export async function generateReportData({
 		consumerAddresses: [[CONSUMER_ADDRESS]],
 		bytesQueriedPerConsumer: [[5]],
 		address: [nodeAddress],
-		signatures: [signature],
 	};
+
+	// ---- Include signatures in the report
+	const { reportHash } = generateReportHash(reportdata);
+	const signature = await signer.signMessage(ethers.utils.arrayify(reportHash));
+	reportdata['signatures'] = [signature];
+
+	return reportdata;
+}
+
+export function generateReportHash(reportdata: ReportData) {
+	const reportJson = {
+		id: String(reportdata.bundleId),
+		height: String(reportdata.blockheight),
+		fee: String(reportdata.fee),
+		streams: reportdata.streams.map((stream, index) => {
+			return {
+				id: stream,
+				read: range(reportdata.consumerAddresses[index].length).reduce(
+					(acc: Record<string, string | number>, curr: number) => {
+						const key = reportdata.consumerAddresses[index][curr];
+						const value = reportdata.bytesQueriedPerConsumer[index][curr];
+						acc[key.toLowerCase()] = String(value);
+						return acc;
+					},
+					{}
+				),
+				write: reportdata.nodesPerStream[index].map(
+					(nodeAddress, nodeIndex) => ({
+						id: nodeAddress.toLowerCase(),
+						observed: Number(reportdata.bytesObservedPerNode[index][nodeIndex]),
+						missed: Number(reportdata.bytesMissedPerNode[index][nodeIndex]),
+						queried: Number(reportdata.bytesQueriedPerNode[index][nodeIndex]),
+					})
+				),
+			};
+		}),
+	};
+	const reportHash = ethers.utils.solidityKeccak256(
+		['string'],
+		[JSON.stringify(reportJson)]
+	);
+
+	return { reportHash, data: reportJson };
 }
 
 // pass in amount and it returns the big number representation of amount*10e18
@@ -155,8 +249,11 @@ export async function ApproveFundsForContract(
 export function generateRandomNumber(maxNumber: number) {
 	return Math.floor(Math.random() * maxNumber);
 }
+
 export const getTimeStamp = async () =>
 	(await hEthers.provider.getBlock('latest')).timestamp;
 
 export const getLatestBlockNumber = async () =>
 	(await hEthers.provider.getBlock('latest')).number;
+
+export const range = (count: number) => [...new Array(count).keys()];

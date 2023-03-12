@@ -11,17 +11,10 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {IStreamRegistry} from "./interfaces/StreamRegistry.sol";
 
 // Owned by the NodeManager Contract
-contract LogStoreQueryManager is
-    Initializable,
-    UUPSUpgradeable,
-    OwnableUpgradeable
-{
-    event DataQueried(
-        string indexed store,
-        uint256 fees,
-        address indexed consumer,
-        uint256 bytesProcessed
-    );
+contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+    event DataQueried(string indexed store, uint256 fees, address indexed consumer, uint256 bytesProcessed);
+
+    event Stake(address indexed consumer, uint amount, string stream);
 
     uint256 public totalSupply;
     address public stakeTokenAddress;
@@ -32,14 +25,10 @@ contract LogStoreQueryManager is
     IERC20Upgradeable internal stakeToken;
     IStreamRegistry internal streamrRegistry;
 
-    function initialize(
-        address owner,
-        address stakeTokenAddress_,
-        address streamrRegistryAddress_
-    ) public initializer {
+    function initialize(address owner, address stakeTokenAddress_, address streamrRegistryAddress_) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
-        require(stakeTokenAddress != address(0), "error_badTrackerData");
+        require(stakeTokenAddress_ != address(0), "error_badTrackerData");
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
         stakeTokenAddress = stakeTokenAddress_;
@@ -48,18 +37,6 @@ contract LogStoreQueryManager is
 
     /// @dev required by the OZ UUPS module
     function _authorizeUpgrade(address) internal override onlyOwner {}
-
-    function captureBundle(
-        string[] memory streamIds,
-        uint256[] memory amounts,
-        address[] memory consumers,
-        uint256[] memory bytesProcessed
-    ) public {
-        require(streamIds.length == amounts.length, "error_badRequest");
-        for (uint256 i = 0; i < streamIds.length; i++) {
-            capture(streamIds[i], amounts[i], consumers[i], bytesProcessed[i]);
-        }
-    }
 
     /// Capture funds for a given query
     /// Only the LogStore Contract can call the capture method
@@ -73,19 +50,14 @@ contract LogStoreQueryManager is
         address consumer,
         uint256 bytesProcessed
     ) public onlyOwner {
-        require(
-            amount <= stakeToken.balanceOf(address(this)),
-            "error_notEnoughStake"
-        );
+        require(amount <= stakeToken.balanceOf(address(this)), "error_notEnoughStake");
 
         balanceOf[consumer] -= amount;
         storeBalanceOf[consumer][streamId] -= amount;
         if (storeBalanceOf[consumer][streamId] == 0) {
             for (uint256 i = 0; i < storeStakeholders[streamId].length; i++) {
                 if (storeStakeholders[streamId][i] == consumer) {
-                    address lastStakeholder = storeStakeholders[streamId][
-                        storeStakeholders[streamId].length - 1
-                    ];
+                    address lastStakeholder = storeStakeholders[streamId][storeStakeholders[streamId].length - 1];
                     storeStakeholders[streamId][i] = lastStakeholder;
                     storeStakeholders[streamId].pop(); // remove last element.
                     break;
@@ -115,11 +87,8 @@ contract LogStoreQueryManager is
         storeBalanceOf[msg.sender][streamId] += amount;
         totalSupply += amount;
 
-        bool success = stakeToken.transferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
+        bool success = stakeToken.transferFrom(msg.sender, address(this), amount);
         require(success == true, "error_unsuccessfulStake");
+        emit Stake(msg.sender, amount, streamId);
     }
 }

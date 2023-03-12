@@ -21,7 +21,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
-    event ReportProcessed(string indexed id);
+    event ReportProcessed(string id);
 
     enum WhitelistState {
         None,
@@ -184,7 +184,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             _storeManager.capture(report.streams[i].id, writeCapture, report.streams[i]._write);
             totalSupply += writeCapture;
 
-            for (uint256 j = 0; j < report.streams.length; j++) {
+            for (uint256 j = 0; j < report.streams[i].consumers.length; j++) {
                 uint256 readCapture = report.streams[i].queried[j] * readFee;
                 _queryManager.capture(
                     report.streams[i].id,
@@ -204,7 +204,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             for (uint256 j = 0; j < report.streams[i].nodes.length; j++) {
                 uint256 portion = report.streams[i].nodes[j].observed / report.streams[i]._write;
                 uint256 penalty = report.streams[i].nodes[j].missed / report.streams[i]._write;
-                uint256 nodeCapturePortion = 0;
+                uint256 nodeCapturePortion = portion * report.streams[i]._write * writeNodeFee;
                 if (portion > penalty) {
                     // Penalise nodes for missing writes
                     nodeCapturePortion = (portion - penalty) * report.streams[i]._write * writeNodeFee;

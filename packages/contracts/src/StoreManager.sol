@@ -13,7 +13,7 @@ import {IStreamRegistry} from "./interfaces/StreamRegistry.sol";
 // Owned by the NodeManager Contract
 contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     event StoreUpdated(
-        string indexed store,
+        string store,
         bool indexed isNew,
         uint256 amount,
         address indexed updatedBy
@@ -29,14 +29,10 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     IERC20Upgradeable internal stakeToken;
     IStreamRegistry internal streamrRegistry;
 
-    function initialize(
-        address owner,
-        address stakeTokenAddress_,
-        address streamrRegistryAddress_
-    ) public initializer {
+    function initialize(address owner, address stakeTokenAddress_, address streamrRegistryAddress_) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
-        require(stakeTokenAddress != address(0), "error_badTrackerData");
+        require(stakeTokenAddress_ != address(0), "error_badTrackerData");
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
         stakeTokenAddress = stakeTokenAddress_;
@@ -50,34 +46,19 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         return stores[streamId] > 0;
     }
 
-    function captureBundle(
-        string[] memory streamIds,
-        uint256[] memory amounts,
-        uint256[] memory bytesStored
-    ) public {
-        require(streamIds.length == amounts.length, "error_badRequest");
-        for (uint256 i = 0; i < streamIds.length; i++) {
-            capture(streamIds[i], amounts[i], bytesStored[i]);
-        }
-    }
-
     // Only the LogStore Contract can call the capture method
     function capture(
         string memory streamId,
         uint256 amount,
         uint256 bytesStored
     ) public onlyOwner returns (bool success) {
-        require(
-            amount <= stakeToken.balanceOf(address(this)),
-            "error_notEnoughStake"
-        );
+        require(amount <= stakeToken.balanceOf(address(this)), "error_notEnoughStake");
 
         address[] memory stakeholders = storeStakeholders[streamId];
         // Determine the fee amounts proportional to each stakeholder stake amount
         for (uint256 i = 0; i < stakeholders.length; i++) {
             address stakeholder = stakeholders[i];
-            uint256 stakeOwnership = storeBalanceOf[stakeholder][streamId] /
-                stores[streamId];
+            uint256 stakeOwnership = storeBalanceOf[stakeholder][streamId] / stores[streamId];
             uint256 deduction = stakeOwnership * amount;
             balanceOf[stakeholder] -= deduction;
             storeBalanceOf[stakeholder][streamId] -= deduction;

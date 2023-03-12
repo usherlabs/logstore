@@ -164,13 +164,13 @@ contract LogStoreReportManager is
         uint256 totalRead = 0;
         /* solhint-disable quotes */
         string memory reportJson = string.concat(
-            '{ "id": "',
+            '{"id":"',
             bundleId,
-            '", "height": "',
+            '","height":"',
             StringsUpgradeable.toString(blockHeight),
-            '", "fee": ',
+            '","fee":"',
             StringsUpgradeable.toString(fee),
-            '", "streams": ['
+            '","streams":['
         );
 
         Stream[] memory rStreams = new Stream[](streams.length);
@@ -180,9 +180,9 @@ contract LogStoreReportManager is
 
             reportJson = string.concat(
                 reportJson,
-                '{ "id": "',
+                '{"id":"',
                 streams[i],
-                '", "read": {'
+                '","read":{'
             );
             for (uint256 j = 0; j < consumerAddresses[i].length; j++) {
                 streamRead += bytesQueriedPerConsumer[i][j];
@@ -199,22 +199,22 @@ contract LogStoreReportManager is
                     reportJson = string.concat(reportJson, ",");
                 }
             }
-            reportJson = string.concat(reportJson, '}, "write": [');
+            reportJson = string.concat(reportJson,'},"write":[');
 
             Node[] memory rNodes = new Node[](nodesPerStream[i].length);
             for (uint256 j = 0; j < nodesPerStream[i].length; j++) {
                 streamWrite += bytesObservedPerNode[i][j];
                 reportJson = string.concat(
                     reportJson,
-                    '{ "id": "',
+                    '{"id":"',
                     StringsUpgradeable.toHexString(nodesPerStream[i][j]),
-                    '", "observed": ',
+                    '","observed":',
                     StringsUpgradeable.toString(bytesObservedPerNode[i][j]),
-                    ', "missed": ',
+                    ',"missed":',
                     StringsUpgradeable.toString(bytesMissedPerNode[i][j]),
-                    ', "queried": ',
+                    ',"queried":',
                     StringsUpgradeable.toString(bytesQueriedPerNode[i][j]),
-                    " }"
+                    "}"
                 );
 
                 rNodes[j] = Node({
