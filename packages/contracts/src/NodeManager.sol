@@ -204,7 +204,10 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             for (uint256 j = 0; j < report.streams[i].nodes.length; j++) {
                 uint256 portion = report.streams[i].nodes[j].observed / report.streams[i]._write;
                 uint256 penalty = report.streams[i].nodes[j].missed / report.streams[i]._write;
-                uint256 nodeCapturePortion = portion * report.streams[i]._write * writeNodeFee;
+                
+                // set the node capture portion to zero if penalty > portion
+                // because if they have missed more nodes than observed and thus do not deserve to be rewarded
+                uint256 nodeCapturePortion = 0;
                 if (portion > penalty) {
                     // Penalise nodes for missing writes
                     nodeCapturePortion = (portion - penalty) * report.streams[i]._write * writeNodeFee;

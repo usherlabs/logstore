@@ -1,10 +1,11 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { Contract } from 'ethers';
+import { BigNumber, Contract } from 'ethers';
 import { ethers } from 'hardhat';
 
 import {
 	CUSTOM_EXCEPTIONS,
+	NODE_MANAGER,
 	REPORT_MANAGER_EVENTS,
 	SAMPLE_STREAM_ID,
 } from './utils/constants';
@@ -13,6 +14,7 @@ import {
 	generateReportData,
 	generateReportHash,
 	getDecimalBN,
+	getERC20Token,
 	getLatestBlockNumber,
 	loadQueryManager,
 	loadReportManager,
@@ -26,6 +28,7 @@ describe('ReportManager', async function () {
 	let activeNodes: SignerWithAddress[];
 	let reportManagerContract: Contract;
 	let nodeManagerContract: Contract;
+	let token: Contract;
 
 	beforeEach(async () => {
 		[adminSigner, ...otherSigners] = await ethers.getSigners();
@@ -35,6 +38,7 @@ describe('ReportManager', async function () {
 			adminSigner,
 			nodeManagerContract
 		);
+		token = await getERC20Token(adminSigner);
 	});
 
 	it('ReportManager ---- un-staked Node cannot submit report', async function () {
@@ -78,35 +82,34 @@ describe('ReportManager', async function () {
 	});
 
 	it('NodeManager ---- Node manager can process submitted report', async function () {
-		const sampleNode = activeNodes[0];
-		const activeUser = otherSigners[otherSigners.length - 2];
+		const currentNode = activeNodes[0];
+		const consumerSigner = otherSigners[otherSigners.length - 2];
 		const stakeAmount = getDecimalBN(70);
 		// ------ submit a report
 		const blockNumber = await getLatestBlockNumber();
 		const reportData = await generateReportData({
 			bundleId: '75',
 			blockheight: +blockNumber - 10,
-			signer: sampleNode,
+			signer: currentNode,
 		});
 		await reportManagerContract
-			.connect(sampleNode)
+			.connect(currentNode)
 			.functions.report(...Object.values(reportData));
-		// ------ submit a report
-
+		// ---------------------------------------------- submit a report
 		// ---- stake for the user in both query manager and store manager
 		const queryManagerContract = await loadQueryManager(
 			adminSigner,
 			nodeManagerContract.address
 		);
 		await queryManagerContract
-			.connect(activeUser)
+			.connect(consumerSigner)
 			.functions.stake(SAMPLE_STREAM_ID, stakeAmount);
 		const storeManagerContract = await loadStoreManager(
 			adminSigner,
 			nodeManagerContract.address
 		);
 		await storeManagerContract
-			.connect(activeUser)
+			.connect(consumerSigner)
 			.functions.stake(SAMPLE_STREAM_ID, stakeAmount);
 		// ---- stake for the user in both query manager and store manager
 
@@ -115,18 +118,131 @@ describe('ReportManager', async function () {
 		nodeManagerContract.registerQueryManager(queryManagerContract.address);
 		nodeManagerContract.registerReportManager(reportManagerContract.address);
 		//  ---- set the right contracts for the nodemanager contract
-
+		const [preReportProcessBalance] = await token.functions.balanceOf(
+			nodeManagerContract.address
+		);
+		const { stake: nodeStakePreProcess } =
+			await nodeManagerContract.functions.nodes(currentNode.address);
 		// ---- process the actual report
 		const processReportTx = await nodeManagerContract
-			.connect(sampleNode)
+			.connect(currentNode)
 			.functions.processReport(reportData.bundleId);
+		// ---------------------------------------------- submit a report
 
+		// ---------------------------------------------- verify the report
 		const event = await fetchEventArgsFromTx(
 			processReportTx,
 			REPORT_MANAGER_EVENTS.REPORT_PROCESSED
 		);
-		// ---- Verify the event
 		expect(event?.id).to.equal(reportData.bundleId);
-		// ---- Verify the variables and delegates value from the formulas
+
+		const [postReportProcessBalance] = await token.functions.balanceOf(
+			nodeManagerContract.address
+		);
+		const { stake: nodeStakePostProcess } =
+			await nodeManagerContract.functions.nodes(currentNode.address);
+		// -------- Verify that the right amount has been captured by the store manager contract
+		const totalWrites = reportData.bytesObservedPerNode[0].reduce(
+			(a, b) => a + b,
+			0
+		);
+		const writeExpense = reportData.fee.div(totalWrites);
+		const writeFee = writeExpense.mul(
+			1 + NODE_MANAGER.WRITE_FEE_POINTS / 10000
+		);
+		const writeTreasuryFee =
+			+writeFee.sub(writeExpense) *
+			Math.floor(NODE_MANAGER.TREASURY_FEE_POINTS / 10000);
+
+		const writeNodeFee = +writeFee - writeTreasuryFee;
+
+		const totalWriteCapture = writeFee.mul(totalWrites);
+		const stakeHolderBalance = await storeManagerContract.functions.balanceOf(
+			consumerSigner.address
+		);
+		const [stakeHolderStoreBalance] =
+			await storeManagerContract.functions.storeBalanceOf(
+				consumerSigner.address,
+				reportData.streams[0]
+			);
+		const [streamStoreBalance] = await storeManagerContract.functions.stores(
+			reportData.streams[0]
+		);
+		const [totalSupply] = await storeManagerContract.functions.totalSupply();
+		// validate the balances from the store contract
+		expect(+stakeHolderBalance)
+			.to.equal(+stakeAmount.sub(totalWriteCapture))
+			.to.equal(+stakeHolderStoreBalance);
+		expect(+streamStoreBalance)
+			.to.equal(+stakeAmount.sub(totalWriteCapture))
+			.to.equal(+totalSupply);
+
+		// -------- Verify that the right amount has been captured by the store manager contract
+
+		// ------- Verify the right amount has been captured by the query manager contract
+		const readCapture = reportData.bytesQueriedPerConsumer[0][0];
+		const readTreasuryFee =
+			NODE_MANAGER.READ_FEE *
+			Math.floor(NODE_MANAGER.TREASURY_FEE_POINTS / 10000);
+		const readNodeFee = NODE_MANAGER.READ_FEE - readTreasuryFee;
+		const totalRead = reportData.bytesQueriedPerConsumer[0].reduce(
+			(a, b) => a + b,
+			0
+		);
+		const readFee = NODE_MANAGER.READ_FEE;
+		const totalReadCapture = readCapture * readFee;
+		const qstakeHolderBalance = await queryManagerContract.functions.balanceOf(
+			consumerSigner.address
+		);
+		const [qstakeHolderStoreBalance] =
+			await queryManagerContract.functions.storeBalanceOf(
+				consumerSigner.address,
+				reportData.streams[0]
+			);
+		const [qstreamStoreBalance] = await queryManagerContract.functions.stores(
+			reportData.streams[0]
+		);
+		const [qtotalSupply] = await queryManagerContract.functions.totalSupply();
+		expect(+qstakeHolderBalance)
+			.to.equal(+stakeAmount.sub(totalReadCapture))
+			.to.equal(+qstakeHolderStoreBalance);
+		expect(+qstreamStoreBalance)
+			.to.equal(+stakeAmount.sub(totalReadCapture))
+			.to.equal(+qtotalSupply);
+		// ------- Verify the right amount has been captured by the query manager contract
+
+		// ------- validate that the right amount of tokens have been transferred to the nodemanager contract
+		expect(+postReportProcessBalance.sub(preReportProcessBalance)).to.equal(
+			+totalWriteCapture + totalReadCapture
+		);
+		//-------  validate that the right amount of tokens have been transferred to the nodemanager contract
+
+		// ------- Verify the node stake has been increased propportionately
+		const portion = reportData.bytesObservedPerNode[0][0] / totalWrites;
+		const penalty = Math.floor(
+			reportData.bytesMissedPerNode[0][0] / totalWrites
+		);
+		const nodeCapturePortion = (portion - penalty) * totalWrites * writeNodeFee;
+		const nodeCaptureQueryPortion =
+			Math.floor(reportData.bytesQueriedPerConsumer[0][0] / totalRead) *
+			Math.floor(totalWrites * readNodeFee);
+		const nodeStakeIncrement = nodeCapturePortion + nodeCaptureQueryPortion;
+		expect(nodeStakeIncrement).to.equal(
+			+nodeStakePostProcess.sub(nodeStakePreProcess)
+		);
+
+		// ------- Verify the node stake has been increased propportionately
+
+		//  ------- validate the delegatees have been balanced
+		// since we only have this node, then the balance of the delegate should ave increased by nodeCaptureQueryPortion*100%
+		const delegateStake = getDecimalBN(10); //all nodes joined with this value in functions.setupNodeManager
+		const delegatesBalance = await nodeManagerContract.functions.delegatesOf(
+			currentNode.address,
+			currentNode.address
+		);
+		expect(+delegatesBalance).to.equal(
+			+delegateStake.add(BigNumber.from(`${nodeCapturePortion}`))
+		);
+		//  ------- validate the delegatees have been balanced
 	});
 });

@@ -62,6 +62,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
             uint256 deduction = stakeOwnership * amount;
             balanceOf[stakeholder] -= deduction;
             storeBalanceOf[stakeholder][streamId] -= deduction;
+            // if stake of a user is finished then remove from the list of delegates
             if (storeBalanceOf[stakeholder][streamId] == 0) {
                 storeStakeholders[streamId] = new address[](0);
                 for (uint256 j = 0; j < stakeholders.length; j++) {

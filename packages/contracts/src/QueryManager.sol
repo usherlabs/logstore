@@ -55,6 +55,7 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
         balanceOf[consumer] -= amount;
         storeBalanceOf[consumer][streamId] -= amount;
         if (storeBalanceOf[consumer][streamId] == 0) {
+            // for any consumer who's balance is zero, pop them off the stakeholder's list
             for (uint256 i = 0; i < storeStakeholders[streamId].length; i++) {
                 if (storeStakeholders[streamId][i] == consumer) {
                     address lastStakeholder = storeStakeholders[streamId][storeStakeholders[streamId].length - 1];

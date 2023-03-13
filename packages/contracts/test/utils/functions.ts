@@ -168,7 +168,7 @@ export async function generateReportData({
 	const reportdata: ReportData = {
 		bundleId,
 		blockheight,
-		fee: getDecimalBN(10),
+		fee: getDecimalBN(1),
 		streams: [SAMPLE_STREAM_ID],
 		nodesPerStream: [[nodeAddress]],
 		bytesObservedPerNode: [[10]],
