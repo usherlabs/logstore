@@ -1,0 +1,41 @@
+---
+version: "3.8"
+services:
+    init-keyspace-logstore:
+        container_name: logstore-dev-init-keyspace
+        image: cassandra:3.11.5
+        init: true
+        networks:
+            - streamr-network
+        command: bash -c "sleep 5 && cqlsh cassandra -f /init_scripts/keyspace.cql && echo keyspace initialized"
+        restart: on-failure # exits on success
+        volumes:
+            - type: bind
+              source: ./cassandra_init_scripts
+              target: /init_scripts
+              read_only: true
+              bind:
+                  propagation: rprivate
+
+    graph-deploy-logstore-subgraph:
+        container_name: logstore-dev-graph-deploy-logstore-subgraph
+        image: graph-deploy-logstore-subgraph
+        build: ./subgraph
+        restart: on-failure # exits on success
+        networks:
+            - streamr-network
+        volumes:
+            - type: volume
+              source: data-graph-deploy-logstore
+              target: /firstrun
+              volume:
+                  nocopy: false
+
+networks:
+    streamr-network:
+        name: streamr-docker-dev_streamr-network
+        external: true
+
+volumes:
+    cassandra_init_scripts:
+    data-graph-deploy-logstore:
