@@ -1,6 +1,4 @@
 import { camelCase, set } from 'lodash';
-import * as os from 'os';
-import path from 'path';
 import { StreamrClientConfig } from 'streamr-client';
 
 export interface Config {
@@ -29,20 +27,6 @@ export type StrictConfig = Config & {
 export interface ConfigFile extends Config {
 	$schema?: string;
 }
-
-export interface ConfigFile extends Config {
-	$schema?: string;
-}
-
-export const getDefaultFile = (): string => {
-	const relativePath = '.streamr/config/default.json';
-	return path.join(os.homedir(), relativePath);
-};
-
-export const getLegacyDefaultFile = (): string => {
-	const relativePath = '/.streamr/broker-config.json';
-	return path.join(os.homedir(), relativePath);
-};
 
 export function overrideConfigToEnvVarsIfGiven(config: Config): void {
 	const parseValue = (value: string) => {

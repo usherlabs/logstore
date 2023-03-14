@@ -39,6 +39,7 @@ const chainIds = {
 	'polygon-mainnet': 137,
 	'polygon-mumbai': 80001,
 	sepolia: 11155111,
+	'streamr-dev': 8997,
 };
 
 function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
@@ -108,6 +109,13 @@ const config: HardhatUserConfig = {
 		'polygon-mainnet': getChainConfig('polygon-mainnet'),
 		'polygon-mumbai': getChainConfig('polygon-mumbai'),
 		// sepolia: getChainConfig('sepolia'),
+		'streamr-dev': {
+			chainId: chainIds['streamr-dev'],
+			url: 'http://localhost:8546',
+			accounts: [
+				'0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0',
+			],
+		},
 	},
 	paths: {
 		artifacts: './artifacts',

@@ -1,13 +1,14 @@
 import { toStreamID } from '@streamr/protocol';
-import { EthereumAddress, toEthereumAddress, wait } from '@streamr/utils';
-import {
-	StorageNodeAssignmentEvent,
-	Stream,
-	StreamrClient,
-	StreamrClientEvents,
-} from 'streamr-client';
+import { wait } from '@streamr/utils';
+import { BigNumber } from 'ethers';
+import { Stream, StreamrClient } from 'streamr-client';
 
+import { LogStoreClientEvents } from '../../../../src/client/events';
 import { LogStoreEventListener } from '../../../../src/plugins/logStore/LogStoreEventListener';
+import {
+	LogStoreAssignmentEvent,
+	LogStoreRegistry,
+} from '../../../../src/registry/LogStoreRegistry';
 
 const MOCK_STREAM = {
 	id: 'streamId',
@@ -15,18 +16,13 @@ const MOCK_STREAM = {
 		partitions: 3,
 	}),
 } as Stream;
-const clusterId = toEthereumAddress(
-	'0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-);
-const otherClusterId = toEthereumAddress(
-	'0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
-);
 
 describe(LogStoreEventListener, () => {
-	let stubClient: Pick<StreamrClient, 'getStream' | 'on' | 'off'>;
-	const storageEventListeners: Map<
-		keyof StreamrClientEvents,
-		(event: StorageNodeAssignmentEvent) => any
+	let stubClient: Pick<StreamrClient, 'getStream'>;
+	let stubLogStoreRegistry: Pick<LogStoreRegistry, 'on' | 'off'>;
+	const logStoreEventListeners: Map<
+		keyof LogStoreClientEvents,
+		(event: LogStoreAssignmentEvent) => any
 	> = new Map();
 	let onEvent: jest.Mock<
 		void,
@@ -39,15 +35,17 @@ describe(LogStoreEventListener, () => {
 			async getStream() {
 				return MOCK_STREAM;
 			},
-			on(eventName: keyof StreamrClientEvents, listener: any) {
-				storageEventListeners.set(eventName, listener);
+		};
+		stubLogStoreRegistry = {
+			on(eventName: keyof LogStoreClientEvents, listener: any) {
+				logStoreEventListeners.set(eventName, listener);
 			},
 			off: jest.fn(),
 		};
 		onEvent = jest.fn();
 		listener = new LogStoreEventListener(
-			clusterId,
 			stubClient as StreamrClient,
+			stubLogStoreRegistry as LogStoreRegistry,
 			onEvent
 		);
 	});
@@ -57,37 +55,32 @@ describe(LogStoreEventListener, () => {
 	});
 
 	it('start() registers storage event listener on client', async () => {
-		expect(storageEventListeners.size).toBe(0);
+		expect(logStoreEventListeners.size).toBe(0);
 		await listener.start();
-		expect(storageEventListeners.size).toBe(2);
+		expect(logStoreEventListeners.size).toBe(2);
 	});
 
 	it('destroy() unregisters storage event listener on client', async () => {
-		expect(stubClient.off).toHaveBeenCalledTimes(0);
+		expect(stubLogStoreRegistry.off).toHaveBeenCalledTimes(0);
 		await listener.destroy();
-		expect(stubClient.off).toHaveBeenCalledTimes(2);
+		expect(stubLogStoreRegistry.off).toHaveBeenCalledTimes(2);
 	});
 
-	function addToStorageNode(recipient: EthereumAddress) {
-		storageEventListeners.get('addToStorageNode')!({
-			nodeAddress: recipient,
-			streamId: toStreamID('streamId'),
+	function addToLogStore() {
+		logStoreEventListeners.get('addToLogStore')!({
+			store: toStreamID('streamId'),
+			isNew: true,
+			address: toStreamID('updated-by-1'),
+			amount: BigNumber.from(1000000000000000),
 			blockNumber: 1234,
 		});
 	}
 
 	it('storage node assignment event gets passed to onEvent', async () => {
 		await listener.start();
-		addToStorageNode(clusterId);
+		addToLogStore();
 		await wait(0);
 		expect(onEvent).toHaveBeenCalledTimes(1);
 		expect(onEvent).toHaveBeenCalledWith(MOCK_STREAM, 'added', 1234);
-	});
-
-	it('storage node assignment events meant for another recipient are ignored', async () => {
-		await listener.start();
-		addToStorageNode(otherClusterId);
-		await wait(0);
-		expect(onEvent).toHaveBeenCalledTimes(0);
 	});
 });

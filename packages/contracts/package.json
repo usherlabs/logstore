@@ -10,6 +10,7 @@
 	"scripts": {
 		"clean": "del ./artifacts ./cache ./coverage ./types ./coverage.json && yarn typechain",
 		"compile": "hardhat compile",
+		"deploy:localhost": "npx hardhat deploy:LogStore --network localhost",
 		"deploy:mumbai": "npx hardhat deploy:LogStore --network mumbai",
 		"lint": "npm-run-all -s lint:sol lint:ts",
 		"lint:sol": "solhint \"**/*.sol\"",
@@ -32,6 +33,7 @@
 		"access": "public"
 	},
 	"dependencies": {
+		"@openzeppelin/contracts": "^4.8.2",
 		"@openzeppelin/contracts-upgradeable": "^4.8.1"
 	},
 	"devDependencies": {

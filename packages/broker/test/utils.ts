@@ -1,6 +1,6 @@
 import { TEST_CONFIG } from '@streamr/network-node';
 import { startTracker, Tracker } from '@streamr/network-tracker';
-import { StreamPartID } from '@streamr/protocol';
+// import { StreamPartID } from '@streamr/protocol';
 import {
 	EthereumAddress,
 	MetricsContext,
@@ -8,11 +8,14 @@ import {
 } from '@streamr/utils';
 import { Wallet } from 'ethers';
 import _ from 'lodash';
+import {
+	createBroker as createStreamrBroker,
+	Broker as StreamrBroker,
+} from 'streamr-broker';
 import StreamrClient, {
-	ConfigTest,
+	CONFIG_TEST,
 	Stream,
 	StreamMetadata,
-	StreamPermission,
 	StreamrClientConfig,
 } from 'streamr-client';
 
@@ -30,6 +33,8 @@ interface TestConfig {
 	apiAuthentication?: Config['apiAuthentication'];
 	enableCassandra?: boolean;
 	logStoreConfigRefreshInterval?: number;
+	logStoreManagerChainAddress?: string;
+	theGraphUrl?: string;
 }
 
 export const formConfig = ({
@@ -40,6 +45,7 @@ export const formConfig = ({
 	apiAuthentication,
 	enableCassandra = false,
 	logStoreConfigRefreshInterval = 0,
+	logStoreManagerChainAddress,
 }: TestConfig): Config => {
 	const plugins: Record<string, any> = { ...extraPlugins };
 	if (httpPort) {
@@ -50,10 +56,11 @@ export const formConfig = ({
 					datacenter: 'datacenter1',
 					username: '',
 					password: '',
-					keyspace: 'streamr_dev_v2',
+					keyspace: 'logstore_dev',
 				},
 				logStoreConfig: {
 					refreshInterval: logStoreConfigRefreshInterval,
+					logStoreManagerChainAddress,
 				},
 			};
 		}
@@ -61,7 +68,8 @@ export const formConfig = ({
 
 	return {
 		client: {
-			...ConfigTest,
+			...CONFIG_TEST,
+			logLevel: 'trace',
 			auth: {
 				privateKey,
 			},
@@ -109,6 +117,14 @@ export const startBroker = async (testConfig: TestConfig): Promise<Broker> => {
 	return broker;
 };
 
+export const startStreamrBroker = async (
+	testConfig: TestConfig
+): Promise<StreamrBroker> => {
+	const broker = await createStreamrBroker(formConfig(testConfig));
+	await broker.start();
+	return broker;
+};
+
 export const createEthereumAddress = (id: number): EthereumAddress => {
 	return toEthereumAddress('0x' + _.padEnd(String(id), 40, '0'));
 };
@@ -119,18 +135,31 @@ export const createClient = async (
 	clientOptions?: StreamrClientConfig
 ): Promise<StreamrClient> => {
 	const networkOptions = {
-		...ConfigTest?.network,
+		...CONFIG_TEST?.network,
 		trackers: [tracker.getConfigRecord()],
 		...clientOptions?.network,
 	};
-	return new StreamrClient({
-		...ConfigTest,
+
+	const clientConfig = {
+		...CONFIG_TEST,
+		logLevel: 'trace',
 		auth: {
 			privateKey,
 		},
 		network: networkOptions,
 		...clientOptions,
-	});
+	} as StreamrClientConfig;
+	// console.log(JSON.stringify(clientConfig, null, 2));
+	return new StreamrClient(clientConfig);
+
+	// return new StreamrClient({
+	// 	...CONFIG_TEST,
+	// 	auth: {
+	// 		privateKey,
+	// 	},
+	// 	network: networkOptions,
+	// 	...clientOptions,
+	// });
 };
 
 export const getTestName = (module: NodeModule): string => {
@@ -157,12 +186,12 @@ export const createTestStream = async (
 	return stream;
 };
 
-export const getStreamParts = async (
-	broker: Broker
-): Promise<StreamPartID[]> => {
-	const node = await broker.getNode();
-	return Array.from(node.getStreamParts());
-};
+// export const getStreamParts = async (
+// 	broker: Broker
+// ): Promise<StreamPartID[]> => {
+// 	const node = await broker.getNode();
+// 	return Array.from(node.getStreamParts());
+// };
 
 export async function sleep(ms = 0): Promise<void> {
 	return new Promise((resolve) => {
@@ -170,41 +199,18 @@ export async function sleep(ms = 0): Promise<void> {
 	});
 }
 
-export async function startLogStoreNode(
+export async function startLogStoreBroker(
 	logStoreNodePrivateKey: string,
 	httpPort: number,
 	trackerPort: number
 ): Promise<Broker> {
-	const client = new StreamrClient({
-		...ConfigTest,
-		auth: {
-			privateKey: logStoreNodePrivateKey,
-		},
-	});
-	try {
-		await client.setStorageNodeMetadata({
-			http: `http://127.0.0.1:${httpPort}`,
-		});
-		await createAssignmentStream(client);
-	} finally {
-		client?.destroy();
-	}
 	return startBroker({
 		privateKey: logStoreNodePrivateKey,
 		trackerPort,
 		httpPort,
 		enableCassandra: true,
+		logStoreManagerChainAddress: '0x699B4bE95614f017Bb622e427d3232837Cc814E6',
+		theGraphUrl:
+			'http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts',
 	});
-}
-
-async function createAssignmentStream(client: StreamrClient): Promise<Stream> {
-	const stream = await client.getOrCreateStream({
-		id: '/assignments',
-		partitions: 1,
-	});
-	await stream.grantPermissions({
-		public: true,
-		permissions: [StreamPermission.SUBSCRIBE],
-	});
-	return stream;
 }

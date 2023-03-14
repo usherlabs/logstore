@@ -10,7 +10,15 @@
 		},
 		"logLevel": {
 			"type": "string",
-			"enum": ["silent", "fatal", "error", "warn", "info", "debug", "trace"],
+			"enum": [
+				"silent",
+				"fatal",
+				"error",
+				"warn",
+				"info",
+				"debug",
+				"trace"
+			],
 			"default": "info"
 		},
 		"auth": {
@@ -68,7 +76,11 @@
 							"items": {
 								"type": "object",
 								"additionalProperties": false,
-								"required": ["id", "http", "ws"],
+								"required": [
+									"id",
+									"http",
+									"ws"
+								],
 								"properties": {
 									"id": {
 										"type": "string",
@@ -87,7 +99,9 @@
 						},
 						{
 							"type": "object",
-							"required": ["contractAddress"],
+							"required": [
+								"contractAddress"
+							],
 							"additionalProperties": false,
 							"properties": {
 								"contractAddress": {
@@ -145,7 +159,10 @@
 					"type": "array",
 					"items": {
 						"type": "object",
-						"required": ["url", "port"],
+						"required": [
+							"url",
+							"port"
+						],
 						"additionalProperties": false,
 						"properties": {
 							"url": {
@@ -283,7 +300,7 @@
 				"theGraphUrl": {
 					"type": "string",
 					"format": "uri",
-					"default": "https://api.thegraph.com/subgraphs/name/streamr-dev/streams"
+					"default": "http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts"
 				},
 				"maxConcurrentCalls": {
 					"type": "number",
@@ -292,10 +309,18 @@
 			},
 			"default": {}
 		},
-		"decryption": {
+		"encryption": {
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
+				"litProtocolEnabled": {
+					"type": "boolean",
+					"default": false
+				},
+				"litProtocolLogging": {
+					"type": "boolean",
+					"default": false
+				},
 				"keyRequestTimeout": {
 					"type": "number",
 					"default": 30000
@@ -320,7 +345,10 @@
 							"type": "array",
 							"items": {
 								"type": "object",
-								"required": ["streamId", "duration"],
+								"required": [
+									"streamId",
+									"duration"
+								],
 								"properties": {
 									"id": {
 										"type": "string"
@@ -413,7 +441,9 @@
 	"definitions": {
 		"rpcProviderConfig": {
 			"type": "object",
-			"required": ["url"],
+			"required": [
+				"url"
+			],
 			"properties": {
 				"url": {
 					"type": "string",
@@ -440,7 +470,10 @@
 		"chainConnectionInfoList": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["rpcs", "chainId"],
+			"required": [
+				"rpcs",
+				"chainId"
+			],
 			"properties": {
 				"chainId": {
 					"type": "number"

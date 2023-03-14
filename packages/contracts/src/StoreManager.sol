@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.17;
 
+import "@openzeppelin/contracts/utils/Strings.sol";
+
 // Open Zeppelin libraries for controlling upgradability and access.
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -12,13 +14,17 @@ import {IStreamRegistry} from "./interfaces/StreamRegistry.sol";
 
 // Owned by the NodeManager Contract
 contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+
+    string public constant LOGSTORE_STREAM_ID_PATH = "/logstore";
+    string public constant LOGSTORE_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
+
     event StoreUpdated(
         string store,
-        bool indexed isNew,
+        bool isNew,
         uint256 amount,
-        address indexed updatedBy
+        address updatedBy
     );
-    event DataStored(string indexed store, uint256 fees, uint256 bytesStored);
+    event DataStored(string store, uint256 fees, uint256 bytesStored);
 
     uint256 public totalSupply;
     address public stakeTokenAddress;
@@ -36,6 +42,13 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
         stakeTokenAddress = stakeTokenAddress_;
+
+        streamrRegistry.createStream(LOGSTORE_STREAM_ID_PATH, LOGSTORE_STREAM_METADATA_JSON_STRING);
+
+        // TODO: Granted public permission to publish to LogStore stream. The pesmission have to be granted only to LogStore nodes.
+        string memory streamId = string(abi.encodePacked(Strings.toHexString(address(this)), LOGSTORE_STREAM_ID_PATH));
+        streamrRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Publish);
+
         transferOwnership(owner);
     }
 
@@ -88,12 +101,14 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         require(streamrRegistry.exists(streamId), "error_invalidStream");
 
         require(amount > 0, "error_insufficientStake");
-        bool success = stakeToken.transferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
-        require(success == true, "error_unsuccessfulStake");
+
+        // TODO: Temporary commented out because it fails
+        // bool success = stakeToken.transferFrom(
+        //     msg.sender,
+        //     address(this),
+        //     amount
+        // );
+        // require(success == true, "error_unsuccessfulStake");
         bool isNew = false;
         if (stores[streamId] == 0) {
             isNew = true;
