@@ -193,6 +193,7 @@ describe('NodeManager', function () {
 				await nodeManagerContract.functions.whitelist(nodeAddress);
 			expect(nodeWhitelistState).to.equal(NODE_WHITELIST_STATE.APPROVED);
 		});
+
 		it('WhiteListNodes ---- Admin can whitelistRejectNode', async function () {
 			const nodeAddress = otherSigners[1].address;
 			const whitelistNodeTx =
@@ -215,6 +216,7 @@ describe('NodeManager', function () {
 				await nodeManagerContract.functions.whitelist(nodeAddress);
 			expect(nodeWhitelistState).to.equal(NODE_WHITELIST_STATE.REJECTED);
 		});
+
 		it('WhiteListNodes ---- Admin can kickNode', async function () {
 			const nodeAddress = NODE_MANAGER.INITIAL_NODES[0];
 			const kickNodeTx = await nodeManagerContract.functions.kickNode(
@@ -249,6 +251,7 @@ describe('NodeManager', function () {
 				CUSTOM_EXCEPTIONS.NODE_NOT_WHITELISTED
 			);
 		});
+
 		it('JoinNetwork ---- Whitelisted Node can join network', async function () {
 			const newNodeAddress = whitelistedNodeSigner.address;
 			const initialNodeCount = await nodeManagerContract.functions.totalNodes();
@@ -297,6 +300,7 @@ describe('NodeManager', function () {
 				CUSTOM_EXCEPTIONS.STAKE_INSUFFICIENT_BALANCE
 			);
 		});
+
 		it('StakeAmount ---- Nodes can stake an amount', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const newNodeAddress = whitelistedNodeSigner.address;
@@ -314,6 +318,7 @@ describe('NodeManager', function () {
 			);
 			expect(userNodeBalance).be.equal(stakeAmount);
 		});
+
 		it('StakeAmount ---- Nodes cannot withdraw more than staked amount', async function () {
 			const stakeAmount = getDecimalBN(1);
 			// stake amount and validate staked
@@ -329,6 +334,7 @@ describe('NodeManager', function () {
 				CUSTOM_EXCEPTIONS.INVALID_WITHDRAW_AMOUNT
 			);
 		});
+
 		it('StakeAmount ---- Nodes can withdraw staked amount', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const token = await getERC20Token(whitelistedNodeSigner);
@@ -379,6 +385,7 @@ describe('NodeManager', function () {
 				CUSTOM_EXCEPTIONS.INSUFFICIENT_DELEGATE_AMOUNT
 			);
 		});
+
 		it('delegateStake ---- User cannot delegate to node that doesnt exist', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const newNodeAddress = generateWallet();
@@ -395,6 +402,7 @@ describe('NodeManager', function () {
 				CUSTOM_EXCEPTIONS.NONE_EXISTENT_NODE
 			);
 		});
+
 		it('delegateStake ---- User can delegate stake to node', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const newNodeAddress = NODE_MANAGER.INITIAL_NODES[0];
@@ -435,6 +443,7 @@ describe('NodeManager', function () {
 			expect(postDelegateNodeStake).to.be.equal(stakeAmount);
 			// fetch state from contract to validate
 		});
+
 		it('undelegateStake ---- User can undelegate stake to node', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const newNodeAddress = NODE_MANAGER.INITIAL_NODES[0];
@@ -508,6 +517,7 @@ describe('NodeManager', function () {
 				.to.equal(+stakeAmount)
 				.to.equal(+delegatesBalance);
 		});
+
 		it('CompoundActions ----- Node can leave(undelegate ---> withdraw ---> removeNode )', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const tokenContract = await getERC20Token(adminSigner);
@@ -530,6 +540,7 @@ describe('NodeManager', function () {
 				+preWithdrawTokenBalance
 			);
 		});
+
 		it('CompoundActions ----- Node can undelegateWithdraw(undelegate ---> withdraw)', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const tokenContract = await getERC20Token(adminSigner);

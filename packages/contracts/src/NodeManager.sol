@@ -83,7 +83,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     ) public initializer {
         require(initialNodes.length == initialMetadata.length, "error_badTrackerData");
         require(stakeTokenAddress_ != address(0) && stakeRequiredAmount_ > 0, "error_badTrackerData");
-    
+
         __Ownable_init();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
@@ -189,18 +189,18 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             totalSupply += writeCapture;
 
             for (uint256 j = 0; j < report.streams[i].consumers.length; j++) {
-							// Within each stream, iterate of the stream's data consumers (query-ers)
-							uint256 readCapture = report.streams[i].queried[j] * readFee; // Read Capture Amount = total queried bytes * readFee
-							_queryManager.capture(
-									report.streams[i].id,
-									readCapture,
-									report.streams[i].consumers[j],
-									report.streams[i].queried[j]
-							);
-							totalSupply += readCapture;
+                // Within each stream, iterate of the stream's data consumers (query-ers)
+                uint256 readCapture = report.streams[i].queried[j] * readFee; // Read Capture Amount = total queried bytes * readFee
+                _queryManager.capture(
+                    report.streams[i].id,
+                    readCapture,
+                    report.streams[i].consumers[j],
+                    report.streams[i].queried[j]
+                );
+                totalSupply += readCapture;
             }
 
-						// Now that we've moved all funds to this contract...
+            // Now that we've moved all funds to this contract...
             // Allocate treasury fees
             treasurySupply +=
                 (report.streams[i]._write * writeTreasuryFee) +
@@ -208,41 +208,41 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             // Allocate node write fees
             // To do so, we need to determine the portions allocated to each node proportional to their performance
             for (uint256 j = 0; j < report.streams[i].nodes.length; j++) {
-								// Signed Integer to allow negative values
-								int256 bytesContributed = int(report.streams[i].nodes[j].observed) - int(report.streams[i].nodes[j].missed);
-								int256 nodeWriteCaptureAmount = bytesContributed * int(writeNodeFee);
-								// Reward for successful performance, and penalise nodes for misses
+                // Signed Integer to allow negative values
+                int256 bytesContributed = int(report.streams[i].nodes[j].observed) -
+                    int(report.streams[i].nodes[j].missed);
+                int256 nodeWriteCaptureAmount = bytesContributed * int(writeNodeFee);
+                // Reward for successful performance, and penalise nodes for misses
                 int256 nodeWriteCapturePortion = bytesContributed / int(report.streams[i]._write); // Fee determined per byte successfully observed against total bytes written
 
                 // Determine which balances to allocate this capture portion to
                 for (uint256 x = 0; x < nodes[report.streams[i].nodes[j].id].delegates.length; x++) {
-									address nodeDelegate = nodes[report.streams[i].nodes[j].id].delegates[x];
-									int256 delegateAmount = int(delegatesOf[nodeDelegate][report.streams[i].nodes[j].id]);
-									int256 delegatePortion = delegateAmount / int(nodes[report.streams[i].nodes[j].id].stake);
-									int256 delegateCapturePortion = delegatePortion * nodeWriteCapturePortion; // can be negative -- ie. how much of the total reduction is stake is attributed to this delegate
-									int256 changeDelegateAmountBy = delegateCapturePortion * nodeWriteCaptureAmount; // How much of the node's total changed amount is attributed to the delegate of the node
-									if(delegateAmount + changeDelegateAmountBy > 0){
-										delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] += uint(changeDelegateAmountBy);
-									}else{
-										delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] = 0;
-									}
+                    address nodeDelegate = nodes[report.streams[i].nodes[j].id].delegates[x];
+                    int256 delegateAmount = int(delegatesOf[nodeDelegate][report.streams[i].nodes[j].id]);
+                    int256 delegatePortion = delegateAmount / int(nodes[report.streams[i].nodes[j].id].stake);
+                    int256 delegateCapturePortion = delegatePortion * nodeWriteCapturePortion; // can be negative -- ie. how much of the total reduction is stake is attributed to this delegate
+                    int256 changeDelegateAmountBy = delegateCapturePortion * nodeWriteCaptureAmount; // How much of the node's total changed amount is attributed to the delegate of the node
+                    if (delegateAmount + changeDelegateAmountBy > 0) {
+                        delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] += uint(changeDelegateAmountBy);
+                    } else {
+                        delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] = 0;
+                    }
                 }
 
                 // Allocate node read fees - multiple portion of query contribution by the node, with the total capture amount for the stream's read
                 uint256 nodeReadCaptureAmount = (report.streams[i].nodes[j].queried / report.streams[i]._read) *
                     (report.streams[i]._read * readNodeFee);
-
                 nodes[report.streams[i].nodes[j].id].stake += nodeReadCaptureAmount;
-								if(int(nodes[report.streams[i].nodes[j].id].stake) + nodeWriteCaptureAmount > 0){
-									nodes[report.streams[i].nodes[j].id].stake += uint(nodeWriteCaptureAmount);
-								}else{
-									nodes[report.streams[i].nodes[j].id].stake = 0;
-								}
+                if (int(nodes[report.streams[i].nodes[j].id].stake) + nodeWriteCaptureAmount > 0) {
+                    nodes[report.streams[i].nodes[j].id].stake += uint(nodeWriteCaptureAmount);
+                } else {
+                    nodes[report.streams[i].nodes[j].id].stake = 0;
+                }
 
-								if(nodeWriteCaptureAmount < 0){
-									// Move all penalised amounts to treasury for redistribution
-	                treasurySupply += uint(-nodeWriteCaptureAmount);
-								}
+                if (nodeWriteCaptureAmount < 0) {
+                    // Move all penalised amounts to treasury for redistribution
+                    treasurySupply += uint(-nodeWriteCaptureAmount);
+                }
             }
         }
 

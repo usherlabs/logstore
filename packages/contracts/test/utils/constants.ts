@@ -4,7 +4,7 @@ export const SAMPLE_WSS_URL = 'wss://node-domain-name:port';
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const CONSUMER_ADDRESS = '0x801B769Cd87685d4Bf49acDe776d6b0C59F5E779'; //address of the 19th account of ethers.getSigners();
 export const FAKE_STREAMR_REGISTRY =
-	'0x10E9Ef0B736025D4C252C9Ad5Fa3671fa4236E81';
+	'0xb7035e1572b3df33703f412f448691b36cc714ae';
 export const SAMPLE_STREAM_ID = 'xand6r.eth/demos/twitter/sample';
 
 export const NODE_MANAGER = {

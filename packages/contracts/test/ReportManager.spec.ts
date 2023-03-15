@@ -218,15 +218,18 @@ describe('ReportManager', async function () {
 		//-------  validate that the right amount of tokens have been transferred to the nodemanager contract
 
 		// ------- Verify the node stake has been increased propportionately
-		const portion = reportData.bytesObservedPerNode[0][0] / totalWrites;
-		const penalty = Math.floor(
-			reportData.bytesMissedPerNode[0][0] / totalWrites
-		);
-		const nodeCapturePortion = (portion - penalty) * totalWrites * writeNodeFee;
-		const nodeCaptureQueryPortion =
+		const bytesContributed =
+			reportData.bytesObservedPerNode[0][0] -
+			reportData.bytesMissedPerNode[0][0];
+		const nodeWriteCapturePortion = Math.floor(bytesContributed / totalWrites);
+		const nodeWriteCaptureAmount = bytesContributed * writeNodeFee;
+
+		const nodeReadCaptureAmount =
 			Math.floor(reportData.bytesQueriedPerConsumer[0][0] / totalRead) *
-			Math.floor(totalWrites * readNodeFee);
-		const nodeStakeIncrement = nodeCapturePortion + nodeCaptureQueryPortion;
+			Math.floor(totalRead * readNodeFee);
+		let nodeStakeIncrement = nodeWriteCaptureAmount + nodeReadCaptureAmount;
+		nodeStakeIncrement = nodeStakeIncrement < 0 ? 0 : nodeStakeIncrement;
+
 		expect(nodeStakeIncrement).to.equal(
 			+nodeStakePostProcess.sub(nodeStakePreProcess)
 		);
@@ -240,8 +243,11 @@ describe('ReportManager', async function () {
 			currentNode.address,
 			currentNode.address
 		);
+		const delegatePortion =
+			nodeWriteCapturePortion * 1 * nodeWriteCaptureAmount; //multiply by 1 since we ahve only one node
+
 		expect(+delegatesBalance).to.equal(
-			+delegateStake.add(BigNumber.from(`${nodeCapturePortion}`))
+			+delegateStake.add(BigNumber.from(`${delegatePortion}`))
 		);
 		//  ------- validate the delegatees have been balanced
 	});
