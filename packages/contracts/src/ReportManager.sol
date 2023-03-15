@@ -185,7 +185,7 @@ contract LogStoreReportManager is
                 '","read":{'
             );
             for (uint256 j = 0; j < consumerAddresses[i].length; j++) {
-                streamRead += bytesQueriedPerConsumer[i][j];
+                streamRead += bytesQueriedPerConsumer[i][j]; // Only cares about the total bytes observed
 
                 reportJson = string.concat(
                     reportJson,

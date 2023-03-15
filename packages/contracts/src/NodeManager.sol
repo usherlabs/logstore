@@ -169,66 +169,76 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
         // Determine fee amounts on a per stream basis
         // 1. Take the total fees/expense, priced in staked currency, and evaluate a fee per stored byte (observed + missed)
-        // 2. Fee per stored byte is a multiplier on the fees/expense that incorporates the Treasury delegation
+        // 2. Fee per stored byte uses a multiplier (in basis points) on the fees/expense and then incorporates the Treasury delegation
         uint256 writeExpense = report.fee / report._write;
         uint256 writeFee = (writeFeePoints / 10000 + 1) * writeExpense;
-        uint256 writeTreasuryFee = (treasuryFeePoints / 10000) * (writeFee - writeExpense);
-        uint256 writeNodeFee = writeFee - writeTreasuryFee;
+        uint256 writeTreasuryFee = (treasuryFeePoints / 10000) * (writeFee - writeExpense); // Treasury fee is applied exclusively to the profit/fee amount
+        uint256 writeNodeFee = writeFee - writeTreasuryFee; // Node fee is the total fee minus the treasury fee
         uint256 readTreasuryFee = readFee * (treasuryFeePoints / 10000);
         uint256 readNodeFee = readFee - readTreasuryFee;
 
         for (uint256 i = 0; i < report.streams.length; i++) {
             // Capture fees from LogStoreManager
             // Once captured, partition between node and treasury
-            uint256 writeCapture = report.streams[i]._write * writeFee;
+            uint256 writeCapture = report.streams[i]._write * writeFee; // Capture Amount = total bytes written for the stream * writeFree
             _storeManager.capture(report.streams[i].id, writeCapture, report.streams[i]._write);
             totalSupply += writeCapture;
 
             for (uint256 j = 0; j < report.streams[i].consumers.length; j++) {
-                uint256 readCapture = report.streams[i].queried[j] * readFee;
-                _queryManager.capture(
-                    report.streams[i].id,
-                    readCapture,
-                    report.streams[i].consumers[j],
-                    report.streams[i].queried[j]
-                );
-                totalSupply += readCapture;
+							// Within each stream, iterate of the stream's data consumers (query-ers)
+							uint256 readCapture = report.streams[i].queried[j] * readFee; // Read Capture Amount = total queried bytes * readFee
+							_queryManager.capture(
+									report.streams[i].id,
+									readCapture,
+									report.streams[i].consumers[j],
+									report.streams[i].queried[j]
+							);
+							totalSupply += readCapture;
             }
 
-            // Allocate treasury write fees
+						// Now that we've moved all funds to this contract...
+            // Allocate treasury fees
             treasurySupply +=
                 (report.streams[i]._write * writeTreasuryFee) +
                 (report.streams[i]._read * readTreasuryFee);
             // Allocate node write fees
             // To do so, we need to determine the portions allocated to each node proportional to their performance
             for (uint256 j = 0; j < report.streams[i].nodes.length; j++) {
-                uint256 portion = report.streams[i].nodes[j].observed / report.streams[i]._write;
-                uint256 penalty = report.streams[i].nodes[j].missed / report.streams[i]._write;
-                
-                // set the node capture portion to zero if penalty > portion
-                // because if they have missed more nodes than observed and thus do not deserve to be rewarded
-                uint256 nodeCapturePortion = 0;
-                if (portion > penalty) {
-                    // Penalise nodes for missing writes
-                    nodeCapturePortion = (portion - penalty) * report.streams[i]._write * writeNodeFee;
-                }
+								// Signed Integer to allow negative values
+								int256 bytesContributed = report.streams[i].nodes[j].observed - report.streams[i].nodes[j].missed;
+								int256 nodeWriteCaptureAmount = bytesContributed * writeNodeFee;
+								// Reward for successful performance, and penalise nodes for misses
+                int256 nodeWriteCapturePortion = bytesContributed / report.streams[i]._write; // Fee determined per byte successfully observed against total bytes written
 
                 // Determine which balances to allocate this capture portion to
                 for (uint256 x = 0; x < nodes[report.streams[i].nodes[j].id].delegates.length; x++) {
-                    address nodeDelegate = nodes[report.streams[i].nodes[j].id].delegates[x];
-                    uint256 delegateAmount = delegatesOf[nodeDelegate][report.streams[i].nodes[j].id];
-                    uint256 delegatePortion = delegateAmount / nodes[report.streams[i].nodes[j].id].stake;
-                    uint256 delegateCapturePortion = delegatePortion * nodeCapturePortion;
-                    delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] += delegateCapturePortion;
+									address nodeDelegate = nodes[report.streams[i].nodes[j].id].delegates[x];
+									uint256 delegateAmount = delegatesOf[nodeDelegate][report.streams[i].nodes[j].id];
+									uint256 delegatePortion = delegateAmount / nodes[report.streams[i].nodes[j].id].stake;
+									int256 delegateCapturePortion = delegatePortion * nodeWriteCapturePortion; // can be negative -- ie. how much of the total reduction is stake is attributed to this delegate
+									int256 changeDelegateAmountBy = delegateCapturePortion * nodeWriteCaptureAmount; // How much of the node's total changed amount is attributed to the delegate of the node
+									if(delegateAmount + changeDelegateAmountBy > 0){
+										delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] += changeDelegateAmountBy;
+									}else{
+										delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] = 0;
+									}
                 }
 
-                // Allocate node read fees
-                uint256 nodeCaptureQueryPortion = (report.streams[i].nodes[j].queried / report.streams[i]._read) *
-                    (report.streams[i]._write * readNodeFee);
+                // Allocate node read fees - multiple portion of query contribution by the node, with the total capture amount for the stream's read
+                uint256 nodeReadCaptureAmount = (report.streams[i].nodes[j].queried / report.streams[i]._read) *
+                    (report.streams[i]._read * readNodeFee);
 
-                nodes[report.streams[i].nodes[j].id].stake += nodeCapturePortion + nodeCaptureQueryPortion;
+                nodes[report.streams[i].nodes[j].id].stake += nodeReadCaptureAmount;
+								if(nodes[report.streams[i].nodes[j].id].stake + nodeWriteCaptureAmount > 0){
+									nodes[report.streams[i].nodes[j].id].stake += nodeWriteCaptureAmount;
+								}else{
+									nodes[report.streams[i].nodes[j].id].stake = 0;
+								}
 
-                treasurySupply += penalty * report.streams[i]._write * writeNodeFee;
+								if(nodeWriteCaptureAmount < 0){
+									// Move all penalised amounts to treasury for redistribution
+	                treasurySupply += -nodeWriteCaptureAmount;
+								}
             }
         }
 
