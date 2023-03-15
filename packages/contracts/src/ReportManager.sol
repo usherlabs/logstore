@@ -144,7 +144,7 @@ contract LogStoreReportManager is
         //     bytes(lastReportId).length > 0 && reports[lastReportId].height < blockHeight,
         //     "error_invalidReport"
         // );
-        require(blockHeight <= block.number, "error_invalidReport");
+        require(blockHeight <= block.number && blockHeight > reports[lastReportId].blockHeight, "error_invalidReport");
         require(streams.length * 6 == nodesPerStream.length + bytesObservedPerNode.length + bytesMissedPerNode.length + bytesQueriedPerNode.length + consumerAddresses.length + bytesQueriedPerConsumer.length, "error_badRequest");
 
         // validate that the appropriate reporters can submit reports based on the current block

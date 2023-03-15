@@ -10,17 +10,17 @@ The ETL network node is comprised of the `node`, `core` and `contracts`.
 
 ## Development environment
 
-1. Setup `Streamr development environment` follwing its [instructions](https://github.com/streamr-dev/streamr-docker-dev/blob/master/README.md#setting-up).
-1. Start `Streamr development environment` 
+1. Setup the **Streamr development environment** follwing its [instructions](https://github.com/streamr-dev/streamr-docker-dev/blob/master/README.md#setting-up).
+2. Start **Streamr development environment**
     ```bash
     streamr-docker-dev start --wait
     ```
-1. Wait until all services are up and running.
-1. In the root of this repo run:
+3. Wait until all services are up and running.
+4. In the root of this repo run:
     ```bash
-    docker compose up
+    docker compose upN
     ```
-1. Deploy `StorageManager` contracts
+5. Deploy `StorageManager` contracts
     ```bash
     cd ./packages/contracts
     npx hardhat run ./scripts/deployStoreManager.ts --network streamr-dev
