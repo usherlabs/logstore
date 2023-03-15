@@ -20,7 +20,7 @@ services:
     graph-deploy-logstore-subgraph:
         container_name: logstore-dev-graph-deploy-logstore-subgraph
         image: graph-deploy-logstore-subgraph
-        build: ./subgraph
+        build: ./packages/subgraph
         restart: on-failure # exits on success
         networks:
             - streamr-network
