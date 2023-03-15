@@ -8,14 +8,15 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {LogStoreNodeManager} from "./NodeManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
 
 contract LogStoreReportManager is
     Initializable,
     UUPSUpgradeable,
-    OwnableUpgradeable
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable
 {
     event ReportAccepted(string raw);
 
@@ -57,14 +58,15 @@ contract LogStoreReportManager is
     mapping(string => Report) internal reports;
     LogStoreNodeManager private _nodeManager;
 
-    function initialize(address owner) public initializer {
+    function initialize(address _owner) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
+        __ReentrancyGuard_init();
 
-        _nodeManager = LogStoreNodeManager(owner);
+        _nodeManager = LogStoreNodeManager(_owner);
         reportBlockBuffer = 10;
 
-        transferOwnership(owner);
+        transferOwnership(_owner);
     }
 
     /// @dev required by the OZ UUPS module

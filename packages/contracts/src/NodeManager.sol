@@ -8,13 +8,14 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import {LogStoreManager} from "./StoreManager.sol";
 import {LogStoreQueryManager} from "./QueryManager.sol";
 import {LogStoreReportManager} from "./ReportManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
 
-contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
     event NodeStakeUpdated(address indexed nodeAddress, uint stake);
@@ -70,7 +71,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     LogStoreReportManager private _reportManager;
 
     function initialize(
-        address owner,
+        address owner_,
         bool requiresWhitelist_,
         address stakeTokenAddress_,
         uint256 stakeRequiredAmount_,
@@ -78,13 +79,16 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         uint256 treasuryFeePoints_,
         uint256 readFee_,
         address[] memory initialNodes,
-        string[] memory initialMetadata
+        string[] calldata initialMetadata
     ) public initializer {
-        __Ownable_init();
-        __UUPSUpgradeable_init();
-        requiresWhitelist = requiresWhitelist_;
         require(initialNodes.length == initialMetadata.length, "error_badTrackerData");
         require(stakeTokenAddress_ != address(0) && stakeRequiredAmount_ > 0, "error_badTrackerData");
+    
+        __Ownable_init();
+        __UUPSUpgradeable_init();
+        __ReentrancyGuard_init();
+
+        requiresWhitelist = requiresWhitelist_;
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
 
         // Configure
@@ -93,7 +97,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         for (uint i = 0; i < initialNodes.length; i++) {
             upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
         }
-        transferOwnership(owner);
+        transferOwnership(owner_);
     }
 
     function configure(
@@ -123,7 +127,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         _reportManager = LogStoreReportManager(contractAddress);
     }
 
-    function upsertNodeAdmin(address node, string memory metadata_) public onlyOwner {
+    function upsertNodeAdmin(address node, string calldata metadata_) public onlyOwner {
         _upsertNode(node, metadata_);
     }
 
@@ -247,7 +251,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     }
 
     // Nodes can join the network, but they will not earn rewards or participate unless they're staked.
-    function upsertNode(string memory metadata_) public onlyWhitelist {
+    function upsertNode(string calldata metadata_) public onlyWhitelist {
         _upsertNode(msg.sender, metadata_);
     }
 
@@ -255,7 +259,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         _removeNode(msg.sender);
     }
 
-    function join(uint amount, string memory metadata_) public {
+    function join(uint amount, string calldata metadata_) public {
         upsertNode(metadata_);
         stake(amount);
         delegate(amount, msg.sender);
@@ -267,8 +271,9 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         removeNode();
     }
 
-    function stake(uint amount) public {
+    function stake(uint amount) public nonReentrant {
         require(amount > 0, "error_insufficientStake");
+        require(stakeToken.balanceOf(msg.sender) >= amount, "error_insufficientBalance");
 
         balanceOf[msg.sender] += amount;
         totalSupply += amount;
@@ -303,7 +308,8 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         balanceOf[msg.sender] += amount;
 
         uint256 removeIndex = 0;
-        for (uint256 i = 0; i < nodes[node].delegates.length; i++) {
+        uint256 numDelegates = nodes[node].delegates.length;
+        for (uint256 i = 0; i < numDelegates; i++) {
             if (msg.sender == nodes[node].delegates[i]) {
                 removeIndex = i;
                 break;
@@ -335,7 +341,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         withdraw(amount);
     }
 
-    function _upsertNode(address nodeAddress, string memory metadata_) internal {
+    function _upsertNode(address nodeAddress, string calldata metadata_) internal {
         Node storage foundNode = nodes[nodeAddress];
         uint isNew = 0;
 
@@ -360,23 +366,23 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     }
 
     function _removeNode(address nodeAddress) internal {
-        Node storage n = nodes[nodeAddress];
-        require(n.lastSeen != 0, "error_notFound");
+        Node storage removedNode = nodes[nodeAddress];
+        require(removedNode.lastSeen != 0, "error_notFound");
 
         // Delete before loop as to no conflict
         delete nodes[nodeAddress];
 
-        nodes[n.next].prev = n.prev;
+        nodes[removedNode.next].prev = removedNode.prev;
         if (headNode == nodeAddress) {
-            headNode = n.next;
+            headNode = removedNode.next;
         }
         if (tailNode == nodeAddress) {
-            tailNode = n.prev;
+            tailNode = removedNode.prev;
         }
 
         // Go through all the nodes after the removed one
         // and reduce the index value to account for a deduction
-        address nextNodeAddress = n.next;
+        address nextNodeAddress = removedNode.next;
         while (nextNodeAddress != address(0)) {
             nodes[nextNodeAddress].index--;
             nextNodeAddress = nodes[nextNodeAddress].next;
