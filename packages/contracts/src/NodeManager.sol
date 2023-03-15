@@ -205,20 +205,20 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             // To do so, we need to determine the portions allocated to each node proportional to their performance
             for (uint256 j = 0; j < report.streams[i].nodes.length; j++) {
 								// Signed Integer to allow negative values
-								int256 bytesContributed = report.streams[i].nodes[j].observed - report.streams[i].nodes[j].missed;
-								int256 nodeWriteCaptureAmount = bytesContributed * writeNodeFee;
+								int256 bytesContributed = int(report.streams[i].nodes[j].observed) - int(report.streams[i].nodes[j].missed);
+								int256 nodeWriteCaptureAmount = bytesContributed * int(writeNodeFee);
 								// Reward for successful performance, and penalise nodes for misses
-                int256 nodeWriteCapturePortion = bytesContributed / report.streams[i]._write; // Fee determined per byte successfully observed against total bytes written
+                int256 nodeWriteCapturePortion = bytesContributed / int(report.streams[i]._write); // Fee determined per byte successfully observed against total bytes written
 
                 // Determine which balances to allocate this capture portion to
                 for (uint256 x = 0; x < nodes[report.streams[i].nodes[j].id].delegates.length; x++) {
 									address nodeDelegate = nodes[report.streams[i].nodes[j].id].delegates[x];
-									uint256 delegateAmount = delegatesOf[nodeDelegate][report.streams[i].nodes[j].id];
-									uint256 delegatePortion = delegateAmount / nodes[report.streams[i].nodes[j].id].stake;
+									int256 delegateAmount = int(delegatesOf[nodeDelegate][report.streams[i].nodes[j].id]);
+									int256 delegatePortion = delegateAmount / int(nodes[report.streams[i].nodes[j].id].stake);
 									int256 delegateCapturePortion = delegatePortion * nodeWriteCapturePortion; // can be negative -- ie. how much of the total reduction is stake is attributed to this delegate
 									int256 changeDelegateAmountBy = delegateCapturePortion * nodeWriteCaptureAmount; // How much of the node's total changed amount is attributed to the delegate of the node
 									if(delegateAmount + changeDelegateAmountBy > 0){
-										delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] += changeDelegateAmountBy;
+										delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] += uint(changeDelegateAmountBy);
 									}else{
 										delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] = 0;
 									}
@@ -229,15 +229,15 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
                     (report.streams[i]._read * readNodeFee);
 
                 nodes[report.streams[i].nodes[j].id].stake += nodeReadCaptureAmount;
-								if(nodes[report.streams[i].nodes[j].id].stake + nodeWriteCaptureAmount > 0){
-									nodes[report.streams[i].nodes[j].id].stake += nodeWriteCaptureAmount;
+								if(int(nodes[report.streams[i].nodes[j].id].stake) + nodeWriteCaptureAmount > 0){
+									nodes[report.streams[i].nodes[j].id].stake += uint(nodeWriteCaptureAmount);
 								}else{
 									nodes[report.streams[i].nodes[j].id].stake = 0;
 								}
 
 								if(nodeWriteCaptureAmount < 0){
 									// Move all penalised amounts to treasury for redistribution
-	                treasurySupply += -nodeWriteCaptureAmount;
+	                treasurySupply += uint(-nodeWriteCaptureAmount);
 								}
             }
         }
