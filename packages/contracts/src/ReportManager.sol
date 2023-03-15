@@ -12,13 +12,9 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 import {LogStoreNodeManager} from "./NodeManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
 
-contract LogStoreReportManager is
-    Initializable,
-    UUPSUpgradeable,
-    OwnableUpgradeable,
-    ReentrancyGuardUpgradeable
-{
+contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     event ReportAccepted(string raw);
+    event Logger(bool isMet);
 
     struct Stream {
         string id;
@@ -72,15 +68,11 @@ contract LogStoreReportManager is
     /// @dev required by the OZ UUPS module
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    function getReport(
-        string calldata id
-    ) public view onlyOwner returns (Report memory) {
+    function getReport(string calldata id) public view onlyOwner returns (Report memory) {
         return reports[id];
     }
 
-    function getReportersList(
-        string calldata id
-    ) internal returns (address[] memory reporters) {
+    function getReportersList(string calldata id) internal returns (address[] memory reporters) {
         if (reportersOf[id].length > 0) {
             // Use cache in case previous report attempt was invalid.
             return reportersOf[id];
@@ -89,27 +81,19 @@ contract LogStoreReportManager is
         address[] memory nodeAddresses = _nodeManager.nodeAddresses();
 
         // Determine an array of addresses
-        address[] memory reporterAddresses = new address[](
-            nodeAddresses.length
-        );
+        address[] memory reporterAddresses = new address[](nodeAddresses.length);
         uint256 ceilingReputation = 0;
         for (uint256 i = 0; i < nodeAddresses.length; i++) {
             address nextReporterAddress = address(0);
             for (uint256 j = 0; j < nodeAddresses.length; j++) {
-                if (
-                    reputationOf[nodeAddresses[j]] >= ceilingReputation &&
-                    ceilingReputation > 0
-                ) {
+                if (reputationOf[nodeAddresses[j]] >= ceilingReputation && ceilingReputation > 0) {
                     continue;
                 }
                 if (nextReporterAddress == address(0)) {
                     nextReporterAddress = nodeAddresses[j];
                     continue;
                 }
-                if (
-                    reputationOf[nodeAddresses[j]] >
-                    reputationOf[nextReporterAddress]
-                ) {
+                if (reputationOf[nodeAddresses[j]] > reputationOf[nextReporterAddress]) {
                     nextReporterAddress = nodeAddresses[j];
                 }
             }
@@ -147,16 +131,23 @@ contract LogStoreReportManager is
         //     "error_invalidReport"
         // );
         require(blockHeight <= block.number && blockHeight > reports[lastReportId].height, "error_invalidReport");
-        require(streams.length * 6 == nodesPerStream.length + bytesObservedPerNode.length + bytesMissedPerNode.length + bytesQueriedPerNode.length + consumerAddresses.length + bytesQueriedPerConsumer.length, "error_badRequest");
+        require(
+            streams.length * 6 ==
+                nodesPerStream.length +
+                    bytesObservedPerNode.length +
+                    bytesMissedPerNode.length +
+                    bytesQueriedPerNode.length +
+                    consumerAddresses.length +
+                    bytesQueriedPerConsumer.length,
+            "error_badRequest"
+        );
+        require(quorumIsMet(addresses), "error_quorumNotMet");
 
         // validate that the appropriate reporters can submit reports based on the current block
         address[] memory orderedReportersList = getReportersList(bundleId);
         for (uint256 i = 0; i < orderedReportersList.length; i++) {
             if (orderedReportersList[i] == msg.sender) {
-                require(
-                    i * reportBlockBuffer + blockHeight < block.number,
-                    "error_invalidReporter"
-                );
+                require(i * reportBlockBuffer + blockHeight < block.number, "error_invalidReporter");
                 break;
             }
         }
@@ -180,12 +171,7 @@ contract LogStoreReportManager is
             uint256 streamRead = 0;
             uint256 streamWrite = 0;
 
-            reportJson = string.concat(
-                reportJson,
-                '{"id":"',
-                streams[i],
-                '","read":{'
-            );
+            reportJson = string.concat(reportJson, '{"id":"', streams[i], '","read":{');
             for (uint256 j = 0; j < consumerAddresses[i].length; j++) {
                 streamRead += bytesQueriedPerConsumer[i][j]; // Only cares about the total bytes observed
 
@@ -201,7 +187,7 @@ contract LogStoreReportManager is
                     reportJson = string.concat(reportJson, ",");
                 }
             }
-            reportJson = string.concat(reportJson,'},"write":[');
+            reportJson = string.concat(reportJson, '},"write":[');
 
             Node[] memory rNodes = new Node[](nodesPerStream[i].length);
             for (uint256 j = 0; j < nodesPerStream[i].length; j++) {
@@ -258,11 +244,7 @@ contract LogStoreReportManager is
         // Verify signatures
         bool accepted = true;
         for (uint256 i = 0; i < addresses.length; i++) {
-            bool verified = VerifySignature.verify(
-                addresses[i],
-                reportHash,
-                signatures[i]
-            );
+            bool verified = VerifySignature.verify(addresses[i], reportHash, signatures[i]);
             if (verified != true) {
                 accepted = false;
                 break;
@@ -270,7 +252,6 @@ contract LogStoreReportManager is
         }
 
         // Remove reporter from list?
-
         require(accepted, "error_invalidReportSignatures");
 
         reports[currentReport.id] = currentReport;
@@ -286,5 +267,25 @@ contract LogStoreReportManager is
         }
 
         emit ReportAccepted(reportJson);
+    }
+
+    function quorumIsMet(address[] memory submittedNodes) public view returns (bool isMet) {
+        uint256 count;
+        address[] memory existingNodes = _nodeManager.nodeAddresses();
+        uint256 requiredNodes = existingNodes.length / 2;
+        uint256 minimumNodes = requiredNodes <= 0 ? 1 : requiredNodes; //condition for only one node
+
+        for (uint256 i = 0; i < existingNodes.length; i++) {
+            for (uint256 j = 0; j < submittedNodes.length; j++) {
+                if (existingNodes[i] == submittedNodes[j]) {
+                    count++;
+                    break;
+                }
+            }
+            if (count >= minimumNodes) {
+                isMet = true;
+                break;
+            }
+        }
     }
 }

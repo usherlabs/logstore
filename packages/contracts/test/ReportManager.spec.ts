@@ -8,8 +8,10 @@ import {
 	NODE_MANAGER,
 	REPORT_MANAGER_EVENTS,
 	SAMPLE_STREAM_ID,
+	SAMPLE_WSS_URL,
 } from './utils/constants';
 import {
+	ApproveFundsForContract,
 	fetchEventArgsFromTx,
 	generateReportData,
 	generateReportHash,
@@ -32,7 +34,7 @@ describe('ReportManager', async function () {
 
 	beforeEach(async () => {
 		[adminSigner, ...otherSigners] = await ethers.getSigners();
-		activeNodes = otherSigners.slice(0, 10);
+		activeNodes = otherSigners.slice(0, 2);
 		nodeManagerContract = await setupNodeManager(adminSigner, activeNodes);
 		reportManagerContract = await loadReportManager(
 			adminSigner,
@@ -58,6 +60,42 @@ describe('ReportManager', async function () {
 
 		await expect(responseTx).to.be.revertedWith(
 			CUSTOM_EXCEPTIONS.STAKE_REQUIRED
+		);
+	});
+
+	it('ReportManager ---- Staked Node can only submit report when quorum is met', async function () {
+		const sampleNode = activeNodes[0];
+		const blockNumber = await getLatestBlockNumber();
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: +blockNumber - 10,
+			signer: sampleNode,
+		});
+
+		// add more nodes to the network, such that requiredNodes > 1 and joinedNodes > 3
+		await Promise.all(
+			otherSigners.map(async (signer) => {
+				await nodeManagerContract.functions.whitelistApproveNode(
+					signer.address
+				);
+				await ApproveFundsForContract(
+					nodeManagerContract.address,
+					getDecimalBN(10),
+					signer
+				);
+				await nodeManagerContract
+					.connect(signer)
+					.functions.join(getDecimalBN(1), SAMPLE_WSS_URL);
+			})
+		);
+
+		// send a report
+		const responseTx = reportManagerContract
+			.connect(sampleNode)
+			.functions.report(...Object.values(reportData));
+
+		await expect(responseTx).to.be.revertedWith(
+			CUSTOM_EXCEPTIONS.QUORUM_NOT_MET
 		);
 	});
 
