@@ -9,7 +9,7 @@ export const SAMPLE_STREAM_ID = 'xand6r.eth/demos/twitter/sample';
 
 export const NODE_MANAGER = {
 	// This is a custom token i deployed and minted tokens to all but the last account
-	STAKE_TOKEN: '0xbAf0892F01B8d2F456A80172627A3F6EA0253C80',
+	STAKE_TOKEN: '0x35a6a5401bf557fcec3f2ab871bc8c78b47ef54e',
 	STAKE_REQUIRED_AMOUNT: BigNumber.from(`1${'0'.repeat(1)}`), //1 unit of the STAKE_TOKEN
 	WRITE_FEE_POINTS: 10000, // 10000 * 0.01% of write fee
 	TREASURY_FEE_POINTS: 2000, // 2000 * 0.01% of write fee
