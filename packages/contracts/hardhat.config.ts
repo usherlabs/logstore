@@ -40,6 +40,7 @@ const chainIds = {
 	'polygon-mumbai': 80001,
 	sepolia: 11155111,
 	'streamr-dev': 8997,
+	'streamr-dev-docker': 8997,
 };
 
 function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
@@ -50,6 +51,12 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 			break;
 		case 'bsc':
 			jsonRpcUrl = 'https://bsc-dataseed1.binance.org';
+			break;
+		case 'streamr-dev':
+			jsonRpcUrl = 'http://localhost:8546';
+			break;
+		case 'streamr-dev-docker':
+			jsonRpcUrl = 'http://10.200.10.1:8546';
 			break;
 		default:
 			jsonRpcUrl = process.env[snakeCase(chain).toUpperCase()] || '';
@@ -108,14 +115,9 @@ const config: HardhatUserConfig = {
 		// optimism: getChainConfig('optimism-mainnet'),
 		'polygon-mainnet': getChainConfig('polygon-mainnet'),
 		'polygon-mumbai': getChainConfig('polygon-mumbai'),
+		'streamr-dev': getChainConfig('streamr-dev'),
+		'streamr-dev-docker': getChainConfig('streamr-dev-docker'),
 		// sepolia: getChainConfig('sepolia'),
-		'streamr-dev': {
-			chainId: chainIds['streamr-dev'],
-			url: 'http://localhost:8546',
-			accounts: [
-				'0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0',
-			],
-		},
 	},
 	paths: {
 		artifacts: './artifacts',
