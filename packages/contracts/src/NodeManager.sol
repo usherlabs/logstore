@@ -7,12 +7,10 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
 import {LogStoreManager} from "./StoreManager.sol";
 import {LogStoreQueryManager} from "./QueryManager.sol";
 import {LogStoreReportManager} from "./ReportManager.sol";
-import {VerifySignature} from "./lib/VerifySignature.sol";
 
 contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
@@ -62,9 +60,6 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     address public headNode;
     address public tailNode;
     IERC20Upgradeable internal stakeToken;
-    uint256 internal writeFeePoints; // = 10000;
-    uint256 internal treasuryFeePoints; // = 2000;
-    uint256 internal readFee; // = 100000000; // 0.0000000001 * 10^18 -- this is relevant to MATIC
     LogStoreManager private _storeManager;
     LogStoreQueryManager private _queryManager;
     LogStoreReportManager private _reportManager;
@@ -74,9 +69,6 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         bool requiresWhitelist_,
         address stakeTokenAddress_,
         uint256 stakeRequiredAmount_,
-        uint256 writeFeePoints_,
-        uint256 treasuryFeePoints_,
-        uint256 readFee_,
         address[] memory initialNodes,
         string[] memory initialMetadata
     ) public initializer {
@@ -86,26 +78,12 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         require(initialNodes.length == initialMetadata.length, "error_badTrackerData");
         require(stakeTokenAddress_ != address(0) && stakeRequiredAmount_ > 0, "error_badTrackerData");
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
-
-        // Configure
-        configure(stakeRequiredAmount_, writeFeePoints_, treasuryFeePoints_, readFee_);
+        stakeRequiredAmount = stakeRequiredAmount_;
 
         for (uint i = 0; i < initialNodes.length; i++) {
             upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
         }
         transferOwnership(owner);
-    }
-
-    function configure(
-        uint256 stakeRequiredAmount_,
-        uint256 writeFeePoints_,
-        uint256 treasuryFeePoints_,
-        uint256 readFee_
-    ) public onlyOwner {
-        stakeRequiredAmount = stakeRequiredAmount_;
-        writeFeePoints = writeFeePoints_;
-        treasuryFeePoints = treasuryFeePoints_;
-        readFee = readFee_;
     }
 
     /// @dev required by the OZ UUPS module
@@ -167,80 +145,50 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
         require(report._processed == false, "error_reportAlreadyProcessed");
 
-        // Determine fee amounts on a per stream basis
-        // 1. Take the total fees/expense, priced in staked currency, and evaluate a fee per stored byte (observed + missed)
-        // 2. Fee per stored byte uses a multiplier (in basis points) on the fees/expense and then incorporates the Treasury delegation
-        uint256 writeExpense = report.fee / report._write;
-        uint256 writeFee = (writeFeePoints / 10000 + 1) * writeExpense;
-        uint256 writeTreasuryFee = (treasuryFeePoints / 10000) * (writeFee - writeExpense); // Treasury fee is applied exclusively to the profit/fee amount
-        uint256 writeNodeFee = writeFee - writeTreasuryFee; // Node fee is the total fee minus the treasury fee
-        uint256 readTreasuryFee = readFee * (treasuryFeePoints / 10000);
-        uint256 readNodeFee = readFee - readTreasuryFee;
-
-        for (uint256 i = 0; i < report.streams.length; i++) {
-            // Capture fees from LogStoreManager
-            // Once captured, partition between node and treasury
-            uint256 writeCapture = report.streams[i]._write * writeFee; // Capture Amount = total bytes written for the stream * writeFree
-            _storeManager.capture(report.streams[i].id, writeCapture, report.streams[i]._write);
-            totalSupply += writeCapture;
-
-            for (uint256 j = 0; j < report.streams[i].consumers.length; j++) {
-							// Within each stream, iterate of the stream's data consumers (query-ers)
-							uint256 readCapture = report.streams[i].queried[j] * readFee; // Read Capture Amount = total queried bytes * readFee
+				for (uint256 i = 0; i < report.streams.length; i++) {
+					if(report.streams[i].writeBytes > 0){
+						_storeManager.capture(report.streams[i].id, report.streams[i].writeCapture, report.streams[i].writeBytes);
+						totalSupply += report.streams[i].writeCapture;
+					}
+					if(report.streams[i].consumers.length > 0){
+						for (uint256 j = 0; j < report.streams[i].consumers.length; j++) {
 							_queryManager.capture(
-									report.streams[i].id,
-									readCapture,
-									report.streams[i].consumers[j],
-									report.streams[i].queried[j]
+								report.streams[i].id,
+								report.streams[i].consumers[j].readCapture,
+								report.streams[i].consumers[j].id,
+								report.streams[i].consumers[j].readBytes
 							);
-							totalSupply += readCapture;
-            }
+							totalSupply += report.streams[i].consumers[j].readCapture;
+						}
+					}
+				}
+				for (uint256 i = 0; i < report.nodes.length; i++) {
+					int256 newNodeAmount = int(nodes[report.nodes[i].id].stake) + report.nodes[i].amount;
+					if(newNodeAmount > 0){
+						nodes[report.nodes[i].id].stake = uint(newNodeAmount);
+					}else{
+						nodes[report.nodes[i].id].stake = 0;
+					}
+				}
+				for (uint256 i = 0; i < report.delegates.length; i++) {
+					for (uint256 j = 0; j < report.delegates[i].nodes.length; j++) {
+						address delegateNodeAddress = report.delegates[i].nodes[j].id;
+						int256 delegateNodeChange = report.delegates[i].nodes[j].amount;
 
-						// Now that we've moved all funds to this contract...
-            // Allocate treasury fees
-            treasurySupply +=
-                (report.streams[i]._write * writeTreasuryFee) +
-                (report.streams[i]._read * readTreasuryFee);
-            // Allocate node write fees
-            // To do so, we need to determine the portions allocated to each node proportional to their performance
-            for (uint256 j = 0; j < report.streams[i].nodes.length; j++) {
-								// Signed Integer to allow negative values
-								int256 bytesContributed = int(report.streams[i].nodes[j].observed) - int(report.streams[i].nodes[j].missed);
-								int256 nodeWriteCaptureAmount = bytesContributed * int(writeNodeFee);
-								// Reward for successful performance, and penalise nodes for misses
-                int256 nodeWriteCapturePortion = bytesContributed / int(report.streams[i]._write); // Fee determined per byte successfully observed against total bytes written
-
-                // Determine which balances to allocate this capture portion to
-                for (uint256 x = 0; x < nodes[report.streams[i].nodes[j].id].delegates.length; x++) {
-									address nodeDelegate = nodes[report.streams[i].nodes[j].id].delegates[x];
-									int256 delegateAmount = int(delegatesOf[nodeDelegate][report.streams[i].nodes[j].id]);
-									int256 delegatePortion = delegateAmount / int(nodes[report.streams[i].nodes[j].id].stake);
-									int256 delegateCapturePortion = delegatePortion * nodeWriteCapturePortion; // can be negative -- ie. how much of the total reduction is stake is attributed to this delegate
-									int256 changeDelegateAmountBy = delegateCapturePortion * nodeWriteCaptureAmount; // How much of the node's total changed amount is attributed to the delegate of the node
-									if(delegateAmount + changeDelegateAmountBy > 0){
-										delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] += uint(changeDelegateAmountBy);
-									}else{
-										delegatesOf[nodeDelegate][report.streams[i].nodes[j].id] = 0;
-									}
-                }
-
-                // Allocate node read fees - multiple portion of query contribution by the node, with the total capture amount for the stream's read
-                uint256 nodeReadCaptureAmount = (report.streams[i].nodes[j].queried / report.streams[i]._read) *
-                    (report.streams[i]._read * readNodeFee);
-
-                nodes[report.streams[i].nodes[j].id].stake += nodeReadCaptureAmount;
-								if(int(nodes[report.streams[i].nodes[j].id].stake) + nodeWriteCaptureAmount > 0){
-									nodes[report.streams[i].nodes[j].id].stake += uint(nodeWriteCaptureAmount);
-								}else{
-									nodes[report.streams[i].nodes[j].id].stake = 0;
-								}
-
-								if(nodeWriteCaptureAmount < 0){
-									// Move all penalised amounts to treasury for redistribution
-	                treasurySupply += uint(-nodeWriteCaptureAmount);
-								}
-            }
-        }
+						int256 newDelegateAmount = int(delegatesOf[report.delegates[i].id][delegateNodeAddress]) + delegateNodeChange;
+						if(newDelegateAmount > 0){
+							delegatesOf[report.delegates[i].id][delegateNodeAddress] = uint(newDelegateAmount);
+						}else{
+							delegatesOf[report.delegates[i].id][delegateNodeAddress] = 0;
+						}
+					}
+				}
+				int256 newTreasurySupply = int(treasurySupply) + report.treasury;
+				if(newTreasurySupply > 0){
+					treasurySupply = uint(newTreasurySupply);
+				}else{
+					treasurySupply = 0;
+				}
 
         _reportManager.processReport(id);
         emit ReportProcessed(id);

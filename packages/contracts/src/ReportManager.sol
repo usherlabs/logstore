@@ -7,10 +7,11 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
 import {LogStoreNodeManager} from "./NodeManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
+import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
+
 
 contract LogStoreReportManager is
     Initializable,
@@ -19,34 +20,44 @@ contract LogStoreReportManager is
 {
     event ReportAccepted(string raw);
 
+		struct Consumer {
+			address id;
+			uint256 readCapture;
+			uint256 readBytes;
+		}
+
     struct Stream {
-        string id;
-        address[] consumers;
-        uint256[] queried;
-        Node[] nodes;
-        uint256 _read;
-        uint256 _write;
+			string id;
+			uint256 writeCapture;
+			uint256 writeBytes;
+			Consumer[] consumers;
     }
 
     struct Node {
         address id;
-        uint256 observed; // Byte count
-        uint256 missed;
-        uint256 queried;
+        int256 amount;
     }
+
+		struct Delegate {
+			address id;
+			Node[] nodes;
+		}
 
     struct Report {
         string id; // bundle id
+				string key; // key inside of bundle
         uint256 height;
         uint256 fee;
+				int256 treasury;
         Stream[] streams;
-        uint256 _read;
-        uint256 _write;
+				Node[] nodes;
+				Delegate[] delegates;
+				address _reporter;
         bool _processed;
     }
 
     modifier onlyStaked() {
-        require(_nodeManager.isStaked(msg.sender), "error_stakeRequired");
+        require(_nodeManager.isStaked(_msgSender()), "error_stakeRequired");
         _;
     }
 
@@ -70,11 +81,14 @@ contract LogStoreReportManager is
     /// @dev required by the OZ UUPS module
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    function getReport(
-        string calldata id
-    ) public view onlyOwner returns (Report memory) {
-        return reports[id];
-    }
+
+		function getReport(string calldata id) public view returns (Report memory){
+			return reports[id];
+		}
+
+		function getLastReport() public view returns (Report memory) {
+			return reports[lastReportId];
+		}
 
     function getReportersList(
         string calldata id
@@ -127,162 +141,206 @@ contract LogStoreReportManager is
     // Verifies a report and adds it to its accepted reports mapping
     function report(
         string calldata bundleId,
+				string calldata key,
         uint256 blockHeight,
         uint256 fee,
         string[] calldata streams,
-        address[][] calldata nodesPerStream,
-        uint256[][] calldata bytesObservedPerNode,
-        uint256[][] calldata bytesMissedPerNode,
-        uint256[][] calldata bytesQueriedPerNode,
-        address[][] calldata consumerAddresses,
-        uint256[][] calldata bytesQueriedPerConsumer,
+				uint256[] calldata writeCaptureAmounts,
+				uint256[] calldata writeBytes,
+				address[][] calldata readConsumerAddresses,
+				uint256[][] calldata readCaptureAmounts,
+				uint256[][] calldata readBytes,
+				address[] calldata nodes,
+				int256[] calldata nodeChanges,
+				address[] calldata delegates,
+				address[][] calldata delegateNodes,
+				int256[][] calldata delegateNodeChanges,
+				int256 treasurySupplyChange,
         // Arrays of addresses and signatures for verification
         address[] calldata addresses,
         bytes[] calldata signatures
     ) public onlyStaked {
-        // require(
-        //     bytes(lastReportId).length > 0 && reports[lastReportId].height < blockHeight,
-        //     "error_invalidReport"
-        // );
-        require(blockHeight <= block.number && blockHeight > reports[lastReportId].height, "error_invalidReport");
-        require(streams.length * 6 == nodesPerStream.length + bytesObservedPerNode.length + bytesMissedPerNode.length + bytesQueriedPerNode.length + consumerAddresses.length + bytesQueriedPerConsumer.length, "error_badRequest");
+			// require(
+			//     bytes(lastReportId).length > 0 && reports[lastReportId].height < blockHeight,
+			//     "error_invalidReport"
+			// );
+			require(blockHeight <= block.number && blockHeight > reports[lastReportId].height, "error_invalidReport");
 
-        // validate that the appropriate reporters can submit reports based on the current block
-        address[] memory orderedReportersList = getReportersList(bundleId);
-        for (uint256 i = 0; i < orderedReportersList.length; i++) {
-            if (orderedReportersList[i] == msg.sender) {
-                require(
-                    i * reportBlockBuffer + blockHeight < block.number,
-                    "error_invalidReporter"
-                );
-                break;
-            }
-        }
+			// validate that the appropriate reporters can submit reports based on the current block
+			address[] memory orderedReportersList = getReportersList(bundleId);
+			for (uint256 i = 0; i < orderedReportersList.length; i++) {
+					if (orderedReportersList[i] == msg.sender) {
+							require(
+									i * reportBlockBuffer + blockHeight < block.number,
+									"error_invalidReporter"
+							);
+							break;
+					}
+			}
 
-        // Produce json blob that signatures correspond to
-        uint256 totalWrite = 0;
-        uint256 totalRead = 0;
-        /* solhint-disable quotes */
-        string memory reportJson = string.concat(
-            '{"id":"',
-            bundleId,
-            '","height":"',
-            StringsUpgradeable.toString(blockHeight),
-            '","fee":"',
-            StringsUpgradeable.toString(fee),
-            '","streams":['
-        );
+			/* solhint-disable quotes */
+			string memory reportJson = string.concat(
+					'{"id":"',
+					bundleId,
+					'","height":"',
+					StringsUpgradeable.toString(blockHeight),
+					'","fee":"',
+					StringsUpgradeable.toString(fee),
+					'","treasury":"',
+					StringsUpgradeable.toString(treasurySupplyChange),
+					'","streams":['
+			);
 
-        Stream[] memory rStreams = new Stream[](streams.length);
-        for (uint256 i = 0; i < streams.length; i++) {
-            uint256 streamRead = 0;
-            uint256 streamWrite = 0;
+			Stream[] memory rStreams = new Stream[](streams.length);
+			for (uint256 i = 0; i < streams.length; i++) {
+					reportJson = string.concat(
+							reportJson,
+							'{"id":"',
+							streams[i],
+							'","write":{"capture":',
+							StringsUpgradeable.toString(writeCaptureAmounts[i]),
+							', "bytes": ',StringsUpgradeable.toString(writeBytes[i]),
+							'},"read": {'
+					);
 
-            reportJson = string.concat(
-                reportJson,
-                '{"id":"',
-                streams[i],
-                '","read":{'
-            );
-            for (uint256 j = 0; j < consumerAddresses[i].length; j++) {
-                streamRead += bytesQueriedPerConsumer[i][j]; // Only cares about the total bytes observed
+					Consumer[] memory rConsumers = new Consumer[](readConsumerAddresses[i].length);
+					for (uint256 j = 0; j < readConsumerAddresses[i].length; j++) {
+						reportJson = string.concat(
+								reportJson,
+								'"',
+								StringsUpgradeable.toHexString(readConsumerAddresses[i][j]),
+								'":{"amount": ',
+								StringsUpgradeable.toString(readCaptureAmounts[i][j]),
+								', "bytes": ', StringsUpgradeable.toString(readBytes[i][j]) ,'}'
+						);
+						if (j != readConsumerAddresses[i].length - 1) {
+								reportJson = string.concat(reportJson, ",");
+						}
 
-                reportJson = string.concat(
-                    reportJson,
-                    '"',
-                    StringsUpgradeable.toHexString(consumerAddresses[i][j]),
-                    '":"',
-                    StringsUpgradeable.toString(bytesQueriedPerConsumer[i][j]),
-                    '"'
-                );
-                if (j != consumerAddresses[i].length - 1) {
-                    reportJson = string.concat(reportJson, ",");
-                }
-            }
-            reportJson = string.concat(reportJson,'},"write":[');
+						rConsumers[j] = Consumer({
+							id: readConsumerAddresses[i][j],
+							readCapture: readCaptureAmounts[i][j],
+							readBytes: readBytes[i][j]
+						});
+					}
+					if (i != streams.length - 1) {
+								reportJson = string.concat(reportJson, "},");
+						}else{
+							reportJson = string.concat(reportJson,'}');
+						}
 
-            Node[] memory rNodes = new Node[](nodesPerStream[i].length);
-            for (uint256 j = 0; j < nodesPerStream[i].length; j++) {
-                streamWrite += bytesObservedPerNode[i][j];
-                reportJson = string.concat(
-                    reportJson,
-                    '{"id":"',
-                    StringsUpgradeable.toHexString(nodesPerStream[i][j]),
-                    '","observed":',
-                    StringsUpgradeable.toString(bytesObservedPerNode[i][j]),
-                    ',"missed":',
-                    StringsUpgradeable.toString(bytesMissedPerNode[i][j]),
-                    ',"queried":',
-                    StringsUpgradeable.toString(bytesQueriedPerNode[i][j]),
-                    "}"
-                );
+					rStreams[i] = Stream({
+						id: streams[i],
+						writeCapture: writeCaptureAmounts[i],
+						writeBytes: writeBytes[i],
+						consumers: rConsumers
+					});
+			}
 
-                rNodes[j] = Node({
-                    id: nodesPerStream[i][j],
-                    observed: bytesObservedPerNode[i][j],
-                    missed: bytesMissedPerNode[i][j],
-                    queried: bytesQueriedPerNode[i][j]
-                });
-            }
-            reportJson = string.concat(reportJson, "]}");
-            totalWrite += streamWrite; // the total amount of data cached across nodes for the given stream
-            totalRead += streamRead;
+			reportJson = string.concat(reportJson,'], "nodes": {');
+			Node[] memory rNodes = new Node[](nodes.length);
+			for (uint256 i = 0; i < nodes.length; i++) {
+				reportJson = string.concat(
+						reportJson,
+						'"',
+						StringsUpgradeable.toHexString(nodes[i]),
+						'":',
+						StringsUpgradeable.toString(nodeChanges[i])
+				);
+				if (i != nodes.length - 1) {
+						reportJson = string.concat(reportJson, ",");
+				}
 
-            rStreams[i] = Stream({
-                id: streams[i],
-                consumers: consumerAddresses[i],
-                queried: bytesQueriedPerConsumer[i],
-                nodes: rNodes,
-                _read: streamRead,
-                _write: streamWrite
-            });
-        }
-        reportJson = string.concat(reportJson, "]}");
-        /* solhint-enable quotes */
+				rNodes[i] = Node({
+					id: nodes[i],
+					amount: nodeChanges[i]
+				});
+			}
 
-        // Consume report data
-        Report memory currentReport = Report({
-            id: bundleId,
-            height: blockHeight,
-            fee: fee,
-            streams: rStreams,
-            _read: totalRead,
-            _write: totalWrite,
-            _processed: false
-        });
+			reportJson = string.concat(reportJson,'}, "delegates": {');
+			Delegate[] memory rDelegates = new Delegate[](delegates.length);
+			for (uint256 i = 0; i < delegates.length; i++) {
+				reportJson = string.concat(
+						reportJson,
+						'"',
+						StringsUpgradeable.toHexString(delegates[i]),
+						'":{'
+				);
+				Node[] memory rDelegateNodes = new Node[](delegateNodes[i].length);
+				for (uint256 j = 0; j < delegateNodes[i].length; j++) {
+					reportJson = string.concat(
+						reportJson,
+						'"',
+						StringsUpgradeable.toHexString(delegateNodes[i][j]),
+						'":',
+						StringsUpgradeable.toString(delegateNodeChanges[i][j])
+					);
+					if (j != delegateNodes[i].length - 1) {
+							reportJson = string.concat(reportJson, ",");
+					}
 
-        bytes32 reportHash = keccak256(abi.encodePacked(reportJson));
+					rDelegateNodes[j] = Node({
+						id: delegateNodes[i][j],
+						amount: delegateNodeChanges[i][j]
+					});
+				}
+				if (i != delegates.length - 1) {
+						reportJson = string.concat(reportJson, ",");
+				}
 
-        // Verify signatures
-        bool accepted = true;
-        for (uint256 i = 0; i < addresses.length; i++) {
-            bool verified = VerifySignature.verify(
-                addresses[i],
-                reportHash,
-                signatures[i]
-            );
-            if (verified != true) {
-                accepted = false;
-                break;
-            }
-        }
+				rDelegates[i] = Delegate({
+					id: delegates[i],
+					nodes: rDelegateNodes
+				});
+			}
 
-        // Remove reporter from list?
+			reportJson = string.concat(reportJson,'}}');
+			/* solhint-enable quotes */
 
-        require(accepted, "error_invalidReportSignatures");
+			// Consume report data
+			Report memory currentReport = Report({
+					id: bundleId,
+					key: key,
+					height: blockHeight,
+					fee: fee,
+					treasury: treasurySupplyChange,
+					streams: rStreams,
+					nodes: rNodes,
+					delegates: rDelegates,
+					_reporter: _msgSender(),
+					_processed: false
+			});
 
-        reports[currentReport.id] = currentReport;
-        lastReportId = currentReport.id;
+			bytes32 reportHash = keccak256(abi.encodePacked(reportJson));
 
-        // Increase reputation of reporter
-        for (uint256 i = 0; i < orderedReportersList.length; i++) {
-            if (msg.sender == orderedReportersList[i]) {
-                reputationOf[msg.sender] += 10;
-            } else {
-                reputationOf[orderedReportersList[i]] += 1;
-            }
-        }
+			// Verify signatures
+			bool accepted = true;
+			for (uint256 i = 0; i < addresses.length; i++) {
+					bool verified = VerifySignature.verify(
+							addresses[i],
+							reportHash,
+							signatures[i]
+					);
+					if (verified != true) {
+							accepted = false;
+							break;
+					}
+			}
 
-        emit ReportAccepted(reportJson);
-    }
+			require(accepted, "error_invalidReportSignatures");
+
+			reports[currentReport.id] = currentReport;
+			lastReportId = currentReport.id;
+
+			// Increase reputation of reporter
+			for (uint256 i = 0; i < orderedReportersList.length; i++) {
+					if (msg.sender == orderedReportersList[i]) {
+							reputationOf[msg.sender] += 10;
+					} else {
+							reputationOf[orderedReportersList[i]] += 1;
+					}
+			}
+
+			emit ReportAccepted(reportJson);
+	}
 }
