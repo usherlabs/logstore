@@ -145,50 +145,55 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
         require(report._processed == false, "error_reportAlreadyProcessed");
 
-				for (uint256 i = 0; i < report.streams.length; i++) {
-					if(report.streams[i].writeBytes > 0){
-						_storeManager.capture(report.streams[i].id, report.streams[i].writeCapture, report.streams[i].writeBytes);
-						totalSupply += report.streams[i].writeCapture;
-					}
-					if(report.streams[i].consumers.length > 0){
-						for (uint256 j = 0; j < report.streams[i].consumers.length; j++) {
-							_queryManager.capture(
-								report.streams[i].id,
-								report.streams[i].consumers[j].readCapture,
-								report.streams[i].consumers[j].id,
-								report.streams[i].consumers[j].readBytes
-							);
-							totalSupply += report.streams[i].consumers[j].readCapture;
-						}
-					}
-				}
-				for (uint256 i = 0; i < report.nodes.length; i++) {
-					int256 newNodeAmount = int(nodes[report.nodes[i].id].stake) + report.nodes[i].amount;
-					if(newNodeAmount > 0){
-						nodes[report.nodes[i].id].stake = uint(newNodeAmount);
-					}else{
-						nodes[report.nodes[i].id].stake = 0;
-					}
-				}
-				for (uint256 i = 0; i < report.delegates.length; i++) {
-					for (uint256 j = 0; j < report.delegates[i].nodes.length; j++) {
-						address delegateNodeAddress = report.delegates[i].nodes[j].id;
-						int256 delegateNodeChange = report.delegates[i].nodes[j].amount;
+        for (uint256 i = 0; i < report.streams.length; i++) {
+            if (report.streams[i].writeBytes > 0) {
+                _storeManager.capture(
+                    report.streams[i].id,
+                    report.streams[i].writeCapture,
+                    report.streams[i].writeBytes
+                );
+                totalSupply += report.streams[i].writeCapture;
+            }
+            if (report.streams[i].consumers.length > 0) {
+                for (uint256 j = 0; j < report.streams[i].consumers.length; j++) {
+                    _queryManager.capture(
+                        report.streams[i].id,
+                        report.streams[i].consumers[j].readCapture,
+                        report.streams[i].consumers[j].id,
+                        report.streams[i].consumers[j].readBytes
+                    );
+                    totalSupply += report.streams[i].consumers[j].readCapture;
+                }
+            }
+        }
+        for (uint256 i = 0; i < report.nodes.length; i++) {
+            int256 newNodeAmount = int(nodes[report.nodes[i].id].stake) + report.nodes[i].amount;
+            if (newNodeAmount > 0) {
+                nodes[report.nodes[i].id].stake = uint(newNodeAmount);
+            } else {
+                nodes[report.nodes[i].id].stake = 0;
+            }
+        }
+        for (uint256 i = 0; i < report.delegates.length; i++) {
+            for (uint256 j = 0; j < report.delegates[i].nodes.length; j++) {
+                address delegateNodeAddress = report.delegates[i].nodes[j].id;
+                int256 delegateNodeChange = report.delegates[i].nodes[j].amount;
 
-						int256 newDelegateAmount = int(delegatesOf[report.delegates[i].id][delegateNodeAddress]) + delegateNodeChange;
-						if(newDelegateAmount > 0){
-							delegatesOf[report.delegates[i].id][delegateNodeAddress] = uint(newDelegateAmount);
-						}else{
-							delegatesOf[report.delegates[i].id][delegateNodeAddress] = 0;
-						}
-					}
-				}
-				int256 newTreasurySupply = int(treasurySupply) + report.treasury;
-				if(newTreasurySupply > 0){
-					treasurySupply = uint(newTreasurySupply);
-				}else{
-					treasurySupply = 0;
-				}
+                int256 newDelegateAmount = int(delegatesOf[report.delegates[i].id][delegateNodeAddress]) +
+                    delegateNodeChange;
+                if (newDelegateAmount > 0) {
+                    delegatesOf[report.delegates[i].id][delegateNodeAddress] = uint(newDelegateAmount);
+                } else {
+                    delegatesOf[report.delegates[i].id][delegateNodeAddress] = 0;
+                }
+            }
+        }
+        int256 newTreasurySupply = int(treasurySupply) + report.treasury;
+        if (newTreasurySupply > 0) {
+            treasurySupply = uint(newTreasurySupply);
+        } else {
+            treasurySupply = 0;
+        }
 
         _reportManager.processReport(id);
         emit ReportProcessed(id);

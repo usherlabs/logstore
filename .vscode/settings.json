@@ -3,7 +3,7 @@
 		"./packages/contracts",
 		"./packages/validator",
 		"./packages/broker",
-		"./packages/subgraph",
+		"./packages/subgraph"
 	],
 	"eslint.validate": [
 		"javascript",

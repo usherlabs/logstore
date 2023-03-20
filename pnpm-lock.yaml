@@ -21,7 +21,7 @@ importers:
       eslint-plugin-unused-imports: ^2.0.0
       husky: ^8.0.3
       lint-staged: ^13.1.2
-      prettier: ^2.8.4
+      prettier: ^2.6.2
       prettier-plugin-solidity: ^1.1.3
       turbo: ^1.8.3
     devDependencies:
@@ -198,8 +198,6 @@ importers:
       lodash.snakecase: ^4.1.1
       mocha: ^10.2.0
       npm-run-all: ^4.1.5
-      prettier: ^2.8.4
-      prettier-plugin-solidity: ^1.1.2
       solhint: ^3.4.0
       solhint-plugin-prettier: ^0.0.5
       solidity-coverage: ^0.8.2
@@ -239,10 +237,8 @@ importers:
       lodash.snakecase: 4.1.1
       mocha: 10.2.0
       npm-run-all: 4.1.5
-      prettier: 2.8.4
-      prettier-plugin-solidity: 1.1.2_prettier@2.8.4
       solhint: 3.4.0
-      solhint-plugin-prettier: 0.0.5_5jmvi57qgkoyjwai5p46ba6xom
+      solhint-plugin-prettier: 0.0.5_atru3jyf7dcpvdgt5ram4nbssa
       solidity-coverage: 0.8.2_hardhat@2.12.7
       solidity-docgen: 0.6.0-beta.34_hardhat@2.12.7
       ts-generator: 0.1.1
@@ -12749,18 +12745,6 @@ packages:
       fast-diff: 1.2.0
     dev: true
 
-  /prettier-plugin-solidity/1.1.2_prettier@2.8.4:
-    resolution: {integrity: sha512-KC5oNbFJfyBaFiO0kl56J6AXnDmr9tUlBV1iqo864x4KQrKYKaBZvW9jhT2oC0NHoNp7/GoMJNxqL8pp8k7C/g==}
-    engines: {node: '>=12'}
-    peerDependencies:
-      prettier: '>=2.3.0 || >=3.0.0-alpha.0'
-    dependencies:
-      '@solidity-parser/parser': 0.15.0
-      prettier: 2.8.4
-      semver: 7.3.8
-      solidity-comments-extractor: 0.0.7
-    dev: true
-
   /prettier-plugin-solidity/1.1.3_prettier@2.8.4:
     resolution: {integrity: sha512-fQ9yucPi2sBbA2U2Xjh6m4isUTJ7S7QLc/XDDsktqqxYfTwdYKJ0EnnywXHwCGAaYbQNK+HIYPL1OemxuMsgeg==}
     engines: {node: '>=12'}
@@ -13887,7 +13871,7 @@ packages:
       - debug
     dev: true
 
-  /solhint-plugin-prettier/0.0.5_5jmvi57qgkoyjwai5p46ba6xom:
+  /solhint-plugin-prettier/0.0.5_atru3jyf7dcpvdgt5ram4nbssa:
     resolution: {integrity: sha512-7jmWcnVshIrO2FFinIvDQmhQpfpS2rRRn3RejiYgnjIE68xO2bvrYvjqVNfrio4xH9ghOqn83tKuTzLjEbmGIA==}
     peerDependencies:
       prettier: ^1.15.0 || ^2.0.0
@@ -13895,7 +13879,7 @@ packages:
     dependencies:
       prettier: 2.8.4
       prettier-linter-helpers: 1.0.0
-      prettier-plugin-solidity: 1.1.2_prettier@2.8.4
+      prettier-plugin-solidity: 1.1.3_prettier@2.8.4
     dev: true
 
   /solhint/3.4.0:

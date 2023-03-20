@@ -10,3 +10,12 @@ logs
 db
 cache
 artifacts
+
+packages/contracts/coverage
+packages/contracts/coverage.json
+packages/contracts/typechain
+packages/contracts/typechain-types
+packages/contracts/types
+packages/contracts/cache
+packages/contracts/artifacts/build-info
+packages/contracts/artifacts/contracts/**/*.dbg.json

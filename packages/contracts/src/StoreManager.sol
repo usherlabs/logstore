@@ -13,16 +13,12 @@ import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 
 // Owned by the NodeManager Contract
 contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
-
     string public constant LOGSTORE_STREAM_ID_PATH = "/logstore";
+    /* solhint-disable quotes */
     string public constant LOGSTORE_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
+    /* solhint-enable quotes */
 
-    event StoreUpdated(
-        string store,
-        bool isNew,
-        uint256 amount,
-        address updatedBy
-    );
+    event StoreUpdated(string store, bool isNew, uint256 amount, address updatedBy);
     event DataStored(string store, uint256 fees, uint256 bytesStored);
 
     uint256 public totalSupply;
@@ -45,7 +41,9 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         streamrRegistry.createStream(LOGSTORE_STREAM_ID_PATH, LOGSTORE_STREAM_METADATA_JSON_STRING);
 
         // TODO: Granted public permission to publish to LogStore stream. The pesmission have to be granted only to LogStore nodes.
-        string memory streamId = string(abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_STREAM_ID_PATH));
+        string memory streamId = string(
+            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_STREAM_ID_PATH)
+        );
         streamrRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Publish);
 
         transferOwnership(owner);
