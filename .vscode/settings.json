@@ -2,7 +2,8 @@
 	"eslint.workingDirectories": [
 		"./packages/contracts",
 		"./packages/validator",
-		"./packages/broker"
+		"./packages/broker",
+		"./packages/subgraph",
 	],
 	"eslint.validate": [
 		"javascript",
