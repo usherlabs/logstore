@@ -51,7 +51,7 @@
 					"type": "string",
 					"format": "uri",
 					"default": "http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts"
-			}
+				}
 			},
 			"required": ["logStoreManagerChainAddress"],
 			"additionalProperties": false,
