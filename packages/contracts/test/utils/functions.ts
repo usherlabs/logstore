@@ -25,6 +25,7 @@ export async function fetchEventArgsFromTx(
 }
 
 export async function loadNodeManager(adminAddress: SignerWithAddress) {
+	await mintFundsToAddresses();
 	const nodeManager = await hEthers.getContractFactory(
 		'LogStoreNodeManager',
 		adminAddress
@@ -49,6 +50,7 @@ export async function loadQueryManager(
 	signer: SignerWithAddress,
 	adminAddress: undefined | string = undefined
 ) {
+	await mintFundsToAddresses();
 	const queryManager = await hEthers.getContractFactory(
 		'LogStoreQueryManager',
 		signer
@@ -72,10 +74,23 @@ export async function loadQueryManager(
 	return queryManagerContract;
 }
 
+export async function mintFundsToAddresses() {
+	const signers = await hEthers.getSigners();
+	const token = await getERC20Token(signers[0]);
+	const addresses = await Promise.all(
+		signers.map(async ({ address }) => {
+			await token.functions.mint(address, getDecimalBN(1000));
+			return address;
+		})
+	);
+	return addresses;
+}
+
 export async function loadStoreManager(
 	signer: SignerWithAddress,
 	adminAddress: undefined | string = undefined
 ) {
+	await mintFundsToAddresses();
 	const queryManager = await hEthers.getContractFactory(
 		'LogStoreManager',
 		signer
@@ -131,6 +146,7 @@ export async function loadReportManager(
 	adminAddress: SignerWithAddress,
 	nodeManagerContract: Contract
 ) {
+	await mintFundsToAddresses();
 	// deploy libs
 	const Lib = await hEthers.getContractFactory('VerifySignature');
 	const lib = await Lib.deploy();

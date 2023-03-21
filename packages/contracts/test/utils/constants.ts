@@ -4,12 +4,12 @@ export const SAMPLE_WSS_URL = 'wss://node-domain-name:port';
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const CONSUMER_ADDRESS = '0x801B769Cd87685d4Bf49acDe776d6b0C59F5E779'; //address of the 19th account of ethers.getSigners();
 export const FAKE_STREAMR_REGISTRY =
-	'0x10E9Ef0B736025D4C252C9Ad5Fa3671fa4236E81';
+	'0xb7035e1572b3df33703f412f448691b36cc714ae';
 export const SAMPLE_STREAM_ID = 'xand6r.eth/demos/twitter/sample';
 
 export const NODE_MANAGER = {
 	// This is a custom token i deployed and minted tokens to all but the last account
-	STAKE_TOKEN: '0xbAf0892F01B8d2F456A80172627A3F6EA0253C80',
+	STAKE_TOKEN: '0x35a6a5401bf557fcec3f2ab871bc8c78b47ef54e',
 	STAKE_REQUIRED_AMOUNT: BigNumber.from(`1${'0'.repeat(1)}`), //1 unit of the STAKE_TOKEN
 	WRITE_FEE_POINTS: 10000, // 10000 * 0.01% of write fee
 	TREASURY_FEE_POINTS: 2000, // 2000 * 0.01% of write fee
@@ -58,4 +58,5 @@ export const CUSTOM_EXCEPTIONS = {
 	NONE_EXISTENT_NODE: 'error_invalidNode',
 	INVALID_REPORT: 'error_invalidReport',
 	STAKE_REQUIRED: 'error_stakeRequired',
+	QUORUM_NOT_MET: 'error_quorumNotMet',
 };

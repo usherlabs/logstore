@@ -8,8 +8,10 @@ import {
 	NODE_MANAGER,
 	REPORT_MANAGER_EVENTS,
 	SAMPLE_STREAM_ID,
+	SAMPLE_WSS_URL,
 } from './utils/constants';
 import {
+	ApproveFundsForContract,
 	fetchEventArgsFromTx,
 	generateReportData,
 	generateReportHash,
@@ -32,7 +34,7 @@ describe('ReportManager', async function () {
 
 	beforeEach(async () => {
 		[adminSigner, ...otherSigners] = await ethers.getSigners();
-		activeNodes = otherSigners.slice(0, 10);
+		activeNodes = otherSigners.slice(0, 2);
 		nodeManagerContract = await setupNodeManager(adminSigner, activeNodes);
 		reportManagerContract = await loadReportManager(
 			adminSigner,
@@ -58,6 +60,42 @@ describe('ReportManager', async function () {
 
 		await expect(responseTx).to.be.revertedWith(
 			CUSTOM_EXCEPTIONS.STAKE_REQUIRED
+		);
+	});
+
+	it('ReportManager ---- Staked Node can only submit report when quorum is met', async function () {
+		const sampleNode = activeNodes[0];
+		const blockNumber = await getLatestBlockNumber();
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: +blockNumber - 10,
+			signer: sampleNode,
+		});
+
+		// add more nodes to the network, such that requiredNodes > 1 and joinedNodes > 3
+		await Promise.all(
+			otherSigners.map(async (signer) => {
+				await nodeManagerContract.functions.whitelistApproveNode(
+					signer.address
+				);
+				await ApproveFundsForContract(
+					nodeManagerContract.address,
+					getDecimalBN(10),
+					signer
+				);
+				await nodeManagerContract
+					.connect(signer)
+					.functions.join(getDecimalBN(1), SAMPLE_WSS_URL);
+			})
+		);
+
+		// send a report
+		const responseTx = reportManagerContract
+			.connect(sampleNode)
+			.functions.report(...Object.values(reportData));
+
+		await expect(responseTx).to.be.revertedWith(
+			CUSTOM_EXCEPTIONS.QUORUM_NOT_MET
 		);
 	});
 
@@ -218,15 +256,18 @@ describe('ReportManager', async function () {
 		//-------  validate that the right amount of tokens have been transferred to the nodemanager contract
 
 		// ------- Verify the node stake has been increased propportionately
-		const portion = reportData.bytesObservedPerNode[0][0] / totalWrites;
-		const penalty = Math.floor(
-			reportData.bytesMissedPerNode[0][0] / totalWrites
-		);
-		const nodeCapturePortion = (portion - penalty) * totalWrites * writeNodeFee;
-		const nodeCaptureQueryPortion =
+		const bytesContributed =
+			reportData.bytesObservedPerNode[0][0] -
+			reportData.bytesMissedPerNode[0][0];
+		const nodeWriteCapturePortion = Math.floor(bytesContributed / totalWrites);
+		const nodeWriteCaptureAmount = bytesContributed * writeNodeFee;
+
+		const nodeReadCaptureAmount =
 			Math.floor(reportData.bytesQueriedPerConsumer[0][0] / totalRead) *
-			Math.floor(totalWrites * readNodeFee);
-		const nodeStakeIncrement = nodeCapturePortion + nodeCaptureQueryPortion;
+			Math.floor(totalRead * readNodeFee);
+		let nodeStakeIncrement = nodeWriteCaptureAmount + nodeReadCaptureAmount;
+		nodeStakeIncrement = nodeStakeIncrement < 0 ? 0 : nodeStakeIncrement;
+
 		expect(nodeStakeIncrement).to.equal(
 			+nodeStakePostProcess.sub(nodeStakePreProcess)
 		);
@@ -240,8 +281,11 @@ describe('ReportManager', async function () {
 			currentNode.address,
 			currentNode.address
 		);
+		const delegatePortion =
+			nodeWriteCapturePortion * 1 * nodeWriteCaptureAmount; //multiply by 1 since we ahve only one node
+
 		expect(+delegatesBalance).to.equal(
-			+delegateStake.add(BigNumber.from(`${nodeCapturePortion}`))
+			+delegateStake.add(BigNumber.from(`${delegatePortion}`))
 		);
 		//  ------- validate the delegatees have been balanced
 	});

@@ -7,12 +7,12 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IStreamRegistry} from "./interfaces/StreamRegistry.sol";
 import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 
 // Owned by the NodeManager Contract
-contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     string public constant LOGSTORE_STREAM_ID_PATH = "/logstore";
     /* solhint-disable quotes */
     string public constant LOGSTORE_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
@@ -30,13 +30,18 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     IERC20Upgradeable internal stakeToken;
     IStreamRegistry internal streamrRegistry;
 
-    function initialize(address owner, address stakeTokenAddress_, address streamrRegistryAddress_) public initializer {
+    function initialize(
+        address owner_,
+        address stakeTokenAddress_,
+        address streamrRegistryAddress_
+    ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
+        __ReentrancyGuard_init();
         require(stakeTokenAddress_ != address(0), "error_badTrackerData");
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
-        stakeTokenAddress = stakeTokenAddress_;
+        // stakeTokenAddress = stakeTokenAddress_;
 
         streamrRegistry.createStream(LOGSTORE_STREAM_ID_PATH, LOGSTORE_STREAM_METADATA_JSON_STRING);
 
@@ -46,7 +51,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         );
         streamrRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Publish);
 
-        transferOwnership(owner);
+        transferOwnership(owner_);
     }
 
     /// @dev required by the OZ UUPS module
@@ -57,11 +62,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     // Only the LogStore Contract can call the capture method
-    function capture(
-        string memory streamId,
-        uint256 amount,
-        uint256 bytesStored
-    ) public onlyOwner returns (bool success) {
+    function capture(string memory streamId, uint256 amount, uint256 bytesStored) public returns (bool success) {
         require(amount <= stakeToken.balanceOf(address(this)), "error_notEnoughStake");
 
         address[] memory stakeholders = storeStakeholders[streamId];
@@ -96,16 +97,11 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     function stake(string memory streamId, uint amount) public {
         // Validate stream is inside of StreamrRegiststry
         require(streamrRegistry.exists(streamId), "error_invalidStream");
-
         require(amount > 0, "error_insufficientStake");
 
-        // TODO: Temporary commented out because it fails
-        // bool success = stakeToken.transferFrom(
-        //     msg.sender,
-        //     address(this),
-        //     amount
-        // );
-        // require(success == true, "error_unsuccessfulStake");
+        bool success = stakeToken.transferFrom(msg.sender, address(this), amount);
+        require(success == true, "error_unsuccessfulStake");
+
         bool isNew = false;
         if (stores[streamId] == 0) {
             isNew = true;

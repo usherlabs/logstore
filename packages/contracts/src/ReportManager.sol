@@ -7,13 +7,14 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {LogStoreNodeManager} from "./NodeManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
 import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 
-contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     event ReportAccepted(string raw);
+    event Logger(bool isMet);
 
     struct Consumer {
         address id;
@@ -61,14 +62,15 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
     mapping(string => Report) internal reports;
     LogStoreNodeManager private _nodeManager;
 
-    function initialize(address owner) public initializer {
+    function initialize(address _owner) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
+        __ReentrancyGuard_init();
 
-        _nodeManager = LogStoreNodeManager(owner);
+        _nodeManager = LogStoreNodeManager(_owner);
         reportBlockBuffer = 10;
 
-        transferOwnership(owner);
+        transferOwnership(_owner);
     }
 
     /// @dev required by the OZ UUPS module
@@ -145,6 +147,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         //     "error_invalidReport"
         // );
         require(blockHeight <= block.number && blockHeight > reports[lastReportId].height, "error_invalidReport");
+        require(quorumIsMet(addresses), "error_quorumNotMet");
 
         // validate that the appropriate reporters can submit reports based on the current block
         address[] memory orderedReportersList = getReportersList(id);
@@ -296,5 +299,25 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         }
 
         emit ReportAccepted(reportJson);
+    }
+
+    function quorumIsMet(address[] memory submittedNodes) public view returns (bool isMet) {
+        uint256 count;
+        address[] memory existingNodes = _nodeManager.nodeAddresses();
+        uint256 requiredNodes = existingNodes.length / 2;
+        uint256 minimumNodes = requiredNodes <= 0 ? 1 : requiredNodes; //condition for only one node
+
+        for (uint256 i = 0; i < existingNodes.length; i++) {
+            for (uint256 j = 0; j < submittedNodes.length; j++) {
+                if (existingNodes[i] == submittedNodes[j]) {
+                    count++;
+                    break;
+                }
+            }
+            if (count >= minimumNodes) {
+                isMet = true;
+                break;
+            }
+        }
     }
 }

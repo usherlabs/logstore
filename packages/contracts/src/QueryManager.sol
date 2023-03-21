@@ -7,9 +7,10 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 // Owned by the NodeManager Contract
-contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     event DataQueried(address indexed consumer, uint256 fees, uint256 bytesProcessed);
     event Stake(address indexed consumer, uint amount);
 
@@ -18,13 +19,15 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
     mapping(address => uint256) public balanceOf; // map of addresses and their total balanace
     IERC20Upgradeable internal stakeToken;
 
-    function initialize(address owner, address stakeTokenAddress_) public initializer {
+    function initialize(address owner_, address stakeTokenAddress_) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
+        __ReentrancyGuard_init();
+
         require(stakeTokenAddress_ != address(0), "error_badTrackerData");
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         stakeTokenAddress = stakeTokenAddress_;
-        transferOwnership(owner);
+        transferOwnership(owner_);
     }
 
     /// @dev required by the OZ UUPS module
@@ -35,7 +38,7 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
     /// @param amount amount of tokens to capture
     /// @param consumer address of the data consumer
     /// @param bytesProcessed number of bytes in the response
-    function capture(address consumer, uint256 amount, uint256 bytesProcessed) public onlyOwner {
+    function capture(address consumer, uint256 amount, uint256 bytesProcessed) public nonReentrant onlyOwner {
         require(amount <= stakeToken.balanceOf(address(this)), "error_notEnoughStake");
 
         balanceOf[consumer] -= amount;
@@ -47,7 +50,7 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
         emit DataQueried(consumer, amount, bytesProcessed);
     }
 
-    function stake(uint amount) public {
+    function stake(uint amount) public nonReentrant {
         require(amount > 0, "error_insufficientStake");
 
         balanceOf[msg.sender] += amount;
