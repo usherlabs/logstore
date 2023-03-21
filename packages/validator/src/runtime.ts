@@ -1,11 +1,12 @@
 import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
 import { abi as ReportManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/ReportManager.sol/LogStoreReportManager.json';
 import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
-import { DataItem, IRuntime, sha256, Validator } from '@kyvejs/protocol';
+import { DataItem, IRuntime, sha256 } from '@kyvejs/protocol';
 import { ethers, EventLog } from 'ethers';
 
 import { appPackageName, appVersion } from './env-config';
 import { PoolConfig, Report } from './types';
+import Validator from './validator';
 
 const reportPrefix = `report_` as const;
 
@@ -147,9 +148,8 @@ export default class Runtime implements IRuntime {
 			const report: Report = {
 				id: key,
 				height: blockNumber,
-				// TODO: Remove this? We cannot determine fees of bundle before it is uploaded/proposed
-				fee: 0,
 				streams: [],
+				consumers: [],
 				nodes: {},
 				delegates: {},
 			};
@@ -227,7 +227,22 @@ export default class Runtime implements IRuntime {
 		return proposedDataItemHash === validationDataItemHash;
 	}
 
-	async summarizeDataBundle(_: Validator, bundle: DataItem[]): Promise<string> {
+	async summarizeDataBundle(
+		core: Validator,
+		bundle: DataItem[]
+	): Promise<string> {
+		// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
+		const listenerCache = await core.listener.db();
+		const [report] = bundle; // first data item should always be the bundle
+		const rKey = report.key.substring(reportPrefix.length, report.key.length);
+		const rKeyInt = parseInt(rKey, 10);
+		for await (const [key] of listenerCache.iterator()) {
+			const keyInt = parseInt(key, 10);
+			if (keyInt >= rKeyInt) {
+				return null; // Will cause the validator to abstain from the vote
+			}
+		}
+
 		// Get last item's key
 		return `${bundle.at(-1).key || ``}`;
 	}
