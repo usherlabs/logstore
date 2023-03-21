@@ -25,7 +25,6 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         string id;
         uint256 writeCapture;
         uint256 writeBytes;
-        Consumer[] consumers;
     }
 
     struct Node {
@@ -39,14 +38,13 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
     }
 
     struct Report {
-        string id; // bundle id
-        string key; // key inside of bundle
+        string id; // key inside of bundle
         uint256 height;
-        uint256 fee;
         int256 treasury;
         Stream[] streams;
         Node[] nodes;
         Delegate[] delegates;
+        Consumer[] consumers;
         address _reporter;
         bool _processed;
     }
@@ -126,13 +124,12 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
     function report(
         string calldata id,
         uint256 blockHeight,
-        uint256 fee,
         string[] calldata streams,
         uint256[] calldata writeCaptureAmounts,
         uint256[] calldata writeBytes,
-        address[][] calldata readConsumerAddresses,
-        uint256[][] calldata readCaptureAmounts,
-        uint256[][] calldata readBytes,
+        address[] calldata readConsumerAddresses,
+        uint256[] calldata readCaptureAmounts,
+        uint256[] calldata readBytes,
         address[] calldata nodes,
         int256[] calldata nodeChanges,
         address[] calldata delegates,
@@ -164,8 +161,6 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             id,
             '","height":"',
             StringsUpgradeable.toString(blockHeight),
-            '","fee":"',
-            StringsUpgradeable.toString(fee),
             '","treasury":"',
             StringsUpgradeable.toString(treasurySupplyChange),
             '","streams":['
@@ -181,42 +176,39 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                 StringsUpgradeable.toString(writeCaptureAmounts[i]),
                 ', "bytes": ',
                 StringsUpgradeable.toString(writeBytes[i]),
-                '},"read": {'
+                "}"
             );
 
-            Consumer[] memory rConsumers = new Consumer[](readConsumerAddresses[i].length);
-            for (uint256 j = 0; j < readConsumerAddresses[i].length; j++) {
-                reportJson = string.concat(
-                    reportJson,
-                    '"',
-                    StringsUpgradeable.toHexString(readConsumerAddresses[i][j]),
-                    '":{"amount": ',
-                    StringsUpgradeable.toString(readCaptureAmounts[i][j]),
-                    ', "bytes": ',
-                    StringsUpgradeable.toString(readBytes[i][j]),
-                    "}"
-                );
-                if (j != readConsumerAddresses[i].length - 1) {
-                    reportJson = string.concat(reportJson, ",");
-                }
-
-                rConsumers[j] = Consumer({
-                    id: readConsumerAddresses[i][j],
-                    readCapture: readCaptureAmounts[i][j],
-                    readBytes: readBytes[i][j]
-                });
-            }
             if (i != streams.length - 1) {
                 reportJson = string.concat(reportJson, "},");
             } else {
                 reportJson = string.concat(reportJson, "}");
             }
 
-            rStreams[i] = Stream({
-                id: streams[i],
-                writeCapture: writeCaptureAmounts[i],
-                writeBytes: writeBytes[i],
-                consumers: rConsumers
+            rStreams[i] = Stream({id: streams[i], writeCapture: writeCaptureAmounts[i], writeBytes: writeBytes[i]});
+        }
+
+        reportJson = string.concat(reportJson, '], "consumers": [');
+        Consumer[] memory rConsumers = new Consumer[](readConsumerAddresses.length);
+        for (uint256 i = 0; i < readConsumerAddresses.length; i++) {
+            reportJson = string.concat(
+                reportJson,
+                '{"id":"',
+                StringsUpgradeable.toHexString(readConsumerAddresses[i]),
+                '","amount": ',
+                StringsUpgradeable.toString(readCaptureAmounts[i]),
+                ', "bytes": ',
+                StringsUpgradeable.toString(readBytes[i]),
+                "}"
+            );
+            if (i != readConsumerAddresses.length - 1) {
+                reportJson = string.concat(reportJson, ",");
+            }
+
+            rConsumers[i] = Consumer({
+                id: readConsumerAddresses[i],
+                readCapture: readCaptureAmounts[i],
+                readBytes: readBytes[i]
             });
         }
 
@@ -270,11 +262,11 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         Report memory currentReport = Report({
             id: id,
             height: blockHeight,
-            fee: fee,
             treasury: treasurySupplyChange,
             streams: rStreams,
             nodes: rNodes,
             delegates: rDelegates,
+            consumers: rConsumers,
             _reporter: _msgSender(),
             _processed: false
         });
