@@ -172,7 +172,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                 reportJson,
                 '{"id":"',
                 streams[i],
-                '","write":{"capture":',
+                '","capture":',
                 StringsUpgradeable.toString(writeCaptureAmounts[i]),
                 ', "bytes": ',
                 StringsUpgradeable.toString(writeBytes[i]),
@@ -180,9 +180,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             );
 
             if (i != streams.length - 1) {
-                reportJson = string.concat(reportJson, "},");
-            } else {
-                reportJson = string.concat(reportJson, "}");
+                reportJson = string.concat(reportJson, ",");
             }
 
             rStreams[i] = Stream({id: streams[i], writeCapture: writeCaptureAmounts[i], writeBytes: writeBytes[i]});
@@ -195,7 +193,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                 reportJson,
                 '{"id":"',
                 StringsUpgradeable.toHexString(readConsumerAddresses[i]),
-                '","amount": ',
+                '","capture": ',
                 StringsUpgradeable.toString(readCaptureAmounts[i]),
                 ', "bytes": ',
                 StringsUpgradeable.toString(readBytes[i]),

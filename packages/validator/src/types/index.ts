@@ -27,8 +27,13 @@ export type Report = {
 	treasury: number;
 	streams: {
 		id: string;
-		write: { capture: number; bytes: number };
-		read: Record<string, { amount: number; bytes: number }>;
+		capture: number;
+		bytes: number;
+	}[];
+	consumers: {
+		id: string;
+		capture: number;
+		bytes: number;
 	}[];
 	nodes: Record<string, number>;
 	delegates: Record<string, Record<string, number>>;
