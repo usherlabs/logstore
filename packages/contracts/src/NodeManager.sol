@@ -156,12 +156,14 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             }
         }
         for (uint256 i = 0; i < report.consumers.length; i++) {
-            _queryManager.capture(
-                report.consumers[i].id,
-                report.consumers[i].readCapture,
-                report.consumers[i].readBytes
-            );
-            totalSupply += report.consumers[i].readCapture;
+            if (report.consumers[i].readBytes > 0) {
+                _queryManager.capture(
+                    report.consumers[i].id,
+                    report.consumers[i].readCapture,
+                    report.consumers[i].readBytes
+                );
+                totalSupply += report.consumers[i].readCapture;
+            }
         }
         for (uint256 i = 0; i < report.nodes.length; i++) {
             int256 newNodeAmount = int(nodes[report.nodes[i].id].stake) + report.nodes[i].amount;
