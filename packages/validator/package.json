@@ -28,6 +28,7 @@
 		"singleQuote": true
 	},
 	"dependencies": {
+		"@concertodao/logstore-contracts": "workspace:../contracts",
 		"@kyvejs/protocol": "1.0.0-beta.8",
 		"@sentry/node": "^7.13.0",
 		"@sentry/tracing": "^7.13.0",

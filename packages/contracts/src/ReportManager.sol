@@ -124,8 +124,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
 
     // Verifies a report and adds it to its accepted reports mapping
     function report(
-        string calldata bundleId,
-        string calldata key,
+        string calldata id,
         uint256 blockHeight,
         uint256 fee,
         string[] calldata streams,
@@ -151,7 +150,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         require(blockHeight <= block.number && blockHeight > reports[lastReportId].height, "error_invalidReport");
 
         // validate that the appropriate reporters can submit reports based on the current block
-        address[] memory orderedReportersList = getReportersList(bundleId);
+        address[] memory orderedReportersList = getReportersList(id);
         for (uint256 i = 0; i < orderedReportersList.length; i++) {
             if (orderedReportersList[i] == msg.sender) {
                 require(i * reportBlockBuffer + blockHeight < block.number, "error_invalidReporter");
@@ -162,7 +161,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         /* solhint-disable quotes */
         string memory reportJson = string.concat(
             '{"id":"',
-            bundleId,
+            id,
             '","height":"',
             StringsUpgradeable.toString(blockHeight),
             '","fee":"',
@@ -269,8 +268,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
 
         // Consume report data
         Report memory currentReport = Report({
-            id: bundleId,
-            key: key,
+            id: id,
             height: blockHeight,
             fee: fee,
             treasury: treasurySupplyChange,
