@@ -241,6 +241,7 @@ export default class Runtime implements IRuntime {
 			if (keyInt >= rKeyInt) {
 				return null; // Will cause the validator to abstain from the vote
 			}
+			break;
 		}
 
 		// Get last item's key

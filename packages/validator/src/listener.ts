@@ -29,6 +29,7 @@ export default class Listener {
 		this._db = new ClassicLevel(cachePath, { valueEncoding: 'json' });
 
 		// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
+		// TODO: What happens if runCache clears the directory and no new query message is received.
 		const db = await this.db();
 		await db.put(Date.now().toString(), '');
 	}
