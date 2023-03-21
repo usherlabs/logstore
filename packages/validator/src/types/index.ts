@@ -23,7 +23,6 @@ export type PoolConfig = {
 export type Report = {
 	id: string;
 	height: number;
-	fee: number;
 	treasury: number;
 	streams: {
 		id: string;
