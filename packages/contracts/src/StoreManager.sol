@@ -18,7 +18,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     string public constant LOGSTORE_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
     /* solhint-enable quotes */
 
-    event StoreUpdated(string store, bool isNew, uint256 amount, address updatedBy);
+    event StoreUpdated(string store, bool isNew, uint256 amount);
     event DataStored(string store, uint256 fees, uint256 bytesStored);
 
     uint256 public totalSupply;
@@ -117,6 +117,6 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         }
         storeBalanceOf[msg.sender][streamId] += amount;
         totalSupply += amount;
-        emit StoreUpdated(streamId, isNew, amount, msg.sender);
+        emit StoreUpdated(streamId, isNew, amount);
     }
 }

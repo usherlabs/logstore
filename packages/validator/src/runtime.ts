@@ -1,12 +1,26 @@
-import { StaticJsonRpcProvider } from '@ethersproject/providers';
+import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
+import { abi as ReportManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/ReportManager.sol/LogStoreReportManager.json';
+import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { DataItem, IRuntime, sha256, Validator } from '@kyvejs/protocol';
-import { ethers } from 'ethers';
+import { ethers, EventLog } from 'ethers';
 
-import { reportContractABI } from './dummy';
 import { appPackageName, appVersion } from './env-config';
+import { PoolConfig, Report } from './types';
 
 const reportPrefix = `report_` as const;
-const itemTimeRange = 1000 as const;
+
+const getConfig = (core: Validator): PoolConfig => {
+	return {
+		itemTimeRange: 1000,
+		...core.poolConfig,
+		fees: {
+			writeMultiplier: 1,
+			treasuryMultiplier: 0.2,
+			read: 0.01,
+			...(core.poolConfig.fees || {}),
+		},
+	};
+};
 
 export default class Runtime implements IRuntime {
 	public name = appPackageName;
@@ -18,7 +32,7 @@ export default class Runtime implements IRuntime {
 		source: string,
 		key: string
 	): Promise<DataItem> {
-		const [rpcUrl, reportContractAddress] = source;
+		const config = getConfig(core);
 
 		// IF REPORT
 		if (key.startsWith(reportPrefix)) {
@@ -26,20 +40,36 @@ export default class Runtime implements IRuntime {
 			// 2. Use last accepted report to determine range between last report and this report (using key timestamp) and query for messages
 
 			// get auth headers for proxy endpoints
-			const provider = new ethers.JsonRpcProvider(rpcUrl);
+			const provider = new ethers.JsonRpcProvider(source);
+			const { contracts, fees } = config;
+
 			const reportManagerContract = new ethers.Contract(
-				reportContractAddress,
-				reportContractABI,
+				contracts.reportManager.address,
+				ReportManagerContractABI,
 				{
 					provider,
 				}
 			);
-			const report = await reportManagerContract.getLastReport();
+			const nodeManagerContract = new ethers.Contract(
+				contracts.nodeManager.address,
+				NodeManagerContractABI,
+				{
+					provider,
+				}
+			);
+			const storeManagerContract = new ethers.Contract(
+				contracts.storeManager.address,
+				StoreManagerContractABI,
+				{
+					provider,
+				}
+			);
+			const lastReport: Report = await reportManagerContract.getLastReport();
 			let fromKey = 0;
-			if ((report || {})?.key) {
-				const rKey = report.key.substring(
+			if ((lastReport || {})?.id) {
+				const rKey = lastReport.id.substring(
 					reportPrefix.length,
-					report.key.length
+					lastReport.id.length
 				);
 				fromKey = parseInt(rKey, 10);
 			}
@@ -48,12 +78,81 @@ export default class Runtime implements IRuntime {
 				10
 			);
 
+			// Get all latest state from Smart Contract
+			// We do this by using the key (timestamp) to determine the most relevant block
+			// ? toKey will be a recent timestamp as the Pool's start_key will be the timestamp the Pool was created.
+			let blockNumber = await provider.getBlockNumber();
+			let blockNumberTimestamp = 0;
+			do {
+				const block = await provider.getBlock(blockNumber);
+				blockNumberTimestamp = block.timestamp;
+				blockNumber--;
+			} while (blockNumberTimestamp > toKey);
+			blockNumber++; // re-add the removed latest block
+			// Now that we have the block that most closely resemble the current key
+			// Fetch all Smart Contract events to reconstruct the state
+			const storeUpdateEvents = await storeManagerContract.queryFilter(
+				storeManagerContract.filters.StoreUpdated(),
+				0,
+				blockNumber
+			);
+			const stores: { id: string; amount: number }[] = [];
+			storeUpdateEvents.forEach((e) => {
+				if (!(e instanceof EventLog)) {
+					return;
+				}
+				const storeId = e.args.getValue('store');
+				const amount = e.args.getValue('amount');
+				const sIndex = stores.findIndex((s) => s.id === storeId);
+				if (sIndex < 0) {
+					stores.push({
+						id: storeId,
+						amount,
+					});
+					return;
+				}
+				stores[sIndex].amount += amount;
+			});
+			const dataStoredEvents = await storeManagerContract.queryFilter(
+				storeManagerContract.filters.DataStored(),
+				0,
+				blockNumber
+			);
+			dataStoredEvents.forEach((e) => {
+				if (!(e instanceof EventLog)) {
+					return;
+				}
+				const storeId = e.args.getValue('store');
+				const amount = e.args.getValue('fees');
+				const sIndex = stores.findIndex((s) => s.id === storeId);
+				if (sIndex >= 0) {
+					stores[sIndex].amount -= amount;
+				}
+			});
+
 			// TODO: Query system stream from Broker Network
 			// TODO: Determine based on unanimous observations which nodes missed data
 
+			for (let i = 0; i < stores.length; i++) {
+				// 1. Get the query partition for this specific store -- this should be a public method
+				// 2. Query the store using its query partition
+				// 3. Query the query partition for the system stream to fetch all read related metadata
+				// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
+			}
+			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
 			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
 			const resp = [{ hello: 'world' }]; // ! DUMMY
 			const queryBytesSize = JSON.stringify(resp).length;
+
+			const report: Report = {
+				id: key,
+				height: blockNumber,
+				// TODO: Remove this? We cannot determine fees of bundle before it is uploaded/proposed
+				fee: 0,
+				streams: [],
+				nodes: {},
+				delegates: {},
+			};
 
 			return {
 				key,
@@ -69,7 +168,7 @@ export default class Runtime implements IRuntime {
 
 		// Range will be from last key (timestamp) to this key
 		const keyVal = parseInt(key, 10);
-		const range = [keyVal - itemTimeRange, keyVal]; // First iteration over the cache, will use the first nextKey -- ie. 1000
+		const range = [keyVal - config.itemTimeRange, keyVal]; // First iteration over the cache, will use the first nextKey -- ie. 1000
 
 		// TODO: Fetch batch items from broker Validators
 		// TODO: Unify data items that share the same content and timestamps.
@@ -136,6 +235,8 @@ export default class Runtime implements IRuntime {
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
 	// https://github.com/KYVENetwork/kyvejs/blob/main/common/protocol/src/methods/main/runCache.ts#L147
 	async nextKey(core: Validator, key: string): Promise<string> {
+		const { itemTimeRange } = getConfig(core);
+
 		if (key.startsWith(reportPrefix)) {
 			key = key.substring(reportPrefix.length, key.length);
 		}

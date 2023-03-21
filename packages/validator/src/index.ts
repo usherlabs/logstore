@@ -1,7 +1,8 @@
 import 'dotenv/config';
-import { Validator } from '@kyvejs/protocol';
-import LogStore from './runtime';
 
-const runtime = new LogStore();
+import Runtime from './runtime';
+import Validator from './validator';
+
+const runtime = new Runtime();
 const validator = new Validator(runtime);
 validator.bootstrap();
