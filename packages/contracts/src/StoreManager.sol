@@ -38,15 +38,15 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
         stakeTokenAddress = stakeTokenAddress_;
 
-        streamrRegistry.createStream(LOGSTORE_STREAM_ID_PATH, LOGSTORE_STREAM_METADATA_JSON_STRING);
+        // streamrRegistry.createStream(LOGSTORE_STREAM_ID_PATH, LOGSTORE_STREAM_METADATA_JSON_STRING);
 
-        // TODO: Granted public permission to publish to LogStore stream. The pesmission have to be granted only to LogStore nodes.
-        string memory streamId = string(
-            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_STREAM_ID_PATH)
-        );
-        streamrRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Publish);
+        // // TODO: Granted public permission to publish to LogStore stream. The pesmission have to be granted only to LogStore nodes.
+        // string memory streamId = string(
+        //     abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_STREAM_ID_PATH)
+        // );
+        // streamrRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Publish);
 
-        transferOwnership(owner);
+        // transferOwnership(owner);
     }
 
     /// @dev required by the OZ UUPS module

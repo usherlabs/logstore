@@ -15,7 +15,7 @@
 		"lint": "npm-run-all -s lint:sol lint:ts",
 		"lint:sol": "solhint \"**/*.sol\"",
 		"lint:ts": "eslint \"{src,test,tasks}/**/*.ts\"",
-		"test": "hardhat test",
+		"test": "hardhat test --network goerli",
 		"format": "prettier --write \"**/*.sol\""
 	},
 	"files": [],
