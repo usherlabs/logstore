@@ -55,7 +55,7 @@ tsconfig.tsbuildinfo
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/versions
-# **/artifacts
+**/.openzeppelin
 **/artifacts/@openzeppelin
 **/artifacts/build-info
 **/build

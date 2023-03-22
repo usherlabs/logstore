@@ -63,6 +63,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 	}
 	return {
 		accounts: ownerPrivateKey ? [ownerPrivateKey] : [],
+		allowUnlimitedContractSize: true,
 		chainId: chainIds[chain],
 		url: jsonRpcUrl,
 	};
@@ -106,7 +107,6 @@ const config: HardhatUserConfig = {
 				url: String(process.env.FORK_URL),
 				blockNumber: 8660126,
 			},
-			allowUnlimitedContractSize: false,
 		},
 		// avalanche: getChainConfig('avalanche'),
 		// bsc: getChainConfig('bsc'),
