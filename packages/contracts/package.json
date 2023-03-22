@@ -10,8 +10,8 @@
 	"scripts": {
 		"clean": "del ./artifacts ./cache ./coverage ./types ./coverage.json && yarn typechain",
 		"compile": "hardhat compile",
-		"deploy:localhost": "npx hardhat deploy:LogStore --network localhost",
-		"deploy:mumbai": "npx hardhat deploy:LogStore --network mumbai",
+		"deploy:hardhat": "npx hardhat run scripts/0_deployNodeManager.ts",
+		"deploy:mumbai": "npx hardhat run scripts/0_deployNodeManager.ts --network mumbai",
 		"lint": "npm-run-all -s lint:sol lint:ts",
 		"lint:sol": "solhint \"**/*.sol\"",
 		"lint:ts": "eslint \"{src,test,tasks}/**/*.ts\"",
