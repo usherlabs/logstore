@@ -1,0 +1,8 @@
+{
+	"5": {
+		"nodeManagerAddress": "0xB2501Ff9B1e4abac3Ae18a29ECcc24AAA600a695",
+		"storeManagerAddress": "0x044f7Ad23BE4f1d402a67078fF9012Db8b8706a6",
+		"queryManagerAddress": "0x5cA22cB7aC8AcCB8633b480b1b56c0d8E915C939",
+		"reportManagerAddress": "0x4cB44cc060256F98D2b3E62c5EE2C31256F4c6A4"
+	}
+}

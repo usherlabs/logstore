@@ -3,5 +3,5 @@ export const STAKE_TOKEN_CONTRACTS: Record<string, string> = {
 };
 
 export const STREAMR_REGISTRY_ADDRESS: Record<string, string> = {
-	'5': '0x10E9Ef0B736025D4C252C9Ad5Fa3671fa4236E81', //for hardhat we use the predeplyed token
+	'5': '0xb7035e1572b3df33703f412f448691b36cc714ae', //for hardhat we use the predeplyed token
 };
