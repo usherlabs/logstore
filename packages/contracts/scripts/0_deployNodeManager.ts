@@ -18,7 +18,9 @@ async function main() {
 		nodeManagerArtifact,
 		nodeManagerContractParams
 	);
+	await nodeManagerContract.deployed();
 	const { address: nodeManagerAddress } = nodeManagerContract;
+	console.log(`LogStoreNodeManager deployed to ${nodeManagerAddress}`);
 	// --------------------------- deploy the node manager contract --------------------------- //
 
 	// --------------------------- deploy the store manager --------------------------- //
@@ -28,10 +30,13 @@ async function main() {
 	const storeManagerArtifact = await hre.ethers.getContractFactory(
 		'LogStoreManager'
 	);
-	const { address: storeManagerAddress } = await hre.upgrades.deployProxy(
+	const storeManagerContract = await hre.upgrades.deployProxy(
 		storeManagerArtifact,
 		storeManagerContractParams
 	);
+	await storeManagerContract.deployed();
+	const { address: storeManagerAddress } = storeManagerContract;
+	console.log(`LogStoreStoreManager deployed to ${storeManagerAddress}`);
 	// --------------------------- deploy the store manager --------------------------- //
 
 	// --------------------------- deploy the query manager contract --------------------------- //
@@ -41,10 +46,13 @@ async function main() {
 	const queryManagerArtifact = await hre.ethers.getContractFactory(
 		'LogStoreQueryManager'
 	);
-	const { address: queryManagerAddress } = await hre.upgrades.deployProxy(
+	const queryManagerContract = await hre.upgrades.deployProxy(
 		queryManagerArtifact,
 		queryManagerContractParams
 	);
+	await queryManagerContract.deployed();
+	const { address: queryManagerAddress } = queryManagerContract;
+	console.log(`LogStoreQueryManager deployed to ${queryManagerAddress}`);
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- deploy the report manager contract --------------------------- //
@@ -60,20 +68,38 @@ async function main() {
 			},
 		}
 	);
-	const { address: reportManagerAddress } = await hre.upgrades.deployProxy(
+	const reportManagerContract = await hre.upgrades.deployProxy(
 		reportManager,
 		[nodeManagerAddress],
-		{ unsafeAllowLinkedLibraries: true }
+		{
+			unsafeAllowLinkedLibraries: true,
+		}
 	);
+	await reportManagerContract.deployed();
+	const { address: reportManagerAddress } = reportManagerContract;
+	console.log(`LogStoreReportanager deployed to ${reportManagerAddress}`);
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- write addresses to file --------------------------- //
 	// initialise nodemanager contract with sub contracts
-	await nodeManagerContract.functions.registerQueryManager(queryManagerAddress);
-	await nodeManagerContract.functions.registerStoreManager(storeManagerAddress);
-	await nodeManagerContract.functions.registerReportManager(
-		reportManagerAddress
-	);
+	const registerQueryManagerTx =
+		await nodeManagerContract.functions.registerQueryManager(
+			queryManagerAddress
+		);
+	await registerQueryManagerTx.wait();
+
+	const registerStoreManagerTx =
+		await nodeManagerContract.functions.registerStoreManager(
+			storeManagerAddress
+		);
+	await registerStoreManagerTx.wait();
+
+	const registerReportManagerTx =
+		await nodeManagerContract.functions.registerReportManager(
+			reportManagerAddress
+		);
+	await registerReportManagerTx.wait();
+
 	const deployedContractAddresses = {
 		nodeManagerAddress,
 		storeManagerAddress,
@@ -82,11 +108,6 @@ async function main() {
 	};
 	// write the file to json
 	await writeJSONToFileOutside(deployedContractAddresses, 'address.json');
-	// write files to console
-	console.log(`LogStoreNodeManager deployed to ${nodeManagerAddress}`);
-	console.log(`LogStoreStoreManager deployed to ${storeManagerAddress}`);
-	console.log(`LogStoreQueryManager deployed to ${queryManagerAddress}`);
-	console.log(`LogStoreReportanager deployed to ${reportManagerAddress}`);
 	// --------------------------- write addresses to file --------------------------- //
 }
 

@@ -105,7 +105,7 @@ export async function writeJSONToFileOutside(
 				}
 				const existingData = JSON.parse(data.toString());
 				const newData = Object.assign(existingData, jsonData);
-				fs.writeFile(filePath, JSON.stringify(newData), (err) => {
+				fs.writeFile(filePath, JSON.stringify(newData, null, 2), (err) => {
 					if (err) {
 						console.error(err);
 						return;

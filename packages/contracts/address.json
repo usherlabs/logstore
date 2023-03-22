@@ -1,1 +1,20 @@
-{"5":{"nodeManagerAddress":"0xB2501Ff9B1e4abac3Ae18a29ECcc24AAA600a695","storeManagerAddress":"0x044f7Ad23BE4f1d402a67078fF9012Db8b8706a6","queryManagerAddress":"0x5cA22cB7aC8AcCB8633b480b1b56c0d8E915C939","reportManagerAddress":"0x4cB44cc060256F98D2b3E62c5EE2C31256F4c6A4"},"8997":{"nodeManagerAddress":"0xBc0c81a318D57ae54dA28DE69184A9c3aE9a1e1c","storeManagerAddress":"0x256D4CB67452b6b8280B2b67F040fD22f1C378f4","queryManagerAddress":"0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873","reportManagerAddress":"0xfC31c70FafCbFe399195C789602ae2455B247fD2"},"80001":{"nodeManagerAddress":"0x98df193804F3fE221E419D93641B4Edb605F9de2","storeManagerAddress":"0x6572DD45b56F72D4dEB4AAbbEcDEe00Dd9BACab3","queryManagerAddress":"0x4E6380393223F68a0B0bd6dbc7e308F5ea38F3bf","reportManagerAddress":"0x30E7820a6BAB5C6F831372530BBf7219cCfe446B"}}
+{
+  "5": {
+    "nodeManagerAddress": "0xB2501Ff9B1e4abac3Ae18a29ECcc24AAA600a695",
+    "storeManagerAddress": "0x044f7Ad23BE4f1d402a67078fF9012Db8b8706a6",
+    "queryManagerAddress": "0x5cA22cB7aC8AcCB8633b480b1b56c0d8E915C939",
+    "reportManagerAddress": "0x4cB44cc060256F98D2b3E62c5EE2C31256F4c6A4"
+  },
+  "8997": {
+    "nodeManagerAddress": "0x699B4bE95614f017Bb622e427d3232837Cc814E6",
+    "storeManagerAddress": "0x611900fD07BB133016Ed85553aF9586771da5ff9",
+    "queryManagerAddress": "0x75Cb7CA52637991A3f166B8546542B3F6D712fd4",
+    "reportManagerAddress": "0x5159FBF2e0Ff63e35b17293416fdf7a0909a0cDA"
+  },
+  "80001": {
+    "nodeManagerAddress": "0x98df193804F3fE221E419D93641B4Edb605F9de2",
+    "storeManagerAddress": "0x6572DD45b56F72D4dEB4AAbbEcDEe00Dd9BACab3",
+    "queryManagerAddress": "0x4E6380393223F68a0B0bd6dbc7e308F5ea38F3bf",
+    "reportManagerAddress": "0x30E7820a6BAB5C6F831372530BBf7219cCfe446B"
+  }
+}
