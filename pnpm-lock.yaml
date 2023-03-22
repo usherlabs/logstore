@@ -283,6 +283,7 @@ importers:
       tsconfig-paths: ^4.1.0
       tslib: ^2.5.0
       typescript: ^4.6.4
+      uint8arrays: ^4.0.3
     dependencies:
       '@concertodao/logstore-contracts': link:../contracts
       '@kyvejs/protocol': 1.0.0-beta.8
@@ -293,6 +294,7 @@ importers:
       dotenv: 16.0.3
       ethers: 6.0.3
       streamr-client: 7.3.0
+      uint8arrays: 4.0.3
     devDependencies:
       '@types/node': 18.13.0
       '@types/node-fetch': 2.6.2
@@ -11519,6 +11521,11 @@ packages:
       varint: 5.0.2
     dev: false
 
+  /multiformats/11.0.2:
+    resolution: {integrity: sha512-b5mYMkOkARIuVZCpvijFj9a6m5wMVLC7cf/jIPd5D/ARDOfLC5+IFkbgDXQgcU2goIsTD/O9NY4DI/Mt4OGvlg==}
+    engines: {node: '>=16.0.0', npm: '>=7.0.0'}
+    dev: false
+
   /multiformats/9.9.0:
     resolution: {integrity: sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==}
 
@@ -15247,6 +15254,13 @@ packages:
     resolution: {integrity: sha512-+QJa8QRnbdXVpHYjLoTpJIdCTiw9Ir62nocClWuXIq2JIh4Uta0cQsTSpFL678p2CN8B+XSApwcU+pQEqVpKWg==}
     dependencies:
       multiformats: 9.9.0
+
+  /uint8arrays/4.0.3:
+    resolution: {integrity: sha512-b+aKlI2oTnxnfeSQWV1sMacqSNxqhtXySaH6bflvONGxF8V/fT3ZlYH7z2qgGfydsvpVo4JUgM/Ylyfl2YouCg==}
+    engines: {node: '>=16.0.0', npm: '>=7.0.0'}
+    dependencies:
+      multiformats: 11.0.2
+    dev: false
 
   /unbox-primitive/1.0.2:
     resolution: {integrity: sha512-61pPlCD9h51VoreyJ0BReideM3MDKMKnh6+V9L08331ipq6Q8OFXZYiqP6n/tbHx4s5I9uRhcye6BrbkizkBDw==}

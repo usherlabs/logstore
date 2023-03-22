@@ -53,6 +53,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     uint256 public totalSupply;
     uint256 public treasurySupply;
     uint256 public stakeRequiredAmount;
+    uint256 public stakeTokenAddress;
     uint256 public totalNodes;
     mapping(address => Node) public nodes;
     mapping(address => WhitelistState) public whitelist;
@@ -82,6 +83,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
         requiresWhitelist = requiresWhitelist_;
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
+        stakeTokenAddress = stakeTokenAddress_;
         stakeRequiredAmount = stakeRequiredAmount_;
 
         for (uint i = 0; i < initialNodes.length; i++) {

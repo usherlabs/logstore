@@ -36,4 +36,26 @@ export type Report = {
 	}[];
 	nodes: Record<string, number>;
 	delegates: Record<string, Record<string, number>>;
+
+	// The following properties are not signed by the Broker Nodes
+	events: {
+		queries: {
+			query: string;
+			nonce: string;
+			consumer: string;
+			hash: string;
+			size: number;
+		}[];
+		storage: { hash: string; size: number }[];
+	};
+};
+
+export type BrokerNode = {
+	id: string;
+	index: number;
+	metadata: string;
+	lastSeen: number;
+	next: string;
+	prev: string;
+	stake: number;
 };

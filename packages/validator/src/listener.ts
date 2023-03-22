@@ -32,6 +32,8 @@ export default class Listener {
 		// TODO: What happens if runCache clears the directory and no new query message is received.
 		const db = await this.db();
 		await db.put(Date.now().toString(), '');
+
+		// TODO: Add Chokidar listening to reinitiate the cache after each flush/drop/wipe.
 	}
 
 	public async db(): Promise<ClassicLevel> {

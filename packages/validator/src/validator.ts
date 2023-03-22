@@ -11,7 +11,7 @@ async function runCache(this: Validator): Promise<void> {
 export default class Validator extends KyveValidator {
 	public listener: Listener;
 
-	protected runCache = runCache;
+	protected override runCache = runCache;
 
 	/**
 	 * Constructor for the validator class. It is required to provide the

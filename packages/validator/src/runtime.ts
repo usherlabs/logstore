@@ -3,9 +3,11 @@ import { abi as ReportManagerContractABI } from '@concertodao/logstore-contracts
 import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { DataItem, IRuntime, sha256 } from '@kyvejs/protocol';
 import { ethers, EventLog } from 'ethers';
+import { fromString } from 'uint8arrays/from-string';
 
+import erc20ABI from './abi/erc20';
 import { appPackageName, appVersion } from './env-config';
-import { PoolConfig, Report } from './types';
+import { BrokerNode, PoolConfig, Report } from './types';
 import Validator from './validator';
 
 const reportPrefix = `report_` as const;
@@ -17,7 +19,7 @@ const getConfig = (core: Validator): PoolConfig => {
 		fees: {
 			writeMultiplier: 1,
 			treasuryMultiplier: 0.2,
-			read: 0.01,
+			read: 0.00000001, // value in USD
 			...(core.poolConfig.fees || {}),
 		},
 	};
@@ -91,6 +93,21 @@ export default class Runtime implements IRuntime {
 			} while (blockNumberTimestamp > toKey);
 			blockNumber++; // re-add the removed latest block
 			// Now that we have the block that most closely resemble the current key
+			const minStakeRequirement: number =
+				await nodeManagerContract.stakeRequiredAmount({ blockNumber });
+			const stakeTokenAddress: string =
+				await nodeManagerContract.stakeTokenAddress();
+			// Get decimal count for the stake token
+			const stakeTokenContract = new ethers.Contract(
+				stakeTokenAddress,
+				erc20ABI,
+				{
+					provider,
+				}
+			);
+			const stakeTokenSymbol = await stakeTokenContract.symbol();
+			const stakeTokenDecimals = await stakeTokenContract.decimals();
+
 			// Fetch all Smart Contract events to reconstruct the state
 			const storeUpdateEvents = await storeManagerContract.queryFilter(
 				storeManagerContract.filters.StoreUpdated(),
@@ -130,6 +147,25 @@ export default class Runtime implements IRuntime {
 					stores[sIndex].amount -= amount;
 				}
 			});
+			// Produce brokerNode list by starting at headNode and iterating over nodes.
+			const brokerNodes: BrokerNode[] = [];
+			const headBrokerNodeAddress: string = await nodeManagerContract.headNode({
+				blockNumber,
+			});
+			const tailBrokerNodeAddress: string = await nodeManagerContract.tailNode({
+				blockNumber,
+			});
+			let currentBrokerNodeAddressInLoop = headBrokerNodeAddress;
+			while (currentBrokerNodeAddressInLoop !== tailBrokerNodeAddress) {
+				const brokerNode: BrokerNode = await nodeManagerContract.nodes(
+					currentBrokerNodeAddressInLoop
+				);
+				brokerNodes.push({
+					id: currentBrokerNodeAddressInLoop,
+					...brokerNode,
+				});
+				currentBrokerNodeAddressInLoop = brokerNode.next;
+			}
 
 			// TODO: Query system stream from Broker Network
 			// TODO: Determine based on unanimous observations which nodes missed data
@@ -143,8 +179,8 @@ export default class Runtime implements IRuntime {
 			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
 			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
 			const resp = [{ hello: 'world' }]; // ! DUMMY
-			const queryBytesSize = JSON.stringify(resp).length;
 
+			// Establish the report
 			const report: Report = {
 				id: key,
 				height: blockNumber,
@@ -152,7 +188,71 @@ export default class Runtime implements IRuntime {
 				consumers: [],
 				nodes: {},
 				delegates: {},
+				events: {
+					queries: [],
+					storage: [],
+				},
 			};
+
+			const listenerCache = await core.listener.db();
+			for await (const [_, lValue] of listenerCache.iterator({
+				gte: fromKey,
+				lt: toKey,
+			})) {
+				const v = typeof lValue === 'string' ? JSON.parse(lValue) : lValue;
+				const { content, metadata } = v;
+				if (
+					content?.query &&
+					content?.nonce &&
+					content?.consumer &&
+					content?.sig &&
+					content?.hash &&
+					content?.size
+				) {
+					// TODO: Ensure variables match that of the Broker Node
+					// This is a proof-of-event for a query
+					// 1. verify the consumer signature
+					const consumerHash = ethers.keccak256(
+						fromString(JSON.stringify(content.query) + content.nonce)
+					);
+					const signerAddr = ethers.verifyMessage(consumerHash, content.sig);
+					if (signerAddr !== content.consumer) {
+						continue;
+					}
+					// 2. verify that the publisher also a broker node
+					const brokerNode = brokerNodes.find(
+						(n) => n.id === metadata.publisherId
+					);
+					if (typeof brokerNode === 'undefined') {
+						continue;
+					}
+					if (brokerNode.stake < minStakeRequirement) {
+						continue;
+					}
+
+					// 3. Add to report
+					report.events.queries.push({
+						query: content.query,
+						nonce: content.nonce,
+						consumer: content.consumer,
+						hash: content.hash,
+						size: content.size,
+					});
+					const existingConsumerIndex = report.consumers.findIndex(
+						(c) => c.id === content.consumer
+					);
+					if (existingConsumerIndex < 0) {
+						report.consumers.push({
+							id: content.consumer,
+							capture: 0, // the amount of stake token in wei based on the calculations
+							bytes: content.size,
+						});
+					} else {
+						// report.consumers[existingConsumerIndex].capture += // // the amount of stake token in wei based on the calculations
+						report.consumers[existingConsumerIndex].bytes += content.size;
+					}
+				}
+			}
 
 			return {
 				key,
