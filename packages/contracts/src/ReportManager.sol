@@ -105,6 +105,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             address nextReporterAddress = address(0);
             for (uint256 j = 0; j < nodeAddresses.length; j++) {
                 if (reputationOf[nodeAddresses[j]] >= ceilingReputation && ceilingReputation > 0) {
+                    // Skip the reporter address that already been added to the reporters list
                     continue;
                 }
                 if (nextReporterAddress == address(0)) {
