@@ -1,0 +1,66 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IStreamRegistry",
+  "sourceName": "src/interfaces/StreamRegistry.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "streamIdPath",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "metadataJsonString",
+          "type": "string"
+        }
+      ],
+      "name": "createStream",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "streamId",
+          "type": "string"
+        }
+      ],
+      "name": "exists",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "streamId",
+          "type": "string"
+        },
+        {
+          "internalType": "enum IStreamRegistry.PermissionType",
+          "name": "permissionType",
+          "type": "uint8"
+        }
+      ],
+      "name": "grantPublicPermission",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

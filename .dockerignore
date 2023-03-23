@@ -1,0 +1,6 @@
+**/node_modules*
+packages/contracts/.openzeppelin
+packages/contracts/artifacts
+packages/contracts/cache
+packages/contracts/types
+packages/contracts/.env

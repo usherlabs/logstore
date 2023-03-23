@@ -9,13 +9,12 @@ import { v1 as uuidv1 } from 'uuid';
 import { BatchManager } from './BatchManager';
 import { Bucket, BucketId } from './Bucket';
 import { BucketManager, BucketManagerOptions } from './BucketManager';
-import {
-	MAX_SEQUENCE_NUMBER_VALUE,
-	MIN_SEQUENCE_NUMBER_VALUE,
-} from './DataQueryEndpoints';
 
 const logger = new Logger(module);
 
+// TODO: move this to protocol-js
+const MIN_SEQUENCE_NUMBER_VALUE = 0;
+const MAX_SEQUENCE_NUMBER_VALUE = 2147483647;
 const MAX_TIMESTAMP_VALUE = 8640000000000000; // https://262.ecma-international.org/5.1/#sec-15.9.1.1
 const MAX_RESEND_LAST = 10000;
 

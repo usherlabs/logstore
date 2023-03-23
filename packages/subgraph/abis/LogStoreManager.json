@@ -108,12 +108,6 @@
 				"internalType": "uint256",
 				"name": "amount",
 				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "updatedBy",
-				"type": "address"
 			}
 		],
 		"name": "StoreUpdated",
@@ -133,50 +127,131 @@
 		"type": "event"
 	},
 	{
-		"inputs": [{ "internalType": "address", "name": "", "type": "address" }],
-		"name": "balanceOf",
-		"outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{ "internalType": "string", "name": "streamId", "type": "string" },
-			{ "internalType": "uint256", "name": "amount", "type": "uint256" },
-			{ "internalType": "uint256", "name": "bytesStored", "type": "uint256" }
-		],
-		"name": "capture",
-		"outputs": [{ "internalType": "bool", "name": "success", "type": "bool" }],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{ "internalType": "string[]", "name": "streamIds", "type": "string[]" },
-			{ "internalType": "uint256[]", "name": "amounts", "type": "uint256[]" },
+		"inputs": [],
+		"name": "LOGSTORE_QUERY_STREAM_ID_PATH",
+		"outputs": [
 			{
-				"internalType": "uint256[]",
-				"name": "bytesStored",
-				"type": "uint256[]"
+				"internalType": "string",
+				"name": "",
+				"type": "string"
 			}
 		],
-		"name": "captureBundle",
-		"outputs": [],
-		"stateMutability": "nonpayable",
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{ "internalType": "string", "name": "streamId", "type": "string" }
+		"inputs": [],
+		"name": "LOGSTORE_QUERY_STREAM_METADATA_JSON_STRING",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
 		],
-		"name": "exists",
-		"outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "LOGSTORE_SYSTEM_STREAM_ID_PATH",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
 		"inputs": [
-			{ "internalType": "address", "name": "owner", "type": "address" },
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "balanceOf",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "streamId",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "bytesStored",
+				"type": "uint256"
+			}
+		],
+		"name": "capture",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "success",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "streamId",
+				"type": "string"
+			}
+		],
+		"name": "exists",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
 			{
 				"internalType": "address",
 				"name": "stakeTokenAddress_",
@@ -196,14 +271,26 @@
 	{
 		"inputs": [],
 		"name": "owner",
-		"outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
 		"inputs": [],
 		"name": "proxiableUUID",
-		"outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
 		"stateMutability": "view",
 		"type": "function"
 	},
@@ -216,8 +303,16 @@
 	},
 	{
 		"inputs": [
-			{ "internalType": "string", "name": "streamId", "type": "string" },
-			{ "internalType": "uint256", "name": "amount", "type": "uint256" }
+			{
+				"internalType": "string",
+				"name": "streamId",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
 		],
 		"name": "stake",
 		"outputs": [],
@@ -227,47 +322,103 @@
 	{
 		"inputs": [],
 		"name": "stakeTokenAddress",
-		"outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
 		"inputs": [
-			{ "internalType": "address", "name": "", "type": "address" },
-			{ "internalType": "string", "name": "", "type": "string" }
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
 		],
 		"name": "storeBalanceOf",
-		"outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
 		"inputs": [
-			{ "internalType": "string", "name": "", "type": "string" },
-			{ "internalType": "uint256", "name": "", "type": "uint256" }
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
 		],
 		"name": "storeStakeholders",
-		"outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
-		"inputs": [{ "internalType": "string", "name": "", "type": "string" }],
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
 		"name": "stores",
-		"outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
 		"inputs": [],
 		"name": "totalSupply",
-		"outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
 		"inputs": [
-			{ "internalType": "address", "name": "newOwner", "type": "address" }
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
 		],
 		"name": "transferOwnership",
 		"outputs": [],
@@ -294,7 +445,11 @@
 				"name": "newImplementation",
 				"type": "address"
 			},
-			{ "internalType": "bytes", "name": "data", "type": "bytes" }
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
 		],
 		"name": "upgradeToAndCall",
 		"outputs": [],

@@ -17,16 +17,34 @@ services:
               bind:
                   propagation: rprivate
 
-    graph-deploy-logstore-subgraph:
-        container_name: logstore-dev-graph-deploy-logstore-subgraph
-        image: graph-deploy-logstore-subgraph
-        build: ./packages/subgraph
+    deploy-logstore-contracts:
+        container_name: logstore-dev-deploy-logstore-contracts
+        image: deploy-logstore-contracts
+        build:
+            context: ./
+            dockerfile: ./Dockerfile.contracts
         restart: on-failure # exits on success
         networks:
             - streamr-network
         volumes:
             - type: volume
-              source: data-graph-deploy-logstore
+              source: data-deploy-logstore-contracts
+              target: /firstrun
+              volume:
+                  nocopy: false
+
+    deploy-logstore-subgraph:
+        container_name: logstore-dev-deploy-logstore-subgraph
+        image: deploy-logstore-subgraph
+        build:
+            context: ./
+            dockerfile: ./Dockerfile.subgraph
+        restart: on-failure # exits on success
+        networks:
+            - streamr-network
+        volumes:
+            - type: volume
+              source: data-deploy-logstore-subgraph
               target: /firstrun
               volume:
                   nocopy: false
@@ -38,4 +56,5 @@ networks:
 
 volumes:
     cassandra_init_scripts:
-    data-graph-deploy-logstore:
+    data-deploy-logstore-contracts:
+    data-deploy-logstore-subgraph:

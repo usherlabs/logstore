@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "StringsUpgradeable",
+  "sourceName": "src/lib/StringsUpgradeable.sol",
+  "abi": [],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea2646970667358221220a10b423a4c0e864bf67bc624ae9eaa7fe0fdfdac3a4cf5fe6158d05266be008464736f6c63430008110033",
+  "deployedBytecode": "0x600080fdfea2646970667358221220a10b423a4c0e864bf67bc624ae9eaa7fe0fdfdac3a4cf5fe6158d05266be008464736f6c63430008110033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

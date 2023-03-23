@@ -95,7 +95,6 @@ export function handleStoreUpdated(event: StoreUpdatedEvent): void {
 	entity.store = event.params.store;
 	entity.isNew = event.params.isNew;
 	entity.amount = event.params.amount;
-	entity.updatedBy = event.params.updatedBy;
 
 	entity.blockNumber = event.block.number;
 	entity.blockTimestamp = event.block.timestamp;

@@ -7,11 +7,8 @@ import { formLogStoreSystemStreamId } from '../../client/utils/utils';
 import { Plugin, PluginOptions } from '../../Plugin';
 import { LogStoreRegistry } from '../../registry/LogStoreRegistry';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
-import { router as dataMetadataEndpoint } from './DataMetadataEndpoints';
-import { router as dataQueryEndpoints } from './DataQueryEndpoints';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
-import { router as logStoreConfigEndpoints } from './LogStoreConfigEndpoints';
 
 const logger = new Logger(module);
 
@@ -74,11 +71,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		};
 		const node = await this.streamrClient.getNode();
 		node.addMessageListener(this.messageListener);
-		this.addHttpServerRouter(
-			dataQueryEndpoints(this.cassandra, metricsContext)
-		);
-		this.addHttpServerRouter(dataMetadataEndpoint(this.cassandra));
-		this.addHttpServerRouter(logStoreConfigEndpoints(this.logStoreConfig));
 	}
 
 	async stop(): Promise<void> {

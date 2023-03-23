@@ -13,9 +13,11 @@ import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 
 // Owned by the NodeManager Contract
 contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
-    string public constant LOGSTORE_STREAM_ID_PATH = "/logstore";
+    string public constant LOGSTORE_SYSTEM_STREAM_ID_PATH = "/logstore-system";
+    string public constant LOGSTORE_QUERY_STREAM_ID_PATH = "/logstore-query";
     /* solhint-disable quotes */
-    string public constant LOGSTORE_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
+    string public constant LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
+    string public constant LOGSTORE_QUERY_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
     /* solhint-enable quotes */
 
     event StoreUpdated(string store, bool isNew, uint256 amount);
@@ -43,13 +45,20 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
         // stakeTokenAddress = stakeTokenAddress_;
 
-        streamrRegistry.createStream(LOGSTORE_STREAM_ID_PATH, LOGSTORE_STREAM_METADATA_JSON_STRING);
+        streamrRegistry.createStream(LOGSTORE_SYSTEM_STREAM_ID_PATH, LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING);
+        streamrRegistry.createStream(LOGSTORE_QUERY_STREAM_ID_PATH, LOGSTORE_QUERY_STREAM_METADATA_JSON_STRING);
 
         // TODO: Granted public permission to publish to LogStore stream. The pesmission have to be granted only to LogStore nodes.
-        string memory streamId = string(
-            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_STREAM_ID_PATH)
+        string memory systemStreamId = string(
+            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_SYSTEM_STREAM_ID_PATH)
         );
-        streamrRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Publish);
+        streamrRegistry.grantPublicPermission(systemStreamId, IStreamRegistry.PermissionType.Publish);
+
+        string memory queryStreamId = string(
+            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_QUERY_STREAM_ID_PATH)
+        );
+        streamrRegistry.grantPublicPermission(queryStreamId, IStreamRegistry.PermissionType.Publish);
+        streamrRegistry.grantPublicPermission(queryStreamId, IStreamRegistry.PermissionType.Subscribe);
 
         transferOwnership(owner_);
     }

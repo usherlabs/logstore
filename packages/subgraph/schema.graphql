@@ -47,7 +47,6 @@ type StoreUpdated @entity(immutable: true) {
   store: String! # string
   isNew: Boolean! # bool
   amount: BigInt! # uint256
-  updatedBy: Bytes! # address
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!

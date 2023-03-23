@@ -6,7 +6,7 @@ dataSources:
     name: LogStoreManager
     network: xDai
     source:
-      address: "0x699B4bE95614f017Bb622e427d3232837Cc814E6"
+      address: "0x611900fD07BB133016Ed85553aF9586771da5ff9"
       abi: LogStoreManager
       startBlock: 0
     mapping:
@@ -35,7 +35,7 @@ dataSources:
           handler: handleInitialized
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred
-        - event: StoreUpdated(string,bool,uint256,address)
+        - event: StoreUpdated(string,bool,uint256)
           handler: handleStoreUpdated
         - event: Upgraded(indexed address)
           handler: handleUpgraded
