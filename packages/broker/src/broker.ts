@@ -1,6 +1,4 @@
 import { Logger, toEthereumAddress } from '@streamr/utils';
-import { Server as HttpServer } from 'http';
-import { Server as HttpsServer } from 'https';
 import StreamrClient, {
 	NetworkNodeStub,
 	validateConfig as validateClientConfig,
@@ -8,7 +6,6 @@ import StreamrClient, {
 import { container } from 'tsyringe';
 
 import { version as CURRENT_VERSION } from '../package.json';
-import { createApiAuthenticator } from './apiAuthenticator';
 import {
 	AuthenticationInjectionToken,
 	createAuthentication,
@@ -21,7 +18,6 @@ import { Config } from './config/config';
 import BROKER_CONFIG_SCHEMA from './config/config.schema.json';
 import { validateConfig } from './config/validateConfig';
 import { generateMnemonicFromAddress } from './helpers/generateMnemonicFromAddress';
-import { startServer as startHttpServer, stopServer } from './httpServer';
 import { Plugin, PluginOptions } from './Plugin';
 import { createPlugin } from './pluginRegistry';
 import { LogStorePluginConfigInjectionToken } from './plugins/logStore/LogStorePlugin';
@@ -42,7 +38,6 @@ export const createBroker = async (
 	validateClientConfig(config.client);
 
 	const streamrClient = new StreamrClient(config.client);
-	const apiAuthenticator = createApiAuthenticator(config);
 
 	const logStorePluginConfig = config.plugins['logStore'];
 	const clientConfig = createStrictConfig(config.client);
@@ -71,7 +66,6 @@ export const createBroker = async (
 		const pluginOptions: PluginOptions = {
 			name,
 			streamrClient,
-			apiAuthenticator,
 			brokerConfig: config,
 			logStoreRegistry,
 		};
@@ -79,7 +73,6 @@ export const createBroker = async (
 	});
 
 	let started = false;
-	let httpServer: HttpServer | HttpsServer | undefined;
 
 	const getNode = async (): Promise<NetworkNodeStub> => {
 		if (!started) {
@@ -93,16 +86,6 @@ export const createBroker = async (
 		start: async () => {
 			logger.info(`Starting LogStore broker version ${CURRENT_VERSION}`);
 			await Promise.all(plugins.map((plugin) => plugin.start()));
-			const httpServerRoutes = plugins.flatMap((plugin) =>
-				plugin.getHttpServerRoutes()
-			);
-			if (httpServerRoutes.length > 0) {
-				httpServer = await startHttpServer(
-					httpServerRoutes,
-					config.httpServer,
-					apiAuthenticator
-				);
-			}
 
 			const nodeId = (await streamrClient.getNode()).getNodeId();
 			const brokerAddress = await streamrClient.getAddress();
@@ -144,9 +127,6 @@ export const createBroker = async (
 			started = true;
 		},
 		stop: async () => {
-			if (httpServer !== undefined) {
-				await stopServer(httpServer);
-			}
 			await Promise.all(plugins.map((plugin) => plugin.stop()));
 			await streamrClient.destroy();
 		},

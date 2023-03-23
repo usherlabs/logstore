@@ -44,49 +44,6 @@
 			"description": "Plugin configurations",
 			"additionalProperties": true,
 			"default": {}
-		},
-		"httpServer": {
-			"type": ["object"],
-			"description": "HTTP server configuration",
-			"default": {},
-			"additionalProperties": false,
-			"properties": {
-				"port": {
-					"$ref": "#/definitions/port",
-					"description": "Port to start HTTP server on",
-					"default": 7171
-				},
-				"sslCertificate": {
-					"description": "Files to use for SSL",
-					"type": "object",
-					"required": ["certFileName", "privateKeyFileName"],
-					"additionalProperties": false,
-					"properties": {
-						"certFileName": {
-							"type": "string",
-							"description": "Path of certificate file"
-						},
-						"privateKeyFileName": {
-							"type": "string",
-							"description": "Path of private key file"
-						}
-					}
-				}
-			}
-		},
-		"apiAuthentication": {
-			"type": "object",
-			"description": "Plugins should restrict the API access: if an endpoint requires authentication, the user must provide one of the API keys e.g. in a request header",
-			"required": ["keys"],
-			"additionalProperties": false,
-			"properties": {
-				"keys": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					}
-				}
-			}
 		}
 	},
 	"definitions": {

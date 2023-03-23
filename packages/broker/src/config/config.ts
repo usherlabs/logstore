@@ -3,16 +3,6 @@ import { StreamrClientConfig } from 'streamr-client';
 
 export interface Config {
 	client?: StreamrClientConfig;
-	httpServer?: {
-		port: number;
-		sslCertificate?: {
-			privateKeyFileName: string;
-			certFileName: string;
-		};
-	};
-	apiAuthentication?: {
-		keys: string[];
-	};
 	plugins?: Record<string, any>;
 }
 
@@ -21,7 +11,6 @@ export interface Config {
 export type StrictConfig = Config & {
 	client: Exclude<Config['client'], undefined>;
 	plugins: Exclude<Config['plugins'], undefined>;
-	httpServer: Exclude<Config['httpServer'], undefined>;
 };
 
 export interface ConfigFile extends Config {

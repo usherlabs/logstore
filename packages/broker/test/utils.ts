@@ -30,7 +30,6 @@ interface TestConfig {
 	privateKey: string;
 	httpPort?: number;
 	extraPlugins?: Record<string, unknown>;
-	apiAuthentication?: Config['apiAuthentication'];
 	enableCassandra?: boolean;
 	logStoreConfigRefreshInterval?: number;
 	logStoreManagerChainAddress?: string;
@@ -42,7 +41,6 @@ export const formConfig = ({
 	privateKey,
 	httpPort,
 	extraPlugins = {},
-	apiAuthentication,
 	enableCassandra = false,
 	logStoreConfigRefreshInterval = 0,
 	logStoreManagerChainAddress,
@@ -91,10 +89,6 @@ export const formConfig = ({
 				webrtcDisallowPrivateAddresses: false,
 			},
 		},
-		httpServer: {
-			port: httpPort ? httpPort : 7171,
-		},
-		apiAuthentication,
 		plugins,
 	};
 };
