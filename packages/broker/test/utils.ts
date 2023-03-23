@@ -209,7 +209,7 @@ export async function startLogStoreBroker(
 		trackerPort,
 		httpPort,
 		enableCassandra: true,
-		logStoreManagerChainAddress: '0x699B4bE95614f017Bb622e427d3232837Cc814E6',
+		logStoreManagerChainAddress: '0x611900fD07BB133016Ed85553aF9586771da5ff9',
 		theGraphUrl:
 			'http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts',
 	});

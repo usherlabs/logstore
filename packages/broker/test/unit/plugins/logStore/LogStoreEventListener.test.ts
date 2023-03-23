@@ -70,7 +70,6 @@ describe(LogStoreEventListener, () => {
 		logStoreEventListeners.get('addToLogStore')!({
 			store: toStreamID('streamId'),
 			isNew: true,
-			address: toStreamID('updated-by-1'),
 			amount: BigNumber.from(1000000000000000),
 			blockNumber: 1234,
 		});

@@ -46,7 +46,6 @@ export interface LogStoreAssignmentEvent {
 	readonly store: string;
 	readonly isNew: boolean;
 	readonly amount: BigNumber;
-	readonly address: string;
 	readonly blockNumber: number;
 }
 
@@ -147,7 +146,6 @@ export class LogStoreRegistry {
 					store: string,
 					isNew: boolean,
 					amount: BigNumber,
-					address: string,
 					extra: any
 				) => {
 					this.logger.debug(
@@ -159,7 +157,6 @@ export class LogStoreRegistry {
 						store,
 						isNew,
 						amount,
-						address,
 						// nodeAddress: toEthereumAddress(nodeAddress),
 						blockNumber: extra.blockNumber,
 					});

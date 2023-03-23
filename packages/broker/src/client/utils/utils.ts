@@ -70,7 +70,10 @@ export const counterId = CounterId();
 export function formLogStoreSystemStreamId(
 	logStoreManagerAddress: string
 ): StreamID {
-	return toStreamID('/logstore', toEthereumAddress(logStoreManagerAddress));
+	return toStreamID(
+		'/logstore-system',
+		toEthereumAddress(logStoreManagerAddress)
+	);
 }
 
 export function generateClientId(): string {

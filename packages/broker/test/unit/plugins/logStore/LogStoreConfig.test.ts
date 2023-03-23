@@ -145,7 +145,6 @@ describe(LogStoreConfig, () => {
 			addToLogStoreListener({
 				store: toStreamID('stream-1'),
 				isNew: true,
-				address: toStreamID('updated-by-1'),
 				amount: BigNumber.from(1000000000000000),
 				blockNumber: 10,
 			});
@@ -153,7 +152,6 @@ describe(LogStoreConfig, () => {
 			addToLogStoreListener({
 				store: toStreamID('stream-3'),
 				isNew: true,
-				address: toStreamID('updated-by-3'),
 				amount: BigNumber.from(1000000000000000),
 				blockNumber: 15,
 			});
@@ -161,7 +159,6 @@ describe(LogStoreConfig, () => {
 			removeFromLogStoreListener({
 				store: toStreamID('stream-1'),
 				isNew: true,
-				address: toStreamID('updated-by-1'),
 				amount: BigNumber.from(1000000000000000),
 				blockNumber: 13,
 			});
