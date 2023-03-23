@@ -108,6 +108,8 @@ export default class Runtime implements IRuntime {
 			const stakeTokenSymbol = await stakeTokenContract.symbol();
 			const stakeTokenDecimals = await stakeTokenContract.decimals();
 
+			const fee = 0; // TODO: We need a bundle fee (expense) estimation based on size to evaluate the fees
+
 			// Fetch all Smart Contract events to reconstruct the state
 			const storeUpdateEvents = await storeManagerContract.queryFilter(
 				storeManagerContract.filters.StoreUpdated(),
