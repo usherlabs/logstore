@@ -39,6 +39,7 @@ export default class Runtime implements IRuntime {
 
 		// IF REPORT
 		if (key.startsWith(reportPrefix)) {
+			core.logger.info(`Create Report: ${key}`);
 			// 1. Use unique source to Smart Contracts to determine last accepted report
 			// 2. Use last accepted report to determine range between last report and this report (using key timestamp) and query for messages
 
@@ -68,7 +69,7 @@ export default class Runtime implements IRuntime {
 				}
 			);
 			const lastReport: Report = await reportManagerContract.getLastReport();
-			let fromKey = 0;
+			let fromKey = parseInt(core.pool.data.start_key, 10); // This needs to be the start key
 			if ((lastReport || {})?.id) {
 				const rKey = lastReport.id.substring(
 					reportPrefix.length,
@@ -107,8 +108,6 @@ export default class Runtime implements IRuntime {
 			);
 			const stakeTokenSymbol = await stakeTokenContract.symbol();
 			const stakeTokenDecimals = await stakeTokenContract.decimals();
-
-			const fee = 0; // TODO: We need a bundle fee (expense) estimation based on size to evaluate the fees
 
 			// Fetch all Smart Contract events to reconstruct the state
 			const storeUpdateEvents = await storeManagerContract.queryFilter(
@@ -171,6 +170,7 @@ export default class Runtime implements IRuntime {
 
 			// TODO: Query system stream from Broker Network
 			// TODO: Determine based on unanimous observations which nodes missed data
+			// TODO: Determine a total expense fee to base the total fee on -- this should be based on all events fetched.
 
 			for (let i = 0; i < stores.length; i++) {
 				// 1. Get the query partition for this specific store -- this should be a public method
@@ -186,6 +186,7 @@ export default class Runtime implements IRuntime {
 			const report: Report = {
 				id: key,
 				height: blockNumber,
+				treasury: 0,
 				streams: [],
 				consumers: [],
 				nodes: {},
@@ -196,13 +197,16 @@ export default class Runtime implements IRuntime {
 				},
 			};
 
+			const readTreasuryFee = fees.read * fees.treasuryMultiplier;
+			const readNodeFee = fees.read - readTreasuryFee;
+
 			const listenerCache = await core.listener.db();
-			for await (const [_, lValue] of listenerCache.iterator({
+			const queryHashKeyMap: Record<string, string[]> = {};
+			for await (const [lKey, lValue] of listenerCache.iterator({
 				gte: fromKey,
 				lt: toKey,
 			})) {
-				const v = typeof lValue === 'string' ? JSON.parse(lValue) : lValue;
-				const { content, metadata } = v;
+				const { content, metadata } = lValue;
 				if (
 					content?.query &&
 					content?.nonce &&
@@ -212,6 +216,7 @@ export default class Runtime implements IRuntime {
 					content?.size
 				) {
 					// TODO: Ensure variables match that of the Broker Node
+
 					// This is a proof-of-event for a query
 					// 1. verify the consumer signature
 					const consumerHash = ethers.keccak256(
@@ -232,33 +237,56 @@ export default class Runtime implements IRuntime {
 						continue;
 					}
 
-					// 3. Add to report
-					report.events.queries.push({
-						query: content.query,
-						nonce: content.nonce,
-						consumer: content.consumer,
-						hash: content.hash,
-						size: content.size,
-					});
-					const existingConsumerIndex = report.consumers.findIndex(
-						(c) => c.id === content.consumer
-					);
-					if (existingConsumerIndex < 0) {
-						report.consumers.push({
-							id: content.consumer,
-							capture: 0, // the amount of stake token in wei based on the calculations
-							bytes: content.size,
-						});
-					} else {
-						// report.consumers[existingConsumerIndex].capture += // // the amount of stake token in wei based on the calculations
-						report.consumers[existingConsumerIndex].bytes += content.size;
+					// 3. Add to hashMap
+					// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
+					const h = content.consumer + ':' + content.hash;
+					if (!queryHashKeyMap[h]) {
+						queryHashKeyMap[h] = [];
 					}
+					queryHashKeyMap[h].push(`${lKey}`);
 				}
 			}
 
+			const queryHashKeyMapEntries = Object.entries(queryHashKeyMap);
+			for (let i = 0; i < queryHashKeyMapEntries.length; i++) {
+				const [, lKeys] = queryHashKeyMapEntries[i];
+				if (lKeys.length <= brokerNodes.length / 2) {
+					// Clear out all hashes that the majority of the nodes did NOT "agree" with
+					continue;
+				}
+
+				// Add consolidated event to report
+				const event = await listenerCache.get(lKeys[0]);
+				report.events.queries.push({
+					query: event.content.query,
+					nonce: event.content.nonce,
+					consumer: event.content.consumer,
+					hash: event.content.hash,
+					size: event.content.size,
+				});
+				const existingConsumerIndex = report.consumers.findIndex(
+					(c) => c.id === event.content.consumer
+				);
+				if (existingConsumerIndex < 0) {
+					report.consumers.push({
+						id: event.content.consumer,
+						capture: readNodeFee * event.content.size, // the amount of stake token in wei based on the calculations
+						bytes: event.content.size,
+					});
+					report.treasury = readTreasuryFee * event.content.size;
+				} else {
+					// report.consumers[existingConsumerIndex].capture += // // the amount of stake token in wei based on the calculations
+					report.consumers[existingConsumerIndex].bytes +=
+						readNodeFee * event.content.size;
+					report.treasury += readTreasuryFee * event.content.size;
+				}
+			}
+
+			// Convert fees to stake token
+
 			return {
 				key,
-				value: [],
+				value: report,
 			};
 		}
 

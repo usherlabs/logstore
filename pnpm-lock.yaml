@@ -273,6 +273,7 @@ importers:
       '@types/pino': ^7.0.5
       '@types/websocket': ^1.0.5
       '@types/ws': ^8.5.3
+      chokidar: ^3.5.3
       classic-level: ^1.2.0
       del-cli: ^5.0.0
       dotenv: ^16.0.3
@@ -294,6 +295,7 @@ importers:
       '@sentry/node': 7.37.2
       '@sentry/tracing': 7.37.2
       '@streamr/config': 2.5.8
+      chokidar: 3.5.3
       classic-level: 1.2.0
       dotenv: 16.0.3
       ethers: 6.0.3
