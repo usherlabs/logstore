@@ -20,6 +20,12 @@ export type PoolConfig = {
 	};
 };
 
+export type ReportEvent = {
+	id: string;
+	hash: string;
+	size: number;
+};
+
 export type Report = {
 	id: string;
 	height: number;
@@ -39,14 +45,12 @@ export type Report = {
 
 	// The following properties are not signed by the Broker Nodes
 	events: {
-		queries: {
+		queries: (ReportEvent & {
 			query: string;
 			nonce: string;
 			consumer: string;
-			hash: string;
-			size: number;
-		}[];
-		storage: { hash: string; size: number }[];
+		})[];
+		storage: ReportEvent[];
 	};
 };
 
@@ -58,4 +62,5 @@ export type BrokerNode = {
 	next: string;
 	prev: string;
 	stake: number;
+	delegates: string[];
 };

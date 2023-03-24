@@ -3,6 +3,7 @@ import { abi as ReportManagerContractABI } from '@concertodao/logstore-contracts
 import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { DataItem, IRuntime, sha256 } from '@kyvejs/protocol';
 import { ethers, EventLog } from 'ethers';
+import redstone from 'redstone-api';
 import { fromString } from 'uint8arrays/from-string';
 
 import erc20ABI from './abi/erc20';
@@ -168,20 +169,6 @@ export default class Runtime implements IRuntime {
 				currentBrokerNodeAddressInLoop = brokerNode.next;
 			}
 
-			// TODO: Query system stream from Broker Network
-			// TODO: Determine based on unanimous observations which nodes missed data
-			// TODO: Determine a total expense fee to base the total fee on -- this should be based on all events fetched.
-
-			for (let i = 0; i < stores.length; i++) {
-				// 1. Get the query partition for this specific store -- this should be a public method
-				// 2. Query the store using its query partition
-				// 3. Query the query partition for the system stream to fetch all read related metadata
-				// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
-			}
-			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
-			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
-			const resp = [{ hello: 'world' }]; // ! DUMMY
-
 			// Establish the report
 			const report: Report = {
 				id: key,
@@ -196,6 +183,20 @@ export default class Runtime implements IRuntime {
 					storage: [],
 				},
 			};
+
+			// TODO: Query system stream from Broker Network
+			// TODO: Determine based on unanimous observations which nodes missed data
+			// TODO: Determine a total expense fee to base the total fee on -- this should be based on all events fetched.
+
+			for (let i = 0; i < stores.length; i++) {
+				// 1. Get the query partition for this specific store -- this should be a public method
+				// 2. Query the store using its query partition
+				// 3. Query the query partition for the system stream to fetch all read related metadata
+				// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
+			}
+			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
+			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
+			// const resp = [{ hello: 'world' }]; // ! DUMMY
 
 			const readTreasuryFee = fees.read * fees.treasuryMultiplier;
 			const readNodeFee = fees.read - readTreasuryFee;
@@ -257,7 +258,9 @@ export default class Runtime implements IRuntime {
 
 				// Add consolidated event to report
 				const event = await listenerCache.get(lKeys[0]);
+				const id = event.metadata.streamId.toString();
 				report.events.queries.push({
+					id,
 					query: event.content.query,
 					nonce: event.content.nonce,
 					consumer: event.content.consumer,
@@ -267,22 +270,84 @@ export default class Runtime implements IRuntime {
 				const existingConsumerIndex = report.consumers.findIndex(
 					(c) => c.id === event.content.consumer
 				);
+
+				const nodeAmount = readNodeFee * event.content.size;
 				if (existingConsumerIndex < 0) {
 					report.consumers.push({
 						id: event.content.consumer,
-						capture: readNodeFee * event.content.size, // the amount of stake token in wei based on the calculations
+						capture: nodeAmount, // the amount of stake token in wei based on the calculations
 						bytes: event.content.size,
 					});
 					report.treasury = readTreasuryFee * event.content.size;
 				} else {
 					// report.consumers[existingConsumerIndex].capture += // // the amount of stake token in wei based on the calculations
-					report.consumers[existingConsumerIndex].bytes +=
-						readNodeFee * event.content.size;
+					report.consumers[existingConsumerIndex].bytes += nodeAmount;
 					report.treasury += readTreasuryFee * event.content.size;
+				}
+
+				// ? All nodes managing all streams right now
+				for (let j = 0; j < brokerNodes.length; j++) {
+					const bNode = brokerNodes[j];
+					if (bNode.stake < minStakeRequirement) {
+						continue;
+					}
+					if (typeof report.nodes[bNode.id] !== 'undefined') {
+						report.nodes[bNode.id] = 0;
+					}
+					report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
+
+					for (let l = 0; l < bNode.delegates.length; l++) {
+						const delAddr = bNode.delegates[l];
+						const delegateAmount = await nodeManagerContract.delegatesOf(
+							delAddr,
+							bNode.id
+						);
+						const delegatePortion = delegateAmount / bNode.stake;
+						if (!report.delegates[delAddr]) {
+							report.delegates[delAddr] = {};
+						}
+						if (typeof report.delegates[delAddr][bNode.id] !== 'number') {
+							report.delegates[delAddr][bNode.id] = 0;
+						}
+						report.delegates[delAddr][bNode.id] += delegatePortion * nodeAmount;
+					}
 				}
 			}
 
+			// TODO: Merge this logic into store loop.
+			report.streams.forEach((s) => {
+				Object.keys(report.nodes).forEach((n) => {
+					report.nodes[n] += s.capture / report.nodes.length;
+				});
+			});
+
 			// Convert fees to stake token
+			const priceOfStakeToken = await redstone.getPrice(stakeTokenSymbol);
+			const toStakeToken = (usdValue: number) =>
+				Math.floor(
+					parseInt(
+						ethers
+							.parseUnits(
+								`${usdValue * priceOfStakeToken.value}`,
+								stakeTokenDecimals
+							)
+							.toString(10),
+						10
+					)
+				);
+			report.treasury = toStakeToken(report.treasury);
+			report.consumers = report.consumers.map((c) => {
+				c.capture = toStakeToken(c.capture);
+				return c;
+			});
+			Object.keys(report.nodes).forEach((n) => {
+				report.nodes[n] = toStakeToken(report.nodes[n]);
+			});
+			Object.keys(report.delegates).forEach((d) => {
+				Object.keys(report.delegates[d]).forEach((n) => {
+					report.delegates[d][n] = toStakeToken(report.delegates[d][n]);
+				});
+			});
 
 			return {
 				key,
@@ -368,7 +433,7 @@ export default class Runtime implements IRuntime {
 		const rKeyInt = parseInt(rKey, 10);
 		for await (const [key] of listenerCache.iterator()) {
 			const keyInt = parseInt(key, 10);
-			if (keyInt >= rKeyInt) {
+			if (keyInt > rKeyInt) {
 				return null; // Will cause the validator to abstain from the vote
 			}
 			break;
