@@ -171,6 +171,43 @@ importers:
       ts-jest: 29.0.5_xsbwa6gkdcvveqfliwh72cmdne
       typescript: 4.9.5
 
+  packages/cli:
+    specifiers:
+      '@types/node': ^18.7.18
+      '@types/node-fetch': ^2.6.2
+      '@types/pino': ^7.0.5
+      '@types/websocket': ^1.0.5
+      '@types/ws': ^8.5.3
+      commander: ^10.0.0
+      del-cli: ^5.0.0
+      eslint: ^8.34.0
+      npm-run-all: ^4.1.5
+      pkg: ^5.6.0
+      prettier: ^2.6.2
+      resolve-tspaths: ^0.8.0
+      ts-node: ^10.9.1
+      tsconfig-paths: ^4.1.0
+      tslib: ^2.5.0
+      typescript: ^4.6.4
+    dependencies:
+      commander: 10.0.0
+    devDependencies:
+      '@types/node': 18.13.0
+      '@types/node-fetch': 2.6.2
+      '@types/pino': 7.0.5
+      '@types/websocket': 1.0.5
+      '@types/ws': 8.5.4
+      del-cli: 5.0.0
+      eslint: 8.36.0
+      npm-run-all: 4.1.5
+      pkg: 5.8.0
+      prettier: 2.8.4
+      resolve-tspaths: 0.8.8_typescript@4.9.5
+      ts-node: 10.9.1_4bewfcp2iebiwuold25d6rgcsy
+      tsconfig-paths: 4.1.2
+      tslib: 2.5.0
+      typescript: 4.9.5
+
   packages/contracts:
     specifiers:
       '@ethersproject/abstract-signer': ^5.7.0
@@ -273,6 +310,7 @@ importers:
       '@types/pino': ^7.0.5
       '@types/websocket': ^1.0.5
       '@types/ws': ^8.5.3
+      arweave: ^1.13.3
       chokidar: ^3.5.3
       classic-level: ^1.2.0
       del-cli: ^5.0.0
@@ -296,6 +334,7 @@ importers:
       '@sentry/node': 7.37.2
       '@sentry/tracing': 7.37.2
       '@streamr/config': 2.5.8
+      arweave: 1.13.3
       chokidar: 3.5.3
       classic-level: 1.2.0
       dotenv: 16.0.3
@@ -745,7 +784,7 @@ packages:
       '@supercharge/promise-pool': 2.4.0
       algosdk: 1.24.1
       arbundles: 0.6.22_@solana+web3.js@1.73.2
-      arweave: 1.13.0
+      arweave: 1.13.3
       async-retry: 1.3.3
       axios: 0.25.0
       base64url: 3.0.1
@@ -2139,7 +2178,7 @@ packages:
       '@kyvejs/types': 1.0.0-beta.2
       '@types/cli-progress': 3.11.0
       '@types/jsonfile': 6.1.1
-      arweave: 1.13.0
+      arweave: 1.13.3
       axios: 0.24.0
       bignumber.js: 9.1.1
       clone: 2.1.2
@@ -4978,8 +5017,8 @@ packages:
       '@randlabs/myalgo-connect': 1.4.2
       '@solana/wallet-adapter-base': 0.9.20_@solana+web3.js@1.73.2
       algosdk: 1.24.1
-      arweave: 1.13.0
-      arweave-stream-tx: 1.2.2_arweave@1.13.0
+      arweave: 1.13.3
+      arweave-stream-tx: 1.2.2_arweave@1.13.3
       avsc: github.com/Bundlr-Network/avsc/a730cc8018b79e114b6a3381bbb57760a24c6cef
       axios: 0.21.4
       base64url: 3.0.1
@@ -5001,7 +5040,7 @@ packages:
   /arconnect/0.4.2:
     resolution: {integrity: sha512-Jkpd4QL3TVqnd3U683gzXmZUVqBUy17DdJDuL/3D9rkysLgX6ymJ2e+sR+xyZF5Rh42CBqDXWNMmCjBXeP7Gbw==}
     dependencies:
-      arweave: 1.13.0
+      arweave: 1.13.3
     dev: false
 
   /are-we-there-yet/1.1.7:
@@ -5118,23 +5157,23 @@ packages:
   /arweave-multihost/0.1.0:
     resolution: {integrity: sha512-biIkzQ3oc4RLV1MORQnqWz51IazP++K/8SsYMjUokK0cUfBLqom4pufKFCjTkGQIZMWWanXxnZqL66hHPgTCgA==}
     dependencies:
-      arweave: 1.13.0
+      arweave: 1.13.3
       axios: 0.21.4
     transitivePeerDependencies:
       - debug
     dev: false
 
-  /arweave-stream-tx/1.2.2_arweave@1.13.0:
+  /arweave-stream-tx/1.2.2_arweave@1.13.3:
     resolution: {integrity: sha512-bNt9rj0hbAEzoUZEF2s6WJbIz8nasZlZpxIw03Xm8fzb9gRiiZlZGW3lxQLjfc9Z0VRUWDzwtqoYeEoB/JDToQ==}
     peerDependencies:
       arweave: ^1.10.0
     dependencies:
-      arweave: 1.13.0
+      arweave: 1.13.3
       exponential-backoff: 3.1.0
     dev: false
 
-  /arweave/1.13.0:
-    resolution: {integrity: sha512-pir1s0Lg7MzAxmFsPqht1SGOq8Hoj1fhf44/8PVjBd6T8l6JRrFN23UvKp7N+MXBYM5SqrLYB8KrgvxAaczGFg==}
+  /arweave/1.13.3:
+    resolution: {integrity: sha512-Zj+mKMU6/gl3nIqGU4c8J8LdYt11qfA8CBy5NZ25X2dFrd40m3GufxmnmwS1V0Gm97i3+mwO+ARDEm0o4REEoQ==}
     engines: {node: '>=16.15.0'}
     dependencies:
       arconnect: 0.4.2
@@ -13347,7 +13386,7 @@ packages:
     resolution: {integrity: sha512-X0gj7UU5aLQPmNjdnhBUCvi6tkj5SpQJ7heT6+TIPx7Od707n4oqKHoJa41V8QOGjudbxaM1BIv6+2+hp0wFGQ==}
     dependencies:
       ar-gql: 0.0.6
-      arweave: 1.13.0
+      arweave: 1.13.3
       arweave-multihost: 0.1.0
       axios: 0.21.4
       deep-sort-object: 1.0.2

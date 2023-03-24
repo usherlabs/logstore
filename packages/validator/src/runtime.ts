@@ -9,6 +9,7 @@ import { fromString } from 'uint8arrays/from-string';
 import erc20ABI from './abi/erc20';
 import { appPackageName, appVersion } from './env-config';
 import { BrokerNode, PoolConfig, Report } from './types';
+import { Arweave } from './utils/arweave';
 import Validator from './validator';
 
 const reportPrefix = `report_` as const;
@@ -169,6 +170,28 @@ export default class Runtime implements IRuntime {
 				currentBrokerNodeAddressInLoop = brokerNode.next;
 			}
 
+			// ! Re-calling all queries here to determine its size is silly.
+			// The previous bundle will have the size of data between the times of the last report to the current report.
+			// Determine the finalized_bundle id by referring to the Pool's total bundles -1.
+			const totalBundles = parseInt(core.pool.data.total_bundles, 10);
+			let expense = 0;
+			if (totalBundles > 0) {
+				const lastFinalizedBundleId = totalBundles - 1;
+				const lastBundle = await core.lcd[0].kyve.query.v1beta1.finalizedBundle(
+					{
+						id: `${lastFinalizedBundleId}`,
+						pool_id: core.pool.id,
+					}
+				);
+				const storageId = lastBundle.finalized_bundle.storage_id;
+				expense = await Arweave.getFee(storageId);
+			}
+			const writeFee = fees.writeMultiplier + 1 * expense;
+			const writeTreasuryFee = fees.treasuryMultiplier * (writeFee - expense); // multiplier on the profit
+			const writeNodeFee = writeFee - writeTreasuryFee;
+			const readTreasuryFee = fees.read * fees.treasuryMultiplier;
+			const readNodeFee = fees.read - readTreasuryFee;
+
 			// Establish the report
 			const report: Report = {
 				id: key,
@@ -186,7 +209,6 @@ export default class Runtime implements IRuntime {
 
 			// TODO: Query system stream from Broker Network
 			// TODO: Determine based on unanimous observations which nodes missed data
-			// TODO: Determine a total expense fee to base the total fee on -- this should be based on all events fetched.
 
 			for (let i = 0; i < stores.length; i++) {
 				// 1. Get the query partition for this specific store -- this should be a public method
@@ -197,9 +219,6 @@ export default class Runtime implements IRuntime {
 			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
 			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
 			// const resp = [{ hello: 'world' }]; // ! DUMMY
-
-			const readTreasuryFee = fees.read * fees.treasuryMultiplier;
-			const readNodeFee = fees.read - readTreasuryFee;
 
 			const listenerCache = await core.listener.db();
 			const queryHashKeyMap: Record<string, string[]> = {};

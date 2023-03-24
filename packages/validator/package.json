@@ -33,6 +33,7 @@
 		"@sentry/node": "^7.13.0",
 		"@sentry/tracing": "^7.13.0",
 		"@streamr/config": "^2.5.8",
+		"arweave": "^1.13.3",
 		"chokidar": "^3.5.3",
 		"classic-level": "^1.2.0",
 		"dotenv": "^16.0.3",
