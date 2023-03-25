@@ -1,8 +1,9 @@
 import { camelCase, set } from 'lodash';
-import { StreamrClientConfig } from 'streamr-client';
+
+import { LogStoreClientConfig } from '../client/LogStoreClientConfig';
 
 export interface Config {
-	client?: StreamrClientConfig;
+	client?: LogStoreClientConfig;
 	plugins?: Record<string, any>;
 }
 

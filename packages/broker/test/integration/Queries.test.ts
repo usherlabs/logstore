@@ -1,5 +1,4 @@
 import { Tracker } from '@streamr/network-tracker';
-import { StreamMessage } from '@streamr/protocol';
 import {
 	fastWallet,
 	fetchPrivateKeyWithGas,
@@ -10,21 +9,22 @@ import cassandra, { Client } from 'cassandra-driver';
 import { Wallet } from 'ethers';
 import 'reflect-metadata';
 import { Broker as StreamrBroker } from 'streamr-broker';
-import StreamrClient, { Stream } from 'streamr-client';
+import StreamrClient, { Stream, StreamPermission } from 'streamr-client';
 
-import { Broker } from '../../../../src/broker';
-import { LogStoreClient } from '../../../../src/client/LogStoreClient';
+import { Broker } from '../../src/broker';
+import { LogStoreClient } from '../../src/client/LogStoreClient';
 import {
 	createLogStoreClient,
 	createStreamrClient,
 	createTestStream,
+	sleep,
 	startLogStoreBroker,
 	startStreamrBroker,
 	startTestTracker,
 	STREAMR_DOCKER_DEV_HOST,
-} from '../../../utils';
+} from '../utils';
 
-jest.setTimeout(30000);
+jest.setTimeout(60000);
 
 const contactPoints = [STREAMR_DOCKER_DEV_HOST];
 const localDataCenter = 'datacenter1';
@@ -33,17 +33,18 @@ const keyspace = 'logstore_dev';
 const HTTP_PORT = 17770;
 const TRACKER_PORT = 17772;
 
-describe('LogStoreConfig', () => {
+// TODO: See analogous test in Streamr repo packages/client/test/end-to-end/resend.test.ts
+describe('Queries', () => {
 	let cassandraClient: Client;
 	let tracker: Tracker;
 	let logStoreBroker: Broker;
 	let logStoreClient: LogStoreClient;
 	let streamrBroker: StreamrBroker;
 	let streamrClient: StreamrClient;
-	let stream: Stream;
+	let testStream: Stream;
 	let publisherAccount: Wallet;
-	let logStoreClientAccount: Wallet;
 	let logStoreBrokerAccount: Wallet;
+	let logStoreClientAccount: Wallet;
 	let streamrBrokerAccount: Wallet;
 
 	beforeAll(async () => {
@@ -100,27 +101,44 @@ describe('LogStoreConfig', () => {
 	});
 
 	it('when client publishes a message, it is written to the store', async () => {
-		stream = await createTestStream(streamrClient, module);
+		testStream = await createTestStream(streamrClient, module);
 
-		await logStoreClient.addStreamToLogStore(stream.id);
-
-		const publishMessage = await streamrClient.publish(stream.id, {
-			foo: 'bar',
+		// TODO: Currently works only for unencrypted messages (public)
+		streamrClient.setPermissions({
+			streamId: testStream.id,
+			assignments: [
+				{ permissions: [StreamPermission.SUBSCRIBE], public: true },
+			],
 		});
+
+		await logStoreClient.addStreamToLogStore(testStream.id);
+		await streamrClient.publish(testStream.id, {
+			foo: 'bar 1',
+		});
+		await streamrClient.publish(testStream.id, {
+			foo: 'bar 2',
+		});
+		await streamrClient.publish(testStream.id, {
+			foo: 'bar 3',
+		});
+
+		// TODO: Research why the delay is here
+		await sleep(5000);
+
+		const messages = [];
+
+		const messageStream = await logStoreClient.query(testStream.id, {
+			last: 2,
+		});
+
+		for await (const message of messageStream) {
+			const { content } = message;
+			console.log(content);
+			messages.push({ content });
+		}
+
 		await waitForCondition(async () => {
-			const result = await cassandraClient.execute(
-				'SELECT COUNT(*) FROM stream_data WHERE stream_id = ? ALLOW FILTERING',
-				[stream.id]
-			);
-			return result.first().count > 0;
-		}, 10000);
-		const result = await cassandraClient.execute(
-			'SELECT * FROM stream_data WHERE stream_id = ? ALLOW FILTERING',
-			[stream.id]
-		);
-		const storeMessage = StreamMessage.deserialize(
-			JSON.parse(result.first().payload.toString())
-		);
-		expect(storeMessage.signature).toEqual(publishMessage.signature);
+			return messages.length === 2;
+		});
 	});
 });

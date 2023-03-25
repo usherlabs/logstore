@@ -2,9 +2,9 @@ import { Logger } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
-	LogStorePluginConfig,
-	LogStorePluginConfigInjectionToken,
-} from '../../plugins/logStore/LogStorePlugin';
+	LogStoreClientConfigInjectionToken,
+	StrictLogStoreClientConfig,
+} from '../Config';
 import { HttpFetcher } from './HttpFetcher';
 import { LoggerFactory } from './LoggerFactory';
 
@@ -16,14 +16,14 @@ export interface GraphQLQuery {
 @scoped(Lifecycle.ContainerScoped)
 export class GraphQLClient {
 	private httpFetcher: HttpFetcher;
-	private config: Pick<LogStorePluginConfig, 'logStoreConfig'>;
+	private config: Pick<StrictLogStoreClientConfig, 'contracts'>;
 	private readonly logger: Logger;
 
 	constructor(
 		@inject(LoggerFactory) loggerFactory: LoggerFactory,
 		@inject(HttpFetcher) httpFetcher: HttpFetcher,
-		@inject(LogStorePluginConfigInjectionToken)
-		config: Pick<LogStorePluginConfig, 'logStoreConfig'>
+		@inject(LogStoreClientConfigInjectionToken)
+		config: Pick<StrictLogStoreClientConfig, 'contracts'>
 	) {
 		this.httpFetcher = httpFetcher;
 		this.config = config;
@@ -33,7 +33,7 @@ export class GraphQLClient {
 	async sendQuery(query: GraphQLQuery): Promise<any> {
 		this.logger.debug('GraphQL query: %s', query);
 		const res = await this.httpFetcher.fetch(
-			this.config.logStoreConfig.theGraphUrl,
+			this.config.contracts.logStoreTheGraphUrl,
 			{
 				method: 'POST',
 				headers: {
@@ -49,7 +49,7 @@ export class GraphQLClient {
 			resJson = JSON.parse(resText);
 		} catch {
 			throw new Error(
-				`GraphQL query failed with "${resText}", check that your theGraphUrl="${this.config.logStoreConfig.theGraphUrl}" is correct`
+				`GraphQL query failed with "${resText}", check that your logStoreTheGraphUrl="${this.config.contracts.logStoreTheGraphUrl}" is correct`
 			);
 		}
 		this.logger.debug('GraphQL response: %j', resJson);

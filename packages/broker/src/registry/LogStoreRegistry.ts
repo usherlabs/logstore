@@ -8,16 +8,16 @@ import {
 	withTimeout,
 } from '@streamr/utils';
 import { min } from 'lodash';
-import StreamrClient, { MessageMetadata, Stream } from 'streamr-client';
-import { inject, Lifecycle, scoped } from 'tsyringe';
+import { MessageMetadata, Stream } from 'streamr-client';
+import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
 	Authentication,
 	AuthenticationInjectionToken,
 } from '../client/Authentication';
 import {
-	ClientConfigInjectionToken,
-	StrictStreamrClientConfig,
+	LogStoreClientConfigInjectionToken,
+	StrictLogStoreClientConfig,
 } from '../client/Config';
 import { ContractFactory } from '../client/ContractFactory';
 import {
@@ -29,6 +29,7 @@ import {
 	LogStoreClientEventEmitter,
 	LogStoreClientEvents,
 } from '../client/events';
+import { LogStoreClient } from '../client/LogStoreClient';
 import { DEFAULT_PARTITION, StreamIDBuilder } from '../client/StreamIDBuilder';
 import { queryAllReadonlyContracts, waitForTx } from '../client/utils/contract';
 import { collect } from '../client/utils/iterators';
@@ -37,10 +38,6 @@ import { SynchronizedGraphQLClient } from '../client/utils/SynchronizedGraphQLCl
 import { formLogStoreSystemStreamId } from '../client/utils/utils';
 import type { LogStoreManager as LogStoreManagerContract } from '../ethereumArtifacts/LogStoreManager';
 import LogStoreManagerArtifact from '../ethereumArtifacts/LogStoreManager.json';
-import {
-	LogStorePluginConfig,
-	LogStorePluginConfigInjectionToken,
-} from '../plugins/logStore/LogStorePlugin';
 
 export interface LogStoreAssignmentEvent {
 	readonly store: string;
@@ -55,13 +52,12 @@ export interface LogStoreAssignmentEvent {
 @scoped(Lifecycle.ContainerScoped)
 export class LogStoreRegistry {
 	private contractFactory: ContractFactory;
-	private streamrClient: StreamrClient;
+	private logStoreClient: LogStoreClient;
 	private streamIdBuilder: StreamIDBuilder;
 	private graphQLClient: SynchronizedGraphQLClient;
 	private readonly eventEmitter: LogStoreClientEventEmitter;
 	private authentication: Authentication;
-	private clientConfig: Pick<StrictStreamrClientConfig, 'contracts'>;
-	private pluginConfig: Pick<LogStorePluginConfig, 'logStoreConfig'>;
+	private clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
 	private logStoreManagerContract?: LogStoreManagerContract;
 	private readonly logStoreManagerContractsReadonly: LogStoreManagerContract[];
 	private readonly logger: Logger;
@@ -69,8 +65,8 @@ export class LogStoreRegistry {
 	constructor(
 		@inject(ContractFactory)
 		contractFactory: ContractFactory,
-		@inject(StreamrClient)
-		streamrClient: StreamrClient,
+		@inject(delay(() => LogStoreClient))
+		logStoreClient: LogStoreClient,
 		@inject(StreamIDBuilder)
 		streamIdBuilder: StreamIDBuilder,
 		@inject(SynchronizedGraphQLClient)
@@ -81,26 +77,23 @@ export class LogStoreRegistry {
 		authentication: Authentication,
 		@inject(LoggerFactory)
 		loggerFactory: LoggerFactory,
-		@inject(ClientConfigInjectionToken)
-		clientConfig: Pick<StrictStreamrClientConfig, 'contracts'>,
-		@inject(LogStorePluginConfigInjectionToken)
-		pluginConfig: Pick<LogStorePluginConfig, 'logStoreConfig'>
+		@inject(LogStoreClientConfigInjectionToken)
+		clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>
 	) {
 		this.contractFactory = contractFactory;
-		this.streamrClient = streamrClient;
+		this.logStoreClient = logStoreClient;
 		this.streamIdBuilder = streamIdBuilder;
 		this.graphQLClient = graphQLClient;
 		this.eventEmitter = eventEmitter;
 		this.authentication = authentication;
 		this.clientConfig = clientConfig;
-		this.pluginConfig = pluginConfig;
 		this.logger = loggerFactory.createLogger(module);
 		this.logStoreManagerContractsReadonly = getStreamRegistryChainProviders(
 			clientConfig
 		).map((provider: Provider) => {
 			return this.contractFactory.createReadContract(
 				toEthereumAddress(
-					this.pluginConfig.logStoreConfig.logStoreManagerChainAddress
+					this.clientConfig.contracts.logStoreManagerChainAddress
 				),
 				LogStoreManagerArtifact.abi,
 				provider,
@@ -178,7 +171,7 @@ export class LogStoreRegistry {
 			this.logStoreManagerContract =
 				this.contractFactory.createWriteContract<LogStoreManagerContract>(
 					toEthereumAddress(
-						this.pluginConfig.logStoreConfig.logStoreManagerChainAddress
+						this.clientConfig.contracts.logStoreManagerChainAddress
 					),
 					LogStoreManagerArtifact.abi,
 					chainSigner,
@@ -203,7 +196,7 @@ export class LogStoreRegistry {
 	): Promise<void> {
 		// let assignmentSubscription: Subscription;
 		const normalizedNodeAddress = toEthereumAddress(
-			this.pluginConfig.logStoreConfig.logStoreManagerChainAddress
+			this.clientConfig.contracts.logStoreManagerChainAddress
 		);
 		// const normalizedNodeAddress = toEthereumAddress(storageNodeAddress);
 		try {
@@ -214,7 +207,7 @@ export class LogStoreRegistry {
 
 			// TODO: Perhaps a review is required here. The source logic: Stream.addToStorageNode() with waitForAssignmentsToPropagate()
 			const propagationPromise = new Promise((resolve, reject) => {
-				this.streamrClient
+				this.logStoreClient
 					.subscribe(
 						streamPartId,
 						(content: unknown, metadata: MessageMetadata) => {
@@ -277,12 +270,9 @@ export class LogStoreRegistry {
 		);
 	}
 
-	async removeStreamFromLogStore(
-		streamIdOrPath: string,
-		nodeAddress: EthereumAddress
-	): Promise<void> {
+	async removeStreamFromLogStore(streamIdOrPath: string): Promise<void> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
-		this.logger.debug('removing stream %s from node %s', streamId, nodeAddress);
+		this.logger.debug('removing stream %s from LogStore', streamId);
 		await this.connectToContract();
 		// const ethersOverrides = getStreamRegistryOverrides(this.config);
 		// await waitForTx(
@@ -294,16 +284,9 @@ export class LogStoreRegistry {
 		// );
 	}
 
-	async isStoredStream(
-		streamIdOrPath: string,
-		nodeAddress: EthereumAddress
-	): Promise<boolean> {
+	async isLogStoreStream(streamIdOrPath: string): Promise<boolean> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
-		this.logger.debug(
-			'querying if stream %s is stored in storage node %s',
-			streamId,
-			nodeAddress
-		);
+		this.logger.debug('querying if stream %s is in LogStore', streamId);
 		return queryAllReadonlyContracts((contract: LogStoreManagerContract) => {
 			return contract.exists(streamId);
 		}, this.logStoreManagerContractsReadonly);
@@ -382,7 +365,7 @@ export class LogStoreRegistry {
 			await Promise.all(
 				res.map(async (storeUpdated: any) => {
 					try {
-						return await this.streamrClient.getStream(
+						return await this.logStoreClient.getStream(
 							toStreamID(storeUpdated.store)
 						);
 						// return await this.streamrClient.createStream(

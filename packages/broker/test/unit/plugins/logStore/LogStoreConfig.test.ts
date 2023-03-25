@@ -7,14 +7,12 @@ import {
 import { toEthereumAddress, wait } from '@streamr/utils';
 import { BigNumber } from 'ethers';
 import { range } from 'lodash';
-import { Stream, StreamrClient } from 'streamr-client';
+import { Stream } from 'streamr-client';
 
 import { LogStoreClientEvents } from '../../../../src/client/events';
+import { LogStoreClient } from '../../../../src/client/LogStoreClient';
 import { LogStoreConfig } from '../../../../src/plugins/logStore/LogStoreConfig';
-import {
-	LogStoreAssignmentEvent,
-	LogStoreRegistry,
-} from '../../../../src/registry/LogStoreRegistry';
+import { LogStoreAssignmentEvent } from '../../../../src/registry/LogStoreRegistry';
 
 const { parse } = StreamPartIDUtils;
 
@@ -45,7 +43,7 @@ function makeStubStream(streamId: string): Stream {
 }
 
 describe(LogStoreConfig, () => {
-	let getStoredStreams: jest.Mock<
+	let getLogStoreStreams: jest.Mock<
 		Promise<{ streams: Stream[]; blockNumber: number }>,
 		[]
 		// [nodeAddress: EthereumAddress]
@@ -54,31 +52,28 @@ describe(LogStoreConfig, () => {
 		keyof LogStoreClientEvents,
 		(event: LogStoreAssignmentEvent) => void
 	>;
-	let stubClient: Pick<StreamrClient, 'getStream'>;
-	let stubLogStoreRegistry: Pick<
-		LogStoreRegistry,
-		'on' | 'off' | 'getStoredStreams'
+	let stubClient: Pick<
+		LogStoreClient,
+		'getStream' | 'getLogStoreStreams' | 'on' | 'off'
 	>;
 	let onStreamPartAdded: jest.Mock<void, [StreamPartID]>;
 	let onStreamPartRemoved: jest.Mock<void, [StreamPartID]>;
 	let logStoreConfig: LogStoreConfig;
 
 	beforeEach(async () => {
-		getStoredStreams = jest.fn();
+		getLogStoreStreams = jest.fn();
 		logStoreEventListeners = new Map();
 		stubClient = {
+			getLogStoreStreams,
 			async getStream(streamIdOrPath: string) {
 				return makeStubStream(streamIdOrPath);
 			},
-		};
-		stubLogStoreRegistry = {
 			on(eventName: keyof LogStoreClientEvents, listener: any) {
 				logStoreEventListeners.set(eventName, listener);
 			},
 			off(eventName: keyof LogStoreClientEvents) {
 				logStoreEventListeners.delete(eventName);
 			},
-			getStoredStreams,
 		};
 
 		onStreamPartAdded = jest.fn();
@@ -88,28 +83,26 @@ describe(LogStoreConfig, () => {
 			1,
 			0,
 			POLL_TIME,
-			stubClient as StreamrClient,
-			stubLogStoreRegistry as LogStoreRegistry,
+			stubClient as LogStoreClient,
 			{
 				onStreamPartAdded,
 				onStreamPartRemoved,
 			}
 		);
-		getStoredStreams.mockRejectedValue(new Error('results not available'));
+		getLogStoreStreams.mockRejectedValue(new Error('results not available'));
 	});
 
 	afterEach(async () => {
 		await logStoreConfig?.destroy();
 	});
 
-	// TODO:
-	// it('state starts empty', () => {
-	// 	expect(logStoreConfig.getStreamParts()).toBeEmpty();
-	// });
+	it('state starts empty', () => {
+		expect(logStoreConfig.getStreamParts()).toBeEmpty();
+	});
 
 	describe('on polled results', () => {
 		beforeEach(async () => {
-			getStoredStreams.mockResolvedValue({
+			getLogStoreStreams.mockResolvedValue({
 				streams: [makeStubStream('stream-1'), makeStubStream('stream-2')],
 				blockNumber: 10,
 			});
@@ -185,14 +178,14 @@ describe(LogStoreConfig, () => {
 	});
 
 	it('updates do not occur if start has not been invoked', async () => {
-		getStoredStreams.mockResolvedValue({
+		getLogStoreStreams.mockResolvedValue({
 			streams: [makeStubStream('stream-1'), makeStubStream('stream-2')],
 			blockNumber: 10,
 		});
 		await wait(POLL_TIME * 2);
 
 		expect(logStoreEventListeners.size).toBe(0);
-		expect(getStoredStreams).toHaveBeenCalledTimes(0);
+		expect(getLogStoreStreams).toHaveBeenCalledTimes(0);
 		expect(onStreamPartAdded).toHaveBeenCalledTimes(0);
 		expect(onStreamPartRemoved).toHaveBeenCalledTimes(0);
 	});
@@ -202,15 +195,15 @@ describe(LogStoreConfig, () => {
 		await wait(POLL_TIME);
 		await logStoreConfig.destroy();
 
-		getStoredStreams.mockClear();
-		getStoredStreams.mockResolvedValue({
+		getLogStoreStreams.mockClear();
+		getLogStoreStreams.mockResolvedValue({
 			streams: [makeStubStream('stream-1'), makeStubStream('stream-2')],
 			blockNumber: 10,
 		});
 		expect(logStoreEventListeners.size).toBe(0);
 		await wait(POLL_TIME * 2);
 
-		expect(getStoredStreams).toHaveBeenCalledTimes(0);
+		expect(getLogStoreStreams).toHaveBeenCalledTimes(0);
 		expect(onStreamPartAdded).toHaveBeenCalledTimes(0);
 		expect(onStreamPartRemoved).toHaveBeenCalledTimes(0);
 	});

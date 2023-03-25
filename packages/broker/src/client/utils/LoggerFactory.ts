@@ -2,17 +2,17 @@ import { Logger } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
-	ClientConfigInjectionToken,
-	StrictStreamrClientConfig,
+	LogStoreClientConfigInjectionToken,
+	StrictLogStoreClientConfig,
 } from '../Config';
 
 @scoped(Lifecycle.ContainerScoped)
 export class LoggerFactory {
-	private readonly config: Pick<StrictStreamrClientConfig, 'id' | 'logLevel'>;
+	private readonly config: Pick<StrictLogStoreClientConfig, 'id' | 'logLevel'>;
 
 	constructor(
-		@inject(ClientConfigInjectionToken)
-		config: Pick<StrictStreamrClientConfig, 'id' | 'logLevel'>
+		@inject(LogStoreClientConfigInjectionToken)
+		config: Pick<StrictLogStoreClientConfig, 'id' | 'logLevel'>
 	) {
 		this.config = config;
 	}

@@ -225,6 +225,11 @@
 					"format": "ethereum-address",
 					"default": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6"
 				},
+				"logStoreManagerChainAddress": {
+					"type": "string",
+					"format": "ethereum-address",
+					"default": "0x611900fD07BB133016Ed85553aF9586771da5ff9"
+				},
 				"mainChainRPCs": {
 					"anyOf": [
 						{
@@ -281,6 +286,11 @@
 					}
 				},
 				"theGraphUrl": {
+					"type": "string",
+					"format": "uri",
+					"default": "https://api.thegraph.com/subgraphs/name/streamr-dev/streams"
+				},
+				"logStoreTheGraphUrl": {
 					"type": "string",
 					"format": "uri",
 					"default": "http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts"

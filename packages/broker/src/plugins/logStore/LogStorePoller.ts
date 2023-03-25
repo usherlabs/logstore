@@ -1,7 +1,7 @@
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import { Stream } from 'streamr-client';
 
-import { LogStoreRegistry } from '../../registry/LogStoreRegistry';
+import { LogStoreClient } from '../../client/LogStoreClient';
 
 const logger = new Logger(module);
 
@@ -10,16 +10,16 @@ const logger = new Logger(module);
  */
 export class LogStorePoller {
 	private readonly pollInterval: number;
-	private readonly logStoreRegistry: LogStoreRegistry;
+	private readonly logStoreClient: LogStoreClient;
 	private readonly onNewSnapshot: (streams: Stream[], block: number) => void;
 
 	constructor(
 		pollInterval: number,
-		logStoreRegistry: LogStoreRegistry,
+		logStoreClient: LogStoreClient,
 		onNewSnapshot: (streams: Stream[], block: number) => void
 	) {
 		this.pollInterval = pollInterval;
-		this.logStoreRegistry = logStoreRegistry;
+		this.logStoreClient = logStoreClient;
 		this.onNewSnapshot = onNewSnapshot;
 	}
 
@@ -39,7 +39,7 @@ export class LogStorePoller {
 	async poll(): Promise<void> {
 		logger.info('polling...');
 		const { streams, blockNumber } =
-			await this.logStoreRegistry.getStoredStreams();
+			await this.logStoreClient.getLogStoreStreams();
 		logger.info('found %d streams at block %d', streams.length, blockNumber);
 		this.onNewSnapshot(streams, blockNumber);
 	}

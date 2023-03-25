@@ -6,16 +6,15 @@ import StreamrClient, { Stream, StreamPermission } from 'streamr-client';
 
 import { Broker } from '../../src/broker';
 import {
-	createClient,
+	createStreamrClient,
 	createTestStream,
-	startBroker,
+	startLogStoreBroker,
 	startTestTracker,
 } from '../utils';
 
 jest.setTimeout(30000);
 
 const trackerPort = 17711;
-const httpPort = 17712;
 
 describe('local propagation', () => {
 	let tracker: Tracker;
@@ -32,14 +31,14 @@ describe('local propagation', () => {
 		tracker = await startTestTracker(trackerPort);
 		brokerWallet = new Wallet(await fetchPrivateKeyWithGas());
 
-		broker = await startBroker({
+		broker = await startLogStoreBroker({
 			privateKey: brokerWallet.privateKey,
 			trackerPort,
-			httpPort,
+			enableCassandra: true,
 		});
 
-		client1 = await createClient(tracker, privateKey);
-		client2 = await createClient(tracker, privateKey);
+		client1 = await createStreamrClient(tracker, privateKey);
+		client2 = await createStreamrClient(tracker, privateKey);
 	});
 
 	beforeEach(async () => {

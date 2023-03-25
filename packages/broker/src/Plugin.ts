@@ -1,26 +1,24 @@
 import { Schema } from 'ajv';
-import { StreamrClient } from 'streamr-client';
 
+import { LogStoreClient } from './client/LogStoreClient';
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';
-import { LogStoreRegistry } from './registry/LogStoreRegistry';
 
 export interface PluginOptions {
 	name: string;
-	streamrClient: StreamrClient;
+	logStoreClient: LogStoreClient;
 	brokerConfig: StrictConfig;
-	logStoreRegistry: LogStoreRegistry;
 }
 
 export abstract class Plugin<T> {
 	readonly name: string;
-	readonly streamrClient: StreamrClient;
+	readonly logStoreClient: LogStoreClient;
 	readonly brokerConfig: StrictConfig;
 	readonly pluginConfig: T;
 
 	constructor(options: PluginOptions) {
 		this.name = options.name;
-		this.streamrClient = options.streamrClient;
+		this.logStoreClient = options.logStoreClient;
 		this.brokerConfig = options.brokerConfig;
 		this.pluginConfig = options.brokerConfig.plugins[this.name];
 		const configSchema = this.getConfigSchema();

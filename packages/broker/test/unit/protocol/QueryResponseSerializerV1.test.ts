@@ -12,6 +12,7 @@ const VERSION = 1;
 const message = new QueryResponse({
 	version: VERSION,
 	requestId: 'requestId',
+	isFinal: false,
 	payload: 'payload',
 });
 
@@ -19,6 +20,7 @@ const serializedMessage = JSON.stringify([
 	VERSION,
 	QueryMessageType.QueryResponse,
 	'requestId',
+	false,
 	'payload',
 ]);
 

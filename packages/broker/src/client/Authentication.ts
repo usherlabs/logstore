@@ -8,7 +8,7 @@ import pMemoize from 'p-memoize';
 import {
 	PrivateKeyAuthConfig,
 	ProviderAuthConfig,
-	StrictStreamrClientConfig,
+	StrictLogStoreClientConfig,
 } from './Config';
 import { getStreamRegistryChainProviders } from './Ethereum';
 import { pLimitFn } from './utils/promises';
@@ -25,7 +25,7 @@ export interface Authentication {
 
 export const createPrivateKeyAuthentication = (
 	key: string,
-	config: Pick<StrictStreamrClientConfig, 'contracts'>
+	config: Pick<StrictLogStoreClientConfig, 'contracts'>
 ): Authentication => {
 	const address = toEthereumAddress(computeAddress(key));
 	return {
@@ -39,7 +39,7 @@ export const createPrivateKeyAuthentication = (
 };
 
 export const createAuthentication = (
-	config: Pick<StrictStreamrClientConfig, 'auth' | 'contracts'>
+	config: Pick<StrictLogStoreClientConfig, 'auth' | 'contracts'>
 ): Authentication => {
 	if ((config.auth as PrivateKeyAuthConfig)?.privateKey !== undefined) {
 		const privateKey = (config.auth as PrivateKeyAuthConfig).privateKey;

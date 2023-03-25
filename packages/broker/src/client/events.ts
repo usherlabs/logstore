@@ -1,4 +1,5 @@
 import EventEmitter3 from 'eventemitter3';
+import { StreamrClientEvents } from 'streamr-client';
 import { Lifecycle, scoped } from 'tsyringe';
 
 import { LogStoreAssignmentEvent } from '../registry/LogStoreRegistry';
@@ -7,7 +8,7 @@ import { LogStoreAssignmentEvent } from '../registry/LogStoreRegistry';
 
 type Events<T> = { [K in keyof T]: (payload: any) => void };
 
-export interface LogStoreClientEvents {
+export interface LogStoreClientEvents extends StreamrClientEvents {
 	addToLogStore: (payload: LogStoreAssignmentEvent) => void;
 	removeFromLogStore: (payload: LogStoreAssignmentEvent) => void;
 	// /** @internal */

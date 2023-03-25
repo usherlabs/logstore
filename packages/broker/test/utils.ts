@@ -1,6 +1,5 @@
 import { TEST_CONFIG } from '@streamr/network-node';
 import { startTracker, Tracker } from '@streamr/network-tracker';
-// import { StreamPartID } from '@streamr/protocol';
 import {
 	EthereumAddress,
 	MetricsContext,
@@ -13,60 +12,97 @@ import {
 	Broker as StreamrBroker,
 } from 'streamr-broker';
 import StreamrClient, {
-	CONFIG_TEST,
 	Stream,
 	StreamMetadata,
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	StreamrClientConfig,
 } from 'streamr-client';
 
-import { Broker, createBroker } from '../src/broker';
+import { Broker, createBroker as createLogStoreBroker } from '../src/broker';
+import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../src/client/ConfigTest';
+import { LogStoreClient } from '../src/client/LogStoreClient';
+import { LogStoreClientConfig } from '../src/client/LogStoreClientConfig';
 import { Config } from '../src/config/config';
 
 export const STREAMR_DOCKER_DEV_HOST =
 	process.env.STREAMR_DOCKER_DEV_HOST || '127.0.0.1';
 
-interface TestConfig {
+interface StreamrBrokerTestConfig {
 	trackerPort: number;
 	privateKey: string;
-	httpPort?: number;
+	extraPlugins?: Record<string, unknown>;
+}
+
+interface LogStoreBrokerTestConfig {
+	trackerPort: number;
+	privateKey: string;
 	extraPlugins?: Record<string, unknown>;
 	enableCassandra?: boolean;
 	logStoreConfigRefreshInterval?: number;
-	logStoreManagerChainAddress?: string;
-	theGraphUrl?: string;
 }
 
-export const formConfig = ({
+export const formStreamrBrokerConfig = ({
 	trackerPort,
 	privateKey,
-	httpPort,
+	extraPlugins = {},
+}: StreamrBrokerTestConfig): Config => {
+	const plugins: Record<string, any> = { ...extraPlugins };
+
+	return {
+		client: {
+			...STREAMR_CONFIG_TEST,
+			logLevel: 'trace',
+			auth: {
+				privateKey,
+			},
+			network: {
+				id: toEthereumAddress(new Wallet(privateKey).address),
+				trackers: [
+					{
+						id: createEthereumAddress(trackerPort),
+						ws: `ws://127.0.0.1:${trackerPort}`,
+						http: `http://127.0.0.1:${trackerPort}`,
+					},
+				],
+				location: {
+					latitude: 60.19,
+					longitude: 24.95,
+					country: 'Finland',
+					city: 'Helsinki',
+				},
+				webrtcDisallowPrivateAddresses: false,
+			},
+		},
+		plugins,
+	};
+};
+export const formLogStoreBrokerConfig = ({
+	trackerPort,
+	privateKey,
 	extraPlugins = {},
 	enableCassandra = false,
 	logStoreConfigRefreshInterval = 0,
-	logStoreManagerChainAddress,
-}: TestConfig): Config => {
+}: LogStoreBrokerTestConfig): Config => {
 	const plugins: Record<string, any> = { ...extraPlugins };
-	if (httpPort) {
-		if (enableCassandra) {
-			plugins['logStore'] = {
-				cassandra: {
-					hosts: [STREAMR_DOCKER_DEV_HOST],
-					datacenter: 'datacenter1',
-					username: '',
-					password: '',
-					keyspace: 'logstore_dev',
-				},
-				logStoreConfig: {
-					refreshInterval: logStoreConfigRefreshInterval,
-					logStoreManagerChainAddress,
-				},
-			};
-		}
+	if (enableCassandra) {
+		plugins['logStore'] = {
+			cassandra: {
+				hosts: [STREAMR_DOCKER_DEV_HOST],
+				datacenter: 'datacenter1',
+				username: '',
+				password: '',
+				keyspace: 'logstore_dev',
+			},
+			logStoreConfig: {
+				refreshInterval: logStoreConfigRefreshInterval,
+				// logStoreManagerChainAddress,
+			},
+		};
 	}
 
 	return {
 		client: {
-			...CONFIG_TEST,
+			...LOGSTORE_CONFIG_TEST,
 			logLevel: 'trace',
 			auth: {
 				privateKey,
@@ -105,16 +141,20 @@ export const startTestTracker = async (port: number): Promise<Tracker> => {
 	});
 };
 
-export const startBroker = async (testConfig: TestConfig): Promise<Broker> => {
-	const broker = await createBroker(formConfig(testConfig));
+export const startLogStoreBroker = async (
+	testConfig: LogStoreBrokerTestConfig
+): Promise<Broker> => {
+	const broker = await createLogStoreBroker(
+		formLogStoreBrokerConfig(testConfig)
+	);
 	await broker.start();
 	return broker;
 };
 
 export const startStreamrBroker = async (
-	testConfig: TestConfig
+	testConfig: StreamrBrokerTestConfig
 ): Promise<StreamrBroker> => {
-	const broker = await createStreamrBroker(formConfig(testConfig));
+	const broker = await createStreamrBroker(formStreamrBrokerConfig(testConfig));
 	await broker.start();
 	return broker;
 };
@@ -123,37 +163,48 @@ export const createEthereumAddress = (id: number): EthereumAddress => {
 	return toEthereumAddress('0x' + _.padEnd(String(id), 40, '0'));
 };
 
-export const createClient = async (
+export const createStreamrClient = async (
 	tracker: Tracker,
 	privateKey: string,
 	clientOptions?: StreamrClientConfig
 ): Promise<StreamrClient> => {
 	const networkOptions = {
-		...CONFIG_TEST?.network,
+		...STREAMR_CONFIG_TEST?.network,
 		trackers: [tracker.getConfigRecord()],
 		...clientOptions?.network,
 	};
 
-	const clientConfig = {
-		...CONFIG_TEST,
+	return new StreamrClient({
+		...STREAMR_CONFIG_TEST,
 		logLevel: 'trace',
 		auth: {
 			privateKey,
 		},
 		network: networkOptions,
 		...clientOptions,
-	} as StreamrClientConfig;
-	// console.log(JSON.stringify(clientConfig, null, 2));
-	return new StreamrClient(clientConfig);
+	});
+};
 
-	// return new StreamrClient({
-	// 	...CONFIG_TEST,
-	// 	auth: {
-	// 		privateKey,
-	// 	},
-	// 	network: networkOptions,
-	// 	...clientOptions,
-	// });
+export const createLogStoreClient = async (
+	tracker: Tracker,
+	privateKey: string,
+	clientOptions?: LogStoreClientConfig
+): Promise<LogStoreClient> => {
+	const networkOptions = {
+		...LOGSTORE_CONFIG_TEST?.network,
+		trackers: [tracker.getConfigRecord()],
+		...clientOptions?.network,
+	};
+
+	return new LogStoreClient({
+		...LOGSTORE_CONFIG_TEST,
+		logLevel: 'trace',
+		auth: {
+			privateKey,
+		},
+		network: networkOptions,
+		...clientOptions,
+	});
 };
 
 export const getTestName = (module: NodeModule): string => {
@@ -180,31 +231,8 @@ export const createTestStream = async (
 	return stream;
 };
 
-// export const getStreamParts = async (
-// 	broker: Broker
-// ): Promise<StreamPartID[]> => {
-// 	const node = await broker.getNode();
-// 	return Array.from(node.getStreamParts());
-// };
-
 export async function sleep(ms = 0): Promise<void> {
 	return new Promise((resolve) => {
 		setTimeout(resolve, ms);
-	});
-}
-
-export async function startLogStoreBroker(
-	logStoreNodePrivateKey: string,
-	httpPort: number,
-	trackerPort: number
-): Promise<Broker> {
-	return startBroker({
-		privateKey: logStoreNodePrivateKey,
-		trackerPort,
-		httpPort,
-		enableCassandra: true,
-		logStoreManagerChainAddress: '0x611900fD07BB133016Ed85553aF9586771da5ff9',
-		theGraphUrl:
-			'http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts',
 	});
 }

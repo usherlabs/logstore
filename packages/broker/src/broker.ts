@@ -1,27 +1,16 @@
 import { Logger, toEthereumAddress } from '@streamr/utils';
-import StreamrClient, {
-	NetworkNodeStub,
-	validateConfig as validateClientConfig,
-} from 'streamr-client';
-import { container } from 'tsyringe';
+import 'reflect-metadata';
+import { NetworkNodeStub } from 'streamr-client';
 
 import { version as CURRENT_VERSION } from '../package.json';
-import {
-	AuthenticationInjectionToken,
-	createAuthentication,
-} from './client/Authentication';
-import {
-	ClientConfigInjectionToken,
-	createStrictConfig,
-} from './client/Config';
+import { validateConfig as validateClientConfig } from './client/Config';
+import { LogStoreClient } from './client/LogStoreClient';
 import { Config } from './config/config';
 import BROKER_CONFIG_SCHEMA from './config/config.schema.json';
 import { validateConfig } from './config/validateConfig';
 import { generateMnemonicFromAddress } from './helpers/generateMnemonicFromAddress';
 import { Plugin, PluginOptions } from './Plugin';
 import { createPlugin } from './pluginRegistry';
-import { LogStorePluginConfigInjectionToken } from './plugins/logStore/LogStorePlugin';
-import { LogStoreRegistry } from './registry/LogStoreRegistry';
 
 const logger = new Logger(module);
 
@@ -37,37 +26,13 @@ export const createBroker = async (
 	const config = validateConfig(configWithoutDefaults, BROKER_CONFIG_SCHEMA);
 	validateClientConfig(config.client);
 
-	const streamrClient = new StreamrClient(config.client);
-
-	const logStorePluginConfig = config.plugins['logStore'];
-	const clientConfig = createStrictConfig(config.client);
-	const authentication = createAuthentication(clientConfig);
-
-	container.register(StreamrClient, {
-		useValue: streamrClient,
-	});
-
-	container.register(AuthenticationInjectionToken, {
-		useValue: authentication,
-	});
-
-	container.register(ClientConfigInjectionToken, {
-		useValue: clientConfig,
-	});
-
-	container.register(LogStorePluginConfigInjectionToken, {
-		useValue: logStorePluginConfig,
-	});
-
-	const logStoreRegistry =
-		container.resolve<LogStoreRegistry>(LogStoreRegistry);
+	const logStoreClient = new LogStoreClient(config.client);
 
 	const plugins: Plugin<any>[] = Object.keys(config.plugins).map((name) => {
 		const pluginOptions: PluginOptions = {
 			name,
-			streamrClient,
+			logStoreClient,
 			brokerConfig: config,
-			logStoreRegistry,
 		};
 		return createPlugin(name, pluginOptions);
 	});
@@ -78,7 +43,7 @@ export const createBroker = async (
 		if (!started) {
 			throw new Error('cannot invoke on non-started broker');
 		}
-		return streamrClient.getNode();
+		return logStoreClient.getNode();
 	};
 
 	return {
@@ -87,8 +52,8 @@ export const createBroker = async (
 			logger.info(`Starting LogStore broker version ${CURRENT_VERSION}`);
 			await Promise.all(plugins.map((plugin) => plugin.start()));
 
-			const nodeId = (await streamrClient.getNode()).getNodeId();
-			const brokerAddress = await streamrClient.getAddress();
+			const nodeId = (await logStoreClient.getNode()).getNodeId();
+			const brokerAddress = await logStoreClient.getAddress();
 			const mnemonic = generateMnemonicFromAddress(
 				toEthereumAddress(brokerAddress)
 			);
@@ -128,7 +93,7 @@ export const createBroker = async (
 		},
 		stop: async () => {
 			await Promise.all(plugins.map((plugin) => plugin.stop()));
-			await streamrClient.destroy();
+			await logStoreClient.destroy();
 		},
 	};
 };

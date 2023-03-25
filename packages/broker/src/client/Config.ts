@@ -1,15 +1,15 @@
+import type { ConnectionInfo } from '@ethersproject/web';
 import Ajv, { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import cloneDeep from 'lodash/cloneDeep';
 // import type { BigNumber } from '@ethersproject/bignumber';
 import 'reflect-metadata';
-import { ExternalProvider, StreamrClientConfig } from 'streamr-client';
+import { ExternalProvider } from 'streamr-client';
 import { MarkOptional } from 'ts-essentials';
 
 import CONFIG_SCHEMA from './config.schema.json';
+import { LogStoreClientConfig } from './LogStoreClientConfig';
 import { generateClientId } from './utils/utils';
-
-// import CONFIG_SCHEMA from './config.schema.json';
 
 export interface ProviderAuthConfig {
 	ethereum: ExternalProvider;
@@ -23,39 +23,44 @@ export interface PrivateKeyAuthConfig {
 	address?: string;
 }
 
-export type StrictStreamrClientConfig = MarkOptional<
-	Required<StreamrClientConfig>,
+export interface TrackerRegistryContract {
+	jsonRpcProvider?: ConnectionInfo;
+	contractAddress: string;
+}
+
+export type StrictLogStoreClientConfig = MarkOptional<
+	Required<LogStoreClientConfig>,
 	'auth' | 'metrics'
 > & {
 	network: MarkOptional<
-		Exclude<Required<StreamrClientConfig['network']>, undefined>,
+		Exclude<Required<LogStoreClientConfig['network']>, undefined>,
 		'location'
 	>;
-	contracts: Exclude<Required<StreamrClientConfig['contracts']>, undefined>;
-	encryption: Exclude<Required<StreamrClientConfig['encryption']>, undefined>;
-	cache: Exclude<Required<StreamrClientConfig['cache']>, undefined>;
-	// _timeouts: Exclude<DeepRequired<StreamrClientConfig['_timeouts']>, undefined>;
+	contracts: Exclude<Required<LogStoreClientConfig['contracts']>, undefined>;
+	encryption: Exclude<Required<LogStoreClientConfig['encryption']>, undefined>;
+	cache: Exclude<Required<LogStoreClientConfig['cache']>, undefined>;
+	// _timeouts: Exclude<DeepRequired<LogStoreClientConfig['_timeouts']>, undefined>;
 };
 
 export const createStrictConfig = (
-	input: StreamrClientConfig = {}
-): StrictStreamrClientConfig => {
+	input: LogStoreClientConfig = {}
+): StrictLogStoreClientConfig => {
 	// TODO is it good to cloneDeep the input object as it may have object references (e.g. auth.ethereum)?
-	const config: StrictStreamrClientConfig = validateConfig(cloneDeep(input));
+	const config: StrictLogStoreClientConfig = validateConfig(cloneDeep(input));
 	config.id ??= generateClientId();
 	return config;
 };
 
 export const validateConfig = (
 	data: unknown
-): StrictStreamrClientConfig | never => {
+): StrictLogStoreClientConfig | never => {
 	const ajv = new Ajv({
 		useDefaults: true,
 	});
 	addFormats(ajv);
 	ajv.addFormat('ethereum-address', /^0x[a-zA-Z0-9]{40}$/);
 	ajv.addFormat('ethereum-private-key', /^(0x)?[a-zA-Z0-9]{64}$/);
-	const validate = ajv.compile<StrictStreamrClientConfig>(CONFIG_SCHEMA);
+	const validate = ajv.compile<StrictLogStoreClientConfig>(CONFIG_SCHEMA);
 	if (!validate(data)) {
 		throw new Error(
 			validate
@@ -72,4 +77,6 @@ export const validateConfig = (
 	return data;
 };
 
-export const ClientConfigInjectionToken = Symbol('LogStoreClientConfig');
+export const LogStoreClientConfigInjectionToken = Symbol(
+	'LogStoreClientConfig'
+);

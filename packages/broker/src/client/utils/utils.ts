@@ -67,11 +67,30 @@ export const CounterId = (
 
 export const counterId = CounterId();
 
+export interface AnyInstance {
+	constructor: {
+		name: string;
+		prototype: null | AnyInstance;
+	};
+}
+export function instanceId(instance: AnyInstance, suffix = ''): string {
+	return counterId(instance.constructor.name) + suffix;
+}
+
 export function formLogStoreSystemStreamId(
 	logStoreManagerAddress: string
 ): StreamID {
 	return toStreamID(
 		'/logstore-system',
+		toEthereumAddress(logStoreManagerAddress)
+	);
+}
+
+export function formLogStoreQueryStreamId(
+	logStoreManagerAddress: string
+): StreamID {
+	return toStreamID(
+		'/logstore-query',
 		toEthereumAddress(logStoreManagerAddress)
 	);
 }

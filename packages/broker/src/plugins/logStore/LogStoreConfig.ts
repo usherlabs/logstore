@@ -1,8 +1,8 @@
 import { StreamPartID } from '@streamr/protocol';
 import { keyToArrayIndex, Logger } from '@streamr/utils';
-import { Stream, StreamrClient } from 'streamr-client';
+import { Stream } from 'streamr-client';
 
-import { LogStoreRegistry } from '../../registry/LogStoreRegistry';
+import { LogStoreClient } from '../../client/LogStoreClient';
 import { LogStoreEventListener } from './LogStoreEventListener';
 import { LogStorePoller } from './LogStorePoller';
 import { Diff, SetMembershipSynchronizer } from './SetMembershipSynchronizer';
@@ -47,8 +47,7 @@ export class LogStoreConfig {
 		clusterSize: number,
 		myIndexInCluster: number,
 		pollInterval: number,
-		streamrClient: StreamrClient,
-		logStoreRegistry: LogStoreRegistry,
+		logStoreClient: LogStoreClient,
 		listener: LogStoreConfigListener
 	) {
 		this.clusterSize = clusterSize;
@@ -56,7 +55,7 @@ export class LogStoreConfig {
 		this.listener = listener;
 		this.logStorePoller = new LogStorePoller(
 			pollInterval,
-			logStoreRegistry,
+			logStoreClient,
 			(streams, block) => {
 				const streamParts = streams.flatMap((stream: Stream) => [
 					...this.createMyStreamParts(stream),
@@ -70,8 +69,7 @@ export class LogStoreConfig {
 			}
 		);
 		this.logStoreEventListener = new LogStoreEventListener(
-			streamrClient,
-			logStoreRegistry,
+			logStoreClient,
 			(stream, type, block) => {
 				const streamParts = this.createMyStreamParts(stream);
 				this.handleDiff(

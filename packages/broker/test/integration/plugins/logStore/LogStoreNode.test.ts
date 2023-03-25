@@ -20,11 +20,11 @@ describe('LogStoreNode', () => {
 
 	beforeAll(async () => {
 		logStoreBrokerAccount = new Wallet(await fetchPrivateKeyWithGas());
-		logStoreBroker = await startLogStoreBroker(
-			logStoreBrokerAccount.privateKey,
-			1234,
-			trackerPort
-		);
+		logStoreBroker = await startLogStoreBroker({
+			privateKey: logStoreBrokerAccount.privateKey,
+			trackerPort: 1234,
+			enableCassandra: true,
+		});
 	}, 30 * 1000);
 
 	afterAll(async () => {

@@ -10,8 +10,8 @@ import { EthereumAddress } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
-	ClientConfigInjectionToken,
-	StrictStreamrClientConfig,
+	LogStoreClientConfigInjectionToken,
+	StrictLogStoreClientConfig,
 } from './Config';
 import { createDecoratedContract, ObservableContract } from './utils/contract';
 import { LoggerFactory } from './utils/LoggerFactory';
@@ -21,13 +21,13 @@ import { SynchronizedGraphQLClient } from './utils/SynchronizedGraphQLClient';
 export class ContractFactory {
 	private readonly graphQLClient: SynchronizedGraphQLClient;
 	private readonly loggerFactory: LoggerFactory;
-	private readonly config: Pick<StrictStreamrClientConfig, 'contracts'>;
+	private readonly config: Pick<StrictLogStoreClientConfig, 'contracts'>;
 
 	constructor(
 		@inject(SynchronizedGraphQLClient) graphQLClient: SynchronizedGraphQLClient,
 		@inject(LoggerFactory) loggerFactory: LoggerFactory,
-		@inject(ClientConfigInjectionToken)
-		config: Pick<StrictStreamrClientConfig, 'contracts'>
+		@inject(LogStoreClientConfigInjectionToken)
+		config: Pick<StrictLogStoreClientConfig, 'contracts'>
 	) {
 		this.graphQLClient = graphQLClient;
 		this.loggerFactory = loggerFactory;
