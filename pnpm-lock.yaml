@@ -178,19 +178,27 @@ importers:
       '@types/pino': ^7.0.5
       '@types/websocket': ^1.0.5
       '@types/ws': ^8.5.3
+      chalk: ^4.1.2
       commander: ^10.0.0
       del-cli: ^5.0.0
       eslint: ^8.34.0
+      inquirer: ^8.1.1
       npm-run-all: ^4.1.5
       pkg: ^5.6.0
       prettier: ^2.6.2
+      redstone-api: ^0.4.11
       resolve-tspaths: ^0.8.0
       ts-node: ^10.9.1
       tsconfig-paths: ^4.1.0
       tslib: ^2.5.0
+      tslog: ^4.8.2
       typescript: ^4.6.4
     dependencies:
+      chalk: 4.1.2
       commander: 10.0.0
+      inquirer: 8.2.5
+      redstone-api: 0.4.11
+      tslog: 4.8.2
     devDependencies:
       '@types/node': 18.13.0
       '@types/node-fetch': 2.6.2
@@ -15192,6 +15200,11 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       source-map-support: 0.5.21
+    dev: false
+
+  /tslog/4.8.2:
+    resolution: {integrity: sha512-eAKIRjxfSKYLs06r1wT7oou6Uv9VN6NW9g0JPidBlqQwPBBl5+84dm7r8zSOPVq1kyfEw1P6B3/FLSpZCorAgA==}
+    engines: {node: '>=16'}
     dev: false
 
   /tsort/0.0.1:

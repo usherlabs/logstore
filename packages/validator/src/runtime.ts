@@ -186,7 +186,7 @@ export default class Runtime implements IRuntime {
 				const storageId = lastBundle.finalized_bundle.storage_id;
 				expense = await Arweave.getFee(storageId);
 			}
-			const writeFee = fees.writeMultiplier + 1 * expense;
+			const writeFee = (fees.writeMultiplier + 1) * expense;
 			const writeTreasuryFee = fees.treasuryMultiplier * (writeFee - expense); // multiplier on the profit
 			const writeNodeFee = writeFee - writeTreasuryFee;
 			const readTreasuryFee = fees.read * fees.treasuryMultiplier;
@@ -347,7 +347,7 @@ export default class Runtime implements IRuntime {
 					parseInt(
 						ethers
 							.parseUnits(
-								`${usdValue * priceOfStakeToken.value}`,
+								`${usdValue / priceOfStakeToken.value}`,
 								stakeTokenDecimals
 							)
 							.toString(10),
