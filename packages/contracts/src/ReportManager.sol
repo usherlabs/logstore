@@ -22,12 +22,6 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         uint256 readBytes;
     }
 
-    struct Consumer {
-        address id;
-        uint256 readCapture;
-        uint256 readBytes;
-    }
-
     struct Stream {
         string id;
         uint256 writeCapture;

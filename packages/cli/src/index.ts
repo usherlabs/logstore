@@ -46,7 +46,7 @@ program
 		}
 
 		if (thisCommand.opts().debug) {
-			logger.settings.minLevel = 5;
+			logger.settings.minLevel = 0;
 		}
 	});
 
@@ -86,10 +86,6 @@ program
 
 				const provider = new ethers.JsonRpcProvider(host);
 				const signer = new ethers.Wallet(walletPrivateKey, provider);
-				console.log(
-					'Contract addresses for Network: ' + Network[network],
-					ContractAddresses[Network[network]]
-				);
 				logger.debug(
 					'Contract addresses for Network: ' + Network[network],
 					ContractAddresses[Network[network]]
@@ -106,6 +102,8 @@ program
 				);
 				const stakeTokenAddress: string =
 					await nodeManagerContract.stakeTokenAddress();
+
+				logger.debug('Stake Token Address: ', stakeTokenAddress);
 				const stakeTokenContract = new ethers.Contract(
 					stakeTokenAddress,
 					erc20ABI,

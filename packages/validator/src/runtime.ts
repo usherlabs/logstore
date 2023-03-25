@@ -445,7 +445,8 @@ export default class Runtime implements IRuntime {
 		core: Validator,
 		bundle: DataItem[]
 	): Promise<string> {
-		// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
+		// First key in the cache is a timestamp that is comparable to the last bundle start key -- ie. Node must have a timestamp < last bundle_start_key
+		// ie. this node may have produced an invalid report because it began listening after it had joined the processing of voting
 		const listenerCache = await core.listener.db();
 		const [report] = bundle; // first data item should always be the bundle
 		const rKey = report.key.substring(reportPrefix.length, report.key.length);
