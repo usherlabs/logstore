@@ -101,8 +101,7 @@ program
 					signer
 				);
 				const stakeTokenAddress: string =
-					await nodeManagerContract.stakeTokenAddress();
-
+					await nodeManagerContract.stakeTokenAddress(); // TODO: Bug fetching data from contract here.
 				logger.debug('Stake Token Address: ', stakeTokenAddress);
 				const stakeTokenContract = new ethers.Contract(
 					stakeTokenAddress,
