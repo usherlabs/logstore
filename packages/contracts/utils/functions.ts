@@ -21,19 +21,19 @@ export async function getNodeManagerInputParameters() {
 	// define important params
 	const chainId = await getChainId();
 	const [adminAccount] = await getAccounts();
-	// define the common parameters
-	const initialParameters = {
-		address: adminAccount.address,
-		requiresWhitelist: true,
-		stakeToken: STAKE_TOKEN_CONTRACTS[chainId],
-		stakeRequiredAmount: toBigDecimal(1, 17),
-		initialNodes: [],
-		initialMetadata: [],
-	};
 	// validations of variable parameters
-	if (!initialParameters.stakeToken) throw `No token address for ${chainId}`;
-	// depending on the chain we will use a different value for the staketoken parameter
-	return Object.values(initialParameters);
+	if (!STAKE_TOKEN_CONTRACTS[chainId]) throw `No token address for ${chainId}`;
+	// define the common parameters
+	const initialParameters = [
+		adminAccount.address,
+		false,
+		STAKE_TOKEN_CONTRACTS[chainId],
+		toBigDecimal(1, 18),
+		[],
+		[],
+	];
+
+	return initialParameters;
 }
 
 export async function getStoreManagerInputParameters(

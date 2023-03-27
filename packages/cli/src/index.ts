@@ -83,6 +83,7 @@ program
 				if (amount <= 0) {
 					throw new Error('Amount must be > 0');
 				}
+				logger.debug('Command Options: ', options);
 
 				const provider = new ethers.JsonRpcProvider(host);
 				const signer = new ethers.Wallet(walletPrivateKey, provider);
