@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { LogStoreClient } from '@concertodao/logstore-client';
 import { program } from 'commander';
 
 import pkg from '../package.json';
@@ -16,6 +17,9 @@ program
 	.option('--test', 'test the configuration (does not start the broker)')
 	.action(async (configFile) => {
 		try {
+			const logStoreClient = new LogStoreClient();
+			logStoreClient.sayHello();
+
 			const config = readConfigAndMigrateIfNeeded(configFile);
 			overrideConfigToEnvVarsIfGiven(config);
 			const broker = await createBroker(config);

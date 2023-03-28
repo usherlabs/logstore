@@ -48,6 +48,7 @@ importers:
 
   packages/broker:
     specifiers:
+      '@concertodao/logstore-client': workspace:^0.0.1
       '@ethersproject/abstract-signer': ^5.7.0
       '@ethersproject/bignumber': ^5.7.0
       '@ethersproject/contracts': ^5.7.0
@@ -107,6 +108,7 @@ importers:
       typescript: ^4.9.5
       uuid: ^9.0.0
     dependencies:
+      '@concertodao/logstore-client': link:../client
       '@ethersproject/abstract-signer': 5.7.0
       '@ethersproject/bignumber': 5.7.0
       '@ethersproject/contracts': 5.7.0
@@ -165,6 +167,12 @@ importers:
       supertest: 6.3.3
       ts-essentials: 9.3.0_typescript@4.9.5
       ts-jest: 29.0.5_xsbwa6gkdcvveqfliwh72cmdne
+      typescript: 4.9.5
+
+  packages/client:
+    specifiers:
+      typescript: ^4.9.5
+    devDependencies:
       typescript: 4.9.5
 
   packages/contracts:

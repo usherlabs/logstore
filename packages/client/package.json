@@ -1,0 +1,18 @@
+{
+  "name": "@concertodao/logstore-client",
+  "version": "0.0.1",
+  "description": "Concerto Log Store Client",
+  "repository": "https://github.com/usherlabs/logstore.git",
+  "author": "Victor Shevtsov <victor.shevtsov@usher.so>",
+  "license": "SEE LICENSE IN ./LICENSE",
+  "private": false,
+  "types": "./dist/types/src/exports.d.ts",
+  "main": "./dist/src/exports.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+		"typescript": "^4.9.5"
+  }
+}
