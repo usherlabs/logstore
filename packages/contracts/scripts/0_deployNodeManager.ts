@@ -9,12 +9,14 @@ import {
 
 async function main() {
 	// --------------------------- deploy the dev DATA token contract --------------------------- //
-	let devTokenAddress;
+	let devTokenAddress = '';
 	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
 		const devTokenArtifact = await hre.ethers.getContractFactory('DevToken');
 		const devTokenDeployTx = await devTokenArtifact.deploy();
 		await devTokenDeployTx.deployed();
 		devTokenAddress = devTokenDeployTx.address;
+
+		console.log(`DevToken deployed to ${devTokenAddress}`);
 	}
 
 	// --------------------------- deploy the node manager contract --------------------------- //
@@ -111,6 +113,7 @@ async function main() {
 	await registerReportManagerTx.wait();
 
 	const deployedContractAddresses = {
+		devTokenAddress,
 		nodeManagerAddress,
 		storeManagerAddress,
 		queryManagerAddress,
