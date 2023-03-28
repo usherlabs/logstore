@@ -8,9 +8,19 @@ import {
 } from '../utils/functions';
 
 async function main() {
-	const nodeManagerContractParams = await getNodeManagerInputParameters();
+	// --------------------------- deploy the dev DATA token contract --------------------------- //
+	let devTokenAddress;
+	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
+		const devTokenArtifact = await hre.ethers.getContractFactory('DevToken');
+		const devTokenDeployTx = await devTokenArtifact.deploy();
+		await devTokenDeployTx.deployed();
+		devTokenAddress = devTokenDeployTx.address;
+	}
 
 	// --------------------------- deploy the node manager contract --------------------------- //
+	const nodeManagerContractParams = await getNodeManagerInputParameters(
+		devTokenAddress
+	);
 	const nodeManagerArtifact = await hre.ethers.getContractFactory(
 		'LogStoreNodeManager'
 	);

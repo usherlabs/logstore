@@ -17,7 +17,9 @@ export const toBigDecimal = (amount: number, exponent = 18) => {
 	return BigNumber.from(`${amount}${'0'.repeat(exponent)}`);
 };
 
-export async function getNodeManagerInputParameters() {
+export async function getNodeManagerInputParameters(
+	stakeTokenAddress?: string
+) {
 	// define important params
 	const chainId = await getChainId();
 	const [adminAccount] = await getAccounts();
@@ -27,7 +29,7 @@ export async function getNodeManagerInputParameters() {
 	const initialParameters = [
 		adminAccount.address,
 		false,
-		STAKE_TOKEN_CONTRACTS[chainId],
+		stakeTokenAddress || STAKE_TOKEN_CONTRACTS[chainId],
 		toBigDecimal(1, 18),
 		[],
 		[],
