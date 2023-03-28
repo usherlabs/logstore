@@ -2,7 +2,6 @@ import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { toEthereumAddress } from '@streamr/utils';
 import { Wallet } from 'ethers';
-import 'reflect-metadata';
 
 import { Broker } from '../../../../src/broker';
 import { startLogStoreBroker, startTestTracker } from '../../../utils';

@@ -9,7 +9,6 @@ import {
 import { waitForCondition } from '@streamr/utils';
 import cassandra, { Client } from 'cassandra-driver';
 import { Wallet } from 'ethers';
-import 'reflect-metadata';
 import { Broker as StreamrBroker } from 'streamr-broker';
 import StreamrClient, { Stream } from 'streamr-client';
 

@@ -3,7 +3,6 @@ import {
 	validateConfig as validateClientConfig,
 } from '@concertodao/logstore-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
-import 'reflect-metadata';
 import { NetworkNodeStub } from 'streamr-client';
 
 import { version as CURRENT_VERSION } from '../package.json';
