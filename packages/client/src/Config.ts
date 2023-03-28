@@ -3,7 +3,6 @@ import Ajv, { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import cloneDeep from 'lodash/cloneDeep';
 // import type { BigNumber } from '@ethersproject/bignumber';
-import 'reflect-metadata';
 import { ExternalProvider } from 'streamr-client';
 import { MarkOptional } from 'ts-essentials';
 

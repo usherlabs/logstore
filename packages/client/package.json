@@ -32,6 +32,7 @@
     "node-fetch": "^2.6.6",
     "p-limit": "^3.1.0",
     "p-memoize": "4.0.3",
+    "reflect-metadata": "^0.1.13",
     "secp256k1": "^5.0.0",
     "sha3": "^2.1.4",
     "streamr-client": "^8.0.2",
@@ -40,6 +41,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@streamr/test-utils": "^8.0.2",
     "@tsconfig/node16": "^1.0.3",
     "@types/jest": "^29.4.0",
     "@types/lodash": "^4.14.191",
@@ -47,7 +49,14 @@
     "@types/node-fetch": "^2.6.2",
     "@types/secp256k1": "^4.0.3",
     "@types/uuid": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.57.0",
+    "@typescript-eslint/parser": "^5.57.0",
+    "eslint": "^8.36.0",
+    "eslint-config-streamr-ts": "^4.1.0",
+    "eslint-plugin-promise": "^6.1.1",
     "jest": "^29.4.3",
+    "jest-extended": "^3.2.4",
+    "jest-mock-extended": "^3.0.4",
     "ts-essentials": "^9.3.0",
     "ts-jest": "^29.0.5",
     "typescript": "^4.9.5"
