@@ -1,4 +1,9 @@
 import {
+	LogStoreAssignmentEvent,
+	LogStoreClient,
+	LogStoreClientEvents,
+} from '@concertodao/logstore-client';
+import {
 	StreamPartID,
 	StreamPartIDUtils,
 	toStreamID,
@@ -9,10 +14,7 @@ import { BigNumber } from 'ethers';
 import { range } from 'lodash';
 import { Stream } from 'streamr-client';
 
-import { LogStoreClientEvents } from '../../../../src/client/events';
-import { LogStoreClient } from '../../../../src/client/LogStoreClient';
 import { LogStoreConfig } from '../../../../src/plugins/logStore/LogStoreConfig';
-import { LogStoreAssignmentEvent } from '../../../../src/registry/LogStoreRegistry';
 
 const { parse } = StreamPartIDUtils;
 

@@ -2,7 +2,7 @@ import EventEmitter3 from 'eventemitter3';
 import { StreamrClientEvents } from 'streamr-client';
 import { Lifecycle, scoped } from 'tsyringe';
 
-import { LogStoreAssignmentEvent } from '../registry/LogStoreRegistry';
+import { LogStoreAssignmentEvent } from './registry/LogStoreRegistry';
 
 // import { GroupKey } from './encryption/GroupKey';
 

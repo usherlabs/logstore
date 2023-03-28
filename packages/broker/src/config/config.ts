@@ -1,6 +1,5 @@
+import { LogStoreClientConfig } from '@concertodao/logstore-client';
 import { camelCase, set } from 'lodash';
-
-import { LogStoreClientConfig } from '../client/LogStoreClientConfig';
 
 export interface Config {
 	client?: LogStoreClientConfig;

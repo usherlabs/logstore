@@ -1,7 +1,7 @@
+import { LogStoreClient } from '@concertodao/logstore-client';
 import { wait } from '@streamr/utils';
 import { Stream } from 'streamr-client';
 
-import { LogStoreClient } from '../../../../src/client/LogStoreClient';
 import { LogStorePoller } from '../../../../src/plugins/logStore/LogStorePoller';
 
 const POLL_TIME = 5;

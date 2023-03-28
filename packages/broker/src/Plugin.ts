@@ -1,6 +1,6 @@
+import { LogStoreClient } from '@concertodao/logstore-client';
 import { Schema } from 'ajv';
 
-import { LogStoreClient } from './client/LogStoreClient';
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';
 

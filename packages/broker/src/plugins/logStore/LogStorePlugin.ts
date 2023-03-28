@@ -1,4 +1,8 @@
 import {
+	formLogStoreQueryStreamId,
+	formLogStoreSystemStreamId,
+} from '@concertodao/logstore-client';
+import {
 	QueryLastOptions,
 	QueryMessage,
 	QueryMessageType,
@@ -11,10 +15,6 @@ import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 import { Stream } from 'streamr-client';
 
-import {
-	formLogStoreQueryStreamId,
-	formLogStoreSystemStreamId,
-} from '../../client/utils/utils';
 import { Plugin, PluginOptions } from '../../Plugin';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { LogStore, startCassandraLogStore } from './LogStore';

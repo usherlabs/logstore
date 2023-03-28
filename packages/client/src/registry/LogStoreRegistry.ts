@@ -14,30 +14,30 @@ import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
-} from '../client/Authentication';
+} from '../Authentication';
 import {
 	LogStoreClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
-} from '../client/Config';
-import { ContractFactory } from '../client/ContractFactory';
+} from '../Config';
+import { ContractFactory } from '../ContractFactory';
 import {
 	getStreamRegistryChainProviders,
 	getStreamRegistryOverrides,
-} from '../client/Ethereum';
+} from '../Ethereum';
+import type { LogStoreManager as LogStoreManagerContract } from '../ethereumArtifacts/LogStoreManager';
+import LogStoreManagerArtifact from '../ethereumArtifacts/LogStoreManager.json';
 import {
 	initEventGateway,
 	LogStoreClientEventEmitter,
 	LogStoreClientEvents,
-} from '../client/events';
-import { LogStoreClient } from '../client/LogStoreClient';
-import { DEFAULT_PARTITION, StreamIDBuilder } from '../client/StreamIDBuilder';
-import { queryAllReadonlyContracts, waitForTx } from '../client/utils/contract';
-import { collect } from '../client/utils/iterators';
-import { LoggerFactory } from '../client/utils/LoggerFactory';
-import { SynchronizedGraphQLClient } from '../client/utils/SynchronizedGraphQLClient';
-import { formLogStoreSystemStreamId } from '../client/utils/utils';
-import type { LogStoreManager as LogStoreManagerContract } from '../ethereumArtifacts/LogStoreManager';
-import LogStoreManagerArtifact from '../ethereumArtifacts/LogStoreManager.json';
+} from '../events';
+import { LogStoreClient } from '../LogStoreClient';
+import { DEFAULT_PARTITION, StreamIDBuilder } from '../StreamIDBuilder';
+import { queryAllReadonlyContracts, waitForTx } from '../utils/contract';
+import { collect } from '../utils/iterators';
+import { LoggerFactory } from '../utils/LoggerFactory';
+import { SynchronizedGraphQLClient } from '../utils/SynchronizedGraphQLClient';
+import { formLogStoreSystemStreamId } from '../utils/utils';
 
 export interface LogStoreAssignmentEvent {
 	readonly store: string;

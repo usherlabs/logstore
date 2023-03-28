@@ -1,8 +1,9 @@
+import {
+	LogStoreAssignmentEvent,
+	LogStoreClient,
+} from '@concertodao/logstore-client';
 import { Logger } from '@streamr/utils';
 import { Stream } from 'streamr-client';
-
-import { LogStoreClient } from '../../client/LogStoreClient';
-import { LogStoreAssignmentEvent } from '../../registry/LogStoreRegistry';
 
 const logger = new Logger(module);
 

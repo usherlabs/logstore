@@ -10,7 +10,6 @@ import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
 import { StreamPartID } from 'streamr-client';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
-import { LogStoreRegistry } from '../registry/LogStoreRegistry';
 import {
 	LogStoreClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
@@ -19,6 +18,7 @@ import { DestroySignal } from './DestroySignal';
 import { LogStoreClient } from './LogStoreClient';
 // import { GroupKeyManager } from './encryption/GroupKeyManager';
 import { MessageStream } from './MessageStream';
+import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { StreamrClientError } from './StreamrClientError';
 import { LoggerFactory } from './utils/LoggerFactory';
 import { counterId, formLogStoreQueryStreamId } from './utils/utils';

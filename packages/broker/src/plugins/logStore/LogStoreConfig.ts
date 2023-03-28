@@ -1,8 +1,8 @@
+import { LogStoreClient } from '@concertodao/logstore-client';
 import { StreamPartID } from '@streamr/protocol';
 import { keyToArrayIndex, Logger } from '@streamr/utils';
 import { Stream } from 'streamr-client';
 
-import { LogStoreClient } from '../../client/LogStoreClient';
 import { LogStoreEventListener } from './LogStoreEventListener';
 import { LogStorePoller } from './LogStorePoller';
 import { Diff, SetMembershipSynchronizer } from './SetMembershipSynchronizer';

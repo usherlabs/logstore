@@ -1,10 +1,12 @@
+import {
+	LogStoreClient,
+	validateConfig as validateClientConfig,
+} from '@concertodao/logstore-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import 'reflect-metadata';
 import { NetworkNodeStub } from 'streamr-client';
 
 import { version as CURRENT_VERSION } from '../package.json';
-import { validateConfig as validateClientConfig } from './client/Config';
-import { LogStoreClient } from './client/LogStoreClient';
 import { Config } from './config/config';
 import BROKER_CONFIG_SCHEMA from './config/config.schema.json';
 import { validateConfig } from './config/validateConfig';

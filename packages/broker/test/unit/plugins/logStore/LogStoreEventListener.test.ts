@@ -1,12 +1,14 @@
+import {
+	LogStoreAssignmentEvent,
+	LogStoreClient,
+	LogStoreClientEvents,
+} from '@concertodao/logstore-client';
 import { toStreamID } from '@streamr/protocol';
 import { wait } from '@streamr/utils';
 import { BigNumber } from 'ethers';
 import { Stream } from 'streamr-client';
 
-import { LogStoreClientEvents } from '../../../../src/client/events';
-import { LogStoreClient } from '../../../../src/client/LogStoreClient';
 import { LogStoreEventListener } from '../../../../src/plugins/logStore/LogStoreEventListener';
-import { LogStoreAssignmentEvent } from '../../../../src/registry/LogStoreRegistry';
 
 const MOCK_STREAM = {
 	id: 'streamId',

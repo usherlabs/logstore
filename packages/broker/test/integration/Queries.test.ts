@@ -1,3 +1,4 @@
+import { LogStoreClient } from '@concertodao/logstore-client';
 import { Tracker } from '@streamr/network-tracker';
 import {
 	fastWallet,
@@ -12,7 +13,6 @@ import { Broker as StreamrBroker } from 'streamr-broker';
 import StreamrClient, { Stream, StreamPermission } from 'streamr-client';
 
 import { Broker } from '../../src/broker';
-import { LogStoreClient } from '../../src/client/LogStoreClient';
 import {
 	createLogStoreClient,
 	createStreamrClient,

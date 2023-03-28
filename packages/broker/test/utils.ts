@@ -1,3 +1,8 @@
+import {
+	CONFIG_TEST as LOGSTORE_CONFIG_TEST,
+	LogStoreClient,
+	LogStoreClientConfig,
+} from '@concertodao/logstore-client';
 import { TEST_CONFIG } from '@streamr/network-node';
 import { startTracker, Tracker } from '@streamr/network-tracker';
 import {
@@ -19,9 +24,6 @@ import StreamrClient, {
 } from 'streamr-client';
 
 import { Broker, createBroker as createLogStoreBroker } from '../src/broker';
-import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../src/client/ConfigTest';
-import { LogStoreClient } from '../src/client/LogStoreClient';
-import { LogStoreClientConfig } from '../src/client/LogStoreClientConfig';
 import { Config } from '../src/config/config';
 
 export const STREAMR_DOCKER_DEV_HOST =
