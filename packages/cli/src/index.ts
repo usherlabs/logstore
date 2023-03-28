@@ -1,25 +1,14 @@
 import ContractAddresses from '@concertodao/logstore-contracts/address.json';
-import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
 import { abi as QueryManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/QueryManager.sol/LogStoreQueryManager.json';
+import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
-import inquirer from 'inquirer';
 import os from 'os';
-import redstone from 'redstone-api';
-import { Logger } from 'tslog';
 
-import erc20ABI from './abi/erc20';
 import { appPackageName, appVersion } from './env-config';
-
-enum Network {
-	Local = 5,
-	Dev = 8997,
-	Testnet = 80001,
-	Mainnet = 137,
-}
-
-const logger = new Logger();
+import { Network } from './types';
+import { logger, prepareStake } from './utils';
 
 // define main program
 const program = new Command();
@@ -77,89 +66,37 @@ program
 				'-u, --usd',
 				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
 			)
-			.action(async (amt: string, { usd }: { usd: boolean }) => {
+			.action(async (amt: string, cmdOptions: { usd: boolean }) => {
 				const amount = parseFloat(amt);
-				const { wallet: walletPrivateKey, host, network } = options;
-				if (amount <= 0) {
-					throw new Error('Amount must be > 0');
-				}
-				logger.debug('Command Options: ', options);
+				logger.debug('Command Params: ', { amount, ...options, ...cmdOptions });
 
-				const provider = new ethers.JsonRpcProvider(host);
-				const signer = new ethers.Wallet(walletPrivateKey, provider);
-				logger.debug(
-					'Contract addresses for Network: ' + Network[network],
-					ContractAddresses[Network[network]]
-				);
-				// const queryManagerContract = new ethers.Contract(
-				// 	ContractAddresses[Network[network]].queryManagerAddress,
-				// 	QueryManagerContractABI,
-				// 	signer
-				// );
-				const nodeManagerContract = new ethers.Contract(
-					ContractAddresses[Network[network]].nodeManagerAddress,
-					NodeManagerContractABI,
-					signer
-				);
-				const stakeTokenAddress: string =
-					await nodeManagerContract.stakeTokenAddress(); // TODO: Bug fetching data from contract here.
-				logger.debug('Stake Token Address: ', stakeTokenAddress);
-				const stakeTokenContract = new ethers.Contract(
-					stakeTokenAddress,
-					erc20ABI,
-					signer
-				);
-				const stakeTokenSymbol = await stakeTokenContract.symbol();
-				let realAmount = amount;
-				if (usd) {
-					logger.info('Converting USD amount to token amount...');
-					const stakeTokenDecimals = await stakeTokenContract.decimals();
-
-					const price = await redstone.getPrice(stakeTokenSymbol);
-					const amountInUSD = realAmount / price.value;
-					realAmount = Math.floor(
-						parseInt(
-							ethers
-								.parseUnits(`${amountInUSD}`, stakeTokenDecimals)
-								.toString(10),
-							10
+				try {
+					const provider = new ethers.JsonRpcProvider(options.host);
+					const signer = new ethers.Wallet(options.wallet, provider);
+					const { queryManagerAddress } =
+						ContractAddresses[Network[options.network]];
+					const stakeAmount = await prepareStake(
+						signer,
+						options.network,
+						amount,
+						cmdOptions.usd,
+						queryManagerAddress
+					);
+					const queryManagerContract = new ethers.Contract(
+						queryManagerAddress,
+						QueryManagerContractABI,
+						signer
+					);
+					await queryManagerContract.stake(stakeAmount);
+					logger.info(
+						chalk.green(
+							`Successfully staked ${stakeAmount} in ${queryManagerAddress}`
 						)
 					);
+				} catch (e) {
+					logger.info(chalk.red('Stake failed'));
+					logger.error(e);
 				}
-				const allowance = await stakeTokenContract.allowance(
-					signer.address,
-					ContractAddresses[Network[network]].queryManagerAddress
-				);
-				if (allowance < realAmount) {
-					logger.info(
-						`Approving ${realAmount - allowance} $${stakeTokenSymbol}...`
-					);
-					// await stakeTokenContract.approve(
-					// 	ContractAddresses[Network[network]].queryManagerAddress,
-					// 	realAmount - allowance
-					// );
-				}
-				logger.info(`Staking ${realAmount} $${stakeTokenSymbol}...`);
-				inquirer
-					.prompt([
-						{
-							type: 'confirm',
-							message:
-								'Are you sure you want to continue? Once funded, this cannot be reversed.',
-							default: true,
-						},
-					])
-					.then((answers) => {
-						logger.info(answers);
-						// await queryManagerContract.stake(realAmount);
-						// logger.info(
-						// 	chalk.green(`Successfully staked ${realAmount} $${stakeTokenSymbol}!`)
-						// );
-					})
-					.catch((e) => {
-						logger.info(chalk.red('Stake failed'));
-						console.error(e);
-					});
 			})
 	);
 
@@ -182,72 +119,45 @@ program
 				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
 			)
 			.action(
-				async (streamId: string, amt: string, { usd }: { usd: boolean }) => {
+				async (streamId: string, amt: string, cmdOptions: { usd: boolean }) => {
 					const amount = parseFloat(amt);
-					const { wallet: walletPrivateKey, host, network } = options;
 					if (!streamId) {
 						throw new Error('Stream ID is invalid');
 					}
-					if (amount <= 0) {
-						throw new Error('Amount must be > 0');
-					}
+					logger.debug('Command Params: ', {
+						streamId,
+						amount,
+						...options,
+						...cmdOptions,
+					});
 
-					const provider = new ethers.JsonRpcProvider(host);
-					const signer = new ethers.Wallet(walletPrivateKey, provider);
-					const storeManagerContract = new ethers.Contract(
-						ContractAddresses[Network[network]].storeManagerAddress,
-						QueryManagerContractABI,
-						signer
-					);
-					const nodeManagerContract = new ethers.Contract(
-						ContractAddresses[Network[network]].nodeManagerAddress,
-						NodeManagerContractABI,
-						signer
-					);
-					const stakeTokenAddress: string =
-						await nodeManagerContract.stakeTokenAddress();
-					const stakeTokenContract = new ethers.Contract(
-						stakeTokenAddress,
-						erc20ABI,
-						signer
-					);
-					const stakeTokenSymbol = await stakeTokenContract.symbol();
-					let realAmount = amount;
-					if (usd) {
-						logger.info('Converting USD amount to token amount...');
-						const stakeTokenDecimals = await stakeTokenContract.decimals();
-
-						const price = await redstone.getPrice(stakeTokenSymbol);
-						const amountInUSD = realAmount / price.value;
-						realAmount = Math.floor(
-							parseInt(
-								ethers
-									.parseUnits(`${amountInUSD}`, stakeTokenDecimals)
-									.toString(10),
-								10
+					try {
+						const provider = new ethers.JsonRpcProvider(options.host);
+						const signer = new ethers.Wallet(options.wallet, provider);
+						const { storeManagerAddress } =
+							ContractAddresses[Network[options.network]];
+						const stakeAmount = await prepareStake(
+							signer,
+							options.network,
+							amount,
+							cmdOptions.usd,
+							storeManagerAddress
+						);
+						const storeManagerContract = new ethers.Contract(
+							storeManagerAddress,
+							StoreManagerContractABI,
+							signer
+						);
+						await storeManagerContract.stake(streamId, stakeAmount);
+						logger.info(
+							chalk.green(
+								`Successfully staked ${stakeAmount} in ${storeManagerAddress}`
 							)
 						);
+					} catch (e) {
+						logger.info(chalk.red('Stake failed'));
+						logger.error(e);
 					}
-					const allowance = await stakeTokenContract.allowance(
-						signer.address,
-						ContractAddresses[Network[network]].queryManagerAddress
-					);
-					if (allowance < realAmount) {
-						logger.info(
-							`Approving ${realAmount - allowance} $${stakeTokenSymbol}...`
-						);
-						await stakeTokenContract.approve(
-							ContractAddresses[Network[network]].queryManagerAddress,
-							realAmount - allowance
-						);
-					}
-					logger.info(`Staking ${realAmount} $${stakeTokenSymbol}...`);
-					await storeManagerContract.stake(realAmount);
-					logger.info(
-						chalk.green(
-							`Successfully staked ${realAmount} $${stakeTokenSymbol}!`
-						)
-					);
 				}
 			)
 	);
