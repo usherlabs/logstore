@@ -6,8 +6,6 @@ import StreamrClient, {
 } from 'streamr-client';
 import { container } from 'tsyringe';
 
-import '../protocol/QueryRequestSerializerV1';
-import '../protocol/QueryResponseSerializerV1';
 import { LogStoreRegistry } from '../registry/LogStoreRegistry';
 import {
 	AuthenticationInjectionToken,

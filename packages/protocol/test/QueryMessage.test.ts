@@ -1,11 +1,11 @@
 import assert from 'assert';
 import sinon from 'sinon';
 
-import UnsupportedTypeError from '../../../src/protocol/errors/UnsupportedTypeError';
-import UnsupportedVersionError from '../../../src/protocol/errors/UnsupportedVersionError';
-import ValidationError from '../../../src/protocol/errors/ValidationError';
-import QueryMessage from '../../../src/protocol/QueryMessage';
-import { Serializer } from '../../../src/protocol/Serializer';
+import UnsupportedTypeError from '../src/errors/UnsupportedTypeError';
+import UnsupportedVersionError from '../src/errors/UnsupportedVersionError';
+import ValidationError from '../src/errors/ValidationError';
+import QueryMessage from '../src/protocol/QueryMessage';
+import { Serializer } from '../src/Serializer';
 
 const VERSION = 123;
 const TYPE = 0;

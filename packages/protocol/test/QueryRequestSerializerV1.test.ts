@@ -1,10 +1,8 @@
 import assert from 'assert';
 
-import QueryMessage, {
-	QueryMessageType,
-} from '../../../src/protocol/QueryMessage';
-import QueryRequest, { QueryType } from '../../../src/protocol/QueryRequest';
-import '../../../src/protocol/QueryRequestSerializerV1';
+import '../src/protocol/QueryRequestSerializerV1';
+import QueryMessage, { QueryMessageType } from '../src/protocol/QueryMessage';
+import QueryRequest, { QueryType } from '../src/protocol/QueryRequest';
 
 const VERSION = 1;
 

@@ -1,3 +1,11 @@
+import {
+	QueryLastOptions,
+	QueryMessage,
+	QueryMessageType,
+	QueryRequest,
+	QueryResponse,
+	QueryType,
+} from '@concertodao/logstore-protocol';
 import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
@@ -8,14 +16,6 @@ import {
 	formLogStoreSystemStreamId,
 } from '../../client/utils/utils';
 import { Plugin, PluginOptions } from '../../Plugin';
-import QueryMessage, { QueryMessageType } from '../../protocol/QueryMessage';
-import QueryRequest, {
-	QueryLastOptions,
-	QueryType,
-} from '../../protocol/QueryRequest';
-import QueryResponse from '../../protocol/QueryResponse';
-import './../../protocol/QueryRequestSerializerV1';
-import './../../protocol/QueryResponseSerializerV1';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';

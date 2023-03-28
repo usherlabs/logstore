@@ -1,7 +1,7 @@
-import UnsupportedTypeError from './errors/UnsupportedTypeError';
-import UnsupportedVersionError from './errors/UnsupportedVersionError';
-import { Serializer } from './Serializer';
-import { validateIsInteger, validateIsString } from './utils/validations';
+import UnsupportedTypeError from '../errors/UnsupportedTypeError';
+import UnsupportedVersionError from '../errors/UnsupportedVersionError';
+import { Serializer } from '../Serializer';
+import { validateIsInteger, validateIsString } from '../utils/validations';
 
 const serializerByVersionAndType: Record<
 	string,

@@ -1,12 +1,15 @@
+import {
+	QueryMessage,
+	QueryMessageType,
+	QueryRequest,
+	QueryResponse,
+	QueryType,
+} from '@concertodao/logstore-protocol';
 import { StreamMessage, StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
 import { StreamPartID } from 'streamr-client';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
-// import { sleep } from '../../test/utils';
-import QueryMessage, { QueryMessageType } from '../protocol/QueryMessage';
-import QueryRequest, { QueryType } from '../protocol/QueryRequest';
-import QueryResponse from '../protocol/QueryResponse';
 import { LogStoreRegistry } from '../registry/LogStoreRegistry';
 import {
 	LogStoreClientConfigInjectionToken,

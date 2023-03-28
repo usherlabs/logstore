@@ -6,7 +6,7 @@ import QueryRequest, {
 	QueryRangeOptions,
 	QueryType,
 } from './QueryRequest';
-import { Serializer } from './Serializer';
+import { Serializer } from '../Serializer';
 
 const VERSION = 1;
 
