@@ -8,7 +8,7 @@
 	"repository": "git@github.com:usherlabs/etl.git",
 	"private": false,
 	"scripts": {
-		"clean": "del ./artifacts ./cache ./coverage ./types ./coverage.json && yarn typechain",
+		"clean": "del ./artifacts ./cache ./coverage ./types ./coverage.json",
 		"compile": "hardhat compile",
 		"deploy:hardhat": "npx hardhat run scripts/0_deployNodeManager.ts",
 		"deploy:mumbai": "npx hardhat run scripts/0_deployNodeManager.ts --network polygon-mumbai",

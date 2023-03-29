@@ -20,8 +20,10 @@
 		"singleQuote": true
 	},
 	"dependencies": {
+		"@concertodao/logstore-contracts": "workspace:^0.0.1",
 		"chalk": "^4.1.2",
 		"commander": "^10.0.0",
+		"ethers": "^6.2.3",
 		"inquirer": "^8.1.1",
 		"redstone-api": "^0.4.11",
 		"tslog": "^4.8.2"

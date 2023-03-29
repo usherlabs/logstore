@@ -40,23 +40,27 @@ export const prepareStake = async (
 		erc20ABI,
 		signer
 	);
-	const balanceOfSigner = await stakeTokenContract.balanceOf(signer.address);
-	logger.debug('Stake Token Balance Of: ', signer.address, balanceOfSigner);
+	// const balanceOfSigner = await stakeTokenContract.balanceOf(signer.address);
+	// logger.debug('Stake Token Balance Of: ', signer.address, balanceOfSigner);
 	const stakeTokenSymbol = await stakeTokenContract.symbol();
 	logger.debug('Stake Token Symbol: ', stakeTokenSymbol);
-
-	if (true) {
-		return amount;
-	}
 
 	let realAmount = amount;
 	if (usd) {
 		logger.info('Converting USD amount to token amount...');
-		const stakeTokenDecimals = await stakeTokenContract.decimals();
+		let stakeTokenDecimals: ethers.BigNumberish =
+			await stakeTokenContract.decimals();
+		stakeTokenDecimals = parseInt(stakeTokenDecimals.toString(), 10);
 		logger.debug('Stake Token Decimals: ', stakeTokenDecimals);
 
-		const price = await redstone.getPrice(stakeTokenSymbol);
-		const amountInUSD = realAmount / price.value;
+		let price = 0.01;
+		try {
+			const rsResp = await redstone.getPrice(stakeTokenSymbol);
+			price = rsResp.value;
+		} catch (e) {
+			logger.warn(`Cannot get price of ${stakeTokenSymbol} from RedStone`);
+		}
+		const amountInUSD = realAmount / price;
 		realAmount = Math.floor(
 			parseInt(
 				ethers.parseUnits(`${amountInUSD}`, stakeTokenDecimals).toString(10),
@@ -67,15 +71,16 @@ export const prepareStake = async (
 	logger.info(
 		`Fetching allowance of ${stakeTokenSymbol} for ${signer.address}`
 	);
-	const allowance = await stakeTokenContract.allowance(
+	let allowance: ethers.BigNumberish = await stakeTokenContract.allowance(
 		signer.address,
 		managerAddress
 	);
+	allowance = parseInt(allowance.toString(), 10);
 	if (allowance < realAmount) {
 		logger.info(
-			`Approving ${
-				realAmount - allowance
-			} $${stakeTokenSymbol} for ${managerAddress}...`
+			`Approving ${realAmount - allowance} (${
+				(realAmount - allowance) / Math.pow(10, 18)
+			}) $${stakeTokenSymbol} for ${managerAddress}...`
 		);
 		await stakeTokenContract.approve(managerAddress, realAmount - allowance);
 	}
