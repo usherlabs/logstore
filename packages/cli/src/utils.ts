@@ -102,7 +102,9 @@ export const prepareStake = async (
 		await stakeTokenContract.approve(managerAddress, approvalAmount);
 	}
 
-	logger.info(`Staking ${bnAmount.valueOf()} $${stakeTokenSymbol}...`);
+	logger.info(
+		`${bnAmount.toString()} $${stakeTokenSymbol} prepared for stake...`
+	);
 
 	return bnAmount;
 };

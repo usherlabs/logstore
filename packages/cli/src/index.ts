@@ -90,7 +90,7 @@ program
 					await queryManagerContract.stake(stakeAmount);
 					logger.info(
 						chalk.green(
-							`Successfully staked ${stakeAmount} in ${queryManagerAddress}`
+							`Successfully staked ${stakeAmount.toString()} in ${queryManagerAddress}`
 						)
 					);
 				} catch (e) {
