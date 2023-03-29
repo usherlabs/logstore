@@ -437,7 +437,8 @@ importers:
 
   packages/validator:
     specifiers:
-      '@concertodao/logstore-contracts': workspace:../contracts
+      '@concertodao/logstore-client': workspace:^0.0.1
+      '@concertodao/logstore-contracts': workspace:^0.0.1
       '@kyvejs/protocol': 1.0.0-beta.8
       '@sentry/node': ^7.13.0
       '@sentry/tracing': ^7.13.0
@@ -466,6 +467,7 @@ importers:
       typescript: ^4.6.4
       uint8arrays: ^4.0.3
     dependencies:
+      '@concertodao/logstore-client': link:../client
       '@concertodao/logstore-contracts': link:../contracts
       '@kyvejs/protocol': 1.0.0-beta.8
       '@sentry/node': 7.45.0

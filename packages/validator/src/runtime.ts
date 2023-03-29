@@ -1,3 +1,4 @@
+import { LogStoreClient } from '@concertodao/logstore-client';
 import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
 import { abi as ReportManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/ReportManager.sol/LogStoreReportManager.json';
 import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
@@ -26,6 +27,8 @@ const getConfig = (core: Validator): PoolConfig => {
 		},
 	};
 };
+
+const logstore = new LogStoreClient();
 
 export default class Runtime implements IRuntime {
 	public name = appPackageName;
@@ -211,14 +214,12 @@ export default class Runtime implements IRuntime {
 			// TODO: Determine based on unanimous observations which nodes missed data
 
 			for (let i = 0; i < stores.length; i++) {
-				// 1. Get the query partition for this specific store -- this should be a public method
-				// 2. Query the store using its query partition
-				// 3. Query the query partition for the system stream to fetch all read related metadata
-				// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
+				// // Query the query partition for the system stream to fetch all read related metadata
+				// const resp = await logstore.query('system_stream_id', {
+				// 	from: fromKey,
+				// 	to: toKey,
+				// });
 			}
-			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
-			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
-			// const resp = [{ hello: 'world' }]; // ! DUMMY
 
 			const listenerCache = await core.listener.db();
 			const queryHashKeyMap: Record<string, string[]> = {};
