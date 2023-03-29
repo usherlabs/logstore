@@ -26,10 +26,8 @@ import { uuid } from './utils/uuid';
 
 const MIN_SEQUENCE_NUMBER_VALUE = 0;
 
-type QueryDict = Record<string, string | number | boolean | null | undefined>;
-
 export interface QueryRef {
-	timestamp: number | Date | string;
+	timestamp: number;
 	sequenceNumber?: number;
 }
 
@@ -100,10 +98,6 @@ function isQueryRange<T extends QueryRangeOptions>(options: any): options is T {
 export class Queries {
 	private readonly logStoreClient: LogStoreClient;
 	private readonly logStoreRegistry: LogStoreRegistry;
-	// private readonly streamStorageRegistry: StreamStorageRegistry;
-	// private readonly storageNodeRegistry: StorageNodeRegistry;
-	// private readonly streamRegistryCached: StreamRegistryCached;
-	// private readonly httpUtil: HttpUtil;
 	// private readonly groupKeyManager: GroupKeyManager;
 	private readonly destroySignal: DestroySignal;
 	private readonly config: StrictLogStoreClientConfig;
@@ -113,12 +107,6 @@ export class Queries {
 	constructor(
 		@inject(delay(() => LogStoreClient)) logStoreClient: LogStoreClient,
 		@inject(delay(() => LogStoreRegistry)) logStoreRegistry: LogStoreRegistry,
-		// streamStorageRegistry: StreamStorageRegistry,
-		// @inject(delay(() => StorageNodeRegistry))
-		// storageNodeRegistry: StorageNodeRegistry,
-		// @inject(delay(() => StreamRegistryCached))
-		// streamRegistryCached: StreamRegistryCached,
-		// httpUtil: HttpUtil,
 		// groupKeyManager: GroupKeyManager,
 		destroySignal: DestroySignal,
 		@inject(LogStoreClientConfigInjectionToken)
@@ -127,9 +115,6 @@ export class Queries {
 	) {
 		this.logStoreClient = logStoreClient;
 		this.logStoreRegistry = logStoreRegistry;
-		// this.storageNodeRegistry = storageNodeRegistry;
-		// this.streamRegistryCached = streamRegistryCached;
-		// this.httpUtil = httpUtil;
 		// this.groupKeyManager = groupKeyManager;
 		this.destroySignal = destroySignal;
 		this.config = config;
@@ -184,7 +169,7 @@ export class Queries {
 	private async fetchStream(
 		queryType: QueryType,
 		streamPartId: StreamPartID,
-		query: QueryDict = {}
+		queryOptions: QueryOptions
 	): Promise<MessageStream> {
 		const loggerIdx = counterId('fetchStream');
 		this.logger.debug(
@@ -192,31 +177,19 @@ export class Queries {
 			loggerIdx,
 			queryType,
 			streamPartId,
-			query
+			queryOptions
 		);
 		const streamId = StreamPartIDUtils.getStreamID(streamPartId);
-		// const nodeAddresses = await this.logStoreRegistry.getStorageNodes(streamId);
-		// if (!nodeAddresses.length) {
-		// 	throw new StreamrClientError(
-		// 		`no storage assigned: ${streamId}`,
-		// 		'NO_STORAGE_NODES'
-		// 	);
-		// }
-
-		///////////////////////////////////////////////////////////////////
-
 		const requestId = uuid();
-
 		const queryRequest = new QueryRequest({
 			requestId,
 			streamId,
 			queryType,
-			queryOptions: { last: 2 },
+			queryOptions,
 		});
 
-		// TODO: Take the address from config
 		const queryStreamId = formLogStoreQueryStreamId(
-			'0x611900fd07bb133016ed85553af9586771da5ff9'
+			this.config.contracts.logStoreManagerChainAddress
 		);
 
 		const messageStream = new MessageStream();
@@ -256,72 +229,7 @@ export class Queries {
 				.catch(reject);
 		});
 
-		// await this.logStoreClient.subscribe(queryStreamId, (content) => {
-		// 	const qyeryMessage = QueryMessage.deserialize(content);
-		// 	if (
-		// 		qyeryMessage.messageType === QueryMessageType.QueryResponse &&
-		// 		qyeryMessage.requestId === requestId
-		// 	) {
-		// 		const queryResponse = qyeryMessage as QueryResponse;
-		// 		this.logger.trace(
-		// 			'Received queryResponse: %s',
-		// 			JSON.stringify(queryResponse.payload, null, 2)
-		// 		);
-
-		// 		const streamMessage = StreamMessage.deserialize(queryResponse.payload);
-
-		// 		// const streamMessage = new StreamMessage()
-		// 		messageStream.push(streamMessage);
-		// 	} else {
-		// 		// TODO:
-		// 	}
-		// });
-		// await this.logStoreClient.publish(queryStreamId, queryRequest.serialize());
-
-		// TODO: Collect messages from the responses
-		// await sleep(10000);
-
-		// const messageStream = createSubscribePipeline({
-		// 	streamPartId,
-		// 	resends: this,
-		// 	groupKeyManager: this.groupKeyManager,
-		// 	streamRegistryCached: this.streamRegistryCached,
-		// 	destroySignal: this.destroySignal,
-		// 	config: this.config,
-		// 	loggerFactory: this.loggerFactory,
-		// });
-
 		return messageStream;
-
-		//////////////
-
-		// const nodeAddress = nodeAddresses[random(0, nodeAddresses.length - 1)];
-		// const nodeUrl = (
-		// 	await this.storageNodeRegistry.getStorageNodeMetadata(nodeAddress)
-		// ).http;
-		// const url = this.createUrl(nodeUrl, endpointSuffix, streamPartId, query);
-		// const messageStream = createSubscribePipeline({
-		// 	streamPartId,
-		// 	resends: this,
-		// 	groupKeyManager: this.groupKeyManager,
-		// 	streamRegistryCached: this.streamRegistryCached,
-		// 	destroySignal: this.destroySignal,
-		// 	config: this.config,
-		// 	loggerFactory: this.loggerFactory,
-		// });
-
-		// const dataStream = this.httpUtil.fetchHttpStream(url);
-		// messageStream.pull(
-		// 	counting(dataStream, (count: number) => {
-		// 		this.logger.debug(
-		// 			'[%s] total of %d messages received for resend fetch',
-		// 			loggerIdx,
-		// 			count
-		// 		);
-		// 	})
-		// );
-		// return messageStream;
-		///////////////////////////////////////////////////////////////////
 	}
 
 	async last(
@@ -335,7 +243,7 @@ export class Queries {
 		}
 
 		return this.fetchStream(QueryType.Last, streamPartId, {
-			count,
+			last: count,
 		});
 	}
 
@@ -352,8 +260,10 @@ export class Queries {
 		}
 	): Promise<MessageStream> {
 		return this.fetchStream(QueryType.From, streamPartId, {
-			fromTimestamp,
-			fromSequenceNumber,
+			from: {
+				timestamp: fromTimestamp,
+				sequenceNumber: fromSequenceNumber,
+			},
 			publisherId,
 		});
 	}
@@ -377,10 +287,14 @@ export class Queries {
 		}
 	): Promise<MessageStream> {
 		return this.fetchStream(QueryType.Range, streamPartId, {
-			fromTimestamp,
-			fromSequenceNumber,
-			toTimestamp,
-			toSequenceNumber,
+			from: {
+				timestamp: fromTimestamp,
+				sequenceNumber: fromSequenceNumber,
+			},
+			to: {
+				timestamp: toTimestamp,
+				sequenceNumber: toSequenceNumber,
+			},
 			publisherId,
 			msgChainId,
 		});

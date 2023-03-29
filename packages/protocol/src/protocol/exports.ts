@@ -1,5 +1,10 @@
 import QueryMessage, { QueryMessageType } from './QueryMessage';
-import QueryRequest, { QueryLastOptions, QueryType } from './QueryRequest';
+import QueryRequest, {
+	QueryFromOptions,
+	QueryLastOptions,
+	QueryRangeOptions,
+	QueryType,
+} from './QueryRequest';
 import QueryResponse from './QueryResponse';
 
 export {
@@ -9,4 +14,6 @@ export {
 	QueryType,
 	QueryMessageType,
 	QueryLastOptions,
+	QueryRangeOptions,
+	QueryFromOptions,
 };

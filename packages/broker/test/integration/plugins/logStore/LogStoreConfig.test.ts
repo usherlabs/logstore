@@ -8,7 +8,7 @@ import {
 } from '@streamr/test-utils';
 import { waitForCondition } from '@streamr/utils';
 import cassandra, { Client } from 'cassandra-driver';
-import { Wallet } from 'ethers';
+import { BigNumber, Wallet } from 'ethers';
 import { Broker as StreamrBroker } from 'streamr-broker';
 import StreamrClient, { Stream } from 'streamr-client';
 
@@ -29,6 +29,7 @@ const contactPoints = [STREAMR_DOCKER_DEV_HOST];
 const localDataCenter = 'datacenter1';
 const keyspace = 'logstore_dev';
 
+const STAKE_AMOUNT = BigNumber.from('100000000000000000');
 const HTTP_PORT = 17770;
 const TRACKER_PORT = 17772;
 
@@ -47,9 +48,9 @@ describe('LogStoreConfig', () => {
 
 	beforeAll(async () => {
 		publisherAccount = new Wallet(await fetchPrivateKeyWithGas());
-		logStoreBrokerAccount = new Wallet(await fetchPrivateKeyWithGas());
+		logStoreBrokerAccount = fastWallet();
 		streamrBrokerAccount = fastWallet();
-		logStoreClientAccount = fastWallet();
+		logStoreClientAccount = new Wallet(await fetchPrivateKeyWithGas());
 		cassandraClient = new cassandra.Client({
 			contactPoints,
 			localDataCenter,
@@ -101,7 +102,7 @@ describe('LogStoreConfig', () => {
 	it('when client publishes a message, it is written to the store', async () => {
 		stream = await createTestStream(streamrClient, module);
 
-		await logStoreClient.addStreamToLogStore(stream.id);
+		await logStoreClient.addStreamToLogStore(stream.id, STAKE_AMOUNT);
 
 		const publishMessage = await streamrClient.publish(stream.id, {
 			foo: 'bar',

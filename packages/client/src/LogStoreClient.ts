@@ -1,11 +1,13 @@
+import { BigNumberish } from 'ethers';
 import { cloneDeep } from 'lodash';
+import 'reflect-metadata';
 import StreamrClient, {
 	MessageListener,
 	NetworkNodeStub,
 	Stream,
 	StreamDefinition,
 } from 'streamr-client';
-import { container } from 'tsyringe';
+import { container as rootContainer } from 'tsyringe';
 
 import {
 	AuthenticationInjectionToken,
@@ -23,28 +25,36 @@ import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { StreamIDBuilder } from './StreamIDBuilder';
 
 export class LogStoreClient extends StreamrClient {
-	// TODO: logStoreRegistry must be private (it's a temporary hotfix)
+	// TODO: logStoreRegistry must be private (it's a temporary workaround)
 	public readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreStreamIdBuilder: StreamIDBuilder;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 
-	constructor(config: LogStoreClientConfig = {}) {
+	constructor(
+		config: LogStoreClientConfig = {},
+		/** @internal */
+		parentContainer = rootContainer
+	) {
 		// TODO: Review needed. Make the call of super(streamrClientConfig) pass its config validation.
 		const streamrClientConfig = cloneDeep(config);
 		delete streamrClientConfig.contracts?.logStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
-		super(streamrClientConfig);
 
 		const strictConfig = createStrictConfig(config);
 		const authentication = createAuthentication(strictConfig);
+
+		// TODO: ensure there is a correct container instance used
+		const container = parentContainer.createChildContainer();
+		// const container = parentContainer;
+		super(streamrClientConfig, container);
 
 		container.register(LogStoreClient, {
 			useValue: this,
 		});
 
 		container.register(LogStoreClientConfigInjectionToken, {
-			useValue: config,
+			useValue: strictConfig,
 		});
 
 		container.register(AuthenticationInjectionToken, {
@@ -111,8 +121,11 @@ export class LogStoreClient extends StreamrClient {
 	/**
 	 * Aввы a stream to LogStore.
 	 */
-	async addStreamToLogStore(streamIdOrPath: string): Promise<void> {
-		return this.logStoreRegistry.addStreamToLogStore(streamIdOrPath);
+	async addStreamToLogStore(
+		streamIdOrPath: string,
+		amount: BigNumberish
+	): Promise<void> {
+		return this.logStoreRegistry.addStreamToLogStore(streamIdOrPath, amount);
 	}
 
 	/**

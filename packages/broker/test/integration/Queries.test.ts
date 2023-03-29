@@ -7,7 +7,7 @@ import {
 } from '@streamr/test-utils';
 import { waitForCondition } from '@streamr/utils';
 import cassandra, { Client } from 'cassandra-driver';
-import { Wallet } from 'ethers';
+import { BigNumber, Wallet } from 'ethers';
 import { Broker as StreamrBroker } from 'streamr-broker';
 import StreamrClient, { Stream, StreamPermission } from 'streamr-client';
 
@@ -29,6 +29,7 @@ const contactPoints = [STREAMR_DOCKER_DEV_HOST];
 const localDataCenter = 'datacenter1';
 const keyspace = 'logstore_dev';
 
+const STAKE_AMOUNT = BigNumber.from('100000000000000000');
 const HTTP_PORT = 17770;
 const TRACKER_PORT = 17772;
 
@@ -48,9 +49,9 @@ describe('Queries', () => {
 
 	beforeAll(async () => {
 		publisherAccount = new Wallet(await fetchPrivateKeyWithGas());
-		logStoreBrokerAccount = new Wallet(await fetchPrivateKeyWithGas());
+		logStoreBrokerAccount = fastWallet();
 		streamrBrokerAccount = fastWallet();
-		logStoreClientAccount = fastWallet();
+		logStoreClientAccount = new Wallet(await fetchPrivateKeyWithGas());
 		cassandraClient = new cassandra.Client({
 			contactPoints,
 			localDataCenter,
@@ -110,7 +111,7 @@ describe('Queries', () => {
 			],
 		});
 
-		await logStoreClient.addStreamToLogStore(testStream.id);
+		await logStoreClient.addStreamToLogStore(testStream.id, STAKE_AMOUNT);
 		await streamrClient.publish(testStream.id, {
 			foo: 'bar 1',
 		});

@@ -10,7 +10,7 @@ export enum QueryType {
 }
 
 export interface QueryRef {
-	timestamp: number | Date | string;
+	timestamp: number;
 	sequenceNumber?: number;
 }
 /**

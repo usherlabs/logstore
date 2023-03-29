@@ -3,9 +3,11 @@ import {
 	formLogStoreSystemStreamId,
 } from '@concertodao/logstore-client';
 import {
+	QueryFromOptions,
 	QueryLastOptions,
 	QueryMessage,
 	QueryMessageType,
+	QueryRangeOptions,
 	QueryRequest,
 	QueryResponse,
 	QueryType,
@@ -13,11 +15,17 @@ import {
 import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
+import { Readable } from 'stream';
 import { Stream } from 'streamr-client';
 
 import { Plugin, PluginOptions } from '../../Plugin';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
-import { LogStore, startCassandraLogStore } from './LogStore';
+import {
+	LogStore,
+	MAX_SEQUENCE_NUMBER_VALUE,
+	MIN_SEQUENCE_NUMBER_VALUE,
+	startCassandraLogStore,
+} from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 
 const logger = new Logger(module);
@@ -84,99 +92,75 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					const queryRequest = queryMessage as QueryRequest;
 					logger.trace('Deserialized queryRequest: %s', queryRequest);
 
+					let readableStrem: Readable;
 					switch (queryRequest.queryType) {
-						case QueryType.Last:
-							// eslint-disable-next-line no-case-declarations
+						case QueryType.Last: {
 							const { last } = queryRequest.queryOptions as QueryLastOptions;
 
-							// eslint-disable-next-line no-case-declarations
-							const readableStrem = this.logStore!.requestLast(
+							readableStrem = this.logStore!.requestLast(
 								queryRequest.streamId,
-								0,
+								0, // TODO: Pass Partition number
 								last
 							);
+							break;
+						}
+						case QueryType.From: {
+							const { from, publisherId } =
+								queryRequest.queryOptions as QueryFromOptions;
 
-							for await (const chunk of readableStrem) {
-								const streamMessage = chunk as StreamMessage;
-								const queryResponse = new QueryResponse({
-									requestId: queryMessage.requestId,
-									payload: streamMessage.serialize(),
-									isFinal: false,
-								});
-								await this.logStoreClient.publish(
-									logStoreQueryStreamId,
-									queryResponse.serialize()
-								);
-							}
+							readableStrem = this.logStore!.requestFrom(
+								queryRequest.streamId,
+								0, // TODO: Pass Partition number
+								from.timestamp,
+								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
+								publisherId
+							);
+							break;
+						}
+						case QueryType.Range: {
+							const { from, publisherId, to, msgChainId } =
+								queryRequest.queryOptions as QueryRangeOptions;
 
-							// eslint-disable-next-line no-case-declarations
-							const fianleQqueryResponse = new QueryResponse({
+							readableStrem = this.logStore!.requestRange(
+								queryRequest.streamId,
+								0, // TODO: Pass Partition number
+								from.timestamp,
+								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
+								to.timestamp,
+								to.sequenceNumber || MAX_SEQUENCE_NUMBER_VALUE,
+								publisherId,
+								msgChainId
+							);
+							break;
+						}
+					}
+
+					// TODO: Temporary IF
+					if (readableStrem) {
+						for await (const chunk of readableStrem) {
+							const streamMessage = chunk as StreamMessage;
+							const queryResponse = new QueryResponse({
 								requestId: queryMessage.requestId,
-								payload: '',
-								isFinal: true,
+								payload: streamMessage.serialize(),
+								isFinal: false,
 							});
 							await this.logStoreClient.publish(
 								logStoreQueryStreamId,
-								fianleQqueryResponse.serialize()
+								queryResponse.serialize()
 							);
+						}
 
-							// await new Promise<void>((resolve) => {
-							// 	readableStrem.on('data', async () => {
-							// 		let chunk;
-							// 		// There is some data to read now.
-							// 		while (null !== (chunk = readableStrem.read())) {
-							// 			const queryResponse = new QueryResponse({
-							// 				requestId: queryMessage.requestId,
-							// 				body: 'BODY',
-							// 			});
-							// 			await this.streamrClient.publish(
-							// 				logStoreQueryStreamId,
-							// 				queryResponse
-							// 			);
-							// 		}
-							// 	});
-
-							// 	readableStrem.on('end', () => {
-							// 		resolve();
-							// 	});
-							// });
-							// for await (const _chunk of readableStrem) {
-							// 	const queryResponse = new QueryResponse({
-							// 		requestId: queryMessage.requestId,
-							// 		body: 'BODY',
-							// 	});
-							// 	this.streamrClient.publish(
-							// 		logStoreQueryStreamId,
-							// 		queryResponse
-							// 	);
-							// }
-
-							// await pipeline(
-							// 	readableStrem,
-							// 	async function* (source, { signal }) {
-							// 		for await (const chunk of source) {
-							// 			yield await processChunk(chunk, { signal });
-							// 		}
-							// 	}
-							// );
-
-							break;
-						case QueryType.From:
-							// TODO: implement respnose for QueryType.From
-							break;
-						case QueryType.Range:
-							// TODO: implement respnose for QueryType.Range
-							break;
+						// eslint-disable-next-line no-case-declarations
+						const fianleQqueryResponse = new QueryResponse({
+							requestId: queryMessage.requestId,
+							payload: '',
+							isFinal: true,
+						});
+						await this.logStoreClient.publish(
+							logStoreQueryStreamId,
+							fianleQqueryResponse.serialize()
+						);
 					}
-
-					// const queryResponse = new QueryResponse({
-					// 	requestId: queryMessage.requestId,
-					// 	body: 'Query Response from LogsStorePlugin',
-					// });
-					// await this.streamrClient.publish(
-					// 	logStoreQueryStreamId,
-					// 	queryResponse.serialize()
-					// );
 				}
 			}
 		);

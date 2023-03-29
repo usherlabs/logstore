@@ -76,6 +76,13 @@ export const validateConfig = (
 	return data;
 };
 
+// TODO: Research what is the purpose of the redactConfig function
+export const redactConfig = (config: StrictLogStoreClientConfig): void => {
+	if ((config.auth as PrivateKeyAuthConfig)?.privateKey !== undefined) {
+		(config.auth as PrivateKeyAuthConfig).privateKey = '(redacted)';
+	}
+};
+
 export const LogStoreClientConfigInjectionToken = Symbol(
 	'LogStoreClientConfig'
 );

@@ -1,4 +1,4 @@
-import { BigNumber } from '@ethersproject/bignumber';
+import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
 import { toStreamID, toStreamPartID } from '@streamr/protocol';
 import {
@@ -256,17 +256,16 @@ export class LogStoreRegistry {
 		);
 	}
 
-	async addStreamToLogStore(streamIdOrPath: string): Promise<void> {
+	async addStreamToLogStore(
+		streamIdOrPath: string,
+		amount: BigNumberish
+	): Promise<void> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
 		this.logger.debug('adding stream %s to LogStore', streamId);
 		await this.connectToContract();
 		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
 		await waitForTx(
-			this.logStoreManagerContract!.stake(
-				streamId,
-				BigNumber.from('100000000000000000'),
-				ethersOverrides
-			)
+			this.logStoreManagerContract!.stake(streamId, amount, ethersOverrides)
 		);
 	}
 
