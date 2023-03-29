@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.node.json",
+	"compilerOptions": {
+		"types": ["node", "jest"],
+		"experimentalDecorators": true
+	},
+	"include": [
+		"package.json",
+		"src/**/*",
+		"src/**/*.json",
+		"vendor/**/*",
+		"src/config.schema.json",
+		"test/**/*"
+	]
+}

@@ -1,13 +1,31 @@
+import {
+	formLogStoreQueryStreamId,
+	formLogStoreSystemStreamId,
+} from '@concertodao/logstore-client';
+import {
+	QueryFromOptions,
+	QueryLastOptions,
+	QueryMessage,
+	QueryMessageType,
+	QueryRangeOptions,
+	QueryRequest,
+	QueryResponse,
+	QueryType,
+} from '@concertodao/logstore-protocol';
 import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
+import { Readable } from 'stream';
 import { Stream } from 'streamr-client';
 
-import { formLogStoreSystemStreamId } from '../../client/utils/utils';
 import { Plugin, PluginOptions } from '../../Plugin';
-import { LogStoreRegistry } from '../../registry/LogStoreRegistry';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
-import { LogStore, startCassandraLogStore } from './LogStore';
+import {
+	LogStore,
+	MAX_SEQUENCE_NUMBER_VALUE,
+	MIN_SEQUENCE_NUMBER_VALUE,
+	startCassandraLogStore,
+} from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 
 const logger = new Logger(module);
@@ -22,8 +40,6 @@ export interface LogStorePluginConfig {
 	};
 	logStoreConfig: {
 		refreshInterval: number;
-		logStoreManagerChainAddress: EthereumAddress;
-		theGraphUrl: string;
 	};
 	// TODO: Do we need the cluster config for LogStore
 	cluster: {
@@ -39,26 +55,120 @@ const isStorableMessage = (msg: StreamMessage): boolean => {
 };
 
 export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
-	private logStoreRegistry: LogStoreRegistry;
 	constructor(options: PluginOptions) {
 		super(options);
-		this.logStoreRegistry = options.logStoreRegistry;
 	}
 
-	private cassandra?: LogStore;
+	private logStore?: LogStore;
 	private logStoreConfig?: LogStoreConfig;
 	private messageListener?: (msg: StreamMessage) => void;
 
 	async start(): Promise<void> {
-		const assignmentStream = await this.streamrClient.getStream(
+		const assignmentStream = await this.logStoreClient.getStream(
 			formLogStoreSystemStreamId(
-				this.pluginConfig.logStoreConfig.logStoreManagerChainAddress
+				//TODO: StrictConfig required
+				this.brokerConfig.client.contracts!.logStoreManagerChainAddress!
 			)
 		);
+
+		const logStoreQueryStreamId = formLogStoreQueryStreamId(
+			//TODO: StrictConfig required
+			this.brokerConfig.client.contracts!.logStoreManagerChainAddress!
+		).toString();
+
+		await this.logStoreClient.subscribe(
+			logStoreQueryStreamId,
+			async (content, metadata) => {
+				logger.trace(
+					'Received LogStoreQuery, content: %s metadata: %s',
+					content,
+					metadata
+				);
+
+				const queryMessage = QueryMessage.deserialize(content);
+				logger.trace('Deserialized QueryRequest: %s', queryMessage);
+
+				if (queryMessage.messageType === QueryMessageType.QueryRequest) {
+					const queryRequest = queryMessage as QueryRequest;
+					logger.trace('Deserialized queryRequest: %s', queryRequest);
+
+					let readableStrem: Readable;
+					switch (queryRequest.queryType) {
+						case QueryType.Last: {
+							const { last } = queryRequest.queryOptions as QueryLastOptions;
+
+							readableStrem = this.logStore!.requestLast(
+								queryRequest.streamId,
+								0, // TODO: Pass Partition number
+								last
+							);
+							break;
+						}
+						case QueryType.From: {
+							const { from, publisherId } =
+								queryRequest.queryOptions as QueryFromOptions;
+
+							readableStrem = this.logStore!.requestFrom(
+								queryRequest.streamId,
+								0, // TODO: Pass Partition number
+								from.timestamp,
+								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
+								publisherId
+							);
+							break;
+						}
+						case QueryType.Range: {
+							const { from, publisherId, to, msgChainId } =
+								queryRequest.queryOptions as QueryRangeOptions;
+
+							readableStrem = this.logStore!.requestRange(
+								queryRequest.streamId,
+								0, // TODO: Pass Partition number
+								from.timestamp,
+								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
+								to.timestamp,
+								to.sequenceNumber || MAX_SEQUENCE_NUMBER_VALUE,
+								publisherId,
+								msgChainId
+							);
+							break;
+						}
+					}
+
+					// TODO: Temporary IF
+					if (readableStrem) {
+						for await (const chunk of readableStrem) {
+							const streamMessage = chunk as StreamMessage;
+							const queryResponse = new QueryResponse({
+								requestId: queryMessage.requestId,
+								payload: streamMessage.serialize(),
+								isFinal: false,
+							});
+							await this.logStoreClient.publish(
+								logStoreQueryStreamId,
+								queryResponse.serialize()
+							);
+						}
+
+						// eslint-disable-next-line no-case-declarations
+						const fianleQqueryResponse = new QueryResponse({
+							requestId: queryMessage.requestId,
+							payload: '',
+							isFinal: true,
+						});
+						await this.logStoreClient.publish(
+							logStoreQueryStreamId,
+							fianleQqueryResponse.serialize()
+						);
+					}
+				}
+			}
+		);
+
 		const metricsContext = (
-			await this.streamrClient!.getNode()
+			await this.logStoreClient!.getNode()
 		).getMetricsContext();
-		this.cassandra = await this.startCassandraStorage(metricsContext);
+		this.logStore = await this.startCassandraStorage(metricsContext);
 
 		this.logStoreConfig = await this.startLogStoreConfig(assignmentStream);
 		this.messageListener = (msg) => {
@@ -66,23 +176,20 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 				isStorableMessage(msg) &&
 				this.logStoreConfig!.hasStreamPart(msg.getStreamPartID())
 			) {
-				this.cassandra!.store(msg);
+				this.logStore!.store(msg);
 			}
 		};
-		const node = await this.streamrClient.getNode();
+		const node = await this.logStoreClient.getNode();
 		node.addMessageListener(this.messageListener);
 	}
 
 	async stop(): Promise<void> {
-		const node = await this.streamrClient.getNode();
+		const node = await this.logStoreClient.getNode();
 		node.removeMessageListener(this.messageListener!);
 		this.logStoreConfig!.getStreamParts().forEach((streamPart) => {
 			node.unsubscribe(streamPart);
 		});
-		await Promise.all([
-			this.cassandra!.close(),
-			this.logStoreConfig!.destroy(),
-		]);
+		await Promise.all([this.logStore!.close(), this.logStoreConfig!.destroy()]);
 	}
 
 	// eslint-disable-next-line class-methods-use-this
@@ -110,14 +217,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private async startLogStoreConfig(
 		systemStream: Stream
 	): Promise<LogStoreConfig> {
-		const node = await this.streamrClient.getNode();
+		const node = await this.logStoreClient.getNode();
 
 		const logStoreConfig = new LogStoreConfig(
 			this.pluginConfig.cluster.clusterSize,
 			this.pluginConfig.cluster.myIndexInCluster,
 			this.pluginConfig.logStoreConfig.refreshInterval,
-			this.streamrClient,
-			this.logStoreRegistry,
+			this.logStoreClient,
 			{
 				onStreamPartAdded: async (streamPart) => {
 					try {
@@ -150,7 +256,3 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		return logStoreConfig;
 	}
 }
-
-export const LogStorePluginConfigInjectionToken = Symbol(
-	'LogStorePluginConfig'
-);

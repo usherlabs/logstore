@@ -1,46 +1,30 @@
+import { LogStoreClient } from '@concertodao/logstore-client';
 import { Schema } from 'ajv';
-import express from 'express';
-import { StreamrClient } from 'streamr-client';
 
-import { ApiAuthenticator } from './apiAuthenticator';
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';
-import { LogStoreRegistry } from './registry/LogStoreRegistry';
 
 export interface PluginOptions {
 	name: string;
-	streamrClient: StreamrClient;
-	apiAuthenticator: ApiAuthenticator;
+	logStoreClient: LogStoreClient;
 	brokerConfig: StrictConfig;
-	logStoreRegistry: LogStoreRegistry;
 }
 
 export abstract class Plugin<T> {
 	readonly name: string;
-	readonly streamrClient: StreamrClient;
-	readonly apiAuthenticator: ApiAuthenticator;
+	readonly logStoreClient: LogStoreClient;
 	readonly brokerConfig: StrictConfig;
 	readonly pluginConfig: T;
-	private readonly httpServerRouters: express.Router[] = [];
 
 	constructor(options: PluginOptions) {
 		this.name = options.name;
-		this.streamrClient = options.streamrClient;
-		this.apiAuthenticator = options.apiAuthenticator;
+		this.logStoreClient = options.logStoreClient;
 		this.brokerConfig = options.brokerConfig;
 		this.pluginConfig = options.brokerConfig.plugins[this.name];
 		const configSchema = this.getConfigSchema();
 		if (configSchema !== undefined) {
 			validateConfig(this.pluginConfig, configSchema, `${this.name} plugin`);
 		}
-	}
-
-	addHttpServerRouter(router: express.Router): void {
-		this.httpServerRouters.push(router);
-	}
-
-	getHttpServerRoutes(): express.Router[] {
-		return this.httpServerRouters;
 	}
 
 	/**

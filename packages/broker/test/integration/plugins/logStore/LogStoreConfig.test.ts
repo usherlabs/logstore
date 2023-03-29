@@ -1,3 +1,4 @@
+import { LogStoreClient } from '@concertodao/logstore-client';
 import { Tracker } from '@streamr/network-tracker';
 import { StreamMessage } from '@streamr/protocol';
 import {
@@ -7,16 +8,14 @@ import {
 } from '@streamr/test-utils';
 import { waitForCondition } from '@streamr/utils';
 import cassandra, { Client } from 'cassandra-driver';
-import { Wallet } from 'ethers';
-import 'reflect-metadata';
+import { BigNumber, Wallet } from 'ethers';
 import { Broker as StreamrBroker } from 'streamr-broker';
 import StreamrClient, { Stream } from 'streamr-client';
-import { container } from 'tsyringe';
 
 import { Broker } from '../../../../src/broker';
-import { LogStoreRegistry } from '../../../../src/registry/LogStoreRegistry';
 import {
-	createClient,
+	createLogStoreClient,
+	createStreamrClient,
 	createTestStream,
 	startLogStoreBroker,
 	startStreamrBroker,
@@ -30,6 +29,7 @@ const contactPoints = [STREAMR_DOCKER_DEV_HOST];
 const localDataCenter = 'datacenter1';
 const keyspace = 'logstore_dev';
 
+const STAKE_AMOUNT = BigNumber.from('100000000000000000');
 const HTTP_PORT = 17770;
 const TRACKER_PORT = 17772;
 
@@ -37,17 +37,20 @@ describe('LogStoreConfig', () => {
 	let cassandraClient: Client;
 	let tracker: Tracker;
 	let logStoreBroker: Broker;
+	let logStoreClient: LogStoreClient;
 	let streamrBroker: StreamrBroker;
-	let client: StreamrClient;
+	let streamrClient: StreamrClient;
 	let stream: Stream;
 	let publisherAccount: Wallet;
+	let logStoreClientAccount: Wallet;
 	let logStoreBrokerAccount: Wallet;
 	let streamrBrokerAccount: Wallet;
 
 	beforeAll(async () => {
 		publisherAccount = new Wallet(await fetchPrivateKeyWithGas());
-		logStoreBrokerAccount = new Wallet(await fetchPrivateKeyWithGas());
+		logStoreBrokerAccount = fastWallet();
 		streamrBrokerAccount = fastWallet();
+		logStoreClientAccount = new Wallet(await fetchPrivateKeyWithGas());
 		cassandraClient = new cassandra.Client({
 			contactPoints,
 			localDataCenter,
@@ -64,23 +67,31 @@ describe('LogStoreConfig', () => {
 	beforeEach(async () => {
 		tracker = await startTestTracker(TRACKER_PORT);
 
-		logStoreBroker = await startLogStoreBroker(
-			logStoreBrokerAccount.privateKey,
-			HTTP_PORT,
-			TRACKER_PORT
+		logStoreBroker = await startLogStoreBroker({
+			privateKey: logStoreBrokerAccount.privateKey,
+			trackerPort: TRACKER_PORT,
+			enableCassandra: true,
+		});
+
+		logStoreClient = await createLogStoreClient(
+			tracker,
+			logStoreClientAccount.privateKey
 		);
 
 		streamrBroker = await startStreamrBroker({
 			privateKey: streamrBrokerAccount.privateKey,
 			trackerPort: TRACKER_PORT,
-			enableCassandra: false,
 		});
 
-		client = await createClient(tracker, publisherAccount.privateKey);
+		streamrClient = await createStreamrClient(
+			tracker,
+			publisherAccount.privateKey
+		);
 	});
 
 	afterEach(async () => {
-		await client.destroy();
+		await streamrClient.destroy();
+		await logStoreClient.destroy();
 		await Promise.allSettled([
 			logStoreBroker?.stop(),
 			streamrBroker?.stop(),
@@ -89,18 +100,11 @@ describe('LogStoreConfig', () => {
 	});
 
 	it('when client publishes a message, it is written to the store', async () => {
-		stream = await createTestStream(client, module);
+		stream = await createTestStream(streamrClient, module);
 
-		const logStoreRegistry =
-			container.resolve<LogStoreRegistry>(LogStoreRegistry);
-		await logStoreRegistry.addToStorageNode(stream.id);
-		// await logStoreRegistry.stake(
-		// 	stream.id
-		// 	// toEthereumAddress((await logStoreBroker.getNode()).getNodeId())
-		// );
-		// await stream.addToStorageNode(storageNodeAccount.address);
+		await logStoreClient.addStreamToLogStore(stream.id, STAKE_AMOUNT);
 
-		const publishMessage = await client.publish(stream.id, {
+		const publishMessage = await streamrClient.publish(stream.id, {
 			foo: 'bar',
 		});
 		await waitForCondition(async () => {

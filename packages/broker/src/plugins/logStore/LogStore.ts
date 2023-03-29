@@ -13,8 +13,8 @@ import { BucketManager, BucketManagerOptions } from './BucketManager';
 const logger = new Logger(module);
 
 // TODO: move this to protocol-js
-const MIN_SEQUENCE_NUMBER_VALUE = 0;
-const MAX_SEQUENCE_NUMBER_VALUE = 2147483647;
+export const MIN_SEQUENCE_NUMBER_VALUE = 0;
+export const MAX_SEQUENCE_NUMBER_VALUE = 2147483647;
 const MAX_TIMESTAMP_VALUE = 8640000000000000; // https://262.ecma-international.org/5.1/#sec-15.9.1.1
 const MAX_RESEND_LAST = 10000;
 
@@ -414,11 +414,11 @@ export class LogStore extends EventEmitter {
 				}
 
 				queries.forEach((q) => {
-					if (publisherId !== undefined) {
+					if (publisherId) {
 						q.where += ' AND publisher_id = ?';
 						q.params.push(publisherId);
 					}
-					if (msgChainId !== undefined) {
+					if (msgChainId) {
 						q.where += ' AND msg_chain_id = ?';
 						q.params.push(msgChainId);
 					}

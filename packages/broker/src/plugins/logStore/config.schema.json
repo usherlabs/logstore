@@ -41,19 +41,8 @@
 				"refreshInterval": {
 					"type": "integer",
 					"description": "Interval (in milliseconds) in which to refresh LogStore config from Core API (0 = disable)"
-				},
-				"logStoreManagerChainAddress": {
-					"type": "string",
-					"format": "ethereum-address",
-					"default": "0x611900fD07BB133016Ed85553aF9586771da5ff9"
-				},
-				"theGraphUrl": {
-					"type": "string",
-					"format": "uri",
-					"default": "http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts"
 				}
 			},
-			"required": ["logStoreManagerChainAddress"],
 			"additionalProperties": false,
 			"default": {
 				"refreshInterval": 600000

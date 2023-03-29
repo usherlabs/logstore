@@ -1,14 +1,14 @@
+import {
+	LogStoreAssignmentEvent,
+	LogStoreClient,
+	LogStoreClientEvents,
+} from '@concertodao/logstore-client';
 import { toStreamID } from '@streamr/protocol';
 import { wait } from '@streamr/utils';
 import { BigNumber } from 'ethers';
-import { Stream, StreamrClient } from 'streamr-client';
+import { Stream } from 'streamr-client';
 
-import { LogStoreClientEvents } from '../../../../src/client/events';
 import { LogStoreEventListener } from '../../../../src/plugins/logStore/LogStoreEventListener';
-import {
-	LogStoreAssignmentEvent,
-	LogStoreRegistry,
-} from '../../../../src/registry/LogStoreRegistry';
 
 const MOCK_STREAM = {
 	id: 'streamId',
@@ -18,8 +18,7 @@ const MOCK_STREAM = {
 } as Stream;
 
 describe(LogStoreEventListener, () => {
-	let stubClient: Pick<StreamrClient, 'getStream'>;
-	let stubLogStoreRegistry: Pick<LogStoreRegistry, 'on' | 'off'>;
+	let stubClient: Pick<LogStoreClient, 'getStream' | 'on' | 'off'>;
 	const logStoreEventListeners: Map<
 		keyof LogStoreClientEvents,
 		(event: LogStoreAssignmentEvent) => any
@@ -35,19 +34,13 @@ describe(LogStoreEventListener, () => {
 			async getStream() {
 				return MOCK_STREAM;
 			},
-		};
-		stubLogStoreRegistry = {
 			on(eventName: keyof LogStoreClientEvents, listener: any) {
 				logStoreEventListeners.set(eventName, listener);
 			},
 			off: jest.fn(),
 		};
 		onEvent = jest.fn();
-		listener = new LogStoreEventListener(
-			stubClient as StreamrClient,
-			stubLogStoreRegistry as LogStoreRegistry,
-			onEvent
-		);
+		listener = new LogStoreEventListener(stubClient as LogStoreClient, onEvent);
 	});
 
 	afterEach(() => {
@@ -61,9 +54,9 @@ describe(LogStoreEventListener, () => {
 	});
 
 	it('destroy() unregisters storage event listener on client', async () => {
-		expect(stubLogStoreRegistry.off).toHaveBeenCalledTimes(0);
+		expect(stubClient.off).toHaveBeenCalledTimes(0);
 		await listener.destroy();
-		expect(stubLogStoreRegistry.off).toHaveBeenCalledTimes(2);
+		expect(stubClient.off).toHaveBeenCalledTimes(2);
 	});
 
 	function addToLogStore() {

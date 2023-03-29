@@ -1,10 +1,9 @@
-import { Logger } from '@streamr/utils';
-import { Stream, StreamrClient } from 'streamr-client';
-
 import {
 	LogStoreAssignmentEvent,
-	LogStoreRegistry,
-} from '../../registry/LogStoreRegistry';
+	LogStoreClient,
+} from '@concertodao/logstore-client';
+import { Logger } from '@streamr/utils';
+import { Stream } from 'streamr-client';
 
 const logger = new Logger(module);
 
@@ -13,8 +12,7 @@ const logger = new Logger(module);
  * stream assignment and removal events in real-time.
  */
 export class LogStoreEventListener {
-	private readonly streamrClient: StreamrClient;
-	private readonly logStoreRegistry: LogStoreRegistry;
+	private readonly logStoreClient: LogStoreClient;
 	private readonly onEvent: (
 		stream: Stream,
 		type: 'added' | 'removed',
@@ -26,12 +24,10 @@ export class LogStoreEventListener {
 	) => void;
 
 	constructor(
-		streamrClient: StreamrClient,
-		logStoreRegistry: LogStoreRegistry,
+		logStoreClient: LogStoreClient,
 		onEvent: (stream: Stream, type: 'added' | 'removed', block: number) => void
 	) {
-		this.streamrClient = streamrClient;
-		this.logStoreRegistry = logStoreRegistry;
+		this.logStoreClient = logStoreClient;
 		this.onEvent = onEvent;
 		this.onAddToLogStore = (event: LogStoreAssignmentEvent) =>
 			this.handleEvent(event, 'added');
@@ -45,7 +41,7 @@ export class LogStoreEventListener {
 	) {
 		logger.info('received LogStoreAssignmentEvent type=%s: %j', type, event);
 		try {
-			const stream = await this.streamrClient.getStream(event.store);
+			const stream = await this.logStoreClient.getStream(event.store);
 			this.onEvent(stream, type, event.blockNumber);
 		} catch (e) {
 			logger.warn('chainEventsListener: %s', e);
@@ -53,12 +49,12 @@ export class LogStoreEventListener {
 	}
 
 	async start(): Promise<void> {
-		this.logStoreRegistry.on('addToLogStore', this.onAddToLogStore);
-		this.logStoreRegistry.on('removeFromLogStore', this.onRemoveFromLogStore);
+		this.logStoreClient.on('addToLogStore', this.onAddToLogStore);
+		this.logStoreClient.on('removeFromLogStore', this.onRemoveFromLogStore);
 	}
 
 	async destroy(): Promise<void> {
-		this.logStoreRegistry.off('addToLogStore', this.onAddToLogStore);
-		this.logStoreRegistry.off('removeFromLogStore', this.onRemoveFromLogStore);
+		this.logStoreClient.off('addToLogStore', this.onAddToLogStore);
+		this.logStoreClient.off('removeFromLogStore', this.onRemoveFromLogStore);
 	}
 }

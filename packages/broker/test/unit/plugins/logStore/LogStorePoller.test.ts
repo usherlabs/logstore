@@ -1,8 +1,8 @@
+import { LogStoreClient } from '@concertodao/logstore-client';
 import { wait } from '@streamr/utils';
 import { Stream } from 'streamr-client';
 
 import { LogStorePoller } from '../../../../src/plugins/logStore/LogStorePoller';
-import { LogStoreRegistry } from '../../../../src/registry/LogStoreRegistry';
 
 const POLL_TIME = 5;
 
@@ -15,29 +15,28 @@ const POLL_RESULT = Object.freeze({
 });
 
 describe(LogStorePoller, () => {
-	let getStoredStreams: jest.Mock<
+	let getLogStoreStreams: jest.Mock<
 		Promise<{ streams: Stream[]; blockNumber: number }>,
 		[]
 	>;
 	let onNewSnapshot: jest.Mock<void, [streams: Stream[], block: number]>;
-	let stubLogStoreRegistry: Pick<LogStoreRegistry, 'getStoredStreams'>;
+	let stubClient: Pick<LogStoreClient, 'getLogStoreStreams'>;
+
 	let poller: LogStorePoller;
 	let abortController: AbortController;
 
 	function initPoller(interval: number): LogStorePoller {
-		stubLogStoreRegistry = {
-			getStoredStreams,
-		};
 		return new LogStorePoller(
 			interval,
-			stubLogStoreRegistry as LogStoreRegistry,
+			stubClient as LogStoreClient,
 			onNewSnapshot
 		);
 	}
 
 	beforeEach(() => {
-		getStoredStreams = jest.fn();
+		getLogStoreStreams = jest.fn();
 		onNewSnapshot = jest.fn();
+		stubClient = { getLogStoreStreams };
 		poller = initPoller(POLL_TIME);
 		abortController = new AbortController();
 	});
@@ -48,7 +47,7 @@ describe(LogStorePoller, () => {
 
 	describe('poll()', () => {
 		beforeEach(async () => {
-			getStoredStreams.mockResolvedValueOnce(POLL_RESULT);
+			getLogStoreStreams.mockResolvedValueOnce(POLL_RESULT);
 			await poller.poll();
 		});
 
@@ -62,22 +61,22 @@ describe(LogStorePoller, () => {
 	});
 
 	it('start() schedules polling on an interval', async () => {
-		getStoredStreams.mockResolvedValue(POLL_RESULT);
+		getLogStoreStreams.mockResolvedValue(POLL_RESULT);
 		await poller.start(abortController.signal);
 		await wait(POLL_TIME * 10);
 		expect(onNewSnapshot.mock.calls.length).toBeGreaterThanOrEqual(4);
 	});
 
 	it('start() polls only once if pollInterval=0', async () => {
-		getStoredStreams.mockResolvedValue(POLL_RESULT);
+		getLogStoreStreams.mockResolvedValue(POLL_RESULT);
 		poller = initPoller(0);
 		await poller.start(abortController.signal);
 		await wait(POLL_TIME * 10);
-		expect(getStoredStreams).toBeCalledTimes(1);
+		expect(getLogStoreStreams).toBeCalledTimes(1);
 	});
 
 	it('start() handles polling errors gracefully', async () => {
-		getStoredStreams.mockRejectedValue(new Error('poll failed'));
+		getLogStoreStreams.mockRejectedValue(new Error('poll failed'));
 		await poller.start(abortController.signal);
 		await wait(POLL_TIME * 2);
 		expect(onNewSnapshot).toBeCalledTimes(0); // Should not have encountered unhandledRejectionError

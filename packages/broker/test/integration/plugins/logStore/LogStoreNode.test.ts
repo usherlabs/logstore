@@ -2,7 +2,6 @@ import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { toEthereumAddress } from '@streamr/utils';
 import { Wallet } from 'ethers';
-import 'reflect-metadata';
 
 import { Broker } from '../../../../src/broker';
 import { startLogStoreBroker, startTestTracker } from '../../../utils';
@@ -20,11 +19,11 @@ describe('LogStoreNode', () => {
 
 	beforeAll(async () => {
 		logStoreBrokerAccount = new Wallet(await fetchPrivateKeyWithGas());
-		logStoreBroker = await startLogStoreBroker(
-			logStoreBrokerAccount.privateKey,
-			1234,
-			trackerPort
-		);
+		logStoreBroker = await startLogStoreBroker({
+			privateKey: logStoreBrokerAccount.privateKey,
+			trackerPort: 1234,
+			enableCassandra: true,
+		});
 	}, 30 * 1000);
 
 	afterAll(async () => {
