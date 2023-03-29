@@ -172,6 +172,7 @@ importers:
   packages/cli:
     specifiers:
       '@concertodao/logstore-contracts': workspace:^0.0.1
+      '@ethersproject/bignumber': ^5.7.0
       '@types/node': ^18.7.18
       '@types/node-fetch': ^2.6.2
       '@types/pino': ^7.0.5
@@ -195,6 +196,7 @@ importers:
       typescript: ^4.6.4
     dependencies:
       '@concertodao/logstore-contracts': link:../contracts
+      '@ethersproject/bignumber': 5.7.0
       chalk: 4.1.2
       commander: 10.0.0
       ethers: 6.2.3

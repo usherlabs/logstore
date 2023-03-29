@@ -1,7 +1,6 @@
 import ContractAddresses from '@concertodao/logstore-contracts/address.json';
 import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
-// import { abi as QueryManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/QueryManager.sol/LogStoreQueryManager.json';
-// import chalk from 'chalk';
+import { BigNumber } from '@ethersproject/bignumber';
 import { ethers } from 'ethers';
 import inquirer from 'inquirer';
 import redstone from 'redstone-api';
@@ -48,10 +47,10 @@ export const prepareStake = async (
 	let realAmount = amount;
 	if (usd) {
 		logger.info('Converting USD amount to token amount...');
-		let stakeTokenDecimals: ethers.BigNumberish =
-			await stakeTokenContract.decimals();
-		stakeTokenDecimals = parseInt(stakeTokenDecimals.toString(), 10);
-		logger.debug('Stake Token Decimals: ', stakeTokenDecimals);
+		const stakeTokenDecimals = BigNumber.from(
+			await stakeTokenContract.decimals()
+		);
+		logger.debug('Stake Token Decimals: ', stakeTokenDecimals.toNumber());
 
 		let price = 0.01;
 		try {
@@ -63,7 +62,9 @@ export const prepareStake = async (
 		const amountInUSD = realAmount / price;
 		realAmount = Math.floor(
 			parseInt(
-				ethers.parseUnits(`${amountInUSD}`, stakeTokenDecimals).toString(10),
+				ethers
+					.parseUnits(`${amountInUSD}`, stakeTokenDecimals.toNumber())
+					.toString(10),
 				10
 			)
 		);
@@ -71,18 +72,22 @@ export const prepareStake = async (
 	logger.info(
 		`Fetching allowance of ${stakeTokenSymbol} for ${signer.address}`
 	);
-	let allowance: ethers.BigNumberish = await stakeTokenContract.allowance(
-		signer.address,
-		managerAddress
+	const allowance = BigNumber.from(
+		await stakeTokenContract.allowance(signer.address, managerAddress)
 	);
-	allowance = parseInt(allowance.toString(), 10);
-	if (allowance < realAmount) {
+	logger.debug(`Current allowance: ${allowance.toNumber()}`);
+	const bnAmount = BigNumber.from(realAmount);
+	logger.debug(
+		allowance.lt(bnAmount) ? `Approval is required` : `Approval is NOT required`
+	);
+	if (allowance.lt(bnAmount)) {
+		const approvalAmount = bnAmount.sub(allowance);
 		logger.info(
-			`Approving ${realAmount - allowance} (${
-				(realAmount - allowance) / Math.pow(10, 18)
+			`Approving ${approvalAmount.toNumber()} (${
+				approvalAmount.toNumber() / Math.pow(10, 18)
 			}) $${stakeTokenSymbol} for ${managerAddress}...`
 		);
-		await stakeTokenContract.approve(managerAddress, realAmount - allowance);
+		await stakeTokenContract.approve(managerAddress, approvalAmount.toNumber());
 	}
 
 	logger.info(`Staking ${realAmount} $${stakeTokenSymbol}...`);
