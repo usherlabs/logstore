@@ -1,6 +1,5 @@
 import ContractAddresses from '@concertodao/logstore-contracts/address.json';
 import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
-import { BigNumber } from '@ethersproject/bignumber';
 import { ethers } from 'ethers';
 import inquirer from 'inquirer';
 import redstone from 'redstone-api';
@@ -47,10 +46,8 @@ export const prepareStake = async (
 	let realAmount = amount;
 	if (usd) {
 		logger.info('Converting USD amount to token amount...');
-		const stakeTokenDecimals = BigNumber.from(
-			await stakeTokenContract.decimals()
-		);
-		logger.debug('Stake Token Decimals: ', stakeTokenDecimals.toNumber());
+		const stakeTokenDecimals: bigint = await stakeTokenContract.decimals();
+		logger.debug('Stake Token Decimals: ', stakeTokenDecimals.toString());
 
 		let price = 0.01;
 		try {
@@ -63,34 +60,24 @@ export const prepareStake = async (
 		realAmount = Math.floor(
 			parseInt(
 				ethers
-					.parseUnits(`${amountInUSD}`, stakeTokenDecimals.toNumber())
+					.parseUnits(`${amountInUSD}`, stakeTokenDecimals.valueOf())
 					.toString(10),
 				10
 			)
 		);
 	}
+
+	const bnAmount = BigInt(realAmount);
+
 	logger.info(
 		`Fetching allowance of ${stakeTokenSymbol} for ${signer.address}`
 	);
-	const allowance = BigNumber.from(
-		await stakeTokenContract.allowance(signer.address, managerAddress)
+	const allowance: bigint = await stakeTokenContract.allowance(
+		signer.address,
+		managerAddress
 	);
-	logger.debug(`Current allowance: ${allowance.toNumber()}`);
-	const bnAmount = BigNumber.from(realAmount);
-	logger.debug(
-		allowance.lt(bnAmount) ? `Approval is required` : `Approval is NOT required`
-	);
-	if (allowance.lt(bnAmount)) {
-		const approvalAmount = bnAmount.sub(allowance);
-		logger.info(
-			`Approving ${approvalAmount.toNumber()} (${
-				approvalAmount.toNumber() / Math.pow(10, 18)
-			}) $${stakeTokenSymbol} for ${managerAddress}...`
-		);
-		await stakeTokenContract.approve(managerAddress, approvalAmount.toNumber());
-	}
+	logger.debug(`Current allowance: ${allowance.valueOf()}`);
 
-	logger.info(`Staking ${realAmount} $${stakeTokenSymbol}...`);
 	const answers = await inquirer.prompt([
 		{
 			name: 'confirm',
@@ -104,5 +91,18 @@ export const prepareStake = async (
 	if (!answers.confirm) {
 		process.exit(0);
 	}
-	return realAmount;
+
+	if (allowance < bnAmount) {
+		const approvalAmount = bnAmount - allowance;
+		logger.info(
+			`Approving ${approvalAmount.valueOf()} (${
+				approvalAmount / BigInt(Math.pow(10, 18))
+			}) $${stakeTokenSymbol} for ${managerAddress}...`
+		);
+		await stakeTokenContract.approve(managerAddress, approvalAmount);
+	}
+
+	logger.info(`Staking ${bnAmount.valueOf()} $${stakeTokenSymbol}...`);
+
+	return bnAmount;
 };
