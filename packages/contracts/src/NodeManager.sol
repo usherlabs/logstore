@@ -53,7 +53,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     uint256 public totalSupply;
     uint256 public treasurySupply;
     uint256 public stakeRequiredAmount;
-    uint256 public stakeTokenAddress;
+    address public stakeTokenAddress;
     uint256 public totalNodes;
     mapping(address => Node) public nodes;
     mapping(address => WhitelistState) public whitelist;

@@ -3,11 +3,13 @@ import { abi as ReportManagerContractABI } from '@concertodao/logstore-contracts
 import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { DataItem, IRuntime, sha256 } from '@kyvejs/protocol';
 import { ethers, EventLog } from 'ethers';
+import redstone from 'redstone-api';
 import { fromString } from 'uint8arrays/from-string';
 
 import erc20ABI from './abi/erc20';
 import { appPackageName, appVersion } from './env-config';
 import { BrokerNode, PoolConfig, Report } from './types';
+import { Arweave } from './utils/arweave';
 import Validator from './validator';
 
 const reportPrefix = `report_` as const;
@@ -39,6 +41,7 @@ export default class Runtime implements IRuntime {
 
 		// IF REPORT
 		if (key.startsWith(reportPrefix)) {
+			core.logger.info(`Create Report: ${key}`);
 			// 1. Use unique source to Smart Contracts to determine last accepted report
 			// 2. Use last accepted report to determine range between last report and this report (using key timestamp) and query for messages
 
@@ -68,7 +71,7 @@ export default class Runtime implements IRuntime {
 				}
 			);
 			const lastReport: Report = await reportManagerContract.getLastReport();
-			let fromKey = 0;
+			let fromKey = parseInt(core.pool.data.start_key, 10); // This needs to be the start key
 			if ((lastReport || {})?.id) {
 				const rKey = lastReport.id.substring(
 					reportPrefix.length,
@@ -107,8 +110,6 @@ export default class Runtime implements IRuntime {
 			);
 			const stakeTokenSymbol = await stakeTokenContract.symbol();
 			const stakeTokenDecimals = await stakeTokenContract.decimals();
-
-			const fee = 0; // TODO: We need a bundle fee (expense) estimation based on size to evaluate the fees
 
 			// Fetch all Smart Contract events to reconstruct the state
 			const storeUpdateEvents = await storeManagerContract.queryFilter(
@@ -169,6 +170,43 @@ export default class Runtime implements IRuntime {
 				currentBrokerNodeAddressInLoop = brokerNode.next;
 			}
 
+			// ! Re-calling all queries here to determine its size is silly.
+			// The previous bundle will have the size of data between the times of the last report to the current report.
+			// Determine the finalized_bundle id by referring to the Pool's total bundles -1.
+			const totalBundles = parseInt(core.pool.data.total_bundles, 10);
+			let expense = 0;
+			if (totalBundles > 0) {
+				const lastFinalizedBundleId = totalBundles - 1;
+				const lastBundle = await core.lcd[0].kyve.query.v1beta1.finalizedBundle(
+					{
+						id: `${lastFinalizedBundleId}`,
+						pool_id: core.pool.id,
+					}
+				);
+				const storageId = lastBundle.finalized_bundle.storage_id;
+				expense = await Arweave.getFee(storageId);
+			}
+			const writeFee = (fees.writeMultiplier + 1) * expense;
+			const writeTreasuryFee = fees.treasuryMultiplier * (writeFee - expense); // multiplier on the profit
+			const writeNodeFee = writeFee - writeTreasuryFee;
+			const readTreasuryFee = fees.read * fees.treasuryMultiplier;
+			const readNodeFee = fees.read - readTreasuryFee;
+
+			// Establish the report
+			const report: Report = {
+				id: key,
+				height: blockNumber,
+				treasury: 0,
+				streams: [],
+				consumers: [],
+				nodes: {},
+				delegates: {},
+				events: {
+					queries: [],
+					storage: [],
+				},
+			};
+
 			// TODO: Query system stream from Broker Network
 			// TODO: Determine based on unanimous observations which nodes missed data
 
@@ -180,29 +218,15 @@ export default class Runtime implements IRuntime {
 			}
 			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
 			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
-			const resp = [{ hello: 'world' }]; // ! DUMMY
-
-			// Establish the report
-			const report: Report = {
-				id: key,
-				height: blockNumber,
-				streams: [],
-				consumers: [],
-				nodes: {},
-				delegates: {},
-				events: {
-					queries: [],
-					storage: [],
-				},
-			};
+			// const resp = [{ hello: 'world' }]; // ! DUMMY
 
 			const listenerCache = await core.listener.db();
-			for await (const [_, lValue] of listenerCache.iterator({
+			const queryHashKeyMap: Record<string, string[]> = {};
+			for await (const [lKey, lValue] of listenerCache.iterator({
 				gte: fromKey,
 				lt: toKey,
 			})) {
-				const v = typeof lValue === 'string' ? JSON.parse(lValue) : lValue;
-				const { content, metadata } = v;
+				const { content, metadata } = lValue;
 				if (
 					content?.query &&
 					content?.nonce &&
@@ -212,6 +236,7 @@ export default class Runtime implements IRuntime {
 					content?.size
 				) {
 					// TODO: Ensure variables match that of the Broker Node
+
 					// This is a proof-of-event for a query
 					// 1. verify the consumer signature
 					const consumerHash = ethers.keccak256(
@@ -232,33 +257,120 @@ export default class Runtime implements IRuntime {
 						continue;
 					}
 
-					// 3. Add to report
-					report.events.queries.push({
-						query: content.query,
-						nonce: content.nonce,
-						consumer: content.consumer,
-						hash: content.hash,
-						size: content.size,
+					// 3. Add to hashMap
+					// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
+					const h = content.consumer + ':' + content.hash;
+					if (!queryHashKeyMap[h]) {
+						queryHashKeyMap[h] = [];
+					}
+					queryHashKeyMap[h].push(`${lKey}`);
+				}
+			}
+
+			const queryHashKeyMapEntries = Object.entries(queryHashKeyMap);
+			for (let i = 0; i < queryHashKeyMapEntries.length; i++) {
+				const [, lKeys] = queryHashKeyMapEntries[i];
+				if (lKeys.length <= brokerNodes.length / 2) {
+					// Clear out all hashes that the majority of the nodes did NOT "agree" with
+					continue;
+				}
+
+				// Add consolidated event to report
+				const event = await listenerCache.get(lKeys[0]);
+				const id = event.metadata.streamId.toString();
+				report.events.queries.push({
+					id,
+					query: event.content.query,
+					nonce: event.content.nonce,
+					consumer: event.content.consumer,
+					hash: event.content.hash,
+					size: event.content.size,
+				});
+				const existingConsumerIndex = report.consumers.findIndex(
+					(c) => c.id === event.content.consumer
+				);
+
+				const nodeAmount = readNodeFee * event.content.size;
+				if (existingConsumerIndex < 0) {
+					report.consumers.push({
+						id: event.content.consumer,
+						capture: nodeAmount, // the amount of stake token in wei based on the calculations
+						bytes: event.content.size,
 					});
-					const existingConsumerIndex = report.consumers.findIndex(
-						(c) => c.id === content.consumer
-					);
-					if (existingConsumerIndex < 0) {
-						report.consumers.push({
-							id: content.consumer,
-							capture: 0, // the amount of stake token in wei based on the calculations
-							bytes: content.size,
-						});
-					} else {
-						// report.consumers[existingConsumerIndex].capture += // // the amount of stake token in wei based on the calculations
-						report.consumers[existingConsumerIndex].bytes += content.size;
+					report.treasury = readTreasuryFee * event.content.size;
+				} else {
+					// report.consumers[existingConsumerIndex].capture += // // the amount of stake token in wei based on the calculations
+					report.consumers[existingConsumerIndex].bytes += nodeAmount;
+					report.treasury += readTreasuryFee * event.content.size;
+				}
+
+				// ? All nodes managing all streams right now
+				for (let j = 0; j < brokerNodes.length; j++) {
+					const bNode = brokerNodes[j];
+					if (bNode.stake < minStakeRequirement) {
+						continue;
+					}
+					if (typeof report.nodes[bNode.id] !== 'undefined') {
+						report.nodes[bNode.id] = 0;
+					}
+					report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
+
+					for (let l = 0; l < bNode.delegates.length; l++) {
+						const delAddr = bNode.delegates[l];
+						const delegateAmount = await nodeManagerContract.delegatesOf(
+							delAddr,
+							bNode.id
+						);
+						const delegatePortion = delegateAmount / bNode.stake;
+						if (!report.delegates[delAddr]) {
+							report.delegates[delAddr] = {};
+						}
+						if (typeof report.delegates[delAddr][bNode.id] !== 'number') {
+							report.delegates[delAddr][bNode.id] = 0;
+						}
+						report.delegates[delAddr][bNode.id] += delegatePortion * nodeAmount;
 					}
 				}
 			}
 
+			// TODO: Merge this logic into store loop.
+			report.streams.forEach((s) => {
+				Object.keys(report.nodes).forEach((n) => {
+					report.nodes[n] += s.capture / report.nodes.length;
+				});
+			});
+
+			// Convert fees to stake token
+			const priceOfStakeToken = await redstone.getPrice(stakeTokenSymbol);
+			const toStakeToken = (usdValue: number) =>
+				Math.floor(
+					parseInt(
+						ethers
+							.parseUnits(
+								`${usdValue / priceOfStakeToken.value}`,
+								stakeTokenDecimals
+							)
+							.toString(10),
+						10
+					)
+				);
+			report.treasury = toStakeToken(report.treasury);
+			report.consumers = report.consumers.map((c) => {
+				c.capture = toStakeToken(c.capture);
+				return c;
+			});
+			Object.keys(report.nodes).forEach((n) => {
+				report.nodes[n] = toStakeToken(report.nodes[n]);
+			});
+			Object.keys(report.delegates).forEach((d) => {
+				Object.keys(report.delegates[d]).forEach((n) => {
+					report.delegates[d][n] = toStakeToken(report.delegates[d][n]);
+				});
+			});
+
 			return {
 				key,
-				value: [],
+				value: report,
 			};
 		}
 
@@ -333,14 +445,15 @@ export default class Runtime implements IRuntime {
 		core: Validator,
 		bundle: DataItem[]
 	): Promise<string> {
-		// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
+		// First key in the cache is a timestamp that is comparable to the last bundle start key -- ie. Node must have a timestamp < last bundle_start_key
+		// ie. this node may have produced an invalid report because it began listening after it had joined the processing of voting
 		const listenerCache = await core.listener.db();
 		const [report] = bundle; // first data item should always be the bundle
 		const rKey = report.key.substring(reportPrefix.length, report.key.length);
 		const rKeyInt = parseInt(rKey, 10);
 		for await (const [key] of listenerCache.iterator()) {
 			const keyInt = parseInt(key, 10);
-			if (keyInt >= rKeyInt) {
+			if (keyInt > rKeyInt) {
 				return null; // Will cause the validator to abstain from the vote
 			}
 			break;

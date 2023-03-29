@@ -20,9 +20,9 @@ export default class Validator extends KyveValidator {
 	 * @method constructor
 	 * @param {IRuntime} runtime which implements the interface IRuntime
 	 */
-	constructor(runtime: IRuntime, listener: Listener) {
+	constructor(runtime: IRuntime) {
 		super(runtime);
 
-		this.listener = listener;
+		this.listener = new Listener(this);
 	}
 }
