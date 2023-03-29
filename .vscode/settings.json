@@ -4,7 +4,9 @@
 		"./packages/validator",
 		"./packages/broker",
 		"./packages/subgraph",
-		"./packages/cli"
+		"./packages/cli",
+		"./packages/client",
+		"./packages/protocol"
 	],
 	"eslint.validate": [
 		"javascript",
