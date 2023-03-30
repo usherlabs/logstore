@@ -1,5 +1,14 @@
+import type { MessageMetadata } from 'streamr-client';
+
 export type PoolConfigContract = {
 	address: string;
+};
+
+export type PoolConfigContracts = {
+	reportManager: PoolConfigContract;
+	nodeManager: PoolConfigContract;
+	storeManager: PoolConfigContract;
+	queryManager: PoolConfigContract;
 };
 
 export type PoolConfig = {
@@ -7,12 +16,7 @@ export type PoolConfig = {
 	startBlock: number; // the block on remote network (polygon) when Smart Contract was deployed.
 	blockTime: number;
 	itemTimeRange: number; // Some range in unix time between each data item
-	contracts: {
-		reportManager: PoolConfigContract;
-		nodeManager: PoolConfigContract;
-		storeManager: PoolConfigContract;
-		queryManager: PoolConfigContract;
-	};
+	contracts: PoolConfigContracts;
 	fees: {
 		writeMultiplier: number;
 		treasuryMultiplier: number;
@@ -64,3 +68,5 @@ export type BrokerNode = {
 	stake: number;
 	delegates: string[];
 };
+
+export type StreamrMessage = { content: any; metadata: MessageMetadata };

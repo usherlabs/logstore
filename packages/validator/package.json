@@ -40,6 +40,7 @@
 		"classic-level": "^1.2.0",
 		"dotenv": "^16.0.3",
 		"ethers": "^6.0.3",
+		"lodash": "^4.17.21",
 		"redstone-api": "^0.4.11",
 		"streamr-client": "^7.3.0",
 		"uint8arrays": "^4.0.3"
