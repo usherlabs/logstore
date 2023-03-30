@@ -6,7 +6,7 @@ dataSources:
     name: LogStoreManager
     network: xDai
     source:
-      address: "0x611900fD07BB133016Ed85553aF9586771da5ff9"
+      address: "0x256D4CB67452b6b8280B2b67F040fD22f1C378f4"
       abi: LogStoreManager
       startBlock: 0
     mapping:
