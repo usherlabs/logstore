@@ -1,3 +1,4 @@
+import { Wallet } from 'ethers';
 import hre from 'hardhat';
 
 import {
@@ -91,6 +92,26 @@ async function main() {
 	const { address: reportManagerAddress } = reportManagerContract;
 	console.log(`LogStoreReportanager deployed to ${reportManagerAddress}`);
 	// --------------------------- deploy the query manager contract --------------------------- //
+
+	// --------------------------- mint dev token to the test accounts ------------------------- //
+	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
+		const devTokenArtifact = await hre.ethers.getContractFactory('DevToken');
+		const token = await devTokenArtifact.attach(devTokenAddress);
+
+		console.log('Minting DevToken to the test accounts...');
+		const wallets: string[] = [];
+		for (let i = 1; i <= 1000; i++) {
+			const hexString = i.toString(16);
+			const privkey = '0x' + hexString.padStart(64, '0');
+			wallets.push(new Wallet(privkey).address);
+
+			if (wallets.length === 250) {
+				await (await token.mintMany(wallets)).wait();
+				wallets.splice(0);
+			}
+		}
+	}
+	// --------------------------- mint dev token to the test accounts ------------------------- //
 
 	// --------------------------- write addresses to file --------------------------- //
 	// initialise nodemanager contract with sub contracts

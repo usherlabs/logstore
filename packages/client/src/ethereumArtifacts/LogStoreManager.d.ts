@@ -371,7 +371,7 @@ export interface LogStoreManager extends BaseContract {
 		): Promise<[boolean]>;
 
 		initialize(
-			owner: PromiseOrValue<string>,
+			owner_: PromiseOrValue<string>,
 			stakeTokenAddress_: PromiseOrValue<string>,
 			streamrRegistryAddress_: PromiseOrValue<string>,
 			overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -459,7 +459,7 @@ export interface LogStoreManager extends BaseContract {
 	): Promise<boolean>;
 
 	initialize(
-		owner: PromiseOrValue<string>,
+		owner_: PromiseOrValue<string>,
 		stakeTokenAddress_: PromiseOrValue<string>,
 		streamrRegistryAddress_: PromiseOrValue<string>,
 		overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -547,7 +547,7 @@ export interface LogStoreManager extends BaseContract {
 		): Promise<boolean>;
 
 		initialize(
-			owner: PromiseOrValue<string>,
+			owner_: PromiseOrValue<string>,
 			stakeTokenAddress_: PromiseOrValue<string>,
 			streamrRegistryAddress_: PromiseOrValue<string>,
 			overrides?: CallOverrides
@@ -697,7 +697,7 @@ export interface LogStoreManager extends BaseContract {
 		): Promise<BigNumber>;
 
 		initialize(
-			owner: PromiseOrValue<string>,
+			owner_: PromiseOrValue<string>,
 			stakeTokenAddress_: PromiseOrValue<string>,
 			streamrRegistryAddress_: PromiseOrValue<string>,
 			overrides?: Overrides & { from?: PromiseOrValue<string> }
@@ -790,7 +790,7 @@ export interface LogStoreManager extends BaseContract {
 		): Promise<PopulatedTransaction>;
 
 		initialize(
-			owner: PromiseOrValue<string>,
+			owner_: PromiseOrValue<string>,
 			stakeTokenAddress_: PromiseOrValue<string>,
 			streamrRegistryAddress_: PromiseOrValue<string>,
 			overrides?: Overrides & { from?: PromiseOrValue<string> }
