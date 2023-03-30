@@ -17,12 +17,6 @@ export const produceItem = async (
 		},
 	});
 
-	// ? The runtime will query multiple times -- core.poolConfig.sources.length times to be exact.
-	// // Multiple sources from the Smart Contract is not even needed here
-	// if (config.sources.findIndex((s) => s === source) > 0) {
-	// 	return lastValue;
-	// }
-
 	// Range will be from last key (timestamp) to this key
 	const toKey = parseInt(key, 10);
 	const fromKey = toKey - config.itemTimeRange; // First iteration over the cache, will use the first nextKey -- ie. 1000
