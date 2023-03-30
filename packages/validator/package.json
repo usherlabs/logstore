@@ -29,7 +29,8 @@
 		"singleQuote": true
 	},
 	"dependencies": {
-		"@concertodao/logstore-contracts": "workspace:../contracts",
+		"@concertodao/logstore-client": "workspace:^0.0.1",
+		"@concertodao/logstore-contracts": "workspace:^0.0.1",
 		"@kyvejs/protocol": "1.0.0-beta.8",
 		"@sentry/node": "^7.13.0",
 		"@sentry/tracing": "^7.13.0",
@@ -39,6 +40,7 @@
 		"classic-level": "^1.2.0",
 		"dotenv": "^16.0.3",
 		"ethers": "^6.0.3",
+		"lodash": "^4.17.21",
 		"redstone-api": "^0.4.11",
 		"streamr-client": "^7.3.0",
 		"uint8arrays": "^4.0.3"
