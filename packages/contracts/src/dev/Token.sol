@@ -20,9 +20,11 @@ contract DevToken is ERC20 {
         _mint(0x65416CBeF822290d9A2FC319Eb6c7f6D9Cd4a541, MINT_AMOUNT);
     }
 
-    function mintMany(address[] memory _addresses) public {
+    function mintAndApproveMany(address[] memory _addresses, address spender) public {
         for (uint256 i = 0; i < _addresses.length; i++) {
             _mint(_addresses[i], MINT_AMOUNT);
+            // TODO: Temporary workaround to approve infinite spending by StoreManger contract for all the test accounts.
+            _approve(_addresses[i], spender, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
         }
     }
 }
