@@ -1,6 +1,4 @@
-import { LogStoreClient } from '@concertodao/logstore-client';
 import { DataItem, IRuntime, sha256 } from '@kyvejs/protocol';
-import { ethers } from 'ethers';
 
 import { Managers } from './classes/Managers';
 import { produceItem } from './core/item';
@@ -26,7 +24,6 @@ export default class Runtime implements IRuntime {
 		// IF REPORT
 		if (key.startsWith(reportPrefix)) {
 			core.logger.info(`Create Report: ${key}`);
-
 			const report = await produceReport(core, managers, key);
 
 			return {
@@ -36,12 +33,11 @@ export default class Runtime implements IRuntime {
 		}
 
 		// IF NO REPORT
-
 		const item = await produceItem(core, managers, key);
 
 		return {
 			key,
-			value: [],
+			value: item,
 		};
 	}
 
