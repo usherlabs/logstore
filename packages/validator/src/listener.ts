@@ -1,7 +1,7 @@
 import chokidar from 'chokidar';
 import { ClassicLevel } from 'classic-level';
 import path from 'path';
-import StreamrClient from 'streamr-client';
+import StreamrClient, { MessageMetadata } from 'streamr-client';
 
 import type { StreamrMessage } from './types';
 import type Validator from './validator';
@@ -45,19 +45,8 @@ export default class Listener {
 	}
 
 	public async subscribe(streamId: string) {
-		await this.client.subscribe(streamId, async (content, metadata) => {
-			// Add to store
-			const key = `${Date.now().toString()}:${streamId}:${
-				metadata.publisherId
-			}`;
-
-			this.core.logger.debug('New message received over stream: ' + streamId, {
-				key,
-				value: { content, metadata },
-			});
-
-			const db = await this.db();
-			await db.put(key, { content, metadata });
+		await this.client.subscribe(streamId, (content, metadata) => {
+			return this.onMessage(content, metadata);
 		});
 	}
 
@@ -74,4 +63,22 @@ export default class Listener {
 	// public getStoreMap(){
 	// 	return this._storeMap;
 	// }
+
+	private async onMessage(content: any, metadata: MessageMetadata) {
+		// Add to store
+		const key = `${Date.now().toString()}:${metadata.streamId}:${
+			metadata.publisherId
+		}`;
+
+		this.core.logger.debug(
+			'New message received over stream: ' + metadata.streamId,
+			{
+				key,
+				value: { content, metadata },
+			}
+		);
+
+		const db = await this.db();
+		await db.put(key, { content, metadata });
+	}
 }

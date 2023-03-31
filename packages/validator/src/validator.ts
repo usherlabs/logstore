@@ -7,12 +7,12 @@ import {
 import Listener from './listener';
 import { PoolConfig } from './types';
 
-async function runCache(this: Validator): Promise<void> {
+export async function runCache(this: Validator): Promise<void> {
 	await runKyveCache.bind(this);
 	await this.listener.start(this.home); // hook into the start process
 }
 
-async function syncPoolConfig(this: Validator): Promise<void> {
+export async function syncPoolConfig(this: Validator): Promise<void> {
 	await syncKyvePoolConfig.bind(this);
 	// Set the System Streams using the Smart Contract address
 	const { contracts } = this.poolConfig as PoolConfig;
