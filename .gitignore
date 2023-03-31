@@ -11,7 +11,7 @@ vendor
 # testing
 logs
 tmp
-report.*
+# report.*
 .test_temp
 
 # next.js

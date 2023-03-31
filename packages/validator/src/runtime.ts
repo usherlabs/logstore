@@ -1,31 +1,12 @@
-import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
-import { abi as ReportManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/ReportManager.sol/LogStoreReportManager.json';
-import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { DataItem, IRuntime, sha256 } from '@kyvejs/protocol';
-import { ethers, EventLog } from 'ethers';
-import redstone from 'redstone-api';
-import { fromString } from 'uint8arrays/from-string';
 
-import erc20ABI from './abi/erc20';
+import { Managers } from './classes/Managers';
+import { produceItem } from './core/item';
+import { produceReport } from './core/report';
 import { appPackageName, appVersion } from './env-config';
-import { BrokerNode, PoolConfig, Report } from './types';
-import { Arweave } from './utils/arweave';
+import { getConfig } from './utils/config';
+import { reportPrefix } from './utils/constants';
 import Validator from './validator';
-
-const reportPrefix = `report_` as const;
-
-const getConfig = (core: Validator): PoolConfig => {
-	return {
-		itemTimeRange: 1000,
-		...core.poolConfig,
-		fees: {
-			writeMultiplier: 1,
-			treasuryMultiplier: 0.2,
-			read: 0.00000001, // value in USD
-			...(core.poolConfig.fees || {}),
-		},
-	};
-};
 
 export default class Runtime implements IRuntime {
 	public name = appPackageName;
@@ -38,335 +19,12 @@ export default class Runtime implements IRuntime {
 		key: string
 	): Promise<DataItem> {
 		const config = getConfig(core);
+		const managers = new Managers(source, config.contracts);
 
 		// IF REPORT
 		if (key.startsWith(reportPrefix)) {
 			core.logger.info(`Create Report: ${key}`);
-			// 1. Use unique source to Smart Contracts to determine last accepted report
-			// 2. Use last accepted report to determine range between last report and this report (using key timestamp) and query for messages
-
-			// get auth headers for proxy endpoints
-			const provider = new ethers.JsonRpcProvider(source);
-			const { contracts, fees } = config;
-
-			const reportManagerContract = new ethers.Contract(
-				contracts.reportManager.address,
-				ReportManagerContractABI,
-				{
-					provider,
-				}
-			);
-			const nodeManagerContract = new ethers.Contract(
-				contracts.nodeManager.address,
-				NodeManagerContractABI,
-				{
-					provider,
-				}
-			);
-			const storeManagerContract = new ethers.Contract(
-				contracts.storeManager.address,
-				StoreManagerContractABI,
-				{
-					provider,
-				}
-			);
-			const lastReport: Report = await reportManagerContract.getLastReport();
-			let fromKey = parseInt(core.pool.data.start_key, 10); // This needs to be the start key
-			if ((lastReport || {})?.id) {
-				const rKey = lastReport.id.substring(
-					reportPrefix.length,
-					lastReport.id.length
-				);
-				fromKey = parseInt(rKey, 10);
-			}
-			const toKey = parseInt(
-				key.substring(reportPrefix.length, key.length),
-				10
-			);
-
-			// Get all latest state from Smart Contract
-			// We do this by using the key (timestamp) to determine the most relevant block
-			// ? toKey will be a recent timestamp as the Pool's start_key will be the timestamp the Pool was created.
-			let blockNumber = await provider.getBlockNumber();
-			let blockNumberTimestamp = 0;
-			do {
-				const block = await provider.getBlock(blockNumber);
-				blockNumberTimestamp = block.timestamp;
-				blockNumber--;
-			} while (blockNumberTimestamp > toKey);
-			blockNumber++; // re-add the removed latest block
-			// Now that we have the block that most closely resemble the current key
-			const minStakeRequirement: number =
-				await nodeManagerContract.stakeRequiredAmount({ blockNumber });
-			const stakeTokenAddress: string =
-				await nodeManagerContract.stakeTokenAddress();
-			// Get decimal count for the stake token
-			const stakeTokenContract = new ethers.Contract(
-				stakeTokenAddress,
-				erc20ABI,
-				{
-					provider,
-				}
-			);
-			const stakeTokenSymbol = await stakeTokenContract.symbol();
-			const stakeTokenDecimals = await stakeTokenContract.decimals();
-
-			// Fetch all Smart Contract events to reconstruct the state
-			const storeUpdateEvents = await storeManagerContract.queryFilter(
-				storeManagerContract.filters.StoreUpdated(),
-				0,
-				blockNumber
-			);
-			const stores: { id: string; amount: number }[] = [];
-			storeUpdateEvents.forEach((e) => {
-				if (!(e instanceof EventLog)) {
-					return;
-				}
-				const storeId = e.args.getValue('store');
-				const amount = e.args.getValue('amount');
-				const sIndex = stores.findIndex((s) => s.id === storeId);
-				if (sIndex < 0) {
-					stores.push({
-						id: storeId,
-						amount,
-					});
-					return;
-				}
-				stores[sIndex].amount += amount;
-			});
-			const dataStoredEvents = await storeManagerContract.queryFilter(
-				storeManagerContract.filters.DataStored(),
-				0,
-				blockNumber
-			);
-			dataStoredEvents.forEach((e) => {
-				if (!(e instanceof EventLog)) {
-					return;
-				}
-				const storeId = e.args.getValue('store');
-				const amount = e.args.getValue('fees');
-				const sIndex = stores.findIndex((s) => s.id === storeId);
-				if (sIndex >= 0) {
-					stores[sIndex].amount -= amount;
-				}
-			});
-			// Produce brokerNode list by starting at headNode and iterating over nodes.
-			const brokerNodes: BrokerNode[] = [];
-			const headBrokerNodeAddress: string = await nodeManagerContract.headNode({
-				blockNumber,
-			});
-			const tailBrokerNodeAddress: string = await nodeManagerContract.tailNode({
-				blockNumber,
-			});
-			let currentBrokerNodeAddressInLoop = headBrokerNodeAddress;
-			while (currentBrokerNodeAddressInLoop !== tailBrokerNodeAddress) {
-				const brokerNode: BrokerNode = await nodeManagerContract.nodes(
-					currentBrokerNodeAddressInLoop
-				);
-				brokerNodes.push({
-					id: currentBrokerNodeAddressInLoop,
-					...brokerNode,
-				});
-				currentBrokerNodeAddressInLoop = brokerNode.next;
-			}
-
-			// ! Re-calling all queries here to determine its size is silly.
-			// The previous bundle will have the size of data between the times of the last report to the current report.
-			// Determine the finalized_bundle id by referring to the Pool's total bundles -1.
-			const totalBundles = parseInt(core.pool.data.total_bundles, 10);
-			let expense = 0;
-			if (totalBundles > 0) {
-				const lastFinalizedBundleId = totalBundles - 1;
-				const lastBundle = await core.lcd[0].kyve.query.v1beta1.finalizedBundle(
-					{
-						id: `${lastFinalizedBundleId}`,
-						pool_id: core.pool.id,
-					}
-				);
-				const storageId = lastBundle.finalized_bundle.storage_id;
-				expense = await Arweave.getFee(storageId);
-			}
-			const writeFee = (fees.writeMultiplier + 1) * expense;
-			const writeTreasuryFee = fees.treasuryMultiplier * (writeFee - expense); // multiplier on the profit
-			const writeNodeFee = writeFee - writeTreasuryFee;
-			const readTreasuryFee = fees.read * fees.treasuryMultiplier;
-			const readNodeFee = fees.read - readTreasuryFee;
-
-			// Establish the report
-			const report: Report = {
-				id: key,
-				height: blockNumber,
-				treasury: 0,
-				streams: [],
-				consumers: [],
-				nodes: {},
-				delegates: {},
-				events: {
-					queries: [],
-					storage: [],
-				},
-			};
-
-			// TODO: Query system stream from Broker Network
-			// TODO: Determine based on unanimous observations which nodes missed data
-
-			for (let i = 0; i < stores.length; i++) {
-				// 1. Get the query partition for this specific store -- this should be a public method
-				// 2. Query the store using its query partition
-				// 3. Query the query partition for the system stream to fetch all read related metadata
-				// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
-			}
-			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
-			// const resp = await logStore.query('system_stream_id', { from: fromKey, to: toKey });
-			// const resp = [{ hello: 'world' }]; // ! DUMMY
-
-			const listenerCache = await core.listener.db();
-			const queryHashKeyMap: Record<string, string[]> = {};
-			for await (const [lKey, lValue] of listenerCache.iterator({
-				gte: fromKey,
-				lt: toKey,
-			})) {
-				const { content, metadata } = lValue;
-				if (
-					content?.query &&
-					content?.nonce &&
-					content?.consumer &&
-					content?.sig &&
-					content?.hash &&
-					content?.size
-				) {
-					// TODO: Ensure variables match that of the Broker Node
-
-					// This is a proof-of-event for a query
-					// 1. verify the consumer signature
-					const consumerHash = ethers.keccak256(
-						fromString(JSON.stringify(content.query) + content.nonce)
-					);
-					const signerAddr = ethers.verifyMessage(consumerHash, content.sig);
-					if (signerAddr !== content.consumer) {
-						continue;
-					}
-					// 2. verify that the publisher also a broker node
-					const brokerNode = brokerNodes.find(
-						(n) => n.id === metadata.publisherId
-					);
-					if (typeof brokerNode === 'undefined') {
-						continue;
-					}
-					if (brokerNode.stake < minStakeRequirement) {
-						continue;
-					}
-
-					// 3. Add to hashMap
-					// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
-					const h = content.consumer + ':' + content.hash;
-					if (!queryHashKeyMap[h]) {
-						queryHashKeyMap[h] = [];
-					}
-					queryHashKeyMap[h].push(`${lKey}`);
-				}
-			}
-
-			const queryHashKeyMapEntries = Object.entries(queryHashKeyMap);
-			for (let i = 0; i < queryHashKeyMapEntries.length; i++) {
-				const [, lKeys] = queryHashKeyMapEntries[i];
-				if (lKeys.length <= brokerNodes.length / 2) {
-					// Clear out all hashes that the majority of the nodes did NOT "agree" with
-					continue;
-				}
-
-				// Add consolidated event to report
-				const event = await listenerCache.get(lKeys[0]);
-				const id = event.metadata.streamId.toString();
-				report.events.queries.push({
-					id,
-					query: event.content.query,
-					nonce: event.content.nonce,
-					consumer: event.content.consumer,
-					hash: event.content.hash,
-					size: event.content.size,
-				});
-				const existingConsumerIndex = report.consumers.findIndex(
-					(c) => c.id === event.content.consumer
-				);
-
-				const nodeAmount = readNodeFee * event.content.size;
-				if (existingConsumerIndex < 0) {
-					report.consumers.push({
-						id: event.content.consumer,
-						capture: nodeAmount, // the amount of stake token in wei based on the calculations
-						bytes: event.content.size,
-					});
-					report.treasury = readTreasuryFee * event.content.size;
-				} else {
-					// report.consumers[existingConsumerIndex].capture += // // the amount of stake token in wei based on the calculations
-					report.consumers[existingConsumerIndex].bytes += nodeAmount;
-					report.treasury += readTreasuryFee * event.content.size;
-				}
-
-				// ? All nodes managing all streams right now
-				for (let j = 0; j < brokerNodes.length; j++) {
-					const bNode = brokerNodes[j];
-					if (bNode.stake < minStakeRequirement) {
-						continue;
-					}
-					if (typeof report.nodes[bNode.id] !== 'undefined') {
-						report.nodes[bNode.id] = 0;
-					}
-					report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
-
-					for (let l = 0; l < bNode.delegates.length; l++) {
-						const delAddr = bNode.delegates[l];
-						const delegateAmount = await nodeManagerContract.delegatesOf(
-							delAddr,
-							bNode.id
-						);
-						const delegatePortion = delegateAmount / bNode.stake;
-						if (!report.delegates[delAddr]) {
-							report.delegates[delAddr] = {};
-						}
-						if (typeof report.delegates[delAddr][bNode.id] !== 'number') {
-							report.delegates[delAddr][bNode.id] = 0;
-						}
-						report.delegates[delAddr][bNode.id] += delegatePortion * nodeAmount;
-					}
-				}
-			}
-
-			// TODO: Merge this logic into store loop.
-			report.streams.forEach((s) => {
-				Object.keys(report.nodes).forEach((n) => {
-					report.nodes[n] += s.capture / report.nodes.length;
-				});
-			});
-
-			// Convert fees to stake token
-			const priceOfStakeToken = await redstone.getPrice(stakeTokenSymbol);
-			const toStakeToken = (usdValue: number) =>
-				Math.floor(
-					parseInt(
-						ethers
-							.parseUnits(
-								`${usdValue / priceOfStakeToken.value}`,
-								stakeTokenDecimals
-							)
-							.toString(10),
-						10
-					)
-				);
-			report.treasury = toStakeToken(report.treasury);
-			report.consumers = report.consumers.map((c) => {
-				c.capture = toStakeToken(c.capture);
-				return c;
-			});
-			Object.keys(report.nodes).forEach((n) => {
-				report.nodes[n] = toStakeToken(report.nodes[n]);
-			});
-			Object.keys(report.delegates).forEach((d) => {
-				Object.keys(report.delegates[d]).forEach((n) => {
-					report.delegates[d][n] = toStakeToken(report.delegates[d][n]);
-				});
-			});
+			const report = await produceReport(core, managers, key);
 
 			return {
 				key,
@@ -375,43 +33,11 @@ export default class Runtime implements IRuntime {
 		}
 
 		// IF NO REPORT
-		// // Multiple sources from the Smart Contract is not even needed here
-		// if (lastKey === key && lastValue !== null) {
-		// 	return lastValue;
-		// }
-
-		// Range will be from last key (timestamp) to this key
-		const keyVal = parseInt(key, 10);
-		const range = [keyVal - config.itemTimeRange, keyVal]; // First iteration over the cache, will use the first nextKey -- ie. 1000
-
-		// TODO: Fetch batch items from broker Validators
-		// TODO: Unify data items that share the same content and timestamps.
-		// const streamr = new StreamrClient();
-		// const group = [];
-
-		// const fromTimestamp = parseInt(key);
-		// const toTimestamp = parseInt(await this.nextKey(core, key));
-
-		// if (Date.now() < toTimestamp) {
-		//   throw new Error('reached live limit');
-		// }
-
-		// const stream = await streamr.resend(source, {
-		//   from: {
-		//     timestamp: fromTimestamp,
-		//   },
-		//   to: {
-		//     timestamp: toTimestamp,
-		//   },
-		// });
-
-		// for await (const item of stream) {
-		//   group.push(item);
-		// }
+		const item = await produceItem(core, managers, key);
 
 		return {
 			key,
-			value: [],
+			value: item,
 		};
 	}
 
@@ -445,22 +71,23 @@ export default class Runtime implements IRuntime {
 		core: Validator,
 		bundle: DataItem[]
 	): Promise<string> {
-		// First key in the cache is a timestamp that is comparable to the last bundle start key -- ie. Node must have a timestamp < last bundle_start_key
+		// First key in the listener cache is a timestamp.
+		// This key must be less than the key of the first item in the bundle.
 		// ie. this node may have produced an invalid report because it began listening after it had joined the processing of voting
 		const listenerCache = await core.listener.db();
-		const [report] = bundle; // first data item should always be the bundle
-		const rKey = report.key.substring(reportPrefix.length, report.key.length);
-		const rKeyInt = parseInt(rKey, 10);
-		for await (const [key] of listenerCache.iterator()) {
+		const [item] = bundle; // first data item should always be the bundle
+		const itemKeyInt = parseInt(item.key, 10);
+		for await (const [lKey] of listenerCache.iterator()) {
+			const [key] = lKey.split(':');
 			const keyInt = parseInt(key, 10);
-			if (keyInt > rKeyInt) {
+			if (keyInt > itemKeyInt) {
 				return null; // Will cause the validator to abstain from the vote
 			}
 			break;
 		}
 
-		// Get last item's key
-		return `${bundle.at(-1).key || ``}`;
+		// Get second last item's key
+		return `${bundle.at(-2).key || ``}`;
 	}
 
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
@@ -472,14 +99,14 @@ export default class Runtime implements IRuntime {
 			key = key.substring(reportPrefix.length, key.length);
 		}
 
-		const keyVal = parseInt(key, 10);
-		if (
-			keyVal % parseInt(core.pool.data.max_bundle_size, 10) == 0 &&
-			keyVal > 0 // First ever bundle does not include a report
-		) {
+		const keyInt = parseInt(key, 10);
+		const currentKey = parseInt(core.pool.data.current_key, 10); // The key at which the bundle is starting
+		const maxBundleSize = parseInt(core.pool.data.max_bundle_size, 10);
+		const lastBundleKey = (maxBundleSize - 1) * itemTimeRange + currentKey;
+		if (keyInt === lastBundleKey) {
 			return `${reportPrefix}${key}`;
 		}
 
-		return (keyVal + itemTimeRange).toString(); // The larger the data item, the less items required in a bundle, otherwise increase interval.
+		return (keyInt + itemTimeRange).toString(); // The larger the data item, the less items required in a bundle, otherwise increase interval.
 	}
 }

@@ -1,14 +1,10 @@
 import chokidar from 'chokidar';
 import { ClassicLevel } from 'classic-level';
 import path from 'path';
-import StreamrClient, { MessageMetadata } from 'streamr-client';
+import StreamrClient from 'streamr-client';
 
+import type { StreamrMessage } from './types';
 import type Validator from './validator';
-
-type StreamrMessage = { content: any; metadata: MessageMetadata };
-
-const SystemStreamId = '' as const;
-// const QuerySystemStreamId = '' as const;
 
 export default class Listener {
 	private client: StreamrClient;
@@ -22,18 +18,8 @@ export default class Listener {
 	public async start(cacheHome: string): Promise<void> {
 		// const systemSubscription =
 		this.core.logger.info('Starting listeners ...');
-		await this.client.subscribe(SystemStreamId, async (content, metadata) => {
-			// Add to store
-			const key = `${Date.now().toString()}:${metadata.publisherId}`;
-
-			this.core.logger.debug('New message received over stream', {
-				key,
-				value: { content, metadata },
-			});
-
-			const db = await this.db();
-			await db.put(key, { content, metadata });
-		});
+		await this.subscribe(this.core.systemStreamId);
+		await this.subscribe(this.core.queryStreamId);
 
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted
@@ -55,6 +41,23 @@ export default class Listener {
 
 				this.core.logger.info('System cache removed and reinitialised.');
 			}
+		});
+	}
+
+	public async subscribe(streamId: string) {
+		await this.client.subscribe(streamId, async (content, metadata) => {
+			// Add to store
+			const key = `${Date.now().toString()}:${streamId}:${
+				metadata.publisherId
+			}`;
+
+			this.core.logger.debug('New message received over stream: ' + streamId, {
+				key,
+				value: { content, metadata },
+			});
+
+			const db = await this.db();
+			await db.put(key, { content, metadata });
 		});
 	}
 

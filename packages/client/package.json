@@ -4,7 +4,7 @@
   "description": "Concerto Log Store Client",
   "repository": "https://github.com/usherlabs/logstore.git",
   "author": "Victor Shevtsov <victor.shevtsov@usher.so>",
-  "license": "SEE LICENSE IN ./LICENSE",
+  "license": "Apache-2.0",
   "private": false,
   "types": "./dist/types/src/exports.d.ts",
   "main": "./dist/src/exports.js",
