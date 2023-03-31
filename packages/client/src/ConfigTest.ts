@@ -9,7 +9,7 @@ export const CONFIG_TEST: LogStoreClientConfig = {
 	...STREAMR_CONFIG_TEST,
 	contracts: {
 		...STREAMR_CONFIG_TEST.contracts,
-		logStoreManagerChainAddress: '0x256D4CB67452b6b8280B2b67F040fD22f1C378f4',
+		logStoreManagerChainAddress: '0x73A4bB647CdD4b45717A255960B865d6Ad5b8c38',
 		logStoreTheGraphUrl:
 			'http://127.0.0.1:8000/subgraphs/name/logstore-dev/network-contracts',
 	},
