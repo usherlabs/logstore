@@ -6,6 +6,9 @@ module.exports = {
 	globals: {
 		'ts-jest': {
 			tsconfig: 'tsconfig.jest.json',
+			diagnostics: {
+				exclude: ['**'],
+			},
 		},
 	},
 	setupFilesAfterEnv: ['jest-extended/all'],

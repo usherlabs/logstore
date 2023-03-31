@@ -16,10 +16,10 @@ import { fastPrivateKey, fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { range } from 'lodash';
-import { fromString } from 'uint8arrays/from-string';
 
 // import { Logger } from 'tslog';
 import Runtime from '../src/runtime';
+import { fromString } from '../src/utils/uint8arrays';
 import Validator, { runCache } from '../src/validator';
 import { genesis_pool } from './mocks/constants';
 
@@ -41,10 +41,11 @@ describe('Validator Runtime', () => {
 	let compression: ICompression;
 	let publisherClient: LogStoreClient;
 
+	let evmPrivateKey: string;
+
 	const publishQueryMessages = async (numOfMessages: number) => {
 		// const [consumerSigner] = provider.getWallets();
-		const priv = await fastPrivateKey();
-		const signingKey = new ethers.SigningKey(priv);
+		const signingKey = new ethers.SigningKey(evmPrivateKey);
 		for (const idx of range(numOfMessages)) {
 			const query = {
 				from: {
@@ -97,6 +98,9 @@ describe('Validator Runtime', () => {
 	};
 
 	beforeEach(async () => {
+		evmPrivateKey = await fastPrivateKey();
+		process.env.EVM_PRIVATE_KEY = evmPrivateKey;
+
 		v = new Validator(new Runtime());
 
 		v['cacheProvider'] = new TestCacheProvider();
