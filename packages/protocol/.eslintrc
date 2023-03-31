@@ -1,0 +1,7 @@
+{
+	"extends": "../../.eslintrc",
+	"rules": {
+		// Imported from eslint-config-streamr-ts (https://www.npmjs.com/package/eslint-config-streamr-ts)
+		"@typescript-eslint/no-explicit-any": 0
+	}
+}

@@ -12,7 +12,7 @@
 	},
 	"scripts": {
 		"build": "tsc",
-		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md}\"",
+		"format": "prettier --write .",
 		"start": "node ./dist/bin/logstore-broker.js",
 		"start:fresh": "npm-run-all -s build start",
 		"ts": "tsc --noEmit",

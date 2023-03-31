@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import UnsupportedTypeError from '../src/errors/UnsupportedTypeError';
 import UnsupportedVersionError from '../src/errors/UnsupportedVersionError';
 import ValidationError from '../src/errors/ValidationError';
-import QueryMessage from '../src/protocol/QueryMessage';
+import QueryMessage, { QueryMessageType } from '../src/protocol/QueryMessage';
 import { Serializer } from '../src/Serializer';
 
 const VERSION = 123;
@@ -114,7 +114,11 @@ describe('QueryMessage', () => {
 		});
 
 		it('should throw on unsupported type', () => {
-			const m = new TestQueryMessage(VERSION, 999, REQUEST_ID);
+			const m = new TestQueryMessage(
+				VERSION,
+				999 as QueryMessageType,
+				REQUEST_ID
+			);
 			assert.throws(
 				() => m.serialize(),
 				(err: UnsupportedTypeError) => {

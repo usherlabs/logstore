@@ -1,3 +1,4 @@
+import { Serializer } from '../Serializer';
 import QueryMessage, { QueryMessageType } from './QueryMessage';
 import QueryRequest, {
 	QueryFromOptions,
@@ -6,7 +7,6 @@ import QueryRequest, {
 	QueryRangeOptions,
 	QueryType,
 } from './QueryRequest';
-import { Serializer } from '../Serializer';
 
 const VERSION = 1;
 

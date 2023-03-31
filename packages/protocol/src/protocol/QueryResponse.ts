@@ -1,8 +1,8 @@
+import { validateIsString } from '../utils/validations';
 import QueryMessage, {
 	QueryMessageOptions,
 	QueryMessageType,
 } from './QueryMessage';
-import { validateIsString } from '../utils/validations';
 
 interface QueryResponseOptions extends QueryMessageOptions {
 	isFinal: boolean;

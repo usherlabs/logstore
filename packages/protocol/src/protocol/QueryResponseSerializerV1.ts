@@ -1,6 +1,6 @@
+import { Serializer } from '../Serializer';
 import QueryMessage, { QueryMessageType } from './QueryMessage';
 import QueryResponse from './QueryResponse';
-import { Serializer } from '../Serializer';
 
 const VERSION = 1;
 

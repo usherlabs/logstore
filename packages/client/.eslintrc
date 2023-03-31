@@ -1,7 +1,11 @@
 {
-	"extends": [
-		"eslint:recommended",
-		"plugin:@typescript-eslint/eslint-recommended",
-		"eslint-config-streamr-ts"
-	]
+	"extends": "../../.eslintrc",
+	"rules": {
+		// Imported from eslint-config-streamr-ts (https://www.npmjs.com/package/eslint-config-streamr-ts)
+		"no-restricted-syntax": ["error", "LabeledStatement", "WithStatement"],
+		"@typescript-eslint/no-non-null-assertion": 0,
+		"@typescript-eslint/no-explicit-any": 0,
+		"@typescript-eslint/no-empty-function": 0,
+		"@typescript-eslint/no-floating-promises": 0
+	}
 }
