@@ -16,6 +16,7 @@ export async function syncPoolConfig(this: Validator): Promise<void> {
 	await syncKyvePoolConfig.bind(this);
 	// Set the System Streams using the Smart Contract address
 	const { contracts } = this.poolConfig as PoolConfig;
+	console.log(this.poolConfig);
 	this.systemStreamId = `${contracts.storeManager.address}/logstore-system`;
 	this.queryStreamId = `${contracts.storeManager.address}/logstore-query`;
 }

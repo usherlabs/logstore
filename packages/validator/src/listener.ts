@@ -18,6 +18,8 @@ export default class Listener {
 	public async start(cacheHome: string): Promise<void> {
 		// const systemSubscription =
 		this.core.logger.info('Starting listeners ...');
+		console.log(`System Stream Id: `, this.core.systemStreamId);
+		console.log(`Query Stream Id: `, this.core.queryStreamId);
 		await this.subscribe(this.core.systemStreamId);
 		await this.subscribe(this.core.queryStreamId);
 

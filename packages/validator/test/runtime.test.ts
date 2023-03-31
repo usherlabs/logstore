@@ -5,28 +5,26 @@ import {
 	ICompression,
 	IStorageProvider,
 } from '@kyvejs/protocol';
-// import { setupMetrics } from '@kyvejs/protocol/src/methods';
 import { TestCacheProvider } from '@kyvejs/protocol/test/mocks/cache.mock';
 import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
 import { lcd } from '@kyvejs/protocol/test/mocks/lcd.mock';
-// import { VoteType } from "@kyvejs/types/client/kyve/bundles/v1beta1/tx";
 import { TestNormalStorageProvider } from '@kyvejs/protocol/test/mocks/storageProvider.mock';
 import { fastPrivateKey, fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { range } from 'lodash';
-// import { register } from 'prom-client';
 import { Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
 
 import Runtime from '../src/runtime';
-import Validator, { runCache } from '../src/validator';
+import Validator, { runCache, syncPoolConfig } from '../src/validator';
 import { genesis_pool } from './mocks/constants';
 
 // const STAKE_AMOUNT = BigNumber.from('100000000000000000');
 const TIMEOUT = 90 * 1000;
 const MESSAGE_STORE_TIMEOUT = 9 * 1000;
+const { DISABLE_LOGGER_MOCK } = process.env;
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
 }
@@ -35,7 +33,6 @@ describe('Validator Runtime', () => {
 	let v: Validator;
 
 	let processExit: jest.Mock<never, never>;
-	let setTimeoutMock: jest.Mock;
 
 	// let cacheProvider: ICacheProvider;
 	let storageProvider: IStorageProvider;
@@ -100,7 +97,6 @@ describe('Validator Runtime', () => {
 
 	beforeEach(async () => {
 		evmPrivateKey = await fastPrivateKey();
-		process.env.EVM_PRIVATE_KEY = evmPrivateKey;
 
 		v = new Validator(new Runtime());
 
@@ -126,26 +122,6 @@ describe('Validator Runtime', () => {
 		process.exit = processExit;
 
 		// Streamr uses Timeout. It cannot be mocked.
-		// // mock setTimeout
-		// setTimeoutMock = jest.fn().mockImplementation(
-		// 	(
-		// 		callback: (args: void) => void,
-		// 		// eslint-disable-next-line
-		// 		ms?: number | undefined
-		// 	): NodeJS.Timeout => {
-		// 		callback();
-		// 		return null as any;
-		// 	}
-		// );
-		// global.setTimeout = setTimeoutMock as any;
-
-		// mock logger
-		v.logger = new Logger();
-
-		v.logger.info = jest.fn();
-		v.logger.debug = jest.fn();
-		v.logger.warn = jest.fn();
-		v.logger.error = jest.fn();
 
 		v['poolId'] = 0;
 		v['staker'] = 'test_staker';
@@ -189,19 +165,16 @@ describe('Validator Runtime', () => {
 		await publisherClient?.destroy();
 	}, TIMEOUT);
 
-	// afterEach(() => {
-	// 	// reset prometheus
-	// 	register.clear();
-	// });
-
 	test('start runtime with a pool which is in genesis state', async () => {
 		// ARRANGE
+		process.env.EVM_PRIVATE_KEY = evmPrivateKey;
 		v.pool = {
 			...genesis_pool,
 		} as any;
 
 		// ACT
-		await runCache.call(v);
+		await syncPoolConfig.bind(v);
+		await runCache.bind(v);
 
 		// Populate the Listener Cache
 		await publishQueryMessages(15);
