@@ -136,7 +136,7 @@ export const produceReport = async (
 
 			// Add to storage hashMap
 			// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
-			const h = content.consumer + ':' + content.hash;
+			const h = content.hash;
 			if (!storeHashKeyMap[h]) {
 				storeHashKeyMap[h] = [];
 			}
