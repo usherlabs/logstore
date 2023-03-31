@@ -5,7 +5,7 @@ import {
 	ICompression,
 	IStorageProvider,
 } from '@kyvejs/protocol';
-import { setupMetrics } from '@kyvejs/protocol/src/methods';
+// import { setupMetrics } from '@kyvejs/protocol/src/methods';
 import { TestCacheProvider } from '@kyvejs/protocol/test/mocks/cache.mock';
 import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
@@ -16,10 +16,11 @@ import { fastPrivateKey, fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { range } from 'lodash';
+// import { register } from 'prom-client';
+import { Logger } from 'tslog';
+import { fromString } from 'uint8arrays';
 
-// import { Logger } from 'tslog';
 import Runtime from '../src/runtime';
-import { fromString } from '../src/utils/uint8arrays';
 import Validator, { runCache } from '../src/validator';
 import { genesis_pool } from './mocks/constants';
 
@@ -124,25 +125,27 @@ describe('Validator Runtime', () => {
 		processExit = jest.fn<never, never>();
 		process.exit = processExit;
 
-		// mock setTimeout
-		setTimeoutMock = jest.fn().mockImplementation(
-			(
-				callback: (args: void) => void
-				// ms?: number | undefined
-			): NodeJS.Timeout => {
-				callback();
-				return null as any;
-			}
-		);
-		global.setTimeout = setTimeoutMock as any;
+		// Streamr uses Timeout. It cannot be mocked.
+		// // mock setTimeout
+		// setTimeoutMock = jest.fn().mockImplementation(
+		// 	(
+		// 		callback: (args: void) => void,
+		// 		// eslint-disable-next-line
+		// 		ms?: number | undefined
+		// 	): NodeJS.Timeout => {
+		// 		callback();
+		// 		return null as any;
+		// 	}
+		// );
+		// global.setTimeout = setTimeoutMock as any;
 
-		// // mock logger
-		// v.logger = new Logger();
+		// mock logger
+		v.logger = new Logger();
 
-		// v.logger.info = jest.fn();
-		// v.logger.debug = jest.fn();
-		// v.logger.warn = jest.fn();
-		// v.logger.error = jest.fn();
+		v.logger.info = jest.fn();
+		v.logger.debug = jest.fn();
+		v.logger.warn = jest.fn();
+		v.logger.error = jest.fn();
 
 		v['poolId'] = 0;
 		v['staker'] = 'test_staker';
@@ -160,7 +163,7 @@ describe('Validator Runtime', () => {
 
 		v['waitForCacheContinuation'] = jest.fn();
 
-		setupMetrics.call(v);
+		// setupMetrics.call(v);
 
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
@@ -185,6 +188,11 @@ describe('Validator Runtime', () => {
 	afterEach(async () => {
 		await publisherClient?.destroy();
 	}, TIMEOUT);
+
+	// afterEach(() => {
+	// 	// reset prometheus
+	// 	register.clear();
+	// });
 
 	test('start runtime with a pool which is in genesis state', async () => {
 		// ARRANGE

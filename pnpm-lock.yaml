@@ -672,9 +672,6 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
-      multiformats:
-        specifier: ^11.0.2
-        version: 11.0.2
       redstone-api:
         specifier: ^0.4.11
         version: 0.4.11
@@ -733,6 +730,9 @@ importers:
       prettier:
         specifier: ^2.6.2
         version: 2.8.7
+      prom-client:
+        specifier: ^14.2.0
+        version: 14.2.0
       resolve-tspaths:
         specifier: ^0.8.0
         version: 0.8.8(typescript@4.9.5)
@@ -749,11 +749,14 @@ importers:
         specifier: ^2.5.0
         version: 2.5.0
       tslog:
-        specifier: ^4.8.2
-        version: 4.8.2
+        specifier: ^3
+        version: 3.3.4
       typescript:
         specifier: ^4.6.4
         version: 4.9.5
+      uint8arrays:
+        specifier: ^3
+        version: 3.1.1
 
 packages:
 
@@ -5733,7 +5736,6 @@ packages:
 
   /bintrees@1.0.2:
     resolution: {integrity: sha512-VOMgTMwjAaUG580SXn3LacVgjurrbMme7ZZNYGSSV7mmtY6QQRh0Eg3pwIcntQ77DErK1L0NxkbetjcoXzVwKw==}
-    dev: false
 
   /bip32@2.0.6:
     resolution: {integrity: sha512-HpV5OMLLGTjSVblmrtYRfFFKuQB+GArM0+XP8HGWfJ5vxYBqo+DesvJwOdC2WJ3bCkZShGf0QIfoIpeomVzVdA==}
@@ -11698,11 +11700,6 @@ packages:
       varint: 5.0.2
     dev: false
 
-  /multiformats@11.0.2:
-    resolution: {integrity: sha512-b5mYMkOkARIuVZCpvijFj9a6m5wMVLC7cf/jIPd5D/ARDOfLC5+IFkbgDXQgcU2goIsTD/O9NY4DI/Mt4OGvlg==}
-    engines: {node: '>=16.0.0', npm: '>=7.0.0'}
-    dev: false
-
   /multiformats@9.9.0:
     resolution: {integrity: sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==}
 
@@ -12973,7 +12970,6 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       tdigest: 0.1.2
-    dev: false
 
   /promise-inflight@1.0.1:
     resolution: {integrity: sha512-6zWPyEOFaQBJYcGMHBKTKJ3u6TBsnMFOIZSa6ce1e/ZrrsOlnHRHbabMjLiBYKp+n44X9eUI6VUPaukCXHuG4g==}
@@ -14893,7 +14889,6 @@ packages:
     resolution: {integrity: sha512-+G0LLgjjo9BZX2MfdvPfH+MKLCrxlXSYec5DaPYP1fe6Iyhf0/fSmJ0bFiZ1F8BT6cGXl2LpltQptzjXKWEkKA==}
     dependencies:
       bintrees: 1.0.2
-    dev: false
 
   /test-exclude@6.0.0:
     resolution: {integrity: sha512-cAGWPIyOHU6zlmg88jwm7VRyXnMN7iV68OGAbYDk/Mh/xC/pzVPlQtY6ngoIH/5/tciuhGfvESU8GrHrcxD56w==}
@@ -15200,11 +15195,11 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       source-map-support: 0.5.21
-    dev: false
 
   /tslog@4.8.2:
     resolution: {integrity: sha512-eAKIRjxfSKYLs06r1wT7oou6Uv9VN6NW9g0JPidBlqQwPBBl5+84dm7r8zSOPVq1kyfEw1P6B3/FLSpZCorAgA==}
     engines: {node: '>=16'}
+    dev: false
 
   /tsort@0.0.1:
     resolution: {integrity: sha512-Tyrf5mxF8Ofs1tNoxA13lFeZ2Zrbd6cKbuH3V+MQ5sb6DtBj5FjrXVsRWT8YvNAQTqNoz66dz1WsbigI22aEnw==}

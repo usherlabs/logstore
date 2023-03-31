@@ -11,4 +11,4 @@ export const sentry = {
 	release: process.env.SENTRY_RELEASE || appName,
 };
 
-export const evmPrivateKey = parseEvmPriv('EVM_PRIVATE_KEY');
+export const getEvmPrivateKey = () => parseEvmPriv('EVM_PRIVATE_KEY');
