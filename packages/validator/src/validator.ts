@@ -8,14 +8,17 @@ import Listener from './listener';
 import { PoolConfig } from './types';
 
 export async function runCache(this: Validator): Promise<void> {
-	await runKyveCache.call(this);
-	console.log('Cache ran!');
-	await this.listener.start(this.home); // hook into the start process
+	this.logger.debug('Start listener: ', this.home);
+	// eslint-disable-next-line
+	this.listener.start(this.home); // hook into the start process
+
+	runKyveCache.call(this);
+	this.logger.debug('Cache output:', this.home);
 }
 
 export async function syncPoolConfig(this: Validator): Promise<void> {
 	await syncKyvePoolConfig.call(this);
-	console.log(`Pool Config:`, this.poolConfig);
+	// this.logger.debug(`Pool config:`, this.poolConfig);
 	// Set the System Streams using the Smart Contract address
 	const { contracts } = this.poolConfig as PoolConfig;
 	this.systemStreamId = `${contracts.storeManager.address}/logstore-system`;

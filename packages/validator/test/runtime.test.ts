@@ -15,6 +15,7 @@ import { fastPrivateKey, fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { range } from 'lodash';
+import path from 'path';
 import { register } from 'prom-client';
 import { Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
@@ -127,10 +128,15 @@ describe('Validator Runtime', () => {
 		// mock logger -- Must be mocked to prevent undefined calls.
 		v.logger = new Logger();
 
-		v.logger.info = jest.fn();
-		v.logger.debug = jest.fn();
-		v.logger.warn = jest.fn();
-		v.logger.error = jest.fn();
+		const logMock = jest.fn().mockImplementation(
+			() =>
+				(...args) =>
+					console.log(...args)
+		);
+		v.logger.info = logMock;
+		v.logger.debug = logMock;
+		v.logger.warn = logMock;
+		v.logger.error = logMock;
 
 		v['poolId'] = 0;
 		v['staker'] = 'test_staker';
@@ -148,6 +154,9 @@ describe('Validator Runtime', () => {
 			.mockReturnValue(false);
 
 		v['waitForCacheContinuation'] = jest.fn();
+
+		// Set home value
+		v['home'] = path.join(__dirname, '../cache');
 
 		// Ensure that all prom calls are setup
 		setupMetrics.call(v);
