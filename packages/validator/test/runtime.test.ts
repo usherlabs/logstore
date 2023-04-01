@@ -126,31 +126,30 @@ describe('Validator Runtime', () => {
 		// Streamr uses Timeout. It cannot be mocked.
 
 		// mock logger -- Must be mocked to prevent undefined calls.
-			jest
-				.spyOn(Logger.prototype, 'info')
-				.mockImplementation((...args: unknown[]) => {
-					console.log(...args);
-					return {} as ILogObject;
-				});
-			jest
-				.spyOn(Logger.prototype, 'debug')
-				.mockImplementation((...args: unknown[]) => {
-					console.log(...args);
-					return {} as ILogObject;
-				});
-			jest
-				.spyOn(Logger.prototype, 'warn')
-				.mockImplementation((...args: unknown[]) => {
-					console.log(...args);
-					return {} as ILogObject;
-				});
-			jest
-				.spyOn(Logger.prototype, 'error')
-				.mockImplementation((...args: unknown[]) => {
-					console.log(...args);
-					return {} as ILogObject;
-				});
-		});
+		jest
+			.spyOn(Logger.prototype, 'info')
+			.mockImplementation((...args: unknown[]) => {
+				console.log(...args);
+				return {} as ILogObject;
+			});
+		jest
+			.spyOn(Logger.prototype, 'debug')
+			.mockImplementation((...args: unknown[]) => {
+				console.log(...args);
+				return {} as ILogObject;
+			});
+		jest
+			.spyOn(Logger.prototype, 'warn')
+			.mockImplementation((...args: unknown[]) => {
+				console.log(...args);
+				return {} as ILogObject;
+			});
+		jest
+			.spyOn(Logger.prototype, 'error')
+			.mockImplementation((...args: unknown[]) => {
+				console.log(...args);
+				return {} as ILogObject;
+			});
 		v.logger = new Logger();
 
 		v['poolId'] = 0;
