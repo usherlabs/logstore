@@ -18,7 +18,7 @@ export default class Runtime implements IRuntime {
 		source: string,
 		key: string
 	): Promise<DataItem> {
-		console.log(`getDataItem`, source, key);
+		core.logger.debug(`getDataItem`, source, key);
 
 		const config = getConfig(core);
 		const managers = new Managers(source, config.contracts);

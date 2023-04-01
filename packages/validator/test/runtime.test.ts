@@ -17,7 +17,7 @@ import { ethers } from 'ethers';
 import { range } from 'lodash';
 import path from 'path';
 import { register } from 'prom-client';
-import { Logger } from 'tslog';
+import { ILogObject, Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
 
 import Runtime from '../src/runtime';
@@ -126,17 +126,19 @@ describe('Validator Runtime', () => {
 		// Streamr uses Timeout. It cannot be mocked.
 
 		// mock logger -- Must be mocked to prevent undefined calls.
+		jest
+			.spyOn(Logger.prototype, 'debug')
+			.mockImplementation((...args: unknown[]) => {
+				console.log(...args);
+				return {} as ILogObject;
+			});
 		v.logger = new Logger();
 
-		const logMock = jest.fn().mockImplementation(
-			() =>
-				(...args) =>
-					console.log(...args)
-		);
-		v.logger.info = logMock;
-		v.logger.debug = logMock;
-		v.logger.warn = logMock;
-		v.logger.error = logMock;
+		// const logMock = jest.fn().mockImplementation((cb) => cb);
+		// v.logger.info = logMock((...args) => console.log(...aa));
+		// v.logger.debug = logMock((...args) => console.log(...aa));
+		// v.logger.warn = logMock((...args) => console.log(...aa));
+		// v.logger.error = logMock((...args) => console.log(...aa));
 
 		v['poolId'] = 0;
 		v['staker'] = 'test_staker';

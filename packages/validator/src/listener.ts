@@ -26,7 +26,7 @@ export default class Listener {
 
 			// Kyve cache dir would have already setup this directory
 			// On each new bundle, this cache will be deleted
-			const cachePath = path.join(cacheHome, 'cache/system');
+			const cachePath = path.join(cacheHome, 'system');
 			this._db = new ClassicLevel<string, StreamrMessage>(cachePath, {
 				valueEncoding: 'json',
 			});
