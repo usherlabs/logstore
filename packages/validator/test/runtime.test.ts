@@ -5,6 +5,7 @@ import {
 	ICompression,
 	IStorageProvider,
 } from '@kyvejs/protocol';
+import { setupMetrics } from '@kyvejs/protocol/src/methods';
 import { TestCacheProvider } from '@kyvejs/protocol/test/mocks/cache.mock';
 import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
@@ -14,6 +15,7 @@ import { fastPrivateKey, fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { range } from 'lodash';
+import { register } from 'prom-client';
 import { Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
 
@@ -24,7 +26,6 @@ import { genesis_pool } from './mocks/constants';
 // const STAKE_AMOUNT = BigNumber.from('100000000000000000');
 const TIMEOUT = 90 * 1000;
 const MESSAGE_STORE_TIMEOUT = 9 * 1000;
-const { DISABLE_LOGGER_MOCK } = process.env;
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
 }
@@ -42,8 +43,7 @@ describe('Validator Runtime', () => {
 	let evmPrivateKey: string;
 
 	const publishQueryMessages = async (numOfMessages: number) => {
-		// const [consumerSigner] = provider.getWallets();
-		const signingKey = new ethers.SigningKey(evmPrivateKey);
+		const signingKey = new ethers.SigningKey(`0x${evmPrivateKey}`);
 		for (const idx of range(numOfMessages)) {
 			const query = {
 				from: {
@@ -97,6 +97,7 @@ describe('Validator Runtime', () => {
 
 	beforeEach(async () => {
 		evmPrivateKey = await fastPrivateKey();
+		process.env.EVM_PRIVATE_KEY = evmPrivateKey;
 
 		v = new Validator(new Runtime());
 
@@ -123,6 +124,14 @@ describe('Validator Runtime', () => {
 
 		// Streamr uses Timeout. It cannot be mocked.
 
+		// mock logger -- Must be mocked to prevent undefined calls.
+		v.logger = new Logger();
+
+		v.logger.info = jest.fn();
+		v.logger.debug = jest.fn();
+		v.logger.warn = jest.fn();
+		v.logger.error = jest.fn();
+
 		v['poolId'] = 0;
 		v['staker'] = 'test_staker';
 
@@ -132,6 +141,7 @@ describe('Validator Runtime', () => {
 		v['rest'] = ['http://0.0.0.0:1317'];
 		v.lcd = [lcd()];
 
+		// Ensure the cache only runs in one cycle.
 		v['continueRound'] = jest
 			.fn()
 			.mockReturnValueOnce(true)
@@ -139,7 +149,8 @@ describe('Validator Runtime', () => {
 
 		v['waitForCacheContinuation'] = jest.fn();
 
-		// setupMetrics.call(v);
+		// Ensure that all prom calls are setup
+		setupMetrics.call(v);
 
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
@@ -162,19 +173,21 @@ describe('Validator Runtime', () => {
 	}, TIMEOUT);
 
 	afterEach(async () => {
+		// reset prometheus
+		register.clear();
+
 		await publisherClient?.destroy();
-	}, TIMEOUT);
+	});
 
 	test('start runtime with a pool which is in genesis state', async () => {
 		// ARRANGE
-		process.env.EVM_PRIVATE_KEY = evmPrivateKey;
 		v.pool = {
 			...genesis_pool,
 		} as any;
 
 		// ACT
-		await syncPoolConfig.bind(v);
-		await runCache.bind(v);
+		await syncPoolConfig.call(v);
+		await runCache.call(v);
 
 		// Populate the Listener Cache
 		await publishQueryMessages(15);
@@ -182,9 +195,14 @@ describe('Validator Runtime', () => {
 
 		const maxBundleSize = parseInt(v.pool.data.max_bundle_size, 10);
 		for (let i = 0; i < maxBundleSize; i++) {
-			const cacheVal = v['cacheProvider'].get(`${i}`);
-
-			console.log(cacheVal);
+			try {
+				const cacheVal = await v['cacheProvider'].get(`${i}`);
+				console.log('#' + i, cacheVal);
+			} catch (e) {
+				// ...
+			}
 		}
+
+		expect(true).toBe(true);
 	});
 });

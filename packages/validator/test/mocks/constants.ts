@@ -14,8 +14,8 @@ export const genesis_pool = {
 				"nodeManager": { "address": "${contractAddresses[8997].nodeManagerAddress}" },
 				"storeManager": { "address": "${contractAddresses[8997].storeManagerAddress}" },
 				"queryManager": { "address": "${contractAddresses[8997].queryManagerAddress}" }
-			},
-		}`,
+			}
+		}`.replace(/\s/g, ''),
 		start_key: '1680224880429',
 		current_key: '',
 		current_summary: '',
