@@ -1,5 +1,7 @@
 import { LogStoreClientConfig } from '@concertodao/logstore-client';
 import { camelCase, set } from 'lodash';
+import * as os from 'os';
+import path from 'path';
 
 export interface Config {
 	client?: LogStoreClientConfig;
@@ -17,6 +19,11 @@ export interface ConfigFile extends Config {
 	$schema?: string;
 }
 
+export const getDefaultFile = (): string => {
+	const relativePath = '.logstore/config/default.json';
+	return path.join(os.homedir(), relativePath);
+};
+
 export function overrideConfigToEnvVarsIfGiven(config: Config): void {
 	const parseValue = (value: string) => {
 		const number = /^-?\d+\.?\d*$/;
@@ -33,7 +40,7 @@ export function overrideConfigToEnvVarsIfGiven(config: Config): void {
 		}
 	};
 
-	const PREFIX = 'STREAMR__BROKER__';
+	const PREFIX = 'LOGSTORE__BROKER__';
 	Object.keys(process.env).forEach((variableName: string) => {
 		if (variableName.startsWith(PREFIX)) {
 			const parts = variableName
