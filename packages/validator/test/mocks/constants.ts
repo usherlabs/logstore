@@ -24,7 +24,7 @@ export const genesis_pool = {
 		upload_interval: '120',
 		operating_cost: '2500000000',
 		min_delegation: '0',
-		max_bundle_size: '100',
+		max_bundle_size: '3',
 		paused: false,
 		funders: [
 			{

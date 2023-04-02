@@ -27,9 +27,7 @@ export default class Listener {
 			// Kyve cache dir would have already setup this directory
 			// On each new bundle, this cache will be deleted
 			const cachePath = path.join(cacheHome, 'system');
-			this._db = new ClassicLevel<string, StreamrMessage>(cachePath, {
-				valueEncoding: 'json',
-			});
+			this._db = this.createDb(cachePath);
 
 			// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
 			const db = await this.db();
@@ -51,6 +49,10 @@ export default class Listener {
 		}
 	}
 
+	public async stop() {
+		await this.client.unsubscribe();
+	}
+
 	public async subscribe(streamId: string) {
 		await this.client.subscribe(streamId, (content, metadata) => {
 			return this.onMessage(content, metadata);
@@ -65,6 +67,12 @@ export default class Listener {
 			await this._db.open();
 		}
 		return this._db;
+	}
+
+	public createDb(dbPath: string) {
+		return new ClassicLevel<string, StreamrMessage>(dbPath, {
+			valueEncoding: 'json',
+		});
 	}
 
 	// public getStoreMap(){

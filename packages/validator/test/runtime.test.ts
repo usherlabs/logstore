@@ -22,6 +22,7 @@ import { fromString } from 'uint8arrays';
 
 import Runtime from '../src/runtime';
 import Validator, { runCache, syncPoolConfig } from '../src/validator';
+import { TestListenerCacheProvider } from './mocks/cache.mock';
 import { genesis_pool } from './mocks/constants';
 
 // const STAKE_AMOUNT = BigNumber.from('100000000000000000');
@@ -30,6 +31,7 @@ const MESSAGE_STORE_TIMEOUT = 9 * 1000;
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
 }
+const { DISABLE_DEBUG_LOGS } = process.env;
 
 describe('Validator Runtime', () => {
 	let v: Validator;
@@ -40,6 +42,7 @@ describe('Validator Runtime', () => {
 	let storageProvider: IStorageProvider;
 	let compression: ICompression;
 	let publisherClient: LogStoreClient;
+	let listenerDb: TestListenerCacheProvider;
 
 	let evmPrivateKey: string;
 
@@ -126,14 +129,16 @@ describe('Validator Runtime', () => {
 		// Streamr uses Timeout. It cannot be mocked.
 
 		// mock logger -- Must be mocked to prevent undefined calls.
+		if (DISABLE_DEBUG_LOGS !== 'true') {
+			jest
+				.spyOn(Logger.prototype, 'debug')
+				.mockImplementation((...args: unknown[]) => {
+					console.log(...args);
+					return {} as ILogObject;
+				});
+		}
 		jest
 			.spyOn(Logger.prototype, 'info')
-			.mockImplementation((...args: unknown[]) => {
-				console.log(...args);
-				return {} as ILogObject;
-			});
-		jest
-			.spyOn(Logger.prototype, 'debug')
 			.mockImplementation((...args: unknown[]) => {
 				console.log(...args);
 				return {} as ILogObject;
@@ -151,6 +156,9 @@ describe('Validator Runtime', () => {
 				return {} as ILogObject;
 			});
 		v.logger = new Logger();
+		if (DISABLE_DEBUG_LOGS === 'true') {
+			v.logger.debug = jest.fn();
+		}
 
 		v['poolId'] = 0;
 		v['staker'] = 'test_staker';
@@ -175,6 +183,9 @@ describe('Validator Runtime', () => {
 		// Ensure that all prom calls are setup
 		setupMetrics.call(v);
 
+		listenerDb = new TestListenerCacheProvider();
+		jest.spyOn(v.listener, 'createDb').mockImplementation(() => listenerDb);
+
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
 			auth: {
@@ -193,6 +204,11 @@ describe('Validator Runtime', () => {
 
 		// v.systemStreamId = systemStream.id;
 		// v.queryStreamId = queryStream.id;
+
+		// ARRANGE
+		v.pool = {
+			...genesis_pool,
+		} as any;
 	}, TIMEOUT);
 
 	afterEach(async () => {
@@ -202,28 +218,44 @@ describe('Validator Runtime', () => {
 		await publisherClient?.destroy();
 	});
 
-	test('start runtime with a pool which is in genesis state', async () => {
-		// ARRANGE
-		v.pool = {
-			...genesis_pool,
-		} as any;
-
+	it('should produce cache items', async () => {
 		// ACT
 		await syncPoolConfig.call(v);
 		await runCache.call(v);
 
-		// Populate the Listener Cache
-		await publishQueryMessages(15);
-		await publishStorageMessages(15);
-
 		const maxBundleSize = parseInt(v.pool.data.max_bundle_size, 10);
-		for (let i = 0; i < maxBundleSize; i++) {
+		const currentIndex = parseInt(v.pool.data.current_index, 10);
+		for (
+			let i = Math.max(0, currentIndex - maxBundleSize);
+			i < currentIndex;
+			i++
+		) {
 			try {
 				const cacheVal = await v['cacheProvider'].get(`${i}`);
 				console.log('#' + i, cacheVal);
 			} catch (e) {
 				// ...
 			}
+		}
+
+		expect(true).toBe(true);
+	});
+
+	it('should listen for an then cache messages over logstore client', async () => {
+		// ACT
+		const contRound = v['continueRound'];
+		v['continueRound'] = jest.fn().mockReturnValue(false); // do not continue on actual kyve cache
+		await syncPoolConfig.call(v);
+		await runCache.call(v);
+		v['continueRound'] = contRound;
+
+		// Populate the Listener Cache
+		await publishQueryMessages(15);
+		await publishStorageMessages(15);
+
+		const db = await v.listener.db();
+		for await (const [k, v] of db.iterator()) {
+			console.log(k, v);
 		}
 
 		expect(true).toBe(true);
