@@ -2,7 +2,7 @@ import { overrideConfigToEnvVarsIfGiven } from '../../src/config/config';
 
 describe('overrideConfigToEnvVarsIfGiven', () => {
 	beforeEach(() => {
-		const PREFIX = 'STREAMR__BROKER__';
+		const PREFIX = 'LOGSTORE__BROKER__';
 		Object.keys(process.env).forEach((variableName: string) => {
 			if (variableName.startsWith(PREFIX)) {
 				delete process.env[variableName];
@@ -21,24 +21,24 @@ describe('overrideConfigToEnvVarsIfGiven', () => {
 				info: {},
 			},
 		};
-		process.env.STREAMR__BROKER__CLIENT__AUTH__PRIVATE_KEY = '0x111';
-		process.env.STREAMR__BROKER__CLIENT__NETWORK__TRACKERS_1__ID =
+		process.env.LOGSTORE__BROKER__CLIENT__AUTH__PRIVATE_KEY = '0x111';
+		process.env.LOGSTORE__BROKER__CLIENT__NETWORK__TRACKERS_1__ID =
 			'tracker1-id';
-		process.env.STREAMR__BROKER__CLIENT__NETWORK__TRACKERS_1__HTTP =
+		process.env.LOGSTORE__BROKER__CLIENT__NETWORK__TRACKERS_1__HTTP =
 			'tracker1-http';
-		process.env.STREAMR__BROKER__CLIENT__NETWORK__TRACKERS_2__ID =
+		process.env.LOGSTORE__BROKER__CLIENT__NETWORK__TRACKERS_2__ID =
 			'tracker2-id';
-		process.env.STREAMR__BROKER__CLIENT__NETWORK__TRACKERS_2__HTTP =
+		process.env.LOGSTORE__BROKER__CLIENT__NETWORK__TRACKERS_2__HTTP =
 			'tracker2-http';
-		process.env.STREAMR__BROKER__CLIENT__NETWORK__TRACKER_PING_INTERVAL =
+		process.env.LOGSTORE__BROKER__CLIENT__NETWORK__TRACKER_PING_INTERVAL =
 			'-0.5';
-		process.env.STREAMR__BROKER__CLIENT__ORDER_MESSAGES = 'true';
-		process.env.STREAMR__BROKER__CLIENT__GAP_FILL = 'false';
-		process.env.STREAMR__BROKER__AUTHENTICATION__KEYS_1 = 'key-1';
-		process.env.STREAMR__BROKER__AUTHENTICATION__KEYS_2 = 'key-2';
-		process.env.STREAMR__BROKER__PLUGINS__BRUBECK_MINER__BENEFICIARY_ADDRESS =
+		process.env.LOGSTORE__BROKER__CLIENT__ORDER_MESSAGES = 'true';
+		process.env.LOGSTORE__BROKER__CLIENT__GAP_FILL = 'false';
+		process.env.LOGSTORE__BROKER__AUTHENTICATION__KEYS_1 = 'key-1';
+		process.env.LOGSTORE__BROKER__AUTHENTICATION__KEYS_2 = 'key-2';
+		process.env.LOGSTORE__BROKER__PLUGINS__BRUBECK_MINER__BENEFICIARY_ADDRESS =
 			'0x222';
-		process.env.STREAMR__BROKER__PLUGINS__BRUBECK_MINER__STUN_SERVER_HOST =
+		process.env.LOGSTORE__BROKER__PLUGINS__BRUBECK_MINER__STUN_SERVER_HOST =
 			'null';
 		overrideConfigToEnvVarsIfGiven(config);
 		expect(config).toEqual({
@@ -76,8 +76,8 @@ describe('overrideConfigToEnvVarsIfGiven', () => {
 	});
 
 	it('empty variable', () => {
-		process.env.STREAMR__BROKER__CLIENT__AUTH__PRIVATE_KEY = '';
-		process.env.STREAMR__BROKER__PLUGINS__BRUBECK_MINER__BENEFICIARY_ADDRESS =
+		process.env.LOGSTORE__BROKER__CLIENT__AUTH__PRIVATE_KEY = '';
+		process.env.LOGSTORE__BROKER__PLUGINS__BRUBECK_MINER__BENEFICIARY_ADDRESS =
 			'0x222';
 		const config = {} as any;
 		overrideConfigToEnvVarsIfGiven(config);
@@ -92,8 +92,8 @@ describe('overrideConfigToEnvVarsIfGiven', () => {
 
 	it('malformed variable', () => {
 		expect(() => {
-			process.env.STREAMR__BROKER__AUTHENTICATION__KEYS1 = 'key-1';
+			process.env.LOGSTORE__BROKER__AUTHENTICATION__KEYS1 = 'key-1';
 			overrideConfigToEnvVarsIfGiven({} as any);
-		}).toThrow('STREAMR__BROKER__AUTHENTICATION__KEYS1');
+		}).toThrow('LOGSTORE__BROKER__AUTHENTICATION__KEYS1');
 	});
 });

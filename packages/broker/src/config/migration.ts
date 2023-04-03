@@ -14,6 +14,8 @@ export const readConfigAndMigrateIfNeeded = (
 			 * use the default values (see `default` definitions in config.schema.json)
 			 */
 			return {};
+		} else {
+			fileName = defaultTargetFile;
 		}
 	}
 
