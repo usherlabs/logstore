@@ -8,9 +8,9 @@ import { configOption } from './options';
 export const testCommand = new Command('test')
 	.description('test the configuration (does not start the broker node)')
 	.addOption(configOption)
-	.action(async (_, options) => {
+	.action(async (args) => {
 		try {
-			const config = readConfigAndMigrateIfNeeded(options.configFile);
+			const config = readConfigAndMigrateIfNeeded(args.config);
 			overrideConfigToEnvVarsIfGiven(config);
 			await createBroker(config);
 			console.info('the configuration is valid');
