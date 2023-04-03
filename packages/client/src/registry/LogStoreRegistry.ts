@@ -1,3 +1,5 @@
+import { abi as LogStoreManagerAbi } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
+import type { LogStoreManager as LogStoreManagerContract } from '@concertodao/logstore-contracts/types';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
 import { toStreamID, toStreamPartID } from '@streamr/protocol';
@@ -24,8 +26,6 @@ import {
 	getStreamRegistryChainProviders,
 	getStreamRegistryOverrides,
 } from '../Ethereum';
-import type { LogStoreManager as LogStoreManagerContract } from '../ethereumArtifacts/LogStoreManager';
-import LogStoreManagerArtifact from '../ethereumArtifacts/LogStoreManager.json';
 import {
 	initEventGateway,
 	LogStoreClientEventEmitter,
@@ -95,7 +95,7 @@ export class LogStoreRegistry {
 				toEthereumAddress(
 					this.clientConfig.contracts.logStoreManagerChainAddress
 				),
-				LogStoreManagerArtifact.abi,
+				LogStoreManagerAbi,
 				provider,
 				'logStoreManager'
 			) as LogStoreManagerContract;
@@ -173,7 +173,7 @@ export class LogStoreRegistry {
 					toEthereumAddress(
 						this.clientConfig.contracts.logStoreManagerChainAddress
 					),
-					LogStoreManagerArtifact.abi,
+					LogStoreManagerAbi,
 					chainSigner,
 					'logStoreManager'
 				);

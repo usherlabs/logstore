@@ -14,7 +14,8 @@
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dependencies": {
-		"@concertodao/logstore-protocol": "workspace:^0.0.1",
+		"@concertodao/logstore-contracts": "workspace:^",
+		"@concertodao/logstore-protocol": "workspace:^",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/contracts": "^5.7.0",
