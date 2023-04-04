@@ -2,7 +2,7 @@
 	"$schema": "https://json.schemastore.org/tsconfig",
 	"display": "CLI",
 	"compilerOptions": {
-		"target": "es6",
+		"target": "esnext",
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"rootDir": ".",

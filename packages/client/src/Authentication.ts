@@ -4,12 +4,9 @@ import { computeAddress } from '@ethersproject/transactions';
 import { Wallet } from '@ethersproject/wallet';
 import { EthereumAddress, toEthereumAddress, wait } from '@streamr/utils';
 import pMemoize from 'p-memoize';
+import { PrivateKeyAuthConfig, ProviderAuthConfig } from 'streamr-client';
 
-import {
-	PrivateKeyAuthConfig,
-	ProviderAuthConfig,
-	StrictLogStoreClientConfig,
-} from './Config';
+import { StrictLogStoreClientConfig } from './Config';
 import { getStreamRegistryChainProviders } from './Ethereum';
 import { pLimitFn } from './utils/promises';
 import { sign } from './utils/signingUtils';

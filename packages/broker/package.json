@@ -19,8 +19,9 @@
 		"lint": "eslint ./src/**/*.ts ./test/**/*.ts"
 	},
 	"dependencies": {
-		"@concertodao/logstore-client": "workspace:^0.0.1",
-		"@concertodao/logstore-protocol": "workspace:^0.0.1",
+		"@concertodao/logstore-client": "workspace:^",
+		"@concertodao/logstore-protocol": "workspace:^",
+		"@concertodao/logstore-shared": "workspace:^",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/contracts": "^5.7.0",
@@ -51,6 +52,7 @@
 		"sha3": "^2.1.4",
 		"streamr-client": "^8.0.2",
 		"ts-toolbelt": "^9.6.0",
+		"tslog": "^4.8.2",
 		"tsyringe": "^4.7.0",
 		"uuid": "^9.0.0"
 	},

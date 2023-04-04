@@ -3,24 +3,12 @@ import Ajv, { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import cloneDeep from 'lodash/cloneDeep';
 // import type { BigNumber } from '@ethersproject/bignumber';
-import { ExternalProvider } from 'streamr-client';
+import { PrivateKeyAuthConfig } from 'streamr-client';
 import { MarkOptional } from 'ts-essentials';
 
 import CONFIG_SCHEMA from './config.schema.json';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
 import { generateClientId } from './utils/utils';
-
-export interface ProviderAuthConfig {
-	ethereum: ExternalProvider;
-}
-
-export interface PrivateKeyAuthConfig {
-	privateKey: string;
-	// The address property is not used. It is included to make the object
-	// compatible with StreamrClient.generateEthereumAccount(), as we typically
-	// use that method to generate the client "auth" option.
-	address?: string;
-}
 
 export interface TrackerRegistryContract {
 	jsonRpcProvider?: ConnectionInfo;

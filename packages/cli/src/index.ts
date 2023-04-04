@@ -1,14 +1,16 @@
-import ContractAddresses from '@concertodao/logstore-contracts/address.json';
-import { abi as QueryManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/QueryManager.sol/LogStoreQueryManager.json';
-import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
+import {
+	getQeryMangerCotnract,
+	getStoreMangerCotnract,
+	prepareStakeForQueryManager,
+	prepareStakeForStoreManager,
+} from '@concertodao/logstore-shared';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
 import os from 'os';
 
 import { appPackageName, appVersion } from './env-config';
-import { Network } from './types';
-import { logger, prepareStake } from './utils';
+import { allowanceConfirm, logger } from './utils';
 
 // define main program
 const program = new Command();
@@ -71,28 +73,16 @@ program
 				logger.debug('Command Params: ', { amount, ...options, ...cmdOptions });
 
 				try {
-					const provider = new ethers.JsonRpcProvider(options.host);
+					const provider = new ethers.providers.JsonRpcProvider(options.host);
 					const signer = new ethers.Wallet(options.wallet, provider);
-					const { queryManagerAddress } =
-						ContractAddresses[Network[options.network]];
-					const stakeAmount = await prepareStake(
+					const stakeAmount = await prepareStakeForQueryManager(
 						signer,
-						options.network,
 						amount,
 						cmdOptions.usd,
-						queryManagerAddress
+						allowanceConfirm
 					);
-					const queryManagerContract = new ethers.Contract(
-						queryManagerAddress,
-						QueryManagerContractABI,
-						signer
-					);
-					await queryManagerContract.stake(stakeAmount);
-					logger.info(
-						chalk.green(
-							`Successfully staked ${stakeAmount.toString()} in ${queryManagerAddress}`
-						)
-					);
+					const queryManagerContract = await getQeryMangerCotnract(signer);
+					await (await queryManagerContract.stake(stakeAmount)).wait();
 				} catch (e) {
 					logger.info(chalk.red('Stake failed'));
 					logger.error(e);
@@ -132,28 +122,19 @@ program
 					});
 
 					try {
-						const provider = new ethers.JsonRpcProvider(options.host);
+						const provider = new ethers.providers.JsonRpcProvider(options.host);
 						const signer = new ethers.Wallet(options.wallet, provider);
-						const { storeManagerAddress } =
-							ContractAddresses[Network[options.network]];
-						const stakeAmount = await prepareStake(
+
+						const stakeAmount = await prepareStakeForStoreManager(
 							signer,
-							options.network,
 							amount,
 							cmdOptions.usd,
-							storeManagerAddress
+							allowanceConfirm
 						);
-						const storeManagerContract = new ethers.Contract(
-							storeManagerAddress,
-							StoreManagerContractABI,
-							signer
-						);
-						await storeManagerContract.stake(streamId, stakeAmount);
-						logger.info(
-							chalk.green(
-								`Successfully staked ${stakeAmount} in ${storeManagerAddress}`
-							)
-						);
+						const storeManagerContract = await getStoreMangerCotnract(signer);
+						await (
+							await storeManagerContract.stake(streamId, stakeAmount)
+						).wait();
 					} catch (e) {
 						logger.info(chalk.red('Stake failed'));
 						logger.error(e);

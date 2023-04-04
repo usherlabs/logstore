@@ -1,5 +1,5 @@
+import type { LogStoreManager as LogStoreManagerContract } from '@concertodao/logstore-contracts';
 import { abi as LogStoreManagerAbi } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
-import type { LogStoreManager as LogStoreManagerContract } from '@concertodao/logstore-contracts/types';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
 import { toStreamID, toStreamPartID } from '@streamr/protocol';
