@@ -1,6 +1,6 @@
 import type { LogStoreManager as LogStoreManagerContract } from '@concertodao/logstore-contracts';
 import { abi as LogStoreManagerAbi } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
-import { prepareStakeForStoreManager } from '@concertodao/logstore-shared/src/exports';
+import { prepareStakeForStoreManager } from '@concertodao/logstore-shared';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';

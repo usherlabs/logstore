@@ -333,6 +333,9 @@ importers:
       '@concertodao/logstore-protocol':
         specifier: workspace:^
         version: link:../protocol
+      '@concertodao/logstore-shared':
+        specifier: workspace:^
+        version: link:../shared
       '@ethersproject/abstract-signer':
         specifier: ^5.7.0
         version: 5.7.0

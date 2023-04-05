@@ -43,7 +43,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
         require(stakeTokenAddress_ != address(0), "error_badTrackerData");
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
-        // stakeTokenAddress = stakeTokenAddress_;
+        stakeTokenAddress = stakeTokenAddress_;
 
         streamrRegistry.createStream(LOGSTORE_SYSTEM_STREAM_ID_PATH, LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING);
         streamrRegistry.createStream(LOGSTORE_QUERY_STREAM_ID_PATH, LOGSTORE_QUERY_STREAM_METADATA_JSON_STRING);
