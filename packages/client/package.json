@@ -16,6 +16,7 @@
 	"dependencies": {
 		"@concertodao/logstore-contracts": "workspace:^",
 		"@concertodao/logstore-protocol": "workspace:^",
+		"@concertodao/logstore-shared": "workspace:^",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/contracts": "^5.7.0",
@@ -45,7 +46,6 @@
 	"devDependencies": {
 		"@streamr/test-utils": "^8.0.2",
 		"@tsconfig/node16": "^1.0.3",
-		"@types/jest": "^29.4.0",
 		"@types/lodash": "^4.14.191",
 		"@types/node": "^18.15.10",
 		"@types/node-fetch": "^2.6.2",

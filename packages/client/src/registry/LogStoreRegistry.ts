@@ -1,7 +1,9 @@
 import type { LogStoreManager as LogStoreManagerContract } from '@concertodao/logstore-contracts';
 import { abi as LogStoreManagerAbi } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
+import { prepareStakeForStoreManager } from '@concertodao/logstore-shared/src/exports';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
+import { Wallet } from '@ethersproject/wallet';
 import { toStreamID, toStreamPartID } from '@streamr/protocol';
 import {
 	EthereumAddress,
@@ -192,6 +194,7 @@ export class LogStoreRegistry {
 	 */
 	async addToStorageNode(
 		streamIdOrPath: string,
+		stakeAmount = BigNumber.from('100000000000000000'),
 		waitOptions: { timeout?: number } = {}
 	): Promise<void> {
 		// let assignmentSubscription: Subscription;
@@ -224,7 +227,7 @@ export class LogStoreRegistry {
 					});
 			});
 
-			await this.stake(streamIdOrPath);
+			await this.stakeOrCreateStore(streamIdOrPath, stakeAmount);
 
 			// TODO: Take timeouts from config
 			await withTimeout(
@@ -241,28 +244,23 @@ export class LogStoreRegistry {
 		}
 	}
 
-	// TODO: Pass the staking amount to stake function.
-	async stake(streamIdOrPath: string): Promise<void> {
-		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
-		this.logger.debug('adding stream %s to LogStore', streamId);
-		await this.connectToContract();
-		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
-		await waitForTx(
-			this.logStoreManagerContract!.stake(
-				streamId,
-				BigNumber.from('100000000000000000'),
-				ethersOverrides
-			)
-		);
-	}
-
-	async addStreamToLogStore(
+	async stakeOrCreateStore(
 		streamIdOrPath: string,
 		amount: BigNumberish
 	): Promise<void> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
 		this.logger.debug('adding stream %s to LogStore', streamId);
 		await this.connectToContract();
+		this.logger.debug('approving LogStore contract for token funds', streamId);
+		// @dev 'chainSigner' could either be a wallet or a signer
+		// @dev depending on if a pk was passed into the contract
+		const chainSigner =
+			await this.authentication.getStreamRegistryChainSigner();
+		await prepareStakeForStoreManager(
+			chainSigner as Wallet,
+			Number(amount),
+			false
+		);
 		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
 		await waitForTx(
 			this.logStoreManagerContract!.stake(streamId, amount, ethersOverrides)
