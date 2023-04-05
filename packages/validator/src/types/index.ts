@@ -13,8 +13,6 @@ export type PoolConfigContracts = {
 
 export type PoolConfig = {
 	sources: string[];
-	startBlock: number; // the block on remote network (polygon) when Smart Contract was deployed.
-	blockTime: number;
 	itemTimeRange: number; // Some range in unix time between each data item
 	contracts: PoolConfigContracts;
 	fees: {

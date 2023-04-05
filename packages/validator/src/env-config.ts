@@ -1,4 +1,5 @@
 import { name, version } from '../package.json';
+import { parseEvmPriv } from './utils/parser';
 
 export const appPackageName = process.env.APP_NAME || name;
 export const appVersion = process.env.APP_VERSION || version;
@@ -9,3 +10,5 @@ export const sentry = {
 	dsn: process.env.SENTRY_DSN || '',
 	release: process.env.SENTRY_RELEASE || appName,
 };
+
+export const getEvmPrivateKey = () => parseEvmPriv('EVM_PRIVATE_KEY');

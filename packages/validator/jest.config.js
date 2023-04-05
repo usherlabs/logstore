@@ -1,15 +1,17 @@
-export default {
+/** @type {import('ts-jest').JestConfigWithTsJest} */
+module.exports = {
+	preset: 'ts-jest/presets/js-with-ts',
 	testEnvironment: 'node',
-	preset: 'ts-jest/presets/default-esm',
+	clearMocks: true,
 	globals: {
 		'ts-jest': {
-			useESM: true,
+			tsconfig: 'tsconfig.jest.json',
+			diagnostics: {
+				exclude: ['**'],
+			},
 		},
 	},
-	moduleNameMapper: {
-		'^(\\.{1,2}/.*)\\.js$': '$1',
-	},
-	testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.ts$',
-	coverageDirectory: 'coverage',
-	collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
+	setupFilesAfterEnv: ['jest-extended/all'],
+	transformIgnorePatterns: ['^.+\\.js$'],
+	testTimeout: 30000,
 };
