@@ -9,13 +9,19 @@ import type Validator from './validator';
 export default class Listener {
 	private client: StreamrClient;
 	private _db!: ClassicLevel<string, StreamrMessage>;
+	private cachePath: string;
 	// private _storeMap: Record<string, string[]>;
 
-	constructor(private core: Validator) {
+	constructor(private core: Validator, cacheHome: string) {
 		this.client = new StreamrClient();
+
+		// Kyve cache dir would have already setup this directory
+		// On each new bundle, this cache will be deleted
+		this.cachePath = path.join(cacheHome, 'system');
+		this._db = this.createDb(this.cachePath);
 	}
 
-	public async start(cacheHome: string): Promise<void> {
+	public async start(): Promise<void> {
 		try {
 			// const systemSubscription =
 			this.core.logger.info('Starting listeners ...');
@@ -24,19 +30,14 @@ export default class Listener {
 			await this.subscribe(this.core.systemStreamId);
 			await this.subscribe(this.core.queryStreamId);
 
-			// Kyve cache dir would have already setup this directory
-			// On each new bundle, this cache will be deleted
-			const cachePath = path.join(cacheHome, 'system');
-			this._db = this.createDb(cachePath);
-
 			// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
 			const db = await this.db();
 			await db.clear();
 			await db.put(Date.now().toString(), null);
 
 			// Chokidar listening to reinitiate the cache after each flush/drop/wipe.
-			chokidar.watch(cachePath).on('unlink', async (eventPath) => {
-				if (eventPath == cachePath) {
+			chokidar.watch(this.cachePath).on('unlink', async (eventPath) => {
+				if (eventPath == this.cachePath) {
 					const db = await this.db();
 					await db.put(Date.now().toString(), null);
 

@@ -7,7 +7,7 @@ export const getConfig = (core: Validator): PoolConfig => {
 		...core.poolConfig,
 		fees: {
 			writeMultiplier: 1,
-			treasuryMultiplier: 0.2,
+			treasuryMultiplier: 0.5, // Consumed from the Brokers by treasury for re-allocation to finance Validators
 			read: 0.00000001, // value in USD
 			...(core.poolConfig.fees || {}),
 		},

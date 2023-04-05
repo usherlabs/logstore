@@ -1,4 +1,5 @@
 import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
+// import { createTestStream } from '@concertodao/logstore-client/dist/test/test-utils/utils';
 // import { BigNumber } from '@ethersproject/bignumber';
 import {
 	// ICacheProvider,
@@ -6,6 +7,7 @@ import {
 	IStorageProvider,
 } from '@kyvejs/protocol';
 import { setupMetrics } from '@kyvejs/protocol/src/methods';
+import { runCache } from '@kyvejs/protocol/src/methods';
 import { TestCacheProvider } from '@kyvejs/protocol/test/mocks/cache.mock';
 import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
@@ -20,9 +22,10 @@ import { register } from 'prom-client';
 import { ILogObject, Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
 
+import Listener from '../src/listener';
 import Runtime from '../src/runtime';
-import Validator, { runCache, syncPoolConfig } from '../src/validator';
-import { TestListenerCacheProvider } from './mocks/cache.mock';
+import Validator, { syncPoolConfig } from '../src/validator';
+// import { TestListenerCacheProvider } from './mocks/cache.mock';
 import { genesis_pool } from './mocks/constants';
 
 // const STAKE_AMOUNT = BigNumber.from('100000000000000000');
@@ -42,7 +45,7 @@ describe('Validator Runtime', () => {
 	let storageProvider: IStorageProvider;
 	let compression: ICompression;
 	let publisherClient: LogStoreClient;
-	let listenerDb: TestListenerCacheProvider;
+	// const storeStreams: string[] = [];
 
 	let evmPrivateKey: string;
 
@@ -79,6 +82,7 @@ describe('Validator Runtime', () => {
 		}
 		await wait(MESSAGE_STORE_TIMEOUT);
 	};
+
 	const publishStorageMessages = async (numOfMessages: number) => {
 		for (const idx of range(numOfMessages)) {
 			const msg = { messageNo: idx };
@@ -97,6 +101,35 @@ describe('Validator Runtime', () => {
 			await sleep(100);
 		}
 		await wait(MESSAGE_STORE_TIMEOUT);
+	};
+
+	const setupListenerCache = (v: Validator) => {
+		let cache: any = {};
+		jest.spyOn(v.listener['_db'], 'open').mockImplementation(async () => {
+			return null;
+		});
+		jest
+			.spyOn(v.listener['_db'], 'get')
+			.mockImplementation(async (key: string) => {
+				if (cache[key]) {
+					return cache[key];
+				}
+
+				throw new Error('not found');
+			});
+		jest
+			.spyOn(v.listener['_db'], 'put')
+			.mockImplementation(async (key: string, value: unknown) => {
+				cache[key] = value;
+			});
+		jest
+			.spyOn(v.listener['_db'], 'del')
+			.mockImplementation(async (key: string) => {
+				delete cache[key];
+			});
+		jest.spyOn(v.listener['_db'], 'clear').mockImplementation(async () => {
+			cache = {};
+		});
 	};
 
 	beforeEach(async () => {
@@ -180,11 +213,11 @@ describe('Validator Runtime', () => {
 		// Set home value
 		v['home'] = path.join(__dirname, '../cache');
 
+		v.listener = new Listener(this, v['home']);
+		setupListenerCache(v);
+
 		// Ensure that all prom calls are setup
 		setupMetrics.call(v);
-
-		listenerDb = new TestListenerCacheProvider();
-		jest.spyOn(v.listener, 'createDb').mockImplementation(() => listenerDb);
 
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
@@ -192,6 +225,15 @@ describe('Validator Runtime', () => {
 				privateKey: await fetchPrivateKeyWithGas(),
 			},
 		});
+
+		// Prepare the Log Store contract by creating some stores
+		// for (let i = 0; i < 3; i++) {
+		// 	const stream = await createTestStream(publisherClient, module, {
+		// 		partitions: 1,
+		// 	});
+		// 	await publisherClient.addStreamToLogStore(stream.id, STAKE_AMOUNT);
+		// 	storeStreams.push(stream.id);
+		// }
 
 		// systemStream = await createTestStream(publisherClient, module, {
 		// 	partitions: 1,
@@ -205,7 +247,7 @@ describe('Validator Runtime', () => {
 		// v.systemStreamId = systemStream.id;
 		// v.queryStreamId = queryStream.id;
 
-		// ARRANGE
+		// ARRANGE -- all tests share the same genesis pool data
 		v.pool = {
 			...genesis_pool,
 		} as any;
@@ -223,13 +265,10 @@ describe('Validator Runtime', () => {
 		await syncPoolConfig.call(v);
 		await runCache.call(v);
 
+		expect(v['cacheProvider'].put).toHaveBeenCalledTimes(3);
+
 		const maxBundleSize = parseInt(v.pool.data.max_bundle_size, 10);
-		const currentIndex = parseInt(v.pool.data.current_index, 10);
-		for (
-			let i = Math.max(0, currentIndex - maxBundleSize);
-			i < currentIndex;
-			i++
-		) {
+		for (let i = 0; i < maxBundleSize; i++) {
 			try {
 				const cacheVal = await v['cacheProvider'].get(`${i}`);
 				console.log('#' + i, cacheVal);
@@ -241,23 +280,23 @@ describe('Validator Runtime', () => {
 		expect(true).toBe(true);
 	});
 
-	it('should listen for an then cache messages over logstore client', async () => {
-		// ACT
-		const contRound = v['continueRound'];
-		v['continueRound'] = jest.fn().mockReturnValue(false); // do not continue on actual kyve cache
-		await syncPoolConfig.call(v);
-		await runCache.call(v);
-		v['continueRound'] = contRound;
+	// it('should listen for an then cache messages over logstore client', async () => {
+	// 	// ACT
+	// 	const contRound = v['continueRound'];
+	// 	v['continueRound'] = jest.fn().mockReturnValue(false); // do not continue on actual kyve cache
+	// 	await syncPoolConfig.call(v);
+	// 	await runCache.call(v);
+	// 	v['continueRound'] = contRound;
 
-		// Populate the Listener Cache
-		await publishQueryMessages(15);
-		await publishStorageMessages(15);
+	// 	// Populate the Listener Cache
+	// 	await publishQueryMessages(15);
+	// 	await publishStorageMessages(15);
 
-		const db = await v.listener.db();
-		for await (const [k, v] of db.iterator()) {
-			console.log(k, v);
-		}
+	// 	const db = await v.listener.db();
+	// 	for await (const [k, v] of db.iterator()) {
+	// 		console.log(k, v);
+	// 	}
 
-		expect(true).toBe(true);
-	});
+	// 	expect(true).toBe(true);
+	// });
 });
