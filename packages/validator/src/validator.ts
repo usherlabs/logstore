@@ -25,14 +25,14 @@ export async function syncPoolConfig(this: Validator): Promise<void> {
 	// Set the System Streams using the Smart Contract address
 	const { contracts } = this.poolConfig as PoolConfig;
 	this.systemStreamId = `${contracts.storeManager.address}/logstore-system`;
-	this.queryStreamId = `${contracts.storeManager.address}/logstore-query`;
+	// this.queryStreamId = `${contracts.storeManager.address}/logstore-query`;
 }
 
 export default class Validator extends KyveValidator {
 	public listener: Listener;
 
 	public systemStreamId: string;
-	public queryStreamId: string;
+	// public queryStreamId: string;
 
 	protected override runCache = runCache;
 	protected override syncPoolConfig = syncPoolConfig;

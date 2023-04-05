@@ -97,20 +97,7 @@ export const produceReport = async (
 
 		const { content, metadata } = lValue;
 		const sKey = `${lKey}`;
-		const keySplit = sKey.split(':');
-		let streamId = '';
-		if (keySplit.length > 1) {
-			streamId = keySplit[1];
-		}
-		if (
-			streamId === core.queryStreamId &&
-			content?.query &&
-			content?.nonce &&
-			content?.consumer &&
-			content?.sig &&
-			content?.hash &&
-			content?.size
-		) {
+		if (content?.query && content?.consumer && content?.hash && content?.size) {
 			// TODO: Ensure variables match that of the Broker Node
 
 			// This is a proof-of-event for a query
@@ -131,7 +118,7 @@ export const produceReport = async (
 			}
 			queryHashKeyMap[h].push(sKey);
 		}
-		if (streamId === core.systemStreamId && content?.hash && content?.size) {
+		if (content?.hash && content?.size) {
 			// TODO: Ensure variables match that of the Broker Node
 
 			// Add to storage hashMap
@@ -238,7 +225,6 @@ export const produceReport = async (
 		report.events.queries.push({
 			id,
 			query: event.content.query,
-			nonce: event.content.nonce,
 			consumer: event.content.consumer,
 			hash: event.content.hash,
 			size: event.content.size,

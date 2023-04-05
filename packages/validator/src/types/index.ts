@@ -49,7 +49,6 @@ export type Report = {
 	events: {
 		queries: (ReportEvent & {
 			query: string;
-			nonce: string;
 			consumer: string;
 		})[];
 		storage: ReportEvent[];

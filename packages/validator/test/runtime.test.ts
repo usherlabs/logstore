@@ -49,41 +49,7 @@ describe('Validator Runtime', () => {
 
 	let evmPrivateKey: string;
 
-	const publishQueryMessages = async (numOfMessages: number) => {
-		const signingKey = new ethers.SigningKey(`0x${evmPrivateKey}`);
-		for (const idx of range(numOfMessages)) {
-			const query = {
-				from: {
-					timestamp: 0,
-				},
-				to: {
-					timestamp: 0,
-				},
-			};
-			const nonce = idx;
-			const queryStr = JSON.stringify(query);
-			const hash = ethers.keccak256(fromString(queryStr + nonce));
-			const sig = signingKey.sign(hash);
-			await publisherClient.publish(
-				{
-					id: v.queryStreamId,
-					partition: 0,
-				},
-				{
-					query,
-					nonce,
-					consumer: signingKey.publicKey,
-					sig,
-					hash,
-					size: Buffer.byteLength(queryStr, 'utf8'),
-				}
-			);
-			await sleep(100);
-		}
-		await wait(MESSAGE_STORE_TIMEOUT);
-	};
-
-	const publishStorageMessages = async (numOfMessages: number) => {
+	const publishMessages = async (numOfMessages: number) => {
 		for (const idx of range(numOfMessages)) {
 			const msg = { messageNo: idx };
 			const msgStr = JSON.stringify(msg);
