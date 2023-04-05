@@ -86,6 +86,13 @@ export class LogStoreClient extends StreamrClient {
 	// --------------------------------------------------------------------------------------------
 
 	/**
+	 * Stake funds so can query
+	 */
+	async queryStake(amount: BigNumberish, options = { usd: false }) {
+		return this.logStoreRegistry.queryStake(amount, { usd: options.usd });
+	}
+
+	/**
 	 * Performs a query of stored historical data.
 	 *
 	 * @category Important
