@@ -8,12 +8,20 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-
+import {IStreamRegistry} from "./interfaces/StreamRegistry.sol";
+import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 import {LogStoreManager} from "./StoreManager.sol";
 import {LogStoreQueryManager} from "./QueryManager.sol";
 import {LogStoreReportManager} from "./ReportManager.sol";
 
 contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+    string public constant LOGSTORE_SYSTEM_STREAM_ID_PATH = "/logstore-system";
+    string public constant LOGSTORE_QUERY_STREAM_ID_PATH = "/logstore-query";
+    /* solhint-disable quotes */
+    string public constant LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
+    string public constant LOGSTORE_QUERY_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
+    /* solhint-enable quotes */
+
     event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
     event NodeStakeUpdated(address indexed nodeAddress, uint stake);
@@ -61,16 +69,20 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     mapping(address => mapping(address => uint256)) public delegatesOf;
     address public headNode;
     address public tailNode;
+    string internal systemStreamId;
+    string internal queryStreamId;
     IERC20Upgradeable internal stakeToken;
     LogStoreManager private _storeManager;
     LogStoreQueryManager private _queryManager;
     LogStoreReportManager private _reportManager;
+    IStreamRegistry private streamrRegistry;
 
     function initialize(
         address owner_,
         bool requiresWhitelist_,
         address stakeTokenAddress_,
         uint256 stakeRequiredAmount_,
+        address streamrRegistryAddress_,
         address[] memory initialNodes,
         string[] calldata initialMetadata
     ) public initializer {
@@ -85,6 +97,20 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         stakeTokenAddress = stakeTokenAddress_;
         stakeRequiredAmount = stakeRequiredAmount_;
+        streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
+
+        streamrRegistry.createStream(LOGSTORE_SYSTEM_STREAM_ID_PATH, LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING);
+        streamrRegistry.createStream(LOGSTORE_QUERY_STREAM_ID_PATH, LOGSTORE_QUERY_STREAM_METADATA_JSON_STRING);
+
+        systemStreamId = string(
+            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_SYSTEM_STREAM_ID_PATH)
+        );
+        queryStreamId = string(
+            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_QUERY_STREAM_ID_PATH)
+        );
+
+        streamrRegistry.grantPublicPermission(systemStreamId, IStreamRegistry.PermissionType.Subscribe);
+        streamrRegistry.grantPublicPermission(queryStreamId, IStreamRegistry.PermissionType.Subscribe);
 
         for (uint i = 0; i < initialNodes.length; i++) {
             upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
@@ -178,6 +204,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             } else {
                 nodes[report.nodes[i].id].stake = 0;
             }
+            _checkAndGrantAccess(report.nodes[i].id);
         }
         for (uint256 i = 0; i < report.delegates.length; i++) {
             for (uint256 j = 0; j < report.delegates[i].nodes.length; j++) {
@@ -250,6 +277,8 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             nodes[node].delegateExists[msg.sender] = true;
         }
 
+        _checkAndGrantAccess(node);
+
         emit NodeStakeUpdated(node, nodes[node].stake);
     }
 
@@ -272,10 +301,12 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         nodes[node].delegates[removeIndex] = nodes[node].delegates[nodes[node].delegates.length - 1];
         nodes[node].delegates.pop();
 
+        _checkAndGrantAccess(node);
+
         emit NodeStakeUpdated(node, nodes[node].stake);
     }
 
-    function delegateStake(uint amount, address node) public {
+    function stakeAndDelegate(uint amount, address node) public {
         stake(amount);
         delegate(amount, node);
     }
@@ -342,6 +373,16 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             nextNodeAddress = nodes[nextNodeAddress].next;
         }
         emit NodeRemoved(nodeAddress);
+    }
+
+    function _checkAndGrantAccess(address node) internal {
+        if (nodes[node].stake >= stakeRequiredAmount) {
+            streamrRegistry.grantPermission(systemStreamId, node, IStreamRegistry.PermissionType.Publish);
+            streamrRegistry.grantPermission(queryStreamId, node, IStreamRegistry.PermissionType.Publish);
+        } else {
+            streamrRegistry.revokePermission(systemStreamId, node, IStreamRegistry.PermissionType.Publish);
+            streamrRegistry.revokePermission(queryStreamId, node, IStreamRegistry.PermissionType.Publish);
+        }
     }
 
     function nodeAddresses() public view returns (address[] memory resultAddresses) {

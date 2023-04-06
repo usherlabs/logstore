@@ -46,6 +46,7 @@ describe('Validator Runtime', () => {
 	let compression: ICompression;
 	let publisherClient: LogStoreClient;
 	// const storeStreams: string[] = [];
+	// let testSystemStream: Stream;
 
 	let evmPrivateKey: string;
 
@@ -88,7 +89,7 @@ describe('Validator Runtime', () => {
 			);
 			await publisherClient.publish(
 				{
-					id: v.systemStreamId,
+					id: v.systemStreamId, // TODO: Insufficient permissions to publish here.
 					partition: 0,
 				},
 				{
@@ -227,6 +228,11 @@ describe('Validator Runtime', () => {
 		});
 
 		// Prepare the Log Store contract by creating some stores
+		// testSystemStream = await createTestStream(publisherClient, module, {
+		// 	partitions: 1,
+		// });
+		// await publisherClient.addStreamToLogStore(testSystemStream.id, STAKE_AMOUNT);
+
 		// for (let i = 0; i < 3; i++) {
 		// 	const stream = await createTestStream(publisherClient, module, {
 		// 		partitions: 1,
