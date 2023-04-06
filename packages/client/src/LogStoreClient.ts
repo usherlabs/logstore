@@ -121,13 +121,13 @@ export class LogStoreClient extends StreamrClient {
 	// --------------------------------------------------------------------------------------------
 
 	/**
-	 * Aввы a stream to LogStore.
+	 * Add a stream to LogStore.
 	 */
 	async addStreamToLogStore(
 		streamIdOrPath: string,
 		amount: BigNumberish
 	): Promise<void> {
-		return this.logStoreRegistry.addStreamToLogStore(streamIdOrPath, amount);
+		return this.logStoreRegistry.stakeOrCreateStore(streamIdOrPath, amount);
 	}
 
 	/**

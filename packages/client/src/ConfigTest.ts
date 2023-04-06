@@ -7,6 +7,7 @@ import { LogStoreClientConfig } from './LogStoreClientConfig';
  */
 export const CONFIG_TEST: LogStoreClientConfig = {
 	...STREAMR_CONFIG_TEST,
+	logLevel: 'trace',
 	contracts: {
 		...STREAMR_CONFIG_TEST.contracts,
 		logStoreManagerChainAddress: '0x73A4bB647CdD4b45717A255960B865d6Ad5b8c38',

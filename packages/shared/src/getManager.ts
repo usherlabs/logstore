@@ -9,7 +9,7 @@ import {
 import ContractAddresses from '@concertodao/logstore-contracts/address.json';
 import { ethers } from 'ethers';
 
-import { Manager } from './types';
+import { Manager, Network } from './types';
 
 export async function getNodeMangerCotnract(wallet: ethers.Wallet) {
 	return (await getMangerContract(
@@ -52,13 +52,14 @@ export async function getMangerContract(
 }
 
 function getMangerAddress(chainId: number, manager: Manager) {
+	const network = chainId as Network;
 	switch (manager) {
 		case Manager.NodeManager:
-			return ContractAddresses[chainId].nodeManagerAddress;
+			return ContractAddresses[network].nodeManagerAddress;
 		case Manager.QueryManager:
-			return ContractAddresses[chainId].queryManagerAddress;
+			return ContractAddresses[network].queryManagerAddress;
 		case Manager.StoreManager:
-			return ContractAddresses[chainId].storeManagerAddress;
+			return ContractAddresses[network].storeManagerAddress;
 		default:
 			throw new Error('Unexpected manager');
 	}
