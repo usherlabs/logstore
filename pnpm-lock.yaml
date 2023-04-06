@@ -706,6 +706,9 @@ importers:
       '@concertodao/logstore-contracts':
         specifier: workspace:^0.0.1
         version: link:../contracts
+      '@concertodao/logstore-shared':
+        specifier: workspace:^0.0.1
+        version: link:../shared
       '@kyvejs/protocol':
         specifier: 1.0.0-beta.13
         version: 1.0.0-beta.13

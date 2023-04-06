@@ -15,8 +15,8 @@ import {LogStoreQueryManager} from "./QueryManager.sol";
 import {LogStoreReportManager} from "./ReportManager.sol";
 
 contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
-    string public constant LOGSTORE_STORE_SYSTEM_STREAM_ID_PATH = "/logstore-system";
-    string public constant LOGSTORE_QUERY_SYSTEM_STREAM_ID_PATH = "/logstore-query";
+    string public constant LOGSTORE_STORE_SYSTEM_STREAM_ID_PATH = "/store";
+    string public constant LOGSTORE_QUERY_SYSTEM_STREAM_ID_PATH = "/query";
     /* solhint-disable quotes */
     string public constant LOGSTORE_STORE_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
     string public constant LOGSTORE_QUERY_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';

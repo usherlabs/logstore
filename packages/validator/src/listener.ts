@@ -25,10 +25,16 @@ export default class Listener {
 		try {
 			// const systemSubscription =
 			this.core.logger.info('Starting listeners ...');
-			this.core.logger.debug(`System Stream Id: `, this.core.systemStreamId);
-			// this.core.logger.debug(`Query Stream Id: `, this.core.queryStreamId);
-			await this.subscribe(this.core.systemStreamId);
-			// await this.subscribe(this.core.queryStreamId);
+			this.core.logger.debug(
+				`System Store Stream Id: `,
+				this.core.systemStoreStreamId
+			);
+			this.core.logger.debug(
+				`System Query Stream Id: `,
+				this.core.systemQueryStreamId
+			);
+			await this.subscribe(this.core.systemStoreStreamId);
+			await this.subscribe(this.core.systemQueryStreamId);
 
 			// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
 			const db = await this.db();
