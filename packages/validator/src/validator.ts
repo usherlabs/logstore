@@ -24,8 +24,8 @@ export async function syncPoolConfig(this: Validator): Promise<void> {
 	// this.logger.debug(`Pool config:`, this.poolConfig);
 	// Set the System Streams using the Smart Contract address
 	const { contracts } = this.poolConfig as PoolConfig;
-	this.systemStoreStreamId = `${contracts.storeManager.address}/store`;
-	this.systemQueryStreamId = `${contracts.storeManager.address}/query`;
+	this.systemStoreStreamId = `${contracts.nodeManager.address}/store`;
+	this.systemQueryStreamId = `${contracts.nodeManager.address}/query`;
 }
 
 export default class Validator extends KyveValidator {
