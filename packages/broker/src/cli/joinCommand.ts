@@ -1,5 +1,5 @@
 import {
-	getNodeMangerCotnract,
+	getNodeManagerContract,
 	prepareStakeForNodeManager,
 } from '@concertodao/logstore-shared';
 import { Command } from 'commander';
@@ -35,7 +35,7 @@ export const joinCommand = new Command('join')
 				cmdOptions.usd,
 				allowanceConfirm
 			);
-			const nodeManagerContract = await getNodeMangerCotnract(signer);
+			const nodeManagerContract = await getNodeManagerContract(signer);
 			await (
 				await nodeManagerContract.join(stakeAmount, 'my node metadata')
 			).wait();
