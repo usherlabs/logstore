@@ -1,6 +1,6 @@
 import {
-	getQeryMangerCotnract,
-	getStoreMangerCotnract,
+	getQueryManagerContract,
+	getStoreManagerContract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertodao/logstore-shared';
@@ -81,7 +81,7 @@ program
 						cmdOptions.usd,
 						allowanceConfirm
 					);
-					const queryManagerContract = await getQeryMangerCotnract(signer);
+					const queryManagerContract = await getQueryManagerContract(signer);
 					await (await queryManagerContract.stake(stakeAmount)).wait();
 				} catch (e) {
 					logger.info(chalk.red('Stake failed'));
@@ -131,7 +131,7 @@ program
 							cmdOptions.usd,
 							allowanceConfirm
 						);
-						const storeManagerContract = await getStoreMangerCotnract(signer);
+						const storeManagerContract = await getStoreManagerContract(signer);
 						await (
 							await storeManagerContract.stake(streamId, stakeAmount)
 						).wait();
