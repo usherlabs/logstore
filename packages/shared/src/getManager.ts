@@ -37,7 +37,7 @@ export async function getManagerContract(
 	manager: Manager
 ) {
 	const network = await wallet.provider.getNetwork();
-	const managerAddress = getMangerAddress(network.chainId, manager);
+	const managerAddress = getManagerAddress(network.chainId, manager);
 
 	switch (manager) {
 		case Manager.NodeManager:
@@ -51,7 +51,7 @@ export async function getManagerContract(
 	}
 }
 
-function getMangerAddress(chainId: number, manager: Manager) {
+function getManagerAddress(chainId: number, manager: Manager) {
 	const network = chainId as Network;
 	switch (manager) {
 		case Manager.NodeManager:
