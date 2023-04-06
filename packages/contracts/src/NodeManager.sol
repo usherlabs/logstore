@@ -15,11 +15,9 @@ import {LogStoreQueryManager} from "./QueryManager.sol";
 import {LogStoreReportManager} from "./ReportManager.sol";
 
 contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
-    string public constant LOGSTORE_STORE_SYSTEM_STREAM_ID_PATH = "/logstore-system";
-    string public constant LOGSTORE_QUERY_SYSTEM_STREAM_ID_PATH = "/logstore-query";
+    string public constant LOGSTORE_SYSTEM_STREAM_ID_PATH = "/system";
     /* solhint-disable quotes */
-    string public constant LOGSTORE_STORE_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
-    string public constant LOGSTORE_QUERY_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
+    string public constant LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
     /* solhint-enable quotes */
 
     event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
@@ -69,8 +67,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     mapping(address => mapping(address => uint256)) public delegatesOf;
     address public headNode;
     address public tailNode;
-    string internal storeStreamId;
-    string internal queryStreamId;
+    string internal systemStreamId;
     IERC20Upgradeable internal stakeToken;
     LogStoreManager private _storeManager;
     LogStoreQueryManager private _queryManager;
@@ -99,18 +96,11 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         stakeRequiredAmount = stakeRequiredAmount_;
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
 
-        streamrRegistry.createStream(LOGSTORE_STORE_SYSTEM_STREAM_ID_PATH, LOGSTORE_STORE_SYSTEM_STREAM_METADATA_JSON_STRING);
-        streamrRegistry.createStream(LOGSTORE_QUERY_SYSTEM_STREAM_ID_PATH, LOGSTORE_QUERY_SYSTEM_STREAM_METADATA_JSON_STRING);
-
-        storeStreamId = string(
-            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_STORE_SYSTEM_STREAM_ID_PATH)
+        streamrRegistry.createStream(LOGSTORE_SYSTEM_STREAM_ID_PATH, LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING);
+        systemStreamId = string(
+            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_SYSTEM_STREAM_ID_PATH)
         );
-        queryStreamId = string(
-            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_QUERY_SYSTEM_STREAM_ID_PATH)
-        );
-
-        streamrRegistry.grantPublicPermission(storeStreamId, IStreamRegistry.PermissionType.Subscribe);
-        streamrRegistry.grantPublicPermission(queryStreamId, IStreamRegistry.PermissionType.Subscribe);
+        streamrRegistry.grantPublicPermission(systemStreamId, IStreamRegistry.PermissionType.Subscribe);
 
         for (uint i = 0; i < initialNodes.length; i++) {
             upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
@@ -377,11 +367,9 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
     function _checkAndGrantAccess(address node) internal {
         if (nodes[node].stake >= stakeRequiredAmount) {
-            streamrRegistry.grantPermission(storeStreamId, node, IStreamRegistry.PermissionType.Publish);
-            streamrRegistry.grantPermission(queryStreamId, node, IStreamRegistry.PermissionType.Publish);
+            streamrRegistry.grantPermission(systemStreamId, node, IStreamRegistry.PermissionType.Publish);
         } else {
-            streamrRegistry.revokePermission(storeStreamId, node, IStreamRegistry.PermissionType.Publish);
-            streamrRegistry.revokePermission(queryStreamId, node, IStreamRegistry.PermissionType.Publish);
+            streamrRegistry.revokePermission(systemStreamId, node, IStreamRegistry.PermissionType.Publish);
         }
     }
 

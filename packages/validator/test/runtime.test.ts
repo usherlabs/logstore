@@ -1,4 +1,8 @@
 import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
+import {
+	getNodeManagerContract,
+	prepareStakeForNodeManager,
+} from '@concertodao/logstore-shared';
 // import { createTestStream } from '@concertodao/logstore-client/dist/test/test-utils/utils';
 // import { BigNumber } from '@ethersproject/bignumber';
 import {
@@ -13,7 +17,7 @@ import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
 import { lcd } from '@kyvejs/protocol/test/mocks/lcd.mock';
 import { TestNormalStorageProvider } from '@kyvejs/protocol/test/mocks/storageProvider.mock';
-import { fastPrivateKey, fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import { fastPrivateKey } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { range } from 'lodash';
@@ -35,6 +39,8 @@ function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
 }
 const { DISABLE_DEBUG_LOGS } = process.env;
+const BROKER_NODE_PRIVATE_KEY =
+	'0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const;
 
 describe('Validator Runtime', () => {
 	let v: Validator;
@@ -220,10 +226,25 @@ describe('Validator Runtime', () => {
 		// Ensure that all prom calls are setup
 		setupMetrics.call(v);
 
+		const provider = new ethers.JsonRpcProvider(
+			'http://localhost:8997' // tunnel to remote server
+		);
+		const signer = new ethers.Wallet(BROKER_NODE_PRIVATE_KEY, provider);
+		const stakeAmount = await prepareStakeForNodeManager(
+			signer,
+			10000,
+			true,
+			10000
+		);
+		const nodeManagerContract = await getNodeManagerContract(signer);
+		await (
+			await nodeManagerContract.join(stakeAmount, 'my node metadata')
+		).wait();
+
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
 			auth: {
-				privateKey: await fetchPrivateKeyWithGas(),
+				privateKey: BROKER_NODE_PRIVATE_KEY,
 			},
 		});
 
