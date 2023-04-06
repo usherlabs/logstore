@@ -4,7 +4,7 @@ import { Logger } from 'tslog';
 
 import { allowanceConfirmFn, ensureEnoughAllowance } from './allowance';
 import { convertFromUsd } from './convertFromUsd';
-import { getMangerContract } from './getManager';
+import { getManagerContract } from './getManager';
 import { Manager } from './types';
 
 export const logger = new Logger();
@@ -47,7 +47,7 @@ async function prepareStake(
 		throw new Error('Amount must be > 0');
 	}
 
-	const managerContract = await getMangerContract(signer, manager);
+	const managerContract = await getManagerContract(signer, manager);
 	const stakeTokenAddress: string = await managerContract.stakeTokenAddress();
 	logger.debug('Stake Token Address: ', stakeTokenAddress);
 
