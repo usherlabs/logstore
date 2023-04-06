@@ -1,8 +1,8 @@
 export { allowanceConfirmFn } from './allowance';
 export {
-	getNodeMangerCotnract,
-	getQeryMangerCotnract,
-	getStoreMangerCotnract,
+	getNodeManagerContract,
+	getQueryManagerContract,
+	getStoreManagerContract,
 } from './getManager';
 export {
 	prepareStakeForNodeManager,

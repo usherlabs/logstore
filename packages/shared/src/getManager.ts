@@ -11,28 +11,28 @@ import { ethers } from 'ethers';
 
 import { Manager, Network } from './types';
 
-export async function getNodeMangerCotnract(wallet: ethers.Wallet) {
-	return (await getMangerContract(
+export async function getNodeManagerContract(wallet: ethers.Wallet) {
+	return (await getManagerContract(
 		wallet,
 		Manager.NodeManager
 	)) as LogStoreNodeManager;
 }
 
-export async function getQeryMangerCotnract(wallet: ethers.Wallet) {
-	return (await getMangerContract(
+export async function getQueryManagerContract(wallet: ethers.Wallet) {
+	return (await getManagerContract(
 		wallet,
 		Manager.QueryManager
 	)) as LogStoreQueryManager;
 }
 
-export async function getStoreMangerCotnract(wallet: ethers.Wallet) {
-	return (await getMangerContract(
+export async function getStoreManagerContract(wallet: ethers.Wallet) {
+	return (await getManagerContract(
 		wallet,
 		Manager.StoreManager
 	)) as LogStoreManager;
 }
 
-export async function getMangerContract(
+export async function getManagerContract(
 	wallet: ethers.Wallet,
 	manager: Manager
 ) {
