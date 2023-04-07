@@ -3,6 +3,7 @@ import {
 	formLogStoreSystemStreamId,
 } from '@concertodao/logstore-client';
 import {
+	ProofOfMessageStored,
 	QueryFromOptions,
 	QueryLastOptions,
 	QueryMessage,
@@ -15,6 +16,7 @@ import {
 import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
+import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
 import { Stream } from 'streamr-client';
 
@@ -64,16 +66,14 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private messageListener?: (msg: StreamMessage) => void;
 
 	async start(): Promise<void> {
-		const assignmentStream = await this.logStoreClient.getStream(
+		const systemStream = await this.logStoreClient.getStream(
 			formLogStoreSystemStreamId(
-				//TODO: StrictConfig required
-				this.brokerConfig.client.contracts!.logStoreManagerChainAddress!
+				this.brokerConfig.client.contracts!.logStoreNodeManagerChainAddress!
 			)
 		);
 
 		const logStoreQueryStreamId = formLogStoreQueryStreamId(
-			//TODO: StrictConfig required
-			this.brokerConfig.client.contracts!.logStoreManagerChainAddress!
+			this.brokerConfig.client.contracts!.logStoreStoreManagerChainAddress!
 		).toString();
 
 		await this.logStoreClient.subscribe(
@@ -170,13 +170,31 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		).getMetricsContext();
 		this.logStore = await this.startCassandraStorage(metricsContext);
 
-		this.logStoreConfig = await this.startLogStoreConfig(assignmentStream);
-		this.messageListener = (msg) => {
+		this.logStoreConfig = await this.startLogStoreConfig(systemStream);
+		this.messageListener = async (msg) => {
 			if (
 				isStorableMessage(msg) &&
 				this.logStoreConfig!.hasStreamPart(msg.getStreamPartID())
 			) {
-				this.logStore!.store(msg);
+				await this.logStore!.store(msg);
+
+				const size = Buffer.byteLength(msg.serialize());
+				const hash = keccak256(
+					Uint8Array.from(Buffer.from(msg.serialize() + size))
+				);
+
+				const proofOfMessageStored = new ProofOfMessageStored({
+					streamId: msg.getStreamId(),
+					partition: msg.getStreamPartition(),
+					timestamp: msg.getTimestamp(),
+					sequenceNumber: msg.getSequenceNumber(),
+					hash,
+				});
+
+				await this.logStoreClient.publish(
+					systemStream,
+					proofOfMessageStored.serialize()
+				);
 			}
 		};
 		const node = await this.logStoreClient.getNode();
@@ -236,12 +254,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 							streamPart,
 						});
 						logger.debug(
-							'published message to assignment stream %s',
+							'published message to system stream %s',
 							systemStream.id
 						);
 					} catch (e) {
 						logger.warn(
-							'failed to publish to assignment stream %s, reason: %s',
+							'failed to publish to system stream %s, reason: %s',
 							systemStream.id,
 							e
 						);

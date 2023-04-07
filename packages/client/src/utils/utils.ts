@@ -78,21 +78,15 @@ export function instanceId(instance: AnyInstance, suffix = ''): string {
 }
 
 export function formLogStoreSystemStreamId(
-	logStoreManagerAddress: string
+	logStoreNodeManagerAddress: string
 ): StreamID {
-	return toStreamID(
-		'/logstore-system',
-		toEthereumAddress(logStoreManagerAddress)
-	);
+	return toStreamID('/system', toEthereumAddress(logStoreNodeManagerAddress));
 }
 
 export function formLogStoreQueryStreamId(
-	logStoreManagerAddress: string
+	logStoreStoreManagerAddress: string
 ): StreamID {
-	return toStreamID(
-		'/logstore-query',
-		toEthereumAddress(logStoreManagerAddress)
-	);
+	return toStreamID('/query', toEthereumAddress(logStoreStoreManagerAddress));
 }
 
 export function generateClientId(): string {
