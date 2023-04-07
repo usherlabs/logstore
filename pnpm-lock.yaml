@@ -709,6 +709,12 @@ importers:
       '@concertodao/logstore-shared':
         specifier: workspace:^0.0.1
         version: link:../shared
+      '@ethersproject/providers':
+        specifier: ^5.7.2
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@ethersproject/wallet':
+        specifier: ^5.7.0
+        version: 5.7.0
       '@kyvejs/protocol':
         specifier: 1.0.0-beta.13
         version: 1.0.0-beta.13

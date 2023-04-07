@@ -33,6 +33,8 @@
 		"@concertodao/logstore-client": "workspace:^0.0.1",
 		"@concertodao/logstore-contracts": "workspace:^0.0.1",
 		"@concertodao/logstore-shared": "workspace:^0.0.1",
+		"@ethersproject/providers": "^5.7.2",
+		"@ethersproject/wallet": "^5.7.0",
 		"@kyvejs/protocol": "1.0.0-beta.13",
 		"@sentry/node": "^7.13.0",
 		"@sentry/tracing": "^7.13.0",

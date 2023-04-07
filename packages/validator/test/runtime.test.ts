@@ -3,6 +3,8 @@ import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
 } from '@concertodao/logstore-shared';
+import { JsonRpcProvider } from '@ethersproject/providers';
+import { Wallet } from '@ethersproject/wallet';
 // import { createTestStream } from '@concertodao/logstore-client/dist/test/test-utils/utils';
 // import { BigNumber } from '@ethersproject/bignumber';
 import {
@@ -226,15 +228,15 @@ describe('Validator Runtime', () => {
 		// Ensure that all prom calls are setup
 		setupMetrics.call(v);
 
-		const provider = new ethers.JsonRpcProvider(
-			'http://localhost:8997' // tunnel to remote server
+		const provider = new JsonRpcProvider(
+			'http://localhost:8546' // tunnel to remote server
 		);
-		const signer = new ethers.Wallet(BROKER_NODE_PRIVATE_KEY, provider);
+		const signer = new Wallet(BROKER_NODE_PRIVATE_KEY, provider);
 		const stakeAmount = await prepareStakeForNodeManager(
 			signer,
 			10000,
 			true,
-			10000
+			async () => true
 		);
 		const nodeManagerContract = await getNodeManagerContract(signer);
 		await (
