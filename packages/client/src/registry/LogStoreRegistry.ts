@@ -1,6 +1,10 @@
 import type { LogStoreManager as LogStoreManagerContract } from '@concertodao/logstore-contracts';
 import { abi as LogStoreManagerAbi } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
-import { prepareStakeForStoreManager } from '@concertodao/logstore-shared';
+import {
+	getQueryManagerContract,
+	prepareStakeForQueryManager,
+	prepareStakeForStoreManager,
+} from '@concertodao/logstore-shared';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
@@ -265,6 +269,22 @@ export class LogStoreRegistry {
 		await waitForTx(
 			this.logStoreManagerContract!.stake(streamId, amount, ethersOverrides)
 		);
+	}
+
+	async queryStake(
+		amount: BigNumberish,
+		options = { usd: false }
+	): Promise<void> {
+		const chainSigner =
+			(await this.authentication.getStreamRegistryChainSigner()) as Wallet;
+		const stakeAmount = prepareStakeForQueryManager(
+			chainSigner,
+			Number(amount),
+			options.usd
+		);
+		// @todo rename function to getQueryMangerContract across repo
+		const queryManagerContract = await getQueryManagerContract(chainSigner);
+		await (await queryManagerContract.stake(stakeAmount)).wait();
 	}
 
 	async removeStreamFromLogStore(streamIdOrPath: string): Promise<void> {
