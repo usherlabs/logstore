@@ -48,12 +48,58 @@
           "type": "string"
         },
         {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "enum IStreamRegistry.PermissionType",
+          "name": "permissionType",
+          "type": "uint8"
+        }
+      ],
+      "name": "grantPermission",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "streamId",
+          "type": "string"
+        },
+        {
           "internalType": "enum IStreamRegistry.PermissionType",
           "name": "permissionType",
           "type": "uint8"
         }
       ],
       "name": "grantPublicPermission",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "streamId",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "enum IStreamRegistry.PermissionType",
+          "name": "permissionType",
+          "type": "uint8"
+        }
+      ],
+      "name": "revokePermission",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

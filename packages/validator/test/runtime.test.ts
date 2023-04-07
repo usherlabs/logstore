@@ -1,4 +1,8 @@
 import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
+import {
+	getNodeManagerContract,
+	prepareStakeForNodeManager,
+} from '@concertodao/logstore-shared';
 // import { createTestStream } from '@concertodao/logstore-client/dist/test/test-utils/utils';
 // import { BigNumber } from '@ethersproject/bignumber';
 import {
@@ -13,7 +17,7 @@ import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
 import { lcd } from '@kyvejs/protocol/test/mocks/lcd.mock';
 import { TestNormalStorageProvider } from '@kyvejs/protocol/test/mocks/storageProvider.mock';
-import { fastPrivateKey, fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import { fastPrivateKey } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { range } from 'lodash';
@@ -35,6 +39,8 @@ function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
 }
 const { DISABLE_DEBUG_LOGS } = process.env;
+const BROKER_NODE_PRIVATE_KEY =
+	'0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const;
 
 describe('Validator Runtime', () => {
 	let v: Validator;
@@ -46,22 +52,57 @@ describe('Validator Runtime', () => {
 	let compression: ICompression;
 	let publisherClient: LogStoreClient;
 	// const storeStreams: string[] = [];
+	// let testSystemStream: Stream;
 
 	let evmPrivateKey: string;
 
-	const publishMessages = async (numOfMessages: number) => {
+	const publishStorageMessages = async (numOfMessages: number) => {
+		try {
+			for (const idx of range(numOfMessages)) {
+				const msg = { messageNo: idx };
+				const msgStr = JSON.stringify(msg);
+				const hash = ethers.keccak256(fromString(msgStr));
+				const size = Buffer.byteLength(msgStr, 'utf8');
+				console.log(`Publishing storage message:`, msg, { hash, size });
+				await publisherClient.publish(
+					{
+						id: v.systemStreamId,
+						partition: 0,
+					},
+					{
+						hash,
+						size,
+					}
+				);
+				await sleep(100);
+			}
+			await wait(MESSAGE_STORE_TIMEOUT);
+		} catch (e) {
+			console.log(`Cannot publish message to storage stream`);
+			console.error(e);
+		}
+	};
+	const publishQueryMessages = async (numOfMessages: number) => {
 		for (const idx of range(numOfMessages)) {
+			const query = { from: { timestamp: 0 }, to: { timestamp: 0 } };
+			const consumer = '0x00000000000';
 			const msg = { messageNo: idx };
+			const queryStr = JSON.stringify(query);
 			const msgStr = JSON.stringify(msg);
-			const hash = ethers.keccak256(fromString(msgStr));
+			const size = Buffer.byteLength(msgStr, 'utf8');
+			const hash = ethers.keccak256(
+				fromString(queryStr + consumer + msgStr + size)
+			);
 			await publisherClient.publish(
 				{
-					id: v.systemStreamId,
+					id: v.systemStreamId, // TODO: Insufficient permissions to publish here.
 					partition: 0,
 				},
 				{
+					query,
+					consumer,
 					hash,
-					size: Buffer.byteLength(msgStr, 'utf8'),
+					size,
 				}
 			);
 			await sleep(100);
@@ -185,14 +226,34 @@ describe('Validator Runtime', () => {
 		// Ensure that all prom calls are setup
 		setupMetrics.call(v);
 
+		const provider = new ethers.JsonRpcProvider(
+			'http://localhost:8997' // tunnel to remote server
+		);
+		const signer = new ethers.Wallet(BROKER_NODE_PRIVATE_KEY, provider);
+		const stakeAmount = await prepareStakeForNodeManager(
+			signer,
+			10000,
+			true,
+			10000
+		);
+		const nodeManagerContract = await getNodeManagerContract(signer);
+		await (
+			await nodeManagerContract.join(stakeAmount, 'my node metadata')
+		).wait();
+
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
 			auth: {
-				privateKey: await fetchPrivateKeyWithGas(),
+				privateKey: BROKER_NODE_PRIVATE_KEY,
 			},
 		});
 
 		// Prepare the Log Store contract by creating some stores
+		// testSystemStream = await createTestStream(publisherClient, module, {
+		// 	partitions: 1,
+		// });
+		// await publisherClient.addStreamToLogStore(testSystemStream.id, STAKE_AMOUNT);
+
 		// for (let i = 0; i < 3; i++) {
 		// 	const stream = await createTestStream(publisherClient, module, {
 		// 		partitions: 1,
@@ -229,6 +290,8 @@ describe('Validator Runtime', () => {
 	it('should produce cache items', async () => {
 		// ACT
 		await syncPoolConfig.call(v);
+		await publishStorageMessages(15);
+		// await publishQueryMessages(15);
 		await runCache.call(v);
 
 		expect(v['cacheProvider'].put).toHaveBeenCalledTimes(3);

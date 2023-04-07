@@ -31,6 +31,7 @@ export async function getNodeManagerInputParameters(
 		false,
 		stakeTokenAddress || STAKE_TOKEN_CONTRACTS[chainId],
 		toBigDecimal(1, 18),
+		STREAMR_REGISTRY_ADDRESS[chainId],
 		[],
 		[],
 	];

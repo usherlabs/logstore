@@ -38,7 +38,8 @@ export class LogStoreClient extends StreamrClient {
 	) {
 		// TODO: Review needed. Make the call of super(streamrClientConfig) pass its config validation.
 		const streamrClientConfig = cloneDeep(config);
-		delete streamrClientConfig.contracts?.logStoreManagerChainAddress;
+		delete streamrClientConfig.contracts?.logStoreNodeManagerChainAddress;
+		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
 
 		const strictConfig = createStrictConfig(config);
