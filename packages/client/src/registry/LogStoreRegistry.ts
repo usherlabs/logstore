@@ -95,7 +95,7 @@ export class LogStoreRegistry {
 		).map((provider: Provider) => {
 			return this.contractFactory.createReadContract(
 				toEthereumAddress(
-					this.clientConfig.contracts.logStoreManagerChainAddress
+					this.clientConfig.contracts.logStoreStoreManagerChainAddress
 				),
 				LogStoreManagerAbi,
 				provider,
@@ -173,7 +173,7 @@ export class LogStoreRegistry {
 			this.logStoreManagerContract =
 				this.contractFactory.createWriteContract<LogStoreManagerContract>(
 					toEthereumAddress(
-						this.clientConfig.contracts.logStoreManagerChainAddress
+						this.clientConfig.contracts.logStoreNodeManagerChainAddress
 					),
 					LogStoreManagerAbi,
 					chainSigner,
@@ -199,7 +199,7 @@ export class LogStoreRegistry {
 	): Promise<void> {
 		// let assignmentSubscription: Subscription;
 		const normalizedNodeAddress = toEthereumAddress(
-			this.clientConfig.contracts.logStoreManagerChainAddress
+			this.clientConfig.contracts.logStoreNodeManagerChainAddress
 		);
 		// const normalizedNodeAddress = toEthereumAddress(storageNodeAddress);
 		try {

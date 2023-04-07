@@ -189,7 +189,7 @@ export class Queries {
 		});
 
 		const queryStreamId = formLogStoreQueryStreamId(
-			this.config.contracts.logStoreManagerChainAddress
+			this.config.contracts.logStoreStoreManagerChainAddress
 		);
 
 		const messageStream = new MessageStream();
