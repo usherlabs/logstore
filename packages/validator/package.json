@@ -14,7 +14,8 @@
 		"start:fresh": "npm-run-all -s build start",
 		"ts": "tsc --noEmit",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts",
-		"test": "jest"
+		"test": "cross-env STREAMR_DOCKER_DEV_HOST=localhost jest",
+		"run-script": "cross-env STREAMR_DOCKER_DEV_HOST=localhost ts-node"
 	},
 	"bin": "./dist/src/index.js",
 	"pkg": {
@@ -43,7 +44,6 @@
 		"chokidar": "^3.5.3",
 		"classic-level": "^1.2.0",
 		"commander": "^10.0.0",
-		"dotenv": "^16.0.3",
 		"ethers": "^6.2.3",
 		"lodash": "^4.17.21",
 		"redstone-api": "^0.4.11",
@@ -60,7 +60,9 @@
 		"@types/pino": "^7.0.5",
 		"@types/websocket": "^1.0.5",
 		"@types/ws": "^8.5.3",
+		"cross-env": "^7.0.3",
 		"del-cli": "^5.0.0",
+		"dotenv": "^16.0.3",
 		"eslint": "^8.34.0",
 		"jest": "^29.4.3",
 		"jest-extended": "^3.2.4",

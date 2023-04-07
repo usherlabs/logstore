@@ -739,9 +739,6 @@ importers:
       commander:
         specifier: ^10.0.0
         version: 10.0.0
-      dotenv:
-        specifier: ^16.0.3
-        version: 16.0.3
       ethers:
         specifier: ^6.2.3
         version: 6.2.3
@@ -785,9 +782,15 @@ importers:
       '@types/ws':
         specifier: ^8.5.3
         version: 8.5.4
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       del-cli:
         specifier: ^5.0.0
         version: 5.0.0
+      dotenv:
+        specifier: ^16.0.3
+        version: 16.0.3
       eslint:
         specifier: ^8.34.0
         version: 8.37.0
@@ -7185,6 +7188,7 @@ packages:
   /dotenv@16.0.3:
     resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
     engines: {node: '>=12'}
+    dev: true
 
   /dprint-node@1.0.7:
     resolution: {integrity: sha512-NTZOW9A7ipb0n7z7nC3wftvsbceircwVHSgzobJsEQa+7RnOMbhrfX5IflA6CtC4GA63DSAiHYXa4JKEy9F7cA==}
