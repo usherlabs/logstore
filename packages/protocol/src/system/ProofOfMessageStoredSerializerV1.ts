@@ -13,6 +13,7 @@ export default class ProofOfMessageStoredSerializerV1 extends Serializer<ProofOf
 			message.partition,
 			message.timestamp,
 			message.sequenceNumber,
+			message.size,
 			message.hash,
 		];
 
@@ -27,6 +28,7 @@ export default class ProofOfMessageStoredSerializerV1 extends Serializer<ProofOf
 			partition,
 			timestamp,
 			sequenceNumber,
+			size,
 			hash,
 		] = arr;
 
@@ -36,6 +38,7 @@ export default class ProofOfMessageStoredSerializerV1 extends Serializer<ProofOf
 			partition,
 			timestamp,
 			sequenceNumber,
+			size,
 			hash,
 		});
 	}

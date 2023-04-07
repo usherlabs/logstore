@@ -188,6 +188,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					partition: msg.getStreamPartition(),
 					timestamp: msg.getTimestamp(),
 					sequenceNumber: msg.getSequenceNumber(),
+					size,
 					hash,
 				});
 
