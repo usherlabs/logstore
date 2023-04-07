@@ -240,7 +240,7 @@ describe('Validator Runtime', () => {
 		);
 		const nodeManagerContract = await getNodeManagerContract(signer);
 		await (
-			await nodeManagerContract.join(stakeAmount, 'my node metadata')
+			await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
 		).wait();
 
 		publisherClient = new LogStoreClient({

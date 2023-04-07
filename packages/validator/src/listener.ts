@@ -1,8 +1,9 @@
 import chokidar from 'chokidar';
 import { ClassicLevel } from 'classic-level';
 import path from 'path';
-import StreamrClient, { MessageMetadata } from 'streamr-client';
+import StreamrClient, { CONFIG_TEST, MessageMetadata } from 'streamr-client';
 
+import { useStreamrTestConfig } from './env-config';
 import type { StreamrMessage } from './types';
 import type Validator from './validator';
 
@@ -13,7 +14,7 @@ export default class Listener {
 	// private _storeMap: Record<string, string[]>;
 
 	constructor(private core: Validator, cacheHome: string) {
-		this.client = new StreamrClient();
+		this.client = new StreamrClient(useStreamrTestConfig() ? CONFIG_TEST : {});
 
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted

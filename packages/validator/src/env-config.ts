@@ -1,5 +1,5 @@
 import { name, version } from '../package.json';
-import { parseEvmPriv } from './utils/parser';
+import { parseBoolean, parseEvmPriv } from './utils/parser';
 
 export const appPackageName = process.env.APP_NAME || name;
 export const appVersion = process.env.APP_VERSION || version;
@@ -12,3 +12,5 @@ export const sentry = {
 };
 
 export const getEvmPrivateKey = () => parseEvmPriv('EVM_PRIVATE_KEY');
+export const useStreamrTestConfig = () =>
+	parseBoolean('USE_STREAMR_TEST_CONFIG');

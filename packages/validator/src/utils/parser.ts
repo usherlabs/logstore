@@ -9,3 +9,12 @@ export const parseEvmPriv = (value: string) => {
 
 	return process.env[value];
 };
+
+export const parseBoolean = (value: string, require = false) => {
+	if (require && !process.env[value]) {
+		throw new commander.InvalidArgumentError(
+			`Environment variable "${value}" has no value`
+		);
+	}
+	return value === 'true';
+};
