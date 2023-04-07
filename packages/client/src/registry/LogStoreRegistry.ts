@@ -1,7 +1,7 @@
 import type { LogStoreManager as LogStoreManagerContract } from '@concertodao/logstore-contracts';
 import { abi as LogStoreManagerAbi } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import {
-	getQeryMangerCotnract,
+	getQueryManagerContract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertodao/logstore-shared';
@@ -283,7 +283,7 @@ export class LogStoreRegistry {
 			options.usd
 		);
 		// @todo rename function to getQueryMangerContract across repo
-		const queryManagerContract = await getQeryMangerCotnract(chainSigner);
+		const queryManagerContract = await getQueryManagerContract(chainSigner);
 		await (await queryManagerContract.stake(stakeAmount)).wait();
 	}
 
