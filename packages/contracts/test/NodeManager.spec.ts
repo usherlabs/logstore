@@ -65,7 +65,6 @@ describe('NodeManager', function () {
 			const timeStamp = (await ethers.provider.getBlock('latest')).timestamp;
 			const record = await nodeManagerContract.functions.nodes(newNodeAddress);
 			const finalNodeCount = await nodeManagerContract.functions.totalNodes();
-
 			// validate the content of the event and linkedlist record
 			expect(String(timeStamp))
 				.to.equal(String(event?.lastSeen))
@@ -73,7 +72,6 @@ describe('NodeManager', function () {
 			expect(newNodeAddress.toLowerCase()).to.equal(
 				event?.nodeAddress.toLowerCase()
 			);
-
 			expect(+finalNodeCount).to.equal(+initialNodeCount + 1);
 			expect(SAMPLE_WSS_URL)
 				.to.equal(event?.metadata)
@@ -300,7 +298,6 @@ describe('NodeManager', function () {
 				CUSTOM_EXCEPTIONS.STAKE_INSUFFICIENT_BALANCE
 			);
 		});
-
 		it('StakeAmount ---- Nodes can stake an amount', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const newNodeAddress = whitelistedNodeSigner.address;
@@ -318,7 +315,6 @@ describe('NodeManager', function () {
 			);
 			expect(userNodeBalance).be.equal(stakeAmount);
 		});
-
 		it('StakeAmount ---- Nodes cannot withdraw more than staked amount', async function () {
 			const stakeAmount = getDecimalBN(1);
 			// stake amount and validate staked
@@ -334,7 +330,6 @@ describe('NodeManager', function () {
 				CUSTOM_EXCEPTIONS.INVALID_WITHDRAW_AMOUNT
 			);
 		});
-
 		it('StakeAmount ---- Nodes can withdraw staked amount', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const token = await getERC20Token(whitelistedNodeSigner);
@@ -385,7 +380,6 @@ describe('NodeManager', function () {
 				CUSTOM_EXCEPTIONS.INSUFFICIENT_DELEGATE_AMOUNT
 			);
 		});
-
 		it('delegateStake ---- User cannot delegate to node that doesnt exist', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const newNodeAddress = generateWallet();
@@ -402,7 +396,6 @@ describe('NodeManager', function () {
 				CUSTOM_EXCEPTIONS.NONE_EXISTENT_NODE
 			);
 		});
-
 		it('delegateStake ---- User can delegate stake to node', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const newNodeAddress = NODE_MANAGER.INITIAL_NODES[0];
@@ -443,7 +436,6 @@ describe('NodeManager', function () {
 			expect(postDelegateNodeStake).to.be.equal(stakeAmount);
 			// fetch state from contract to validate
 		});
-
 		it('undelegateStake ---- User can undelegate stake to node', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const newNodeAddress = NODE_MANAGER.INITIAL_NODES[0];
@@ -487,7 +479,6 @@ describe('NodeManager', function () {
 			expect(+nodeStakeAfterUndelegation).to.be.equal(0);
 		});
 	});
-
 	describe('Compound Actions', async function () {
 		it('CompoundActions ---- Node can Join(stake -> delegate -> upsertNode) network', async function () {
 			const stakeAmount = getDecimalBN(1);
@@ -517,7 +508,6 @@ describe('NodeManager', function () {
 				.to.equal(+stakeAmount)
 				.to.equal(+delegatesBalance);
 		});
-
 		it('CompoundActions ----- Node can leave(undelegate ---> withdraw ---> removeNode )', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const tokenContract = await getERC20Token(adminSigner);
@@ -540,7 +530,6 @@ describe('NodeManager', function () {
 				+preWithdrawTokenBalance
 			);
 		});
-
 		it('CompoundActions ----- Node can undelegateWithdraw(undelegate ---> withdraw)', async function () {
 			const stakeAmount = getDecimalBN(1);
 			const tokenContract = await getERC20Token(adminSigner);
@@ -575,7 +564,6 @@ describe('NodeManager', function () {
 			);
 		});
 	});
-
 	describe('Utility Functions', async function () {
 		it('UtilityFunctions(nodeAddresses) ----> Can correctly fetch all node addresses', async function () {
 			const [initialNodeAddresses] =
@@ -601,7 +589,6 @@ describe('NodeManager', function () {
 			expect(updatedNodeAddresses[1]).to.be.equal(newNodeAddress);
 			// validate the total nodes variabls
 		});
-
 		it('UtilityFunctions(countNodes) ----> countNodes variable ', async function () {
 			// get initial counts
 			const [initialNodeCountFromFunc] =
@@ -611,12 +598,10 @@ describe('NodeManager', function () {
 			expect(+initialNodeCountFromFunc)
 				.to.equal(+initialNodeCountFromVar)
 				.to.equal(1);
-
 			// add a new node
 			await nodeManagerContract
 				.connect(whitelistedNodeSigner)
 				.functions.join(getDecimalBN(1), SAMPLE_WSS_URL);
-
 			// count again and confirm it is consistent
 			const [finallNodeCountFromFunc] =
 				await nodeManagerContract.functions.countNodes();
