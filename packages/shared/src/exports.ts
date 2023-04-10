@@ -9,3 +9,4 @@ export {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from './prepareStake';
+export { queryBroker } from './query';
