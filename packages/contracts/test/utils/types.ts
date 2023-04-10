@@ -1,16 +1,18 @@
-import { BigNumber } from 'ethers';
-
 export type ReportData = {
-	fee: BigNumber;
 	bundleId: string;
-	streams: string[];
-	address: string[];
 	blockheight: number;
+	streams: string[];
+	writeCaptureAmounts: number[];
+	writeBytes: number[];
+	readConsumerAddress: string[];
+	readCaptureAmounts: number[];
+	readBytes: number[];
+	nodes: string[];
+	nodeChanges: number[];
+	delegates: string[];
+	delegateNodes: string[][];
+	delegateNodeChanges: number[][];
+	treasurySupplyChange: number;
+	address: string[];
 	signatures?: string[];
-	nodesPerStream: string[][];
-	bytesObservedPerNode: number[][];
-	bytesMissedPerNode: number[][];
-	bytesQueriedPerNode: number[][];
-	consumerAddresses: string[][];
-	bytesQueriedPerConsumer: number[][];
 };
