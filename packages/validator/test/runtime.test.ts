@@ -232,16 +232,19 @@ describe('Validator Runtime', () => {
 			'http://localhost:8546' // tunnel to remote server
 		);
 		const signer = new Wallet(BROKER_NODE_PRIVATE_KEY, provider);
-		const stakeAmount = await prepareStakeForNodeManager(
-			signer,
-			10000,
-			true,
-			async () => true
-		);
 		const nodeManagerContract = await getNodeManagerContract(signer);
-		await (
-			await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
-		).wait();
+		const isStaked = await nodeManagerContract.isStaked(signer.address);
+		if (!isStaked) {
+			const stakeAmount = await prepareStakeForNodeManager(
+				signer,
+				10000,
+				true,
+				async () => true
+			);
+			await (
+				await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
+			).wait();
+		}
 
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
@@ -289,27 +292,36 @@ describe('Validator Runtime', () => {
 		await publisherClient?.destroy();
 	});
 
-	it('should produce cache items', async () => {
-		// ACT
-		await syncPoolConfig.call(v);
-		await publishStorageMessages(15);
-		// await publishQueryMessages(15);
-		await runCache.call(v);
+	it(
+		'should produce cache items',
+		async () => {
+			// ACT
+			await syncPoolConfig.call(v);
+			await publishStorageMessages(15);
+			// await publishQueryMessages(15);
+			await runCache.call(v);
 
-		expect(v['cacheProvider'].put).toHaveBeenCalledTimes(3);
+			expect(v['cacheProvider'].put).toHaveBeenCalledTimes(3);
 
-		const maxBundleSize = parseInt(v.pool.data.max_bundle_size, 10);
-		for (let i = 0; i < maxBundleSize; i++) {
-			try {
-				const cacheVal = await v['cacheProvider'].get(`${i}`);
-				console.log('#' + i, cacheVal);
-			} catch (e) {
-				// ...
+			const maxBundleSize = parseInt(v.pool.data.max_bundle_size, 10);
+			for (let i = 0; i < maxBundleSize; i++) {
+				try {
+					const cacheVal = await v['cacheProvider'].get(`${i}`);
+					console.log('Bundle Data Item #' + i, cacheVal);
+				} catch (e) {
+					// ...
+				}
 			}
-		}
 
-		expect(true).toBe(true);
-	});
+			const db = await v.listener.db();
+			for await (const [k, v] of db.iterator()) {
+				console.log('Message from Listener Cache: ', k, v);
+			}
+
+			expect(true).toBe(true);
+		},
+		TIMEOUT
+	);
 
 	// it('should listen for an then cache messages over logstore client', async () => {
 	// 	// ACT

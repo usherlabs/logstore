@@ -102,9 +102,21 @@ export default class Runtime implements IRuntime {
 		}
 
 		const keyInt = parseInt(key, 10);
-		const currentKey = parseInt(core.pool.data.current_key, 10); // The key at which the bundle is starting
+
+		const currentKey = parseInt(
+			core.pool.data.current_key || core.pool.data.start_key,
+			10
+		); // The key at which the bundle is starting
 		const maxBundleSize = parseInt(core.pool.data.max_bundle_size, 10);
 		const lastBundleKey = (maxBundleSize - 1) * itemTimeRange + currentKey;
+
+		core.logger.debug('nextKey:', {
+			keyInt,
+			lastBundleKey,
+			maxBundleSize,
+			currentKey,
+		});
+
 		if (keyInt === lastBundleKey) {
 			return `${reportPrefix}${key}`;
 		}
