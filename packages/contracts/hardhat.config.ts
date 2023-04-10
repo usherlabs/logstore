@@ -105,7 +105,7 @@ const config: HardhatUserConfig = {
 			chainId: chainIds['eth-goerli'],
 			forking: {
 				url: String(process.env.FORK_URL),
-				blockNumber: 8660126,
+				blockNumber: 8800522,
 			},
 		},
 		// avalanche: getChainConfig('avalanche'),

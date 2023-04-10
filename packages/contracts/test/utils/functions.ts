@@ -5,6 +5,7 @@ import { ethers as hEthers, upgrades } from 'hardhat';
 
 import {
 	CONSUMER_ADDRESS,
+	CONSUMER_INDEX,
 	FAKE_STREAMR_REGISTRY,
 	NODE_MANAGER,
 	SAMPLE_STREAM_ID,
@@ -36,9 +37,7 @@ export async function loadNodeManager(adminAddress: SignerWithAddress) {
 		true,
 		NODE_MANAGER.STAKE_TOKEN,
 		NODE_MANAGER.STAKE_REQUIRED_AMOUNT,
-		NODE_MANAGER.WRITE_FEE_POINTS,
-		NODE_MANAGER.TREASURY_FEE_POINTS,
-		NODE_MANAGER.READ_FEE,
+		FAKE_STREAMR_REGISTRY,
 		NODE_MANAGER.INITIAL_NODES,
 		NODE_MANAGER.INITIAL_METADATA,
 	]);
@@ -58,7 +57,6 @@ export async function loadQueryManager(
 	const queryManagerContract = await upgrades.deployProxy(queryManager, [
 		adminAddress || signer.address,
 		NODE_MANAGER.STAKE_TOKEN,
-		FAKE_STREAMR_REGISTRY,
 	]);
 	// approve all accounts so all can stake
 	const nodes = await hEthers.getSigners();
@@ -180,62 +178,70 @@ export async function generateReportData({
 	bundleId: string;
 }): Promise<ReportData> {
 	const nodeAddress = signer.address;
-
+	const signers = await hEthers.getSigners();
+	const consumer = signers[CONSUMER_INDEX].address.toLowerCase();
 	const reportdata: ReportData = {
 		bundleId,
-		blockheight,
-		fee: getDecimalBN(1),
+		blockheight: blockheight,
 		streams: [SAMPLE_STREAM_ID],
-		nodesPerStream: [[nodeAddress]],
-		bytesObservedPerNode: [[10]],
-		bytesMissedPerNode: [[1]],
-		bytesQueriedPerNode: [[5]],
-		consumerAddresses: [[CONSUMER_ADDRESS]],
-		bytesQueriedPerConsumer: [[5]],
+		writeCaptureAmounts: [10000],
+		writeBytes: [5],
+		readConsumerAddress: [consumer],
+		readCaptureAmounts: [20000],
+		readBytes: [6],
+		nodes: [nodeAddress],
+		nodeChanges: [30000],
+		delegates: [nodeAddress],
+		delegateNodes: [[nodeAddress]],
+		delegateNodeChanges: [[40000]],
+		treasurySupplyChange: 50000,
 		address: [nodeAddress],
 	};
 
 	// ---- Include signatures in the report
-	const { reportHash } = generateReportHash(reportdata);
+	const { reportHash } = await generateReportHash({ signer, blockheight });
 	const signature = await signer.signMessage(ethers.utils.arrayify(reportHash));
 	reportdata['signatures'] = [signature];
 
 	return reportdata;
 }
 
-export function generateReportHash(reportdata: ReportData) {
+// @todo make the addresses variable too so it will pass on other people's system
+export async function generateReportHash({
+	signer,
+	blockheight,
+}: {
+	signer: SignerWithAddress;
+	blockheight: number;
+}) {
+	// so any change in values there should be reflected here
+	const nodeAddress = signer.address;
+	const signers = await hEthers.getSigners();
+	const consumer = signers[CONSUMER_INDEX].address.toLowerCase();
+
 	const reportJson = {
-		id: String(reportdata.bundleId),
-		height: String(reportdata.blockheight),
-		fee: String(reportdata.fee),
-		streams: reportdata.streams.map((stream, index) => {
-			return {
-				id: stream,
-				read: range(reportdata.consumerAddresses[index].length).reduce(
-					(acc: Record<string, string | number>, curr: number) => {
-						const key = reportdata.consumerAddresses[index][curr];
-						const value = reportdata.bytesQueriedPerConsumer[index][curr];
-						acc[key.toLowerCase()] = String(value);
-						return acc;
-					},
-					{}
-				),
-				write: reportdata.nodesPerStream[index].map(
-					(nodeAddress, nodeIndex) => ({
-						id: nodeAddress.toLowerCase(),
-						observed: Number(reportdata.bytesObservedPerNode[index][nodeIndex]),
-						missed: Number(reportdata.bytesMissedPerNode[index][nodeIndex]),
-						queried: Number(reportdata.bytesQueriedPerNode[index][nodeIndex]),
-					})
-				),
-			};
-		}),
+		id: '75',
+		height: `${blockheight}`,
+		treasury: '50000',
+		streams: [{ id: SAMPLE_STREAM_ID, capture: 10000, bytes: 5 }],
+		consumers: [
+			{
+				id: consumer.toLowerCase(),
+				capture: 20000,
+				bytes: 6,
+			},
+		],
+		nodes: { [nodeAddress.toLowerCase()]: 30000 },
+		delegates: {
+			[nodeAddress.toLowerCase()]: {
+				[nodeAddress.toLowerCase()]: 40000,
+			},
+		},
 	};
 	const reportHash = ethers.utils.solidityKeccak256(
 		['string'],
 		[JSON.stringify(reportJson)]
 	);
-
 	return { reportHash, data: reportJson };
 }
 
