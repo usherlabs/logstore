@@ -76,16 +76,13 @@ export default class Runtime implements IRuntime {
 		// First key in the listener cache is a timestamp.
 		// This key must be less than the key of the first item in the bundle.
 		// ie. this node may have produced an invalid report because it began listening after it had joined the processing of voting
-		const listenerCache = await core.listener.db();
 		const [item] = bundle; // first data item should always be the bundle
 		const itemKeyInt = parseInt(item.key, 10);
-		for await (const [lKey] of listenerCache.iterator()) {
-			const [key] = lKey.split(':');
-			const keyInt = parseInt(key, 10);
-			if (keyInt > itemKeyInt) {
-				return null; // Will cause the validator to abstain from the vote
-			}
-			break;
+		const [firstKey] = core.listener.atIndex(0);
+		const [key] = firstKey.split(':');
+		const keyInt = parseInt(key, 10);
+		if (keyInt > itemKeyInt) {
+			return null; // Will cause the validator to abstain from the vote
 		}
 
 		// Get second last item's key
@@ -110,17 +107,19 @@ export default class Runtime implements IRuntime {
 		const maxBundleSize = parseInt(core.pool.data.max_bundle_size, 10);
 		const lastBundleKey = (maxBundleSize - 1) * itemTimeRange + currentKey;
 
-		core.logger.debug('nextKey:', {
-			keyInt,
-			lastBundleKey,
-			maxBundleSize,
-			currentKey,
-		});
+		// core.logger.debug('nextKey:', {
+		// 	keyInt,
+		// 	lastBundleKey,
+		// 	maxBundleSize,
+		// 	currentKey,
+		// });
 
-		if (keyInt === lastBundleKey) {
+		// If the key to be produced is the lastBundleKey
+		const nextKey = keyInt + itemTimeRange;
+		if (nextKey === lastBundleKey) {
 			return `${reportPrefix}${key}`;
 		}
 
-		return (keyInt + itemTimeRange).toString(); // The larger the data item, the less items required in a bundle, otherwise increase interval.
+		return nextKey.toString(); // The larger the data item, the less items required in a bundle, otherwise increase interval.
 	}
 }

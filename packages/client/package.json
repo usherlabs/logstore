@@ -38,7 +38,7 @@
 		"reflect-metadata": "^0.1.13",
 		"secp256k1": "^5.0.0",
 		"sha3": "^2.1.4",
-		"streamr-client": "^8.0.2",
+		"streamr-client": "^8.1",
 		"ts-toolbelt": "^9.6.0",
 		"tsyringe": "^4.7.0",
 		"uuid": "^9.0.0"

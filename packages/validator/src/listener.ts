@@ -1,5 +1,8 @@
-import chokidar from 'chokidar';
-import { ClassicLevel } from 'classic-level';
+// import { Cama } from 'camadb';
+// import { LogLevel } from 'camadb/dist/interfaces/logger-level.enum';
+// import { PersistenceAdapterEnum } from 'camadb/dist/interfaces/perisistence-adapter.enum';
+// import chokidar from 'chokidar';
+import { open, RootDatabase } from 'lmdb';
 import path from 'path';
 import StreamrClient, { CONFIG_TEST, MessageMetadata } from 'streamr-client';
 
@@ -7,14 +10,18 @@ import { useStreamrTestConfig } from './env-config';
 import type { StreamrMessage } from './types';
 import type Validator from './validator';
 
+type DB = RootDatabase<StreamrMessage, string>;
+
 export default class Listener {
 	private client: StreamrClient;
-	private _db!: ClassicLevel<string, StreamrMessage>;
+	private _db!: DB;
 	private cachePath: string;
 	// private _storeMap: Record<string, string[]>;
 
 	constructor(private core: Validator, cacheHome: string) {
-		this.client = new StreamrClient(useStreamrTestConfig() ? CONFIG_TEST : {});
+		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
+		// core.logger.debug('Streamr Config', streamrConfig);
+		this.client = new StreamrClient(streamrConfig);
 
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted
@@ -30,19 +37,34 @@ export default class Listener {
 			await this.subscribe(this.core.systemStreamId);
 
 			// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
-			const db = await this.db();
-			await db.clear();
+			const db = this.db();
+			// const collection = await db.initCollection('system', {
+			// 	columns: [
+			// 		{
+			// 			type: 'json',
+			// 			title: 'metadata',
+			// 		},
+			// 		{
+			// 			type: 'json',
+			// 			title: 'content',
+			// 		},
+			// 	],
+			// 	indexes: [],
+			// });
+			// await collection.destroy();
+			// await db.clear();
+			await db.drop();
 			await db.put(Date.now().toString(), null);
 
 			// Chokidar listening to reinitiate the cache after each flush/drop/wipe.
-			chokidar.watch(this.cachePath).on('unlink', async (eventPath) => {
-				if (eventPath == this.cachePath) {
-					const db = await this.db();
-					await db.put(Date.now().toString(), null);
+			// chokidar.watch(this.cachePath).on('unlink', async (eventPath) => {
+			// 	if (eventPath == this.cachePath) {
+			// 		const db = await this.db();
+			// 		await db.put(Date.now().toString(), null);
 
-					this.core.logger.info('System cache removed and reinitialised.');
-				}
-			});
+			// 		this.core.logger.info('System cache removed and reinitialised.');
+			// 	}
+			// });
 		} catch (e) {
 			this.core.logger.error(`Unexpected error starting listener...`);
 			this.core.logger.error(e);
@@ -59,20 +81,36 @@ export default class Listener {
 		});
 	}
 
-	public async db(): Promise<ClassicLevel<string, StreamrMessage>> {
+	public db(): DB {
 		if (!this._db) {
 			throw new Error('Database is not initialised');
 		}
-		if (this._db.status === 'closed') {
-			await this._db.open();
-		}
+		// if (this._db.status === 'closed') {
+		// 	await this._db.open();
+		// }
 		return this._db;
 	}
 
 	public createDb(dbPath: string) {
-		return new ClassicLevel<string, StreamrMessage>(dbPath, {
-			valueEncoding: 'json',
+		// return new Cama({
+		// 	path: dbPath,
+		// 	persistenceAdapter: PersistenceAdapterEnum.FS,
+		// 	logLevel: LogLevel.Debug,
+		// });
+
+		return open<StreamrMessage, string>({
+			path: dbPath,
+			compression: true,
+			encoding: 'json',
 		});
+	}
+
+	public atIndex(index: number) {
+		const db = this.db();
+		for (const { key, value } of db.getRange({ offset: index, limit: 1 })) {
+			return [key, value];
+		}
+		throw new Error(`atIndex: No key at index: ${index}`);
 	}
 
 	// public getStoreMap(){
@@ -91,7 +129,7 @@ export default class Listener {
 			}
 		);
 
-		const db = await this.db();
+		const db = this.db();
 		await db.put(key, { content, metadata });
 	}
 }

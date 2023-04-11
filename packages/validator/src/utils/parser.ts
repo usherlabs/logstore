@@ -16,5 +16,5 @@ export const parseBoolean = (value: string, require = false) => {
 			`Environment variable "${value}" has no value`
 		);
 	}
-	return value === 'true';
+	return process.env[value] === 'true';
 };

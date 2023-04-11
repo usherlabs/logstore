@@ -19,7 +19,6 @@
 		"doAll-inside-docker-dev": "npm run build && npm run create-docker-dev && npm run deploy-docker-dev"
 	},
 	"dependencies": {
-		"@graphprotocol/graph-cli": "0.42.3",
 		"@graphprotocol/graph-ts": "0.29.1"
 	},
 	"devDependencies": {

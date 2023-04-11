@@ -28,5 +28,8 @@ export const TestListenerCacheProvider = jest.fn().mockImplementation(() => {
 		clear: jest.fn().mockImplementation(async () => {
 			cache = {};
 		}),
+		// iterator: jest.fn().mockImplementation(function* (params){
+
+		// })
 	};
 });

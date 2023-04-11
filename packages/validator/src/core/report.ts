@@ -79,12 +79,12 @@ export const produceReport = async (
 	};
 
 	// Use events in the listener cache to determine which events are valid.
-	const listenerCache = await core.listener.db();
+	const listenerCache = core.listener.db();
 	const queryHashKeyMap: Record<string, string[]> = {};
 	const storeHashKeyMap: Record<string, string[]> = {};
-	for await (const [lKey, lValue] of listenerCache.iterator({
-		gte: fromKey,
-		lt: toKey,
+	for (const { key: lKey, value: lValue } of listenerCache.getRange({
+		start: fromKey,
+		end: toKey,
 	})) {
 		// verify that the publisher also a broker node
 		const brokerNode = brokerNodes.find((n) => n.id === metadata.publisherId);

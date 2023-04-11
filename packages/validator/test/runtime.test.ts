@@ -23,6 +23,7 @@ import { fastPrivateKey } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { range } from 'lodash';
+// import { MemoryLevel } from 'memory-level';
 import path from 'path';
 import { register } from 'prom-client';
 import { ILogObject, Logger } from 'tslog';
@@ -30,6 +31,7 @@ import { fromString } from 'uint8arrays';
 
 import Listener from '../src/listener';
 import Runtime from '../src/runtime';
+// import type { StreamrMessage } from '../src/types';
 import Validator, { syncPoolConfig } from '../src/validator';
 // import { TestListenerCacheProvider } from './mocks/cache.mock';
 import { genesis_pool } from './mocks/constants';
@@ -112,35 +114,6 @@ describe('Validator Runtime', () => {
 		await wait(MESSAGE_STORE_TIMEOUT);
 	};
 
-	const setupListenerCache = (v: Validator) => {
-		let cache: any = {};
-		jest.spyOn(v.listener['_db'], 'open').mockImplementation(async () => {
-			return null;
-		});
-		jest
-			.spyOn(v.listener['_db'], 'get')
-			.mockImplementation(async (key: string) => {
-				if (cache[key]) {
-					return cache[key];
-				}
-
-				throw new Error('not found');
-			});
-		jest
-			.spyOn(v.listener['_db'], 'put')
-			.mockImplementation(async (key: string, value: unknown) => {
-				cache[key] = value;
-			});
-		jest
-			.spyOn(v.listener['_db'], 'del')
-			.mockImplementation(async (key: string) => {
-				delete cache[key];
-			});
-		jest.spyOn(v.listener['_db'], 'clear').mockImplementation(async () => {
-			cache = {};
-		});
-	};
-
 	beforeEach(async () => {
 		evmPrivateKey = await fastPrivateKey();
 		process.env.EVM_PRIVATE_KEY = evmPrivateKey;
@@ -197,6 +170,7 @@ describe('Validator Runtime', () => {
 				console.log(...args);
 				return {} as ILogObject;
 			});
+
 		v.logger = new Logger();
 		if (DISABLE_DEBUG_LOGS === 'true') {
 			v.logger.debug = jest.fn();
@@ -222,8 +196,13 @@ describe('Validator Runtime', () => {
 		// Set home value
 		v['home'] = path.join(__dirname, '../cache');
 
-		v.listener = new Listener(this, v['home']);
-		setupListenerCache(v);
+		// jest.spyOn(Listener.prototype, 'createDb').mockImplementation(
+		// 	() =>
+		// 		new MemoryLevel<string, StreamrMessage>({
+		// 			valueEncoding: 'json',
+		// 		})
+		// );
+		v.listener = new Listener(v, v['home']);
 
 		// Ensure that all prom calls are setup
 		setupMetrics.call(v);
@@ -297,6 +276,7 @@ describe('Validator Runtime', () => {
 		async () => {
 			// ACT
 			await syncPoolConfig.call(v);
+			await v.listener.start();
 			await publishStorageMessages(15);
 			// await publishQueryMessages(15);
 			await runCache.call(v);
@@ -313,8 +293,9 @@ describe('Validator Runtime', () => {
 				}
 			}
 
-			const db = await v.listener.db();
-			for await (const [k, v] of db.iterator()) {
+			const db = v.listener.db();
+			// Implement AsyncIterable into Mock
+			for (const { key: k, value: v } of db.getRange()) {
 				console.log('Message from Listener Cache: ', k, v);
 			}
 
