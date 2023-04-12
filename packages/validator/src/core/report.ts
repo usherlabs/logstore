@@ -23,6 +23,7 @@ export const produceReport = async (
 	// The start key will be the timestamp at which the validator pool is live.
 	let fromKey = parseInt(core.pool.data.start_key, 10); // This needs to be the start key
 	if ((lastReport || {})?.id) {
+		core.logger.debug('Last Report Id: ', lastReport.id);
 		const rKey = lastReport.id.substring(
 			reportPrefix.length,
 			lastReport.id.length
@@ -30,14 +31,20 @@ export const produceReport = async (
 		fromKey = parseInt(rKey, 10);
 	}
 	const toKey = parseInt(key.substring(reportPrefix.length, key.length), 10);
+	core.logger.debug('Report Range: ', { fromKey, toKey });
 
 	// Get all latest state from Smart Contract
 	// We do this by using the key (timestamp) to determine the most relevant block
-	const blockNumber = await managers.getBlockByTime(toKey);
+	// ? We need to get the closest block because it may not be the most recent block...
+	core.logger.debug('getBlockByTime...'); // TODO: Test this.
+	const block = await managers.getBlockByTime(toKey);
+	const blockNumber = block.number;
+	core.logger.debug('Block Number: ', {
+		blockNumber,
+	});
+
 	// Now that we have the block that most closely resemble the current key
 	const stakeToken = await managers.node.getStakeToken(blockNumber);
-	// // Fetch all Smart Contract events to reconstruct the state
-	// const stores = await managers.store.getStores(blockNumber);
 	// Produce brokerNode list by starting at headNode and iterating over nodes.
 	const brokerNodes = await managers.node.getBrokerNodes(blockNumber);
 
@@ -158,11 +165,11 @@ export const produceReport = async (
 		}
 
 		// Add consolidated event to report
-		let event = null;
+		let event: StreamrMessage;
 		const contributingPublishers = [];
 		for (let j = 0; j < lKeys.length; j++) {
 			// Determine all broker nodes that validly contributed to this event.
-			event = (await listenerCache.get(lKeys[j])) as StreamrMessage; // All of these events for this hash will be the same.
+			event = listenerCache.get(lKeys[j]); // All of these events for this hash will be the same.
 			contributingPublishers.push(event.metadata.publisherId);
 		}
 
@@ -220,7 +227,7 @@ export const produceReport = async (
 		}
 
 		// Add consolidated event to report
-		const event = await listenerCache.get(lKeys[0]);
+		const event = listenerCache.get(lKeys[0]);
 		const id = event.metadata.streamId.toString();
 		report.events.queries.push({
 			id,

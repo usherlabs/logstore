@@ -15,7 +15,7 @@ import { resolve } from 'path';
 import './tasks/accounts';
 
 // import './tasks/deploy';
-
+const { STREAMR_DOCKER_DEV_HOST = 'localhost' } = process.env;
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || './.env';
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });
 
@@ -53,7 +53,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 			jsonRpcUrl = 'https://bsc-dataseed1.binance.org';
 			break;
 		case 'streamr-dev':
-			jsonRpcUrl = 'http://localhost:8546';
+			jsonRpcUrl = `http://${STREAMR_DOCKER_DEV_HOST}:8546`;
 			break;
 		case 'streamr-dev-docker':
 			jsonRpcUrl = 'http://10.200.10.1:8546';

@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 
 import { PoolConfigContracts } from '../types/index';
+import { getClosestBlockByTime } from '../utils/helpers';
 import { NodeManagerContract } from './NodeManager';
 // import { QueryManagerContract } from './QueryManager';
 import { ReportManagerContract } from './ReportManager';
@@ -35,17 +36,12 @@ export class Managers {
 		// );
 	}
 
-	public async getBlockByTime(ts: number): Promise<number> {
-		// ? toKey will be a recent timestamp as the Pool's start_key will be the timestamp the Pool was created.
-		let blockNumber = await this.provider.getBlockNumber();
-		let blockNumberTimestamp = 0;
-		do {
-			const block = await this.provider.getBlock(blockNumber);
-			blockNumberTimestamp = block.timestamp;
-			blockNumber--;
-		} while (blockNumberTimestamp > ts);
-		blockNumber++; // re-add the removed latest block
-
-		return blockNumber;
+	public async getBlockByTime(ts: number): Promise<ethers.Block> {
+		const { provider } = this;
+		let block = await getClosestBlockByTime(ts, provider);
+		if (ts !== block.timestamp) {
+			block = await provider.getBlock(block.number - 1);
+		}
+		return block;
 	}
 }

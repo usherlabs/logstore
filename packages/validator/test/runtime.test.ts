@@ -42,7 +42,11 @@ const MESSAGE_STORE_TIMEOUT = 9 * 1000;
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
 }
-const { DISABLE_DEBUG_LOGS } = process.env;
+const {
+	DISABLE_DEBUG_LOGS,
+	KYVE_DEV_HOST = 'localhost',
+	STREAMR_DOCKER_DEV_HOST = 'localhost',
+} = process.env;
 const BROKER_NODE_PRIVATE_KEY =
 	'0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const;
 
@@ -179,10 +183,10 @@ describe('Validator Runtime', () => {
 		v['poolId'] = 0;
 		v['staker'] = 'test_staker';
 
-		v['rpc'] = ['http://0.0.0.0:26657'];
+		v['rpc'] = [`http://${KYVE_DEV_HOST}:26657`];
 		v.client = [client()];
 
-		v['rest'] = ['http://0.0.0.0:1317'];
+		v['rest'] = [`http://${KYVE_DEV_HOST}:1317`];
 		v.lcd = [lcd()];
 
 		// Ensure the cache only runs in one cycle.
@@ -208,7 +212,7 @@ describe('Validator Runtime', () => {
 		setupMetrics.call(v);
 
 		const provider = new JsonRpcProvider(
-			'http://localhost:8546' // tunnel to remote server
+			`http://${STREAMR_DOCKER_DEV_HOST}:8546` // tunnel to remote server
 		);
 		const signer = new Wallet(BROKER_NODE_PRIVATE_KEY, provider);
 		const nodeManagerContract = await getNodeManagerContract(signer);

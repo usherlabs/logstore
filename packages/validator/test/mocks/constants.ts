@@ -16,7 +16,7 @@ export const genesis_pool = {
 				"queryManager": { "address": "${contractAddresses[8997].queryManagerAddress}" }
 			}
 		}`.replace(/\s/g, ''),
-		start_key: '1680224880429',
+		start_key: '1681200822557',
 		current_key: '',
 		current_summary: '',
 		current_index: '0',
