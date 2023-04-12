@@ -22,10 +22,15 @@ export const produceItem = async (
 	const toKey = parseInt(key, 10);
 	const fromKey = toKey - config.itemTimeRange; // First iteration over the cache, will use the first nextKey -- ie. 1000
 
-	const blockNumber = await managers.getBlockByTime(toKey);
+	const block = await managers.getBlockByTime(toKey);
+	core.logger.debug('produceItem:', {
+		isMaxBlock: toKey >= block.timestamp * 1000,
+		blockTs: block.timestamp * 1000,
+		ts: toKey,
+	});
 
 	// Fetch full store list
-	const stores = await managers.store.getStores(blockNumber);
+	const stores = await managers.store.getStores(block.number);
 
 	const messages = [];
 	for (let i = 0; i < stores.length; i++) {

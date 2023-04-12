@@ -1,4 +1,4 @@
-import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/QueryManager.sol/LogStoreQueryManager.json';
+import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
 import { ethers } from 'ethers';
 
 import erc20ABI from '../abi/erc20';
@@ -44,7 +44,9 @@ export class NodeManagerContract {
 		const minStakeRequirement: number = await this.contract.stakeRequiredAmount(
 			{ blockNumber }
 		);
-		const stakeTokenAddress: string = await this.contract.stakeTokenAddress();
+		const stakeTokenAddress: string = await this.contract.stakeTokenAddress({
+			blockNumber,
+		});
 		// Get decimal count for the stake token
 		const stakeTokenContract = new ethers.Contract(
 			stakeTokenAddress,

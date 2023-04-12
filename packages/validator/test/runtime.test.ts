@@ -273,6 +273,8 @@ describe('Validator Runtime', () => {
 		register.clear();
 
 		await publisherClient?.destroy();
+
+		await v.listener.stop();
 	});
 
 	it(
