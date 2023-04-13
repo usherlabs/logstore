@@ -181,7 +181,7 @@ export const produceReport = async (
 
 		// TODO: ISSUE: This will always be the system stream id, as the message was passed over this.
 		// ? We'll need to pass the stream id being queried/stored in the system stream message.
-		const id = event.metadata.streamId.toString();
+		const { id } = event.content;
 		report.events.storage.push({
 			id,
 			hash: event.content.hash,
@@ -236,9 +236,8 @@ export const produceReport = async (
 
 		// Add consolidated event to report
 		const event = listenerCache.get(lKeys[0]);
-		const id = event.metadata.streamId.toString();
 		report.events.queries.push({
-			id,
+			id: event.content.id,
 			query: event.content.query,
 			consumer: event.content.consumer,
 			hash: event.content.hash,
