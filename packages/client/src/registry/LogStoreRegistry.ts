@@ -173,7 +173,7 @@ export class LogStoreRegistry {
 			this.logStoreManagerContract =
 				this.contractFactory.createWriteContract<LogStoreManagerContract>(
 					toEthereumAddress(
-						this.clientConfig.contracts.logStoreNodeManagerChainAddress
+						this.clientConfig.contracts.logStoreStoreManagerChainAddress
 					),
 					LogStoreManagerAbi,
 					chainSigner,

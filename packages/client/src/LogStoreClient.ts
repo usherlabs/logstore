@@ -25,8 +25,7 @@ import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { StreamIDBuilder } from './StreamIDBuilder';
 
 export class LogStoreClient extends StreamrClient {
-	// TODO: logStoreRegistry must be private (it's a temporary workaround)
-	public readonly logStoreRegistry: LogStoreRegistry;
+	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreStreamIdBuilder: StreamIDBuilder;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;

@@ -1,11 +1,5 @@
-import {
-	QueryMessage,
-	QueryMessageType,
-	QueryRequest,
-	QueryResponse,
-	QueryType,
-} from '@concertodao/logstore-protocol';
-import { StreamMessage, StreamPartIDUtils } from '@streamr/protocol';
+import { QueryType } from '@concertodao/logstore-protocol';
+import { StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
 import { StreamPartID } from 'streamr-client';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
@@ -15,16 +9,20 @@ import {
 	StrictLogStoreClientConfig,
 } from './Config';
 import { DestroySignal } from './DestroySignal';
+import { GroupKeyManager } from './encryption/GroupKeyManager';
+import { HttpUtil } from './HttpUtil';
 import { LogStoreClient } from './LogStoreClient';
-// import { GroupKeyManager } from './encryption/GroupKeyManager';
 import { MessageStream } from './MessageStream';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { StreamrClientError } from './StreamrClientError';
+import { createSubscribePipeline } from './subscribe/subscribePipeline';
+import { counting } from './utils/GeneratorUtils';
 import { LoggerFactory } from './utils/LoggerFactory';
-import { counterId, formLogStoreQueryStreamId } from './utils/utils';
-import { uuid } from './utils/uuid';
+import { counterId } from './utils/utils';
 
 const MIN_SEQUENCE_NUMBER_VALUE = 0;
+
+type QueryDict = Record<string, string | number | boolean | null | undefined>;
 
 export interface QueryRef {
 	timestamp: number;
@@ -98,16 +96,26 @@ function isQueryRange<T extends QueryRangeOptions>(options: any): options is T {
 export class Queries {
 	private readonly logStoreClient: LogStoreClient;
 	private readonly logStoreRegistry: LogStoreRegistry;
-	// private readonly groupKeyManager: GroupKeyManager;
+	// private readonly streamRegistryCached: StreamRegistryCached;
+	private readonly httpUtil: HttpUtil;
+	private readonly groupKeyManager: GroupKeyManager;
 	private readonly destroySignal: DestroySignal;
 	private readonly config: StrictLogStoreClientConfig;
 	private readonly loggerFactory: LoggerFactory;
 	private readonly logger: Logger;
 
 	constructor(
-		@inject(delay(() => LogStoreClient)) logStoreClient: LogStoreClient,
-		@inject(delay(() => LogStoreRegistry)) logStoreRegistry: LogStoreRegistry,
-		// groupKeyManager: GroupKeyManager,
+		@inject(delay(() => LogStoreClient))
+		logStoreClient: LogStoreClient,
+		@inject(delay(() => LogStoreRegistry))
+		logStoreRegistry: LogStoreRegistry,
+		// @inject(delay(() => StreamRegistryCached))
+		// streamRegistryCached: StreamRegistryCached,
+		@inject(HttpUtil)
+		httpUtil: HttpUtil,
+		@inject(GroupKeyManager)
+		groupKeyManager: GroupKeyManager,
+		@inject(DestroySignal)
 		destroySignal: DestroySignal,
 		@inject(LogStoreClientConfigInjectionToken)
 		config: StrictLogStoreClientConfig,
@@ -115,7 +123,9 @@ export class Queries {
 	) {
 		this.logStoreClient = logStoreClient;
 		this.logStoreRegistry = logStoreRegistry;
-		// this.groupKeyManager = groupKeyManager;
+		// this.streamRegistryCached = streamRegistryCached;
+		this.httpUtil = httpUtil;
+		this.groupKeyManager = groupKeyManager;
 		this.destroySignal = destroySignal;
 		this.config = config;
 		this.loggerFactory = loggerFactory;
@@ -169,7 +179,7 @@ export class Queries {
 	private async fetchStream(
 		queryType: QueryType,
 		streamPartId: StreamPartID,
-		queryOptions: QueryOptions
+		query: QueryDict = {}
 	): Promise<MessageStream> {
 		const loggerIdx = counterId('fetchStream');
 		this.logger.debug(
@@ -177,60 +187,116 @@ export class Queries {
 			loggerIdx,
 			queryType,
 			streamPartId,
-			queryOptions
+			query
 		);
-		const streamId = StreamPartIDUtils.getStreamID(streamPartId);
-		const requestId = uuid();
-		const queryRequest = new QueryRequest({
-			requestId,
-			streamId,
-			queryType,
-			queryOptions,
+		// const streamId = StreamPartIDUtils.getStreamID(streamPartId);
+		// const nodeAddresses = await this.streamStorageRegistry.getStorageNodes(
+		// 	streamId
+		// );
+		// if (!nodeAddresses.length) {
+		// 	throw new StreamrClientError(
+		// 		`no storage assigned: ${streamId}`,
+		// 		'NO_STORAGE_NODES'
+		// 	);
+		// }
+
+		// const nodeAddress = nodeAddresses[random(0, nodeAddresses.length - 1)];
+		// const nodeUrl = (
+		// 	await this.storageNodeRegistry.getStorageNodeMetadata(nodeAddress)
+		// ).http;
+
+		// TODO: Get the broker URL from config.
+		const nodeUrl = 'http://localhost:7171';
+		const url = this.createUrl(nodeUrl, queryType, streamPartId, query);
+		const messageStream = createSubscribePipeline({
+			streamPartId,
+			queries: this,
+			groupKeyManager: this.groupKeyManager,
+			logStoreClient: this.logStoreClient,
+			// streamRegistryCached: this.streamRegistryCached,
+			destroySignal: this.destroySignal,
+			config: this.config,
+			loggerFactory: this.loggerFactory,
 		});
 
-		const queryStreamId = formLogStoreQueryStreamId(
-			this.config.contracts.logStoreStoreManagerChainAddress
+		const dataStream = this.httpUtil.fetchHttpStream(url);
+		messageStream.pull(
+			counting(dataStream, (count: number) => {
+				this.logger.debug(
+					'[%s] total of %d messages received for query fetch',
+					loggerIdx,
+					count
+				);
+			})
 		);
-
-		const messageStream = new MessageStream();
-
-		await this.logStoreClient.publish(queryStreamId, queryRequest.serialize());
-
-		await new Promise<void>((resolve, reject) => {
-			this.logStoreClient
-				.subscribe(queryStreamId, (content) => {
-					const qyeryMessage = QueryMessage.deserialize(content);
-					if (
-						qyeryMessage.messageType === QueryMessageType.QueryResponse &&
-						qyeryMessage.requestId === requestId
-					) {
-						const queryResponse = qyeryMessage as QueryResponse;
-						this.logger.trace(
-							'Received queryResponse: %s',
-							JSON.stringify(queryResponse.payload, null, 2)
-						);
-
-						if (!queryResponse.isFinal) {
-							const streamMessage = StreamMessage.deserialize(
-								queryResponse.payload
-							);
-							messageStream.push(streamMessage);
-						} else {
-							messageStream.endWrite();
-							resolve();
-						}
-					} else {
-						// TODO:
-					}
-				})
-				// .then(async (subscription) => {
-				// 	await subscription.unsubscribe();
-				// })
-				.catch(reject);
-		});
-
 		return messageStream;
 	}
+
+	// private async fetchStream(
+	// 	queryType: QueryType,
+	// 	streamPartId: StreamPartID,
+	// 	queryOptions: QueryOptions
+	// ): Promise<MessageStream> {
+	// 	const loggerIdx = counterId('fetchStream');
+	// 	this.logger.debug(
+	// 		'[%s] fetching query %s for %s with options %o',
+	// 		loggerIdx,
+	// 		queryType,
+	// 		streamPartId,
+	// 		queryOptions
+	// 	);
+	// 	const streamId = StreamPartIDUtils.getStreamID(streamPartId);
+	// 	const requestId = uuid();
+	// 	const queryRequest = new QueryRequest({
+	// 		requestId,
+	// 		streamId,
+	// 		queryType,
+	// 		queryOptions,
+	// 	});
+
+	// 	const queryStreamId = formLogStoreQueryStreamId(
+	// 		this.config.contracts.logStoreStoreManagerChainAddress
+	// 	);
+
+	// 	const messageStream = new MessageStream();
+
+	// 	await this.logStoreClient.publish(queryStreamId, queryRequest.serialize());
+
+	// 	await new Promise<void>((resolve, reject) => {
+	// 		this.logStoreClient
+	// 			.subscribe(queryStreamId, (content) => {
+	// 				const qyeryMessage = QueryMessage.deserialize(content);
+	// 				if (
+	// 					qyeryMessage.messageType === QueryMessageType.QueryResponse &&
+	// 					qyeryMessage.requestId === requestId
+	// 				) {
+	// 					const queryResponse = qyeryMessage as QueryResponse;
+	// 					this.logger.trace(
+	// 						'Received queryResponse: %s',
+	// 						JSON.stringify(queryResponse.payload, null, 2)
+	// 					);
+
+	// 					if (!queryResponse.isFinal) {
+	// 						const streamMessage = StreamMessage.deserialize(
+	// 							queryResponse.payload
+	// 						);
+	// 						messageStream.push(streamMessage);
+	// 					} else {
+	// 						messageStream.endWrite();
+	// 						resolve();
+	// 					}
+	// 				} else {
+	// 					// TODO:
+	// 				}
+	// 			})
+	// 			// .then(async (subscription) => {
+	// 			// 	await subscription.unsubscribe();
+	// 			// })
+	// 			.catch(reject);
+	// 	});
+
+	// 	return messageStream;
+	// }
 
 	async last(
 		streamPartId: StreamPartID,
@@ -243,7 +309,7 @@ export class Queries {
 		}
 
 		return this.fetchStream(QueryType.Last, streamPartId, {
-			last: count,
+			count,
 		});
 	}
 
@@ -260,10 +326,8 @@ export class Queries {
 		}
 	): Promise<MessageStream> {
 		return this.fetchStream(QueryType.From, streamPartId, {
-			from: {
-				timestamp: fromTimestamp,
-				sequenceNumber: fromSequenceNumber,
-			},
+			fromTimestamp,
+			fromSequenceNumber,
 			publisherId,
 		});
 	}
@@ -287,16 +351,30 @@ export class Queries {
 		}
 	): Promise<MessageStream> {
 		return this.fetchStream(QueryType.Range, streamPartId, {
-			from: {
-				timestamp: fromTimestamp,
-				sequenceNumber: fromSequenceNumber,
-			},
-			to: {
-				timestamp: toTimestamp,
-				sequenceNumber: toSequenceNumber,
-			},
+			fromTimestamp,
+			fromSequenceNumber,
+			toTimestamp,
+			toSequenceNumber,
 			publisherId,
 			msgChainId,
 		});
+	}
+
+	private createUrl(
+		baseUrl: string,
+		endpointSuffix: string,
+		streamPartId: StreamPartID,
+		query: QueryDict = {}
+	): string {
+		const queryMap = {
+			...query,
+			format: 'raw',
+		};
+		const [streamId, streamPartition] =
+			StreamPartIDUtils.getStreamIDAndPartition(streamPartId);
+		const queryString = this.httpUtil.createQueryString(queryMap);
+		return `${baseUrl}/streams/${encodeURIComponent(
+			streamId
+		)}/data/partitions/${streamPartition}/${endpointSuffix}?${queryString}`;
 	}
 }

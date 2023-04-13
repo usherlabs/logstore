@@ -2,7 +2,7 @@ import { fastPrivateKey, fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
 import { BigNumber } from 'ethers';
 import { range } from 'lodash';
-import { Stream } from 'streamr-client';
+import { Stream, StreamPermission } from 'streamr-client';
 
 import { CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
@@ -68,6 +68,12 @@ describe('query', () => {
 			stream = await createTestStream(publisherClient, module, {
 				partitions: 1,
 			});
+
+			await stream.grantPermissions({
+				public: true,
+				permissions: [StreamPermission.SUBSCRIBE],
+			});
+
 			await publisherClient.addStreamToLogStore(stream.id, STAKE_AMOUNT);
 		}, TIMEOUT);
 
