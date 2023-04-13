@@ -5,6 +5,7 @@ import split2 from 'split2';
 import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
+import { Authentication, AuthenticationInjectionToken } from './Authentication';
 import { LoggerFactory } from './utils/LoggerFactory';
 import { getVersionString } from './utils/utils';
 import { WebStreamToNodeStream } from './utils/WebStreamToNodeStream';
@@ -16,7 +17,7 @@ export enum ErrorCode {
 }
 
 export const DEFAULT_HEADERS = {
-	'Streamr-Client': `streamr-client-javascript/${getVersionString()}`,
+	'LogStore-Client': `logstore-client-javascript/${getVersionString()}`,
 };
 
 export class HttpError extends Error {
@@ -75,9 +76,16 @@ const parseErrorCode = (body: string) => {
 
 @scoped(Lifecycle.ContainerScoped)
 export class HttpUtil {
+	private authentication: Authentication;
 	private readonly logger: Logger;
 
-	constructor(@inject(LoggerFactory) loggerFactory: LoggerFactory) {
+	constructor(
+		@inject(AuthenticationInjectionToken)
+		authentication: Authentication,
+		@inject(LoggerFactory)
+		loggerFactory: LoggerFactory
+	) {
+		this.authentication = authentication;
 		this.logger = loggerFactory.createLogger(module);
 	}
 
@@ -85,8 +93,16 @@ export class HttpUtil {
 		url: string,
 		abortController = new AbortController()
 	): AsyncIterable<StreamMessage> {
+		const authUser = await this.authentication.getAddress();
+		const authPassword = await this.authentication.createMessageSignature(
+			authUser
+		);
+
 		const response = await fetchResponse(url, this.logger, {
 			signal: abortController.signal,
+			headers: {
+				Authorization: `Basic ${authUser}:${authPassword}`,
+			},
 		});
 		if (!response.body) {
 			throw new Error('No Response Body');

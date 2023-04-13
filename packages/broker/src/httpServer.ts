@@ -1,5 +1,6 @@
-import { Logger } from '@streamr/utils';
+import { Logger, toEthereumAddress } from '@streamr/utils';
 import cors from 'cors';
+import { ethers } from 'ethers';
 import { once } from 'events';
 import express, {
 	NextFunction,
@@ -11,7 +12,6 @@ import fs from 'fs';
 import { Server as HttpServer } from 'http';
 import https, { Server as HttpsServer } from 'https';
 
-import { ApiAuthentication, isValidAuthentication } from './apiAuthentication';
 import { StrictConfig } from './config/config';
 
 const logger = new Logger(module);
@@ -23,30 +23,40 @@ export interface Endpoint {
 	path: string;
 	method: 'get' | 'post';
 	requestHandlers: RequestHandler[];
-	apiAuthentication?: ApiAuthentication;
 }
 
-const getApiKey = (req: Request) => {
+const getCredentials = (req: Request) => {
 	const headerValue = req.headers.authorization;
-	const PREFIX = 'bearer ';
+	const PREFIX = 'basic ';
 	if (headerValue?.toLowerCase().startsWith(PREFIX)) {
-		return headerValue.substring(PREFIX.length);
+		const [user, signature] = headerValue.substring(PREFIX.length).split(':');
+		return { user, signature };
 	}
 	return undefined;
 };
 
-export const createAuthenticatorMiddleware = (
-	apiAuthentication?: ApiAuthentication
-): ((req: Request, res: Response, next: NextFunction) => void) => {
+export const createAuthenticatorMiddleware = (): ((
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => void) => {
 	return (req: Request, res: Response, next: NextFunction) => {
-		const apiKey = getApiKey(req);
-		if (isValidAuthentication(apiKey, apiAuthentication)) {
-			next();
-		} else {
-			const status =
-				apiKey === undefined ? HTTP_STATUS_UNAUTHORIZED : HTTP_STATUS_FORBIDDEN;
-			res.sendStatus(status);
+		const credentials = getCredentials(req);
+		if (credentials?.user && credentials?.signature) {
+			const signerAddress = toEthereumAddress(
+				ethers.utils.verifyMessage(credentials.user, credentials.signature)
+			);
+
+			if (credentials.user === signerAddress) {
+				return next();
+			}
 		}
+
+		const status =
+			credentials === undefined
+				? HTTP_STATUS_UNAUTHORIZED
+				: HTTP_STATUS_FORBIDDEN;
+		res.sendStatus(status);
 	};
 };
 
@@ -62,9 +72,9 @@ export const startServer = async (
 		})
 	);
 	endpoints.forEach((endpoint: Endpoint) => {
-		const handlers = [
-			createAuthenticatorMiddleware(endpoint.apiAuthentication),
-		].concat(endpoint.requestHandlers);
+		const handlers = [createAuthenticatorMiddleware()].concat(
+			endpoint.requestHandlers
+		);
 		app.route(endpoint.path)[endpoint.method](handlers);
 	});
 	let serverFactory: { listen: (port: number) => HttpServer | HttpsServer };

@@ -272,7 +272,7 @@ const createHandler = (
 		const streamId = req.params.id;
 		const partition = parseInt(req.params.partition);
 		const version = parseIntIfExists(req.query.version as string);
-		switch (req.params.resendType) {
+		switch (req.params.queryType) {
 			case 'last':
 				handleLast(
 					req,
@@ -327,7 +327,7 @@ export const createDataQueryEndpoint = (
 	};
 	metricsContext.addMetrics('broker.plugin.logstore', metrics);
 	return {
-		path: `/streams/:id/data/partitions/:partition/:resendType`,
+		path: `/streams/:id/data/partitions/:partition/:queryType`,
 		method: 'get',
 		requestHandlers: [createHandler(logStore, metrics)],
 	};
