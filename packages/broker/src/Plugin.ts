@@ -1,8 +1,10 @@
 import { LogStoreClient } from '@concertodao/logstore-client';
 import { Schema } from 'ajv';
 
+import { ApiAuthentication } from './apiAuthentication';
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';
+import { Endpoint } from './httpServer';
 
 export interface PluginOptions {
 	name: string;
@@ -10,11 +12,14 @@ export interface PluginOptions {
 	brokerConfig: StrictConfig;
 }
 
-export abstract class Plugin<T> {
+export type HttpServerEndpoint = Omit<Endpoint, 'apiAuthentication'>;
+
+export abstract class Plugin<T extends object> {
 	readonly name: string;
 	readonly logStoreClient: LogStoreClient;
 	readonly brokerConfig: StrictConfig;
 	readonly pluginConfig: T;
+	private readonly httpServerEndpoints: HttpServerEndpoint[] = [];
 
 	constructor(options: PluginOptions) {
 		this.name = options.name;
@@ -25,6 +30,25 @@ export abstract class Plugin<T> {
 		if (configSchema !== undefined) {
 			validateConfig(this.pluginConfig, configSchema, `${this.name} plugin`);
 		}
+	}
+
+	getApiAuthentication(): ApiAuthentication | undefined {
+		if ('apiAuthentication' in this.pluginConfig) {
+			return (
+				(this.pluginConfig.apiAuthentication as ApiAuthentication | null) ??
+				undefined
+			);
+		} else {
+			return this.brokerConfig.apiAuthentication;
+		}
+	}
+
+	addHttpServerEndpoint(endpoint: HttpServerEndpoint): void {
+		this.httpServerEndpoints.push(endpoint);
+	}
+
+	getHttpServerEndpoints(): HttpServerEndpoint[] {
+		return this.httpServerEndpoints;
 	}
 
 	/**
