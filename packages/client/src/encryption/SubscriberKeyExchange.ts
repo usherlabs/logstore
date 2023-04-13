@@ -22,7 +22,6 @@ import {
 	StrictLogStoreClientConfig,
 } from '../Config';
 import { LogStoreClient } from '../LogStoreClient';
-// import { NetworkNodeFacade } from '../NetworkNodeFacade';
 import { createRandomMsgChainId } from '../publish/messageChain';
 import { createSignedMessage } from '../publish/MessageFactory';
 import { LoggerFactory } from '../utils/LoggerFactory';
@@ -43,7 +42,6 @@ const MAX_PENDING_REQUEST_COUNT = 50000; // just some limit, we can tweak the nu
 export class SubscriberKeyExchange {
 	private readonly logger: Logger;
 	private rsaKeyPair: RSAKeyPair | undefined;
-	// private readonly networkNodeFacade: NetworkNodeFacade;
 	private readonly store: GroupKeyStore;
 	private readonly authentication: Authentication;
 	private readonly validator: Validator;
@@ -59,17 +57,20 @@ export class SubscriberKeyExchange {
 	) => Promise<void>;
 
 	constructor(
-		// networkNodeFacade: NetworkNodeFacade,
+		@inject(GroupKeyStore)
 		store: GroupKeyStore,
-		@inject(AuthenticationInjectionToken) authentication: Authentication,
+		@inject(AuthenticationInjectionToken)
+		authentication: Authentication,
+		@inject(Validator)
 		validator: Validator,
-		@inject(delay(() => LogStoreClient)) logStoreClient: LogStoreClient,
-		@inject(LoggerFactory) loggerFactory: LoggerFactory,
+		@inject(delay(() => LogStoreClient))
+		logStoreClient: LogStoreClient,
+		@inject(LoggerFactory)
+		loggerFactory: LoggerFactory,
 		@inject(LogStoreClientConfigInjectionToken)
 		config: Pick<StrictLogStoreClientConfig, 'encryption'>
 	) {
 		this.logger = loggerFactory.createLogger(module);
-		// this.networkNodeFacade = networkNodeFacade;
 		this.store = store;
 		this.authentication = authentication;
 		this.validator = validator;
@@ -77,7 +78,6 @@ export class SubscriberKeyExchange {
 		this.ensureStarted = pOnce(async () => {
 			this.rsaKeyPair = await RSAKeyPair.create();
 			const node = await logStoreClient.getNode();
-			// const node = await networkNodeFacade.getNode();
 			node.addMessageListener((msg: StreamMessage) => this.onMessage(msg));
 			this.logger.debug('started');
 		});
@@ -108,7 +108,6 @@ export class SubscriberKeyExchange {
 			requestId
 		);
 		const node = await this.logStoreClient.getNode();
-		// const node = await this.networkNodeFacade.getNode();
 		node.publish(request);
 		this.pendingRequests.add(requestId);
 		this.logger.debug(

@@ -16,6 +16,7 @@ import {
 import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
+	redactConfig,
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
@@ -35,19 +36,19 @@ export class LogStoreClient extends StreamrClient {
 		/** @internal */
 		parentContainer = rootContainer
 	) {
-		// TODO: Review needed. Make the call of super(streamrClientConfig) pass its config validation.
+		// TODO: ensure there is a correct container instance used
+		const container = parentContainer.createChildContainer();
+
+		// Prepare a copy of `config` to call the super() method
 		const streamrClientConfig = cloneDeep(config);
 		delete streamrClientConfig.contracts?.logStoreNodeManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
+		super(streamrClientConfig, container);
 
 		const strictConfig = createStrictConfig(config);
 		const authentication = createAuthentication(strictConfig);
-
-		// TODO: ensure there is a correct container instance used
-		const container = parentContainer.createChildContainer();
-		// const container = parentContainer;
-		super(streamrClientConfig, container);
+		redactConfig(strictConfig);
 
 		container.register(LogStoreClient, {
 			useValue: this,
