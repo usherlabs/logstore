@@ -29,10 +29,15 @@ import { register } from 'prom-client';
 import { ILogObject, Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
 
+import { Managers } from '../src/classes/Managers';
+import { produceItem } from '../src/core/item';
+import { produceReport } from '../src/core/report';
 import Listener from '../src/listener';
 import Runtime from '../src/runtime';
+import { getConfig } from '../src/utils/config';
 // import type { StreamrMessage } from '../src/types';
 import Validator, { syncPoolConfig } from '../src/validator';
+import { reportPrefix } from './../src/utils/constants';
 // import { TestListenerCacheProvider } from './mocks/cache.mock';
 import { genesis_pool } from './mocks/constants';
 
@@ -66,10 +71,11 @@ describe('Validator Runtime', () => {
 
 	const publishStorageMessages = async (numOfMessages: number) => {
 		try {
+			const sourceStreamId = v.systemStreamId.replace('/system', '/test');
 			for (const idx of range(numOfMessages)) {
 				const msg = { messageNo: idx };
 				const msgStr = JSON.stringify(msg);
-				const hash = ethers.keccak256(fromString(msgStr));
+				const hash = ethers.keccak256(fromString(sourceStreamId + msgStr));
 				const size = Buffer.byteLength(msgStr, 'utf8');
 				console.log(`Publishing storage message:`, msg, { hash, size });
 				await publisherClient.publish(
@@ -78,6 +84,7 @@ describe('Validator Runtime', () => {
 						partition: 0,
 					},
 					{
+						id: sourceStreamId,
 						hash,
 						size,
 					}
@@ -91,6 +98,7 @@ describe('Validator Runtime', () => {
 		}
 	};
 	const publishQueryMessages = async (numOfMessages: number) => {
+		const sourceStreamId = v.systemStreamId.replace('/system', '/test');
 		for (const idx of range(numOfMessages)) {
 			const query = { from: { timestamp: 0 }, to: { timestamp: 0 } };
 			const consumer = '0x00000000000';
@@ -99,7 +107,7 @@ describe('Validator Runtime', () => {
 			const msgStr = JSON.stringify(msg);
 			const size = Buffer.byteLength(msgStr, 'utf8');
 			const hash = ethers.keccak256(
-				fromString(queryStr + consumer + msgStr + size)
+				fromString(sourceStreamId + queryStr + consumer + msgStr + size)
 			);
 			await publisherClient.publish(
 				{
@@ -107,6 +115,7 @@ describe('Validator Runtime', () => {
 					partition: 0,
 				},
 				{
+					id: sourceStreamId,
 					query,
 					consumer,
 					hash,
@@ -236,36 +245,8 @@ describe('Validator Runtime', () => {
 			},
 		});
 
-		// Prepare the Log Store contract by creating some stores
-		// testSystemStream = await createTestStream(publisherClient, module, {
-		// 	partitions: 1,
-		// });
-		// await publisherClient.addStreamToLogStore(testSystemStream.id, STAKE_AMOUNT);
-
-		// for (let i = 0; i < 3; i++) {
-		// 	const stream = await createTestStream(publisherClient, module, {
-		// 		partitions: 1,
-		// 	});
-		// 	await publisherClient.addStreamToLogStore(stream.id, STAKE_AMOUNT);
-		// 	storeStreams.push(stream.id);
-		// }
-
-		// systemStream = await createTestStream(publisherClient, module, {
-		// 	partitions: 1,
-		// });
-		// queryStream = await createTestStream(publisherClient, module, {
-		// 	partitions: 1,
-		// });
-		// await publisherClient.addStreamToLogStore(systemStream.id, STAKE_AMOUNT);
-		// await publisherClient.addStreamToLogStore(queryStream.id, STAKE_AMOUNT);
-
-		// v.systemStreamId = systemStream.id;
-		// v.queryStreamId = queryStream.id;
-
-		// ARRANGE -- all tests share the same genesis pool data
-		v.pool = {
-			...genesis_pool,
-		} as any;
+		// ? StreamrDevNet uses a Stake token that cannot be found in Redstone, so this will always yield stake token value of 0.01
+		// jest.spyOn(redstone, 'getPrice').mockImplementation((symbols: string[], opts?: GetPriceOptions) => Promise<{ [token: string]: PriceData; }>);
 	}, TIMEOUT);
 
 	afterEach(async () => {
@@ -278,34 +259,83 @@ describe('Validator Runtime', () => {
 	});
 
 	it(
-		'should produce cache items',
+		'should perform item and report production',
 		async () => {
+			// ARRANGE -- all tests share the same genesis pool data
+			v.pool = {
+				...genesis_pool,
+			} as any;
 			// ACT
 			await syncPoolConfig.call(v);
-			await v.listener.start();
-			await publishStorageMessages(15);
-			// await publishQueryMessages(15);
 			await runCache.call(v);
 
 			expect(v['cacheProvider'].put).toHaveBeenCalledTimes(3);
 
+			expect(produceItem).toHaveBeenCalledTimes(2);
+			expect(produceReport).toHaveBeenCalledTimes(1);
+
 			const maxBundleSize = parseInt(v.pool.data.max_bundle_size, 10);
-			for (let i = 0; i < maxBundleSize; i++) {
-				try {
-					const cacheVal = await v['cacheProvider'].get(`${i}`);
-					console.log('Bundle Data Item #' + i, cacheVal);
-				} catch (e) {
-					// ...
-				}
-			}
+			const lastItem = await v['cacheProvider'].get(`${maxBundleSize - 1}`);
+			const firstItem = await v['cacheProvider'].get(`0`);
+			expect(typeof parseInt(firstItem.key, 10)).not.toBeNaN();
+			expect(lastItem.key.startsWith(reportPrefix)).toBe(true);
+		},
+		TIMEOUT
+	);
+
+	it(
+		'should produce a report based on system messages',
+		async () => {
+			// ARRANGE -- all tests share the same genesis pool data
+			const startKey = `${Date.now() - 3000}`;
+			const currentKey = `${parseInt(startKey, 10) + 2000}`;
+			v.pool = {
+				...genesis_pool,
+				start_key: startKey,
+				current_key: currentKey,
+			} as any;
+			// ACT
+			await syncPoolConfig.call(v);
+			await v.listener.start();
+			await publishStorageMessages(15);
+			await publishQueryMessages(15);
 
 			const db = v.listener.db();
 			// Implement AsyncIterable into Mock
-			for (const { key: k, value: v } of db.getRange()) {
-				console.log('Message from Listener Cache: ', k, v);
+			let listenerCacheCount = 0;
+			for (const { key: _k, value: _v } of db.getRange()) {
+				listenerCacheCount++;
 			}
 
-			expect(true).toBe(true);
+			expect(listenerCacheCount).toBe(15);
+
+			const config = getConfig(v);
+			const managers = new Managers(config.sources[0], config.contracts);
+			const report = await produceReport(v, managers, startKey);
+
+			console.log('Result Report', report);
+
+			expect(report.id).toBe(`report_${currentKey}`);
+			expect(report.events.queries.length).toBe(15);
+			expect(report.events.storage.length).toBe(15);
+			// expect(report.treasury).toBe();
+			// expect(report.consumers).toEqual();
+			// expect(report.streams).toEqual();
+			// expect(report.nodes).toEqual();
+
+			expect(report).toEqual({
+				key: `report_${currentKey}`,
+				value: {
+					id: `report_${currentKey}`,
+					height: 427294,
+					treasury: 0,
+					streams: [],
+					consumers: [],
+					nodes: {},
+					delegates: {},
+					events: { queries: [], storage: [] },
+				},
+			});
 		},
 		TIMEOUT
 	);

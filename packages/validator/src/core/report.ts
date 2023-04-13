@@ -36,7 +36,7 @@ export const produceReport = async (
 	// Get all latest state from Smart Contract
 	// We do this by using the key (timestamp) to determine the most relevant block
 	// ? We need to get the closest block because it may not be the most recent block...
-	core.logger.debug('getBlockByTime...'); // TODO: Test this.
+	core.logger.debug('getBlockByTime...');
 	const block = await managers.getBlockByTime(toKey);
 	const blockNumber = block.number;
 	core.logger.debug('Block Number: ', {
@@ -104,7 +104,13 @@ export const produceReport = async (
 
 		const { content, metadata } = lValue;
 		const sKey = `${lKey}`;
-		if (content?.query && content?.consumer && content?.hash && content?.size) {
+		if (
+			content?.id &&
+			content?.query &&
+			content?.consumer &&
+			content?.hash &&
+			content?.size
+		) {
 			// TODO: Ensure variables match that of the Broker Node
 
 			// This is a proof-of-event for a query
@@ -125,7 +131,7 @@ export const produceReport = async (
 			}
 			queryHashKeyMap[h].push(sKey);
 		}
-		if (content?.hash && content?.size) {
+		if (content?.id && content?.hash && content?.size) {
 			// TODO: Ensure variables match that of the Broker Node
 
 			// Add to storage hashMap
@@ -173,6 +179,8 @@ export const produceReport = async (
 			contributingPublishers.push(event.metadata.publisherId);
 		}
 
+		// TODO: ISSUE: This will always be the system stream id, as the message was passed over this.
+		// ? We'll need to pass the stream id being queried/stored in the system stream message.
 		const id = event.metadata.streamId.toString();
 		report.events.storage.push({
 			id,
@@ -274,6 +282,7 @@ export const produceReport = async (
 	let priceOfStakeToken = 0.01;
 	try {
 		const rsResp = await redstone.getPrice(stakeToken.symbol);
+		core.logger.debug('Fetched Price from Redstone', rsResp);
 		priceOfStakeToken = rsResp.value;
 	} catch (e) {
 		core.logger.warn(`Could not fetch the Price of ${stakeToken.symbol}`);
