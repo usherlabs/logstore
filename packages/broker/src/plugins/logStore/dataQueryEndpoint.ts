@@ -141,7 +141,8 @@ const handleLast = (
 		sendError(`Query parameter "count" not a number: ${req.query.count}`, res);
 		return;
 	}
-	const data = logStore.requestLast(streamId, partition, count!);
+	let data = logStore.requestLast(streamId, partition, count!);
+	data = getConsensus(streamId, data);
 	sendSuccess(data, format, version, streamId, res);
 };
 
@@ -171,13 +172,14 @@ const handleFrom = (
 		);
 		return;
 	}
-	const data = logStore.requestFrom(
+	let data = logStore.requestFrom(
 		streamId,
 		partition,
 		fromTimestamp,
 		fromSequenceNumber,
 		publisherId
 	);
+	data = getConsensus(streamId, data);
 	sendSuccess(data, format, version, streamId, res);
 };
 
@@ -236,7 +238,7 @@ const handleRange = (
 		sendError('Invalid combination of "publisherId" and "msgChainId"', res);
 		return;
 	}
-	const data = logStore.requestRange(
+	let data = logStore.requestRange(
 		streamId,
 		partition,
 		fromTimestamp,
@@ -246,6 +248,8 @@ const handleRange = (
 		publisherId,
 		msgChainId
 	);
+	// TODO: Include a function here to produce the query system stream params, and send the system stream message.
+	data = getConsensus(streamId, data);
 	sendSuccess(data, format, version, streamId, res);
 };
 
@@ -254,6 +258,7 @@ const createHandler = (
 	metrics: MetricsDefinition
 ): RequestHandler => {
 	return (req: Request, res: Response) => {
+		// TODO: Consumers will not need to query a partition -- therefore this can be removed.
 		if (Number.isNaN(parseInt(req.params.partition))) {
 			sendError(
 				`Path parameter "partition" not a number: ${req.params.partition}`,
@@ -261,6 +266,7 @@ const createHandler = (
 			);
 			return;
 		}
+		// TODO: Default the format to 'text/event-stream' by default for simplicity.
 		const format = getFormat(req.query.format as string);
 		if (format === undefined) {
 			sendError(
@@ -331,4 +337,17 @@ export const createDataQueryEndpoint = (
 		method: 'get',
 		requestHandlers: [createHandler(logStore, metrics)],
 	};
+};
+
+export const getConsensus = (streamId: string, data: Readable) => {
+	// 1. Iterate over all the items in data readable
+	// 2. hash each of them, prepending the previous hash -- ie.
+	// hash = keccak256(fromStringToUint8Array(toString(hash) + data[i].message))
+	// size = size + Buffer.byteLength(data[i].message);
+	// 3. Ship the message over the system stream
+	// 4. Await messages to be received via the system stream listner
+	// 5. Compare local metadata to received metadata
+	// 6. Collate all system publisher ids, signatures and hashhes and include them as items in the readable stream.... -- if this is possible...
+	// Send the response
+	return data;
 };

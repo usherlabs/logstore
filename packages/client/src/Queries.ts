@@ -206,6 +206,7 @@ export class Queries {
 		// ).http;
 
 		// TODO: Get the broker URL from config.
+		// ? This can default to the Centralised Log Store Gateway, unless its passed into a config.
 		const nodeUrl = 'http://localhost:7171';
 		const url = this.createUrl(nodeUrl, queryType, streamPartId, query);
 		const messageStream = createSubscribePipeline({
