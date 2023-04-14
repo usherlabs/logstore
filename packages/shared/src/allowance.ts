@@ -1,5 +1,5 @@
 import { ERC20__factory } from '@concertodao/logstore-contracts';
-import { ethers } from 'ethers';
+import { Signer } from 'ethers';
 
 import { getManagerContract } from './getManager';
 import { Manager } from './types';
@@ -12,16 +12,19 @@ export type allowanceConfirmFn = (
 export const ensureEnoughAllowance = async (
 	manager: Manager,
 	amount: bigint,
-	wallet: ethers.Wallet,
+	signer: Signer,
 	confirm?: allowanceConfirmFn
 ) => {
-	const mangerContract = await getManagerContract(wallet, manager);
+	const mangerContract = await getManagerContract(signer, manager);
 
 	const stakeTokenAddress = await mangerContract.stakeTokenAddress();
-	const stakeToken = ERC20__factory.connect(stakeTokenAddress, wallet);
+	const stakeToken = ERC20__factory.connect(stakeTokenAddress, signer);
 
 	const currentAllowance = (
-		await stakeToken.allowance(wallet.address, mangerContract.address)
+		await stakeToken.allowance(
+			await signer.getAddress(),
+			mangerContract.address
+		)
 	).toBigInt();
 
 	if (currentAllowance < amount) {

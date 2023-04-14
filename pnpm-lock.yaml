@@ -70,6 +70,9 @@ importers:
       '@concertodao/logstore-client':
         specifier: workspace:^
         version: link:../client
+      '@concertodao/logstore-contracts':
+        specifier: workspace:^
+        version: link:../contracts
       '@concertodao/logstore-protocol':
         specifier: workspace:^
         version: link:../protocol

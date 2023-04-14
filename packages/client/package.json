@@ -9,6 +9,7 @@
 	"types": "./dist/types/src/exports.d.ts",
 	"main": "./dist/src/exports.js",
 	"scripts": {
+    "postbuild": "bash copy-package.sh",
 		"build": "tsc",
 		"format": "prettier --write .",
 		"test": "echo \"Error: no test specified\" && exit 1"

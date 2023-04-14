@@ -1,9 +1,8 @@
 import type { LogStoreManager as LogStoreManagerContract } from '@concertodao/logstore-contracts';
 import { abi as LogStoreManagerAbi } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { prepareStakeForStoreManager } from '@concertodao/logstore-shared';
-import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
+import { BigNumber } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
-import { Wallet } from '@ethersproject/wallet';
 import { toStreamID, toStreamPartID } from '@streamr/protocol';
 import {
 	EthereumAddress,
@@ -194,7 +193,7 @@ export class LogStoreRegistry {
 	 */
 	async addToStorageNode(
 		streamIdOrPath: string,
-		stakeAmount = BigNumber.from('100000000000000000'),
+		stakeAmount: bigint,
 		waitOptions: { timeout?: number } = {}
 	): Promise<void> {
 		// let assignmentSubscription: Subscription;
@@ -246,7 +245,7 @@ export class LogStoreRegistry {
 
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
-		amount: BigNumberish
+		amount: bigint
 	): Promise<void> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
 		this.logger.debug('adding stream %s to LogStore', streamId);
@@ -256,11 +255,7 @@ export class LogStoreRegistry {
 		// @dev depending on if a pk was passed into the contract
 		const chainSigner =
 			await this.authentication.getStreamRegistryChainSigner();
-		await prepareStakeForStoreManager(
-			chainSigner as Wallet,
-			Number(amount),
-			false
-		);
+		await prepareStakeForStoreManager(chainSigner, amount, false);
 		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
 		await waitForTx(
 			this.logStoreManagerContract!.stake(streamId, amount, ethersOverrides)

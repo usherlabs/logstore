@@ -48,6 +48,7 @@ export const createAuthenticatorMiddleware = (): ((
 			);
 
 			if (credentials.user === signerAddress) {
+				req.consumer = signerAddress;
 				return next();
 			}
 		}

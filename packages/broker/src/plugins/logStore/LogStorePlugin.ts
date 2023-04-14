@@ -202,7 +202,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		const node = await this.logStoreClient.getNode();
 		node.addMessageListener(this.messageListener);
 		this.addHttpServerEndpoint(
-			createDataQueryEndpoint(this.logStore, metricsContext)
+			createDataQueryEndpoint(this.brokerConfig, this.logStore, metricsContext)
 		);
 	}
 

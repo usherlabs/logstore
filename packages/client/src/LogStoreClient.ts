@@ -1,4 +1,3 @@
-import { BigNumberish } from 'ethers';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import StreamrClient, {
@@ -126,7 +125,7 @@ export class LogStoreClient extends StreamrClient {
 	 */
 	async addStreamToLogStore(
 		streamIdOrPath: string,
-		amount: BigNumberish
+		amount: bigint
 	): Promise<void> {
 		return this.logStoreRegistry.stakeOrCreateStore(streamIdOrPath, amount);
 	}
