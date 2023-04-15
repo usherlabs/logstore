@@ -262,7 +262,7 @@ const createHandler = (
 	logStore: LogStore,
 	metrics: MetricsDefinition
 ): RequestHandler => {
-return async (req: Request, res: Response) => {
+	return async (req: Request, res: Response) => {
 		if (Number.isNaN(parseInt(req.params.partition))) {
 			sendError(
 				`Path parameter "partition" not a number: ${req.params.partition}`,
