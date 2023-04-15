@@ -32,9 +32,9 @@ Queries a stream for historical data.
 
 Returns a Promise that resolves to a **`MessageStream`** object that provides an alternative way of iterating through the messages.
 
-### **`async addStreamToLogStore(streamIdOrPath: string, amount: BigNumberish)`**
+### **`async stakeOrCreateStore(streamIdOrPath: string, amount: BigNumberish)`**
 
-Adds a stream to LogStore.
+Adds a stream to LogStore or stake some funds to an existing store.
 
 **`streamIdOrPath`** is the ID or path of the stream to be added. 
 
