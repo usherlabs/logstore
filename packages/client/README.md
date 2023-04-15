@@ -1,6 +1,6 @@
-# Logstore Client
+Documentation for the Logstore Client :
 
-The `LogStoreClient` adds functionality for interacting with LogStore and has the following methods.
+The Logstore Client is a Javascript library which serves to adds functionality for interacting with LogStore and has the following methods.
 
 ### `c**onstructor(config?: LogStoreClientConfig)**`
 
@@ -18,11 +18,11 @@ export interface LogStoreClientConfig extends StreamrClientConfig {
 }
 ```
 
-### `**async queryStake(amount: BigNumberish, options = { usd: false })**`
+### `**queryStake(amount: BigNumberish, options = { usd: false })**`
 
 Stakes the specified amount of funds in order to perform queries. **`amount`** is a **`BigNumberish`** type and **`options`** is an object with a single optional property, **`usd`**, which is a boolean indicating whether the amount is in USD. 
 
-### **`async query(streamDefinition: StreamDefinition, options: QueryOptions, onMessage?: MessageListener)`**
+### **`query(streamDefinition: StreamDefinition, options: QueryOptions, onMessage?: MessageListener)`**
 
 Queries a stream for historical data.
 
@@ -32,9 +32,9 @@ Queries a stream for historical data.
 
 Returns a Promise that resolves to a **`MessageStream`** object that provides an alternative way of iterating through the messages.
 
-### **`async stakeOrCreateStore(streamIdOrPath: string, amount: BigNumberish)`**
+### **`stakeOrCreateStore(streamIdOrPath: string, amount: BigNumberish)`**
 
-Adds a stream to LogStore or stake some funds to an existing store.
+Creates a stream in LogStore and/or stake some funds to an the provided stream.
 
 **`streamIdOrPath`** is the ID or path of the stream to be added. 
 
@@ -46,14 +46,36 @@ Removes a stream from LogStore.
 
 **`streamIdOrPath`** is the ID or path of the stream to be removed. 
 
-### **`async isLogStoreStream(streamIdOrPath: string)`**
+### **`isLogStoreStream(streamIdOrPath: string)`**
 
 Checks if a stream is assigned to a storage node. 
 
 **`streamIdOrPath`** is the ID or path of the stream to check.
 
-### **`async getLogStoreStreams()`**
+### **`getLogStoreStreams()`**
 
 Gets all streams assigned to a storage node. 
 
 Returns a Promise that resolves to an object with a **`blockNumber`** property indicating the current blockchain state and a **`Stream[]`** property representing the list of streams stored on LogStore nodes.
+
+## Code Example
+
+```jsx
+import { LogStoreClient } from '@concertodao/logstore-client';
+
+// Initialize the logstore client
+const queryClient = new LogStoreClient({
+			auth: {
+				privateKey: "0xabc123...",
+			},
+		});
+
+// Create a new stream
+const newStream = await logStoreClient.createStream({
+		id: "domain/streamId",
+	});
+
+// Adding the stream to logstore and staking some tokens to it
+await publisherClient.addStreamToLogStore(newStream.id, STAKE_AMOUNT);
+
+```
