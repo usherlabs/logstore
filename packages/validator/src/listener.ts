@@ -107,8 +107,8 @@ export default class Listener {
 
 	public atIndex(index: number) {
 		const db = this.db();
-		for (const { key, value } of db.getRange({ offset: index, limit: 1 })) {
-			return [key, value];
+		for (const item of db.getRange({ offset: index, limit: 1 })) {
+			return item;
 		}
 		throw new Error(`atIndex: No key at index: ${index}`);
 	}

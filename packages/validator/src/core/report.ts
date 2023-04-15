@@ -1,6 +1,6 @@
+import { sha256 } from '@kyvejs/protocol';
 import { ethers } from 'ethers';
 import redstone from 'redstone-api';
-import { fromString } from 'uint8arrays/from-string';
 
 import { Managers } from '../classes/Managers';
 import { BrokerNode, Report, StreamrMessage } from '../types';
@@ -104,43 +104,24 @@ export const produceReport = async (
 
 		const { content, metadata } = lValue;
 		const sKey = `${lKey}`;
-		if (
-			content?.id &&
-			content?.query &&
-			content?.consumer &&
-			content?.hash &&
-			content?.size
-		) {
-			// TODO: Ensure variables match that of the Broker Node
-
-			// This is a proof-of-event for a query
-			// verify the consumer signature
-			const consumerHash = ethers.keccak256(
-				fromString(JSON.stringify(content.query) + content.nonce)
-			);
-			const signerAddr = ethers.verifyMessage(consumerHash, content.sig);
-			if (signerAddr !== content.consumer) {
-				continue;
-			}
-
-			// Add to query hashMap
-			// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
-			const h = content.consumer + ':' + content.hash;
-			if (!queryHashKeyMap[h]) {
-				queryHashKeyMap[h] = [];
-			}
-			queryHashKeyMap[h].push(sKey);
-		}
+		// ? StreamrClient Subscribe method includes publisher signature verification
 		if (content?.id && content?.hash && content?.size) {
-			// TODO: Ensure variables match that of the Broker Node
-
-			// Add to storage hashMap
-			// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
-			const h = content.hash;
-			if (!storeHashKeyMap[h]) {
-				storeHashKeyMap[h] = [];
+			const h = sha256(Buffer.from(JSON.stringify(content))); // the content should be the same across received messages from all broker nodes.
+			if (content?.query && content?.consumer) {
+				// Add to query hashMap
+				// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
+				if (!queryHashKeyMap[h]) {
+					queryHashKeyMap[h] = [];
+				}
+				queryHashKeyMap[h].push(sKey);
+			} else {
+				// Add to storage hashMap
+				// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
+				if (!storeHashKeyMap[h]) {
+					storeHashKeyMap[h] = [];
+				}
+				storeHashKeyMap[h].push(sKey);
 			}
-			storeHashKeyMap[h].push(sKey);
 		}
 	}
 
@@ -179,28 +160,27 @@ export const produceReport = async (
 			contributingPublishers.push(event.metadata.publisherId);
 		}
 
-		// TODO: ISSUE: This will always be the system stream id, as the message was passed over this.
-		// ? We'll need to pass the stream id being queried/stored in the system stream message.
-		const { id } = event.content;
+		// Stream ID is included in the system stream message.
+		const { id, size, hash } = event.content;
 		report.events.storage.push({
 			id,
-			hash: event.content.hash,
-			size: event.content.size,
+			hash,
+			size,
 		});
 
 		const existingStreamIndex = report.streams.findIndex((s) => s.id === id);
-		const captureAmount = writeFee * event.content.size;
+		const captureAmount = writeFee * size;
 		if (existingStreamIndex < 0) {
 			report.streams.push({
 				id,
 				capture: captureAmount,
-				bytes: event.content.size,
+				bytes: size,
 			});
 		} else {
 			report.streams[existingStreamIndex].capture += captureAmount;
-			report.streams[existingStreamIndex].bytes += event.content.size;
+			report.streams[existingStreamIndex].bytes += size;
 		}
-		report.treasury += writeTreasuryFee * event.content.size;
+		report.treasury += writeTreasuryFee * size;
 
 		// ? All nodes managing all streams right now
 		for (let j = 0; j < brokerNodes.length; j++) {
@@ -216,7 +196,7 @@ export const produceReport = async (
 			// Use identification of publishers that validly contributed storage events to determine if current broker node was apart of that cohort.
 			const nodeAmount =
 				writeNodeFee *
-				event.content.size *
+				size *
 				(contributingPublishers.includes(bNode.id) ? 1 : -1);
 
 			report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
@@ -236,29 +216,30 @@ export const produceReport = async (
 
 		// Add consolidated event to report
 		const event = listenerCache.get(lKeys[0]);
+		const { id, query, consumer, hash, size } = event.content;
 		report.events.queries.push({
-			id: event.content.id,
-			query: event.content.query,
-			consumer: event.content.consumer,
-			hash: event.content.hash,
-			size: event.content.size,
+			id,
+			query,
+			consumer,
+			hash,
+			size,
 		});
 		const existingConsumerIndex = report.consumers.findIndex(
-			(c) => c.id === event.content.consumer
+			(c) => c.id === consumer
 		);
 
-		const captureAmount = fees.read * event.content.size;
+		const captureAmount = fees.read * size;
 		if (existingConsumerIndex < 0) {
 			report.consumers.push({
-				id: event.content.consumer,
+				id: consumer,
 				capture: captureAmount, // the total amount of stake to capture token in wei based on the calculations
-				bytes: event.content.size,
+				bytes: size,
 			});
 		} else {
 			report.consumers[existingConsumerIndex].capture += captureAmount;
-			report.consumers[existingConsumerIndex].bytes += event.content.size;
+			report.consumers[existingConsumerIndex].bytes += size;
 		}
-		report.treasury += readTreasuryFee * event.content.size;
+		report.treasury += readTreasuryFee * size;
 
 		// ? All nodes managing all streams right now
 		for (let j = 0; j < brokerNodes.length; j++) {
@@ -269,7 +250,7 @@ export const produceReport = async (
 			if (typeof report.nodes[bNode.id] !== 'undefined') {
 				report.nodes[bNode.id] = 0;
 			}
-			const nodeAmount = readNodeFee * event.content.size;
+			const nodeAmount = readNodeFee * size;
 
 			report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
 
