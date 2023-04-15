@@ -62,7 +62,6 @@ export const createBroker = async (
 					.map((endpoint: HttpServerEndpoint) => {
 						return {
 							...endpoint,
-							apiAuthentication: plugin.getApiAuthentication(),
 						};
 					});
 			});

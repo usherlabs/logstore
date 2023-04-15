@@ -1,16 +1,20 @@
 /**
  * Endpoints for RESTful data requests
  */
+import { getQueryManagerContract } from '@concertodao/logstore-shared';
 import { StreamMessage } from '@streamr/protocol';
 import {
 	Logger,
 	MetricsContext,
 	MetricsDefinition,
 	RateMetric,
+	toEthereumAddress,
 } from '@streamr/utils';
+import { ethers } from 'ethers';
 import { Request, RequestHandler, Response } from 'express';
 import { pipeline, Readable, Transform } from 'stream';
 
+import { StrictConfig } from '../../config/config';
 import { HttpServerEndpoint } from '../../Plugin';
 import { Format, getFormat } from './DataQueryFormat';
 import { LogStore } from './LogStore';
@@ -254,11 +258,11 @@ const handleRange = (
 };
 
 const createHandler = (
+	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
 	metrics: MetricsDefinition
 ): RequestHandler => {
-	return (req: Request, res: Response) => {
-		// TODO: Consumers will not need to query a partition -- therefore this can be removed.
+return async (req: Request, res: Response) => {
 		if (Number.isNaN(parseInt(req.params.partition))) {
 			sendError(
 				`Path parameter "partition" not a number: ${req.params.partition}`,
@@ -275,10 +279,22 @@ const createHandler = (
 			);
 			return;
 		}
+
+		const consumer = toEthereumAddress(req.consumer!);
+		const provider = new ethers.providers.JsonRpcProvider(
+			config.client!.contracts?.streamRegistryChainRPCs!.rpcs[0]
+		);
+		const queryManager = await getQueryManagerContract(provider);
+		const balance = await queryManager.balanceOf(consumer);
+		if (!balance.gt(0)) {
+			sendError('Not enough balance', res);
+			return;
+		}
+
 		const streamId = req.params.id;
 		const partition = parseInt(req.params.partition);
 		const version = parseIntIfExists(req.query.version as string);
-		switch (req.params.resendType) {
+		switch (req.params.queryType) {
 			case 'last':
 				handleLast(
 					req,
@@ -323,6 +339,7 @@ const createHandler = (
 };
 
 export const createDataQueryEndpoint = (
+	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
@@ -333,9 +350,9 @@ export const createDataQueryEndpoint = (
 	};
 	metricsContext.addMetrics('broker.plugin.logstore', metrics);
 	return {
-		path: `/streams/:id/data/partitions/:partition/:resendType`,
+		path: `/streams/:id/data/partitions/:partition/:queryType`,
 		method: 'get',
-		requestHandlers: [createHandler(logStore, metrics)],
+		requestHandlers: [createHandler(config, logStore, metrics)],
 	};
 };
 

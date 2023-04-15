@@ -21,23 +21,19 @@ export class Validator extends StreamMessageValidator {
 	private doValidation: StreamMessageValidator['validate'];
 
 	constructor(
-		// @inject(delay(() => StreamRegistryCached))
-		// streamRegistryCached: StreamRegistryCached,
-		@inject(delay(() => LogStoreClient)) logStoreClient: LogStoreClient
+		@inject(delay(() => LogStoreClient))
+		logStoreClient: LogStoreClient
 	) {
 		super({
 			getPartitionCount: async (streamId: StreamID) => {
 				const stream = await logStoreClient.getStream(streamId);
-				// const stream = await streamRegistryCached.getStream(streamId);
 				return stream.getMetadata().partitions;
 			},
 			isPublisher: (publisherId: EthereumAddress, streamId: StreamID) => {
 				return logStoreClient.isStreamPublisher(streamId, publisherId);
-				// return streamRegistryCached.isStreamPublisher(streamId, publisherId);
 			},
 			isSubscriber: (ethAddress: EthereumAddress, streamId: StreamID) => {
 				return logStoreClient.isStreamSubscriber(streamId, ethAddress);
-				// return streamRegistryCached.isStreamSubscriber(streamId, ethAddress);
 			},
 			verify: (
 				address: EthereumAddress,

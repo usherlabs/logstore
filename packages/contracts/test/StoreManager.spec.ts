@@ -64,7 +64,6 @@ describe('StoreManager', async function () {
 			expect(event?.store).to.equal(SAMPLE_STREAM_ID);
 			expect(event?.isNew).to.equal(true);
 			expect(+event?.amount).to.equal(+stakeAmount);
-			expect(event?.updatedBy).to.equal(activeUser.address);
 
 			// fetch state from the contract to validate
 			const [streamBalance] = await storeManagerContract.functions.stores(

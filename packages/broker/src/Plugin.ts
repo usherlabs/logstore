@@ -1,7 +1,6 @@
 import { LogStoreClient } from '@concertodao/logstore-client';
 import { Schema } from 'ajv';
 
-import { ApiAuthentication } from './apiAuthentication';
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';
 import { Endpoint } from './httpServer';
@@ -29,17 +28,6 @@ export abstract class Plugin<T extends object> {
 		const configSchema = this.getConfigSchema();
 		if (configSchema !== undefined) {
 			validateConfig(this.pluginConfig, configSchema, `${this.name} plugin`);
-		}
-	}
-
-	getApiAuthentication(): ApiAuthentication | undefined {
-		if ('apiAuthentication' in this.pluginConfig) {
-			return (
-				(this.pluginConfig.apiAuthentication as ApiAuthentication | null) ??
-				undefined
-			);
-		} else {
-			return this.brokerConfig.apiAuthentication;
 		}
 	}
 

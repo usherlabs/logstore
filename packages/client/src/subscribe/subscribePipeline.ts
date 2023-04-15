@@ -13,7 +13,6 @@ import { GroupKeyManager } from '../encryption/GroupKeyManager';
 import { LogStoreClient } from '../LogStoreClient';
 import { MessageStream } from '../MessageStream';
 import { Queries } from '../Queries';
-// import { StreamRegistryCached } from '../registry/StreamRegistryCached';
 import { LoggerFactory } from '../utils/LoggerFactory';
 import { Validator } from '../Validator';
 import { Decrypt } from './Decrypt';
@@ -26,7 +25,6 @@ export interface SubscriptionPipelineOptions {
 	queries: Queries;
 	logStoreClient: LogStoreClient;
 	groupKeyManager: GroupKeyManager;
-	// streamRegistryCached: StreamRegistryCached;
 	destroySignal: DestroySignal;
 	config: StrictLogStoreClientConfig;
 }
@@ -35,7 +33,6 @@ export const createSubscribePipeline = (
 	opts: SubscriptionPipelineOptions
 ): MessageStream => {
 	const validate = new Validator(opts.logStoreClient);
-	// const validate = new Validator(opts.streamRegistryCached);
 
 	const gapFillMessages = new OrderMessages(
 		opts.config,

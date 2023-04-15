@@ -31,7 +31,7 @@ const bucketsToIds = (buckets: Bucket[]) =>
 	buckets.map((bucket: Bucket) => bucket.getId());
 
 // NET-329
-interface ResendDebugInfo {
+interface QueryDebugInfo {
 	streamId: string;
 	partition?: number;
 	limit?: number;
@@ -461,7 +461,7 @@ export class LogStore extends EventEmitter {
 
 	private parseRow(
 		row: types.Row,
-		debugInfo: ResendDebugInfo
+		debugInfo: QueryDebugInfo
 	): StreamMessage | null {
 		if (row.payload === null) {
 			logger.error(
@@ -477,7 +477,7 @@ export class LogStore extends EventEmitter {
 		return streamMessage;
 	}
 
-	private createResultStream(debugInfo: ResendDebugInfo) {
+	private createResultStream(debugInfo: QueryDebugInfo) {
 		const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
 		let last = Date.now();
 		return new Transform({

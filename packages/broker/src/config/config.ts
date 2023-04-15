@@ -3,8 +3,6 @@ import { camelCase, set } from 'lodash';
 import * as os from 'os';
 import path from 'path';
 
-import { ApiAuthentication } from '../apiAuthentication';
-
 export interface Config {
 	client?: LogStoreClientConfig;
 	httpServer?: {
@@ -14,7 +12,6 @@ export interface Config {
 			certFileName: string;
 		};
 	};
-	apiAuthentication?: ApiAuthentication;
 	plugins?: Record<string, any>;
 }
 

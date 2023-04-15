@@ -69,7 +69,7 @@ program
 				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
 			)
 			.action(async (amt: string, cmdOptions: { usd: boolean }) => {
-				const amount = parseFloat(amt);
+				const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
 				logger.debug('Command Params: ', { amount, ...options, ...cmdOptions });
 
 				try {
@@ -110,7 +110,7 @@ program
 			)
 			.action(
 				async (streamId: string, amt: string, cmdOptions: { usd: boolean }) => {
-					const amount = parseFloat(amt);
+					const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
 					if (!streamId) {
 						throw new Error('Stream ID is invalid');
 					}

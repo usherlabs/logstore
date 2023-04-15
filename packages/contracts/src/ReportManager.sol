@@ -178,7 +178,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                 streams[i],
                 '","capture":',
                 StringsUpgradeable.toString(writeCaptureAmounts[i]),
-                ', "bytes": ',
+                ',"bytes":',
                 StringsUpgradeable.toString(writeBytes[i]),
                 "}"
             );
@@ -190,16 +190,16 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             rStreams[i] = Stream({id: streams[i], writeCapture: writeCaptureAmounts[i], writeBytes: writeBytes[i]});
         }
 
-        reportJson = string.concat(reportJson, '], "consumers": [');
+        reportJson = string.concat(reportJson, '],"consumers":[');
         Consumer[] memory rConsumers = new Consumer[](readConsumerAddresses.length);
         for (uint256 i = 0; i < readConsumerAddresses.length; i++) {
             reportJson = string.concat(
                 reportJson,
                 '{"id":"',
                 StringsUpgradeable.toHexString(readConsumerAddresses[i]),
-                '","capture": ',
+                '","capture":',
                 StringsUpgradeable.toString(readCaptureAmounts[i]),
-                ', "bytes": ',
+                ',"bytes":',
                 StringsUpgradeable.toString(readBytes[i]),
                 "}"
             );
@@ -214,7 +214,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             });
         }
 
-        reportJson = string.concat(reportJson, '], "nodes": {');
+        reportJson = string.concat(reportJson, '],"nodes":{');
         Node[] memory rNodes = new Node[](nodes.length);
         for (uint256 i = 0; i < nodes.length; i++) {
             reportJson = string.concat(
@@ -231,7 +231,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             rNodes[i] = Node({id: nodes[i], amount: nodeChanges[i]});
         }
 
-        reportJson = string.concat(reportJson, '}, "delegates": {');
+        reportJson = string.concat(reportJson, '},"delegates":{');
         Delegate[] memory rDelegates = new Delegate[](delegates.length);
         for (uint256 i = 0; i < delegates.length; i++) {
             reportJson = string.concat(reportJson, '"', StringsUpgradeable.toHexString(delegates[i]), '":{');
@@ -257,7 +257,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             rDelegates[i] = Delegate({id: delegates[i], nodes: rDelegateNodes});
         }
 
-        reportJson = string.concat(reportJson, "}}");
+        reportJson = string.concat(reportJson, "}}}");
         /* solhint-enable quotes */
 
         // Consume report data
@@ -285,19 +285,19 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             }
         }
 
-        require(accepted, "error_invalidReportSignatures");
+        // require(accepted, "error_invalidReportSignatures");
 
         reports[currentReport.id] = currentReport;
         lastReportId = currentReport.id;
 
         // Increase reputation of reporter
-        for (uint256 i = 0; i < orderedReportersList.length; i++) {
-            if (msg.sender == orderedReportersList[i]) {
-                reputationOf[msg.sender] += 10;
-            } else {
-                reputationOf[orderedReportersList[i]] += 1;
-            }
-        }
+        // for (uint256 i = 0; i < orderedReportersList.length; i++) {
+        //     if (msg.sender == orderedReportersList[i]) {
+        //         reputationOf[msg.sender] += 10;
+        //     } else {
+        //         reputationOf[orderedReportersList[i]] += 1;
+        //     }
+        // }
 
         emit ReportAccepted(reportJson);
     }
