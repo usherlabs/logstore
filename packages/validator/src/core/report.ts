@@ -103,7 +103,6 @@ export const produceReport = async (
 		}
 
 		const { content, metadata } = lValue;
-		const sKey = `${lKey}`;
 		// ? StreamrClient Subscribe method includes publisher signature verification
 		if (content?.id && content?.hash && content?.size) {
 			const h = sha256(Buffer.from(JSON.stringify(content))); // the content should be the same across received messages from all broker nodes.
@@ -113,14 +112,14 @@ export const produceReport = async (
 				if (!queryHashKeyMap[h]) {
 					queryHashKeyMap[h] = [];
 				}
-				queryHashKeyMap[h].push(sKey);
+				queryHashKeyMap[h].push(lKey);
 			} else {
 				// Add to storage hashMap
 				// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
 				if (!storeHashKeyMap[h]) {
 					storeHashKeyMap[h] = [];
 				}
-				storeHashKeyMap[h].push(sKey);
+				storeHashKeyMap[h].push(lKey);
 			}
 		}
 	}
