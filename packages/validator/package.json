@@ -14,7 +14,7 @@
 		"start:fresh": "npm-run-all -s build start",
 		"ts": "tsc --noEmit",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts",
-		"test": "dotenv -e .env jest",
+		"test": "dotenv -e .env jest --",
 		"run-script": "dotenv -e .env ts-node"
 	},
 	"bin": "./dist/src/index.js",
