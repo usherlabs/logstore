@@ -1,3 +1,5 @@
+# Logstore Cli
+
 Documentation for the Logstore CLI :
 
 The Log Store CLI is a command-line tool for querying and storing data on the Log Store Network. It is built using Node.js and allows users to interact with the network via a set of commands.
@@ -8,6 +10,7 @@ The CLI supports the following command-line options:
 - `w, --wallet <string>`: The private key of the wallet to use for signing transactions (compulsory parameter).
 - `n, --network <string>`: The network to interact with (default: 'Dev').
 - `d, --debug`: Enables debug logging.
+- `u --usd`: Declares that the amount provided should be denominated in usd, defaults to wei if flag is not provided.
 
 The following commands are available to be used:
 
@@ -22,7 +25,7 @@ The following commands are available to be used:
 1) Before the log store can be queried, some amount needs to be staked by the consumer, and it is done as follows:
 
 ```
-$ pnpm start query stake -h https://13.237.80.83:8546 --amount 1000000000000000000 --usd
+$ pnpm start query stake --amount 1000000000000000000 --usd -h https://13.237.80.83:8546
 
 ```
 
@@ -37,8 +40,4 @@ $ pnpm start store stake <streamId> --amount 1000000000000000000 -h http://13.23
 
 This will stake 1 ETH worth of tokens into the Store Manager Contract for the specified Stream ID.
 
-```jsx
-Note: The usd flag(—usd) is optional and it is used to denote if the amount passed in is to be denoted in usd. if it is not provided then the amount passed in is denoted in wei.
-
-Note: Before using the CLI, you must have a valid wallet with sufficient funds and network access.
-```
+`Note: Before using the CLI, you must have a valid wallet with sufficient funds and network access.`
