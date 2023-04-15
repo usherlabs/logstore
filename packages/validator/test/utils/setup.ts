@@ -152,16 +152,12 @@ export async function setupTests() {
 	const nodeManagerContract = await getNodeManagerContract(signer);
 	const isStaked = await nodeManagerContract.isStaked(signer.address);
 	if (!isStaked) {
-		const stakeAmount = await prepareStakeForNodeManager(
-			signer,
-			10000,
-			true,
-			async () => true
-		);
+		const stakeAmount = await prepareStakeForNodeManager(signer, 10000, false);
 		await (
 			await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
 		).wait();
 	}
+	console.log('Provider Latest Block: ', await provider.getBlockNumber());
 
 	publisherClient = new LogStoreClient({
 		...CONFIG_TEST,

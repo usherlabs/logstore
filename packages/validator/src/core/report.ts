@@ -46,7 +46,11 @@ export const produceReport = async (
 	// Now that we have the block that most closely resemble the current key
 	const stakeToken = await managers.node.getStakeToken(blockNumber);
 	// Produce brokerNode list by starting at headNode and iterating over nodes.
-	const brokerNodes = await managers.node.getBrokerNodes(blockNumber);
+	const brokerNodes = await managers.node.getBrokerNodes(
+		blockNumber,
+		stakeToken.minRequirement
+	);
+	core.logger.debug('Broker Nodes: ', brokerNodes); // TODO: This is returning an empty array.
 
 	const { fees } = config;
 
@@ -93,16 +97,22 @@ export const produceReport = async (
 		start: fromKey,
 		end: toKey,
 	})) {
+		if (!(lValue?.content && lValue?.metadata)) {
+			continue;
+		}
+
+		const { content, metadata } = lValue;
 		// verify that the publisher also a broker node
 		const brokerNode = brokerNodes.find((n) => n.id === metadata.publisherId);
 		if (typeof brokerNode === 'undefined') {
 			continue;
 		}
-		if (brokerNode.stake < stakeToken.minRequirement) {
-			continue;
-		}
 
-		const { content, metadata } = lValue;
+		core.logger.debug('Producing HashKeyMaps: ', {
+			lKey,
+			lValue,
+		});
+
 		// ? StreamrClient Subscribe method includes publisher signature verification
 		if (content?.id && content?.hash && content?.size) {
 			const h = sha256(Buffer.from(JSON.stringify(content))); // the content should be the same across received messages from all broker nodes.
@@ -123,6 +133,10 @@ export const produceReport = async (
 			}
 		}
 	}
+	core.logger.debug('HashKeyMaps: ', {
+		storeHashKeyMap,
+		queryHashKeyMap,
+	});
 
 	const applyFeeToDelegates = async (bNode: BrokerNode, nodeAmount: number) => {
 		for (let l = 0; l < bNode.delegates.length; l++) {
@@ -184,9 +198,6 @@ export const produceReport = async (
 		// ? All nodes managing all streams right now
 		for (let j = 0; j < brokerNodes.length; j++) {
 			const bNode = brokerNodes[j];
-			if (bNode.stake < stakeToken.minRequirement) {
-				continue;
-			}
 			if (typeof report.nodes[bNode.id] !== 'undefined') {
 				report.nodes[bNode.id] = 0;
 			}
@@ -243,9 +254,6 @@ export const produceReport = async (
 		// ? All nodes managing all streams right now
 		for (let j = 0; j < brokerNodes.length; j++) {
 			const bNode = brokerNodes[j];
-			if (bNode.stake < stakeToken.minRequirement) {
-				continue;
-			}
 			if (typeof report.nodes[bNode.id] !== 'undefined') {
 				report.nodes[bNode.id] = 0;
 			}

@@ -38,21 +38,6 @@ export default class Listener {
 
 			// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
 			const db = this.db();
-			// const collection = await db.initCollection('system', {
-			// 	columns: [
-			// 		{
-			// 			type: 'json',
-			// 			title: 'metadata',
-			// 		},
-			// 		{
-			// 			type: 'json',
-			// 			title: 'content',
-			// 		},
-			// 	],
-			// 	indexes: [],
-			// });
-			// await collection.destroy();
-			// await db.clear();
 			await db.drop();
 			await db.put(Date.now().toString(), null);
 
@@ -92,12 +77,6 @@ export default class Listener {
 	}
 
 	public createDb(dbPath: string) {
-		// return new Cama({
-		// 	path: dbPath,
-		// 	persistenceAdapter: PersistenceAdapterEnum.FS,
-		// 	logLevel: LogLevel.Debug,
-		// });
-
 		return open<StreamrMessage, string>({
 			path: dbPath,
 			compression: true,
