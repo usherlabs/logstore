@@ -76,6 +76,6 @@ const newStream = await logStoreClient.createStream({
 	});
 
 // Adding the stream to logstore and staking some tokens to it
-await publisherClient.addStreamToLogStore(newStream.id, STAKE_AMOUNT);
+await publisherClient.stakeOrCreateStore(newStream.id, STAKE_AMOUNT);
 
 ```
