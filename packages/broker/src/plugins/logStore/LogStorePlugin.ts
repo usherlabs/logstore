@@ -3,7 +3,7 @@ import {
 	formLogStoreSystemStreamId,
 } from '@concertodao/logstore-client';
 import {
-	ProofOfMessageStored,
+	// ProofOfMessageStored,
 	QueryFromOptions,
 	QueryLastOptions,
 	QueryMessage,
@@ -184,19 +184,20 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					Uint8Array.from(Buffer.from(msg.serialize() + size))
 				);
 
-				const proofOfMessageStored = new ProofOfMessageStored({
-					streamId: msg.getStreamId(),
-					partition: msg.getStreamPartition(),
-					timestamp: msg.getTimestamp(),
-					sequenceNumber: msg.getSequenceNumber(),
-					size,
-					hash,
-				});
+				// const proofOfMessageStored = new ProofOfMessageStored({
+				// 	streamId: msg.getStreamId(),
+				// 	partition: msg.getStreamPartition(),
+				// 	timestamp: msg.getTimestamp(),
+				// 	sequenceNumber: msg.getSequenceNumber(),
+				// 	size,
+				// 	hash,
+				// });
 
-				await this.logStoreClient.publish(
-					systemStream,
-					proofOfMessageStored.serialize()
-				);
+				await this.logStoreClient.publish(systemStream, {
+					id: msg.getStreamId(),
+					hash,
+					size,
+				});
 			}
 		};
 		const node = await this.logStoreClient.getNode();
