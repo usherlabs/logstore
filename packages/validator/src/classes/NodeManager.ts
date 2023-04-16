@@ -3,6 +3,7 @@ import {
 	LogStoreNodeManager,
 } from '@concertodao/logstore-contracts';
 import { BigNumber } from '@ethersproject/bignumber';
+import { ethers } from 'ethers';
 
 import { BrokerNode } from '../types';
 
@@ -32,11 +33,19 @@ export class NodeManager {
 			head: headBrokerNodeAddress,
 			tail: tailBrokerNodeAddress,
 		});
+		const nodeStakeUpdateEvents = await this.contract.queryFilter(
+			this.contract.filters.NodeStakeUpdated(),
+			0,
+			blockNumber
+		);
+
 		// const isSingleNode = headBrokerNodeAddress === tailBrokerNodeAddress;
 		let currentBrokerNodeAddressInLoop = headBrokerNodeAddress;
-		while (currentBrokerNodeAddressInLoop !== '') {
+		while (
+			currentBrokerNodeAddressInLoop !== '' &&
+			currentBrokerNodeAddressInLoop !== ethers.ZeroAddress
+		) {
 			// currentBrokerNodeAddressInLoop === '' when there's nothing left in brokerNode.next
-			// TODO: fix this.
 			const brokerNodeStruct = await this.contract.nodes(
 				currentBrokerNodeAddressInLoop,
 				{ blockTag: blockNumber }
@@ -51,43 +60,64 @@ export class NodeManager {
 				stake: brokerNodeStruct.stake.toNumber(),
 				delegates: [],
 			};
+			if (
+				typeof minStakeRequirement === 'undefined' ||
+				brokerNode.stake < minStakeRequirement
+			) {
+				currentBrokerNodeAddressInLoop = brokerNode.next;
+				continue;
+			}
 
 			// Hydrate the delegates
-			const nodeStakeUpdateEvents = await this.contract.queryFilter(
-				this.contract.filters.NodeStakeUpdated(),
-				0,
-				blockNumber
-			);
-			const delegates = {};
-			for (let i = 0; i < nodeStakeUpdateEvents.length; i++) {
-				const e = nodeStakeUpdateEvents[i];
-				const receipt = await e.getTransactionReceipt();
-				const { from } = receipt;
-				const nodeAddress = e.args.nodeAddress.toString();
-				const stake = e.args.stake.toNumber();
-				if (!delegates[from]) {
-					delegates[from] = [];
-				}
-				let isDelegate = false;
-				if (stake > (delegates[from].stake || 0)) {
-					isDelegate = true;
-				}
-				delegates[from].stake = stake;
-				delegates[from].a = nodeAddress;
-			}
+
+			// ! Below is incorrect because captures managed by reports could yield outcomes where the undelegate amount is less than the original delegate amount.
+			// TODO: https://ethereum.stackexchange.com/questions/34555/how-to-get-value-of-input-parameters-from-transaction-history -- use to determine amount in block transaction parameters.
+			// let stake = 0;
+			// const delegates = {}
+			// for (let i = 0; i < nodeStakeUpdateEvents.length; i++) {
+			// 	const e = nodeStakeUpdateEvents[i];
+			// 	const receipt = await e.getTransactionReceipt();
+			// 	const { from } = receipt;
+			// 	const newStake = e.args.stake.toNumber();
+			// 	const diff = newStake - stake;
+			// 	if(!delegates[from]){
+			// 		delegates[from] = 0;
+			// 	}
+			// 	delegates[from] += diff;
+			// 	stake = newStake;
+			// }
+
+			// const nodeUpdates = nodeStakeUpdateEvents.filter(
+			// 	(e) => e.args.nodeAddress.toString() === brokerNode.id
+			// );
+			// const events = await Promise.all(nodeUpdates.map(async e => {
+			// 	const res = {
+			// 		...e,
+			// 		receipt: await e.getTransactionReceipt()
+			// 	}
+			// 	return res;
+			// }))
+			// events.sort((a, b) => {
+			// 	return a.receipt.blockNumber > b.receipt.blockNumber ? 1 : -1;
+			// })
+
+			// // Hydrate the delegates
+			// let stake = 0;
+			// const delegatesOf = {}
+			// for (let i = 0; i < events.length; i++) {
+			// 	const e = events[i];
+			// 	const { from } = e.receipt;
+			// 	const eventStake = e.args.stake.toNumber();
+			// 	const diff = eventStake - stake
+			// 	if(!delegates[from]){
+			// 		delegates[from] = 0;
+			// 	}
+			// 	delegates[from] += diff;
+			// }
 
 			console.log('Broker Node Fetched!', {
 				brokerNode,
 			});
-			if (
-				typeof minStakeRequirement === 'undefined' ||
-				brokerNode.stake >= minStakeRequirement
-			) {
-				brokerNodes.push({
-					id: currentBrokerNodeAddressInLoop,
-					...brokerNode,
-				});
-			}
 			currentBrokerNodeAddressInLoop = brokerNode.next;
 		}
 
