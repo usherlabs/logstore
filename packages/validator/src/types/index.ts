@@ -4,17 +4,9 @@ export type PoolConfigContract = {
 	address: string;
 };
 
-export type PoolConfigContracts = {
-	reportManager: PoolConfigContract;
-	nodeManager: PoolConfigContract;
-	storeManager: PoolConfigContract;
-	queryManager: PoolConfigContract;
-};
-
 export type PoolConfig = {
 	sources: string[];
 	itemTimeRange: number; // Some range in unix time between each data item
-	contracts: PoolConfigContracts;
 	fees: {
 		writeMultiplier: number;
 		treasuryMultiplier: number;
@@ -46,7 +38,7 @@ export type Report = {
 	delegates: Record<string, Record<string, number>>;
 
 	// The following properties are not signed by the Broker Nodes
-	events: {
+	events?: {
 		queries: (ReportEvent & {
 			query: string;
 			consumer: string;

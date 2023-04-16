@@ -3,6 +3,7 @@ export {
 	getNodeManagerContract,
 	getQueryManagerContract,
 	getStoreManagerContract,
+	getReportManagerContract,
 } from './getManager';
 export {
 	prepareStakeForNodeManager,

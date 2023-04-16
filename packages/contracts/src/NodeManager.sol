@@ -41,8 +41,6 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         address next;
         address prev;
         uint256 stake;
-        address[] delegates;
-        mapping(address => bool) delegateExists;
     }
 
     modifier onlyWhitelist() {
@@ -261,12 +259,6 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         delegatesOf[msg.sender][node] += amount;
         nodes[node].stake += amount;
 
-        bool delegateExists = nodes[node].delegateExists[msg.sender];
-        if (!delegateExists) {
-            nodes[node].delegates.push(msg.sender);
-            nodes[node].delegateExists[msg.sender] = true;
-        }
-
         _checkAndGrantAccess(node);
 
         emit NodeStakeUpdated(node, nodes[node].stake);
@@ -279,17 +271,6 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         delegatesOf[msg.sender][node] -= amount;
         nodes[node].stake -= amount;
         balanceOf[msg.sender] += amount;
-
-        uint256 removeIndex = 0;
-        uint256 numDelegates = nodes[node].delegates.length;
-        for (uint256 i = 0; i < numDelegates; i++) {
-            if (msg.sender == nodes[node].delegates[i]) {
-                removeIndex = i;
-                break;
-            }
-        }
-        nodes[node].delegates[removeIndex] = nodes[node].delegates[nodes[node].delegates.length - 1];
-        nodes[node].delegates.pop();
 
         _checkAndGrantAccess(node);
 

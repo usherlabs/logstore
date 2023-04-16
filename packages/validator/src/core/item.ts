@@ -14,7 +14,7 @@ export const produceItem = async (
 	const config = getConfig(core);
 	const logstore = new LogStoreClient({
 		auth: {
-			privateKey: getEvmPrivateKey(),
+			privateKey: getEvmPrivateKey(), // The Validator needs to stake in QueryManager
 		},
 	});
 

@@ -1,42 +1,42 @@
-import { ethers } from 'ethers';
+import { getEvmPrivateKey } from '@/env-config';
+import {
+	getNodeManagerContract,
+	getReportManagerContract,
+	getStoreManagerContract,
+} from '@concertodao/logstore-shared';
+import { JsonRpcProvider, Provider } from '@ethersproject/providers';
+import { Wallet } from '@ethersproject/wallet';
 
-import { PoolConfigContracts } from '../types/index';
 import { getClosestBlockByTime } from '../utils/helpers';
-import { NodeManagerContract } from './NodeManager';
-// import { QueryManagerContract } from './QueryManager';
-import { ReportManagerContract } from './ReportManager';
-import { StoreManagerContract } from './StoreManager';
+import { NodeManager } from './NodeManager';
+import { ReportManager } from './ReportManager';
+import { StoreManager } from './StoreManager';
 
 export class Managers {
-	private provider: ethers.Provider;
+	private provider: Provider;
 
-	public store: StoreManagerContract;
-	// public query: QueryManagerContract;
-	public node: NodeManagerContract;
-	public report: ReportManagerContract;
+	public store: StoreManager;
+	public node: NodeManager;
+	public report: ReportManager;
 
-	constructor(rpcUrl: string, addresses: PoolConfigContracts) {
-		this.provider = new ethers.JsonRpcProvider(rpcUrl);
-
-		this.store = new StoreManagerContract(
-			this.provider,
-			addresses.storeManager.address
-		);
-		this.report = new ReportManagerContract(
-			this.provider,
-			addresses.reportManager.address
-		);
-		this.node = new NodeManagerContract(
-			this.provider,
-			addresses.nodeManager.address
-		);
-		// this.queryManager = new NodeManagerContract(
-		// 	this.provider,
-		// 	addresses.queryManager.address
-		// );
+	constructor(rpcUrl: string) {
+		this.provider = new JsonRpcProvider(rpcUrl);
 	}
 
-	public async getBlockByTime(ts: number): Promise<ethers.Block> {
+	async init() {
+		const priv = getEvmPrivateKey();
+		const wallet = new Wallet(priv, this.provider);
+		const cStore = await getStoreManagerContract(wallet);
+		const cReport = await getReportManagerContract(wallet);
+		const cNode = await getNodeManagerContract(wallet);
+
+		// this.store = new StoreManager(this.provider, );
+		this.node = new NodeManager(cNode);
+		this.store = new StoreManager(cStore);
+		this.report = new ReportManager(cReport);
+	}
+
+	public async getBlockByTime(ts: number) {
 		const { provider } = this;
 		let block = await getClosestBlockByTime(ts, provider);
 		if (ts !== block.timestamp) {

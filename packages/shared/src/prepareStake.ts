@@ -37,7 +37,7 @@ export async function prepareStakeForQueryManager(
 }
 
 async function prepareStake(
-	manager: Manager,
+	manager: Exclude<Manager, Manager.ReportManager>,
 	signer: ethers.Wallet,
 	amount: number,
 	isUsd: boolean,
@@ -48,6 +48,7 @@ async function prepareStake(
 	}
 
 	const managerContract = await getManagerContract(signer, manager);
+	// @ts-ignore -- manager excludes ReportManager
 	const stakeTokenAddress: string = await managerContract.stakeTokenAddress();
 	logger.debug('Stake Token Address: ', stakeTokenAddress);
 

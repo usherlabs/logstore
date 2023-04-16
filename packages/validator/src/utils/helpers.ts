@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { Provider } from '@ethersproject/providers';
 
 /**
  * A function used to format a struct object gotten from the blockchain
@@ -18,7 +18,7 @@ export const parseStruct = (struct: [] | Record<string, unknown>) => {
 // Inspired by: https://medium.com/@hanyi.lol/how-to-get-a-block-number-by-timestamp-fefde4c69162
 export async function getClosestBlockByTime(
 	timestamp: number,
-	provider: ethers.Provider
+	provider: Provider
 ) {
 	let maxBlockNumber = await provider.getBlockNumber();
 	let minBlockNumber = 0;

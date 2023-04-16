@@ -1,14 +1,7 @@
-import { abi as StoreManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
-import { ethers, EventLog } from 'ethers';
+import { LogStoreManager } from '@concertodao/logstore-contracts';
 
-export class StoreManagerContract {
-	private _contract: ethers.Contract;
-
-	constructor(provider: ethers.Provider, address: string) {
-		this._contract = new ethers.Contract(address, StoreManagerContractABI, {
-			provider,
-		});
-	}
+export class StoreManager {
+	constructor(private _contract: LogStoreManager) {}
 
 	public get contract() {
 		return this._contract;
@@ -24,11 +17,8 @@ export class StoreManagerContract {
 		);
 		const stores: { id: string; amount: number }[] = [];
 		storeUpdateEvents.forEach((e) => {
-			if (!(e instanceof EventLog)) {
-				return;
-			}
-			const storeId = e.args.getValue('store');
-			const amount = e.args.getValue('amount');
+			const storeId = e.args.store.toString();
+			const amount = e.args.amount.toNumber();
 			const sIndex = stores.findIndex((s) => s.id === storeId);
 			if (sIndex < 0) {
 				stores.push({
@@ -45,11 +35,8 @@ export class StoreManagerContract {
 			toBlockNumber
 		);
 		dataStoredEvents.forEach((e) => {
-			if (!(e instanceof EventLog)) {
-				return;
-			}
-			const storeId = e.args.getValue('store');
-			const amount = e.args.getValue('fees');
+			const storeId = e.args.store.toString();
+			const amount = e.args.fees.toNumber();
 			const sIndex = stores.findIndex((s) => s.id === storeId);
 			if (sIndex >= 0) {
 				stores[sIndex].amount -= amount;

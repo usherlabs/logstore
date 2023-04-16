@@ -1,5 +1,3 @@
-import contractAddresses from '@concertodao/logstore-contracts/address.json';
-
 export const genesis_pool = {
 	id: '0',
 	data: {
@@ -9,12 +7,6 @@ export const genesis_pool = {
 		logo: 'ar://9FJDam56yBbmvn8rlamEucATH5UcYqSBw468rlCXn8E',
 		config: `{
 			"sources": ["http://localhost:8546"],
-			"contracts": {
-				"reportManager": { "address": "${contractAddresses[8997].reportManagerAddress}" },
-				"nodeManager": { "address": "${contractAddresses[8997].nodeManagerAddress}" },
-				"storeManager": { "address": "${contractAddresses[8997].storeManagerAddress}" },
-				"queryManager": { "address": "${contractAddresses[8997].queryManagerAddress}" }
-			}
 		}`.replace(/\s/g, ''),
 		start_key: '1681200822557',
 		current_key: '',

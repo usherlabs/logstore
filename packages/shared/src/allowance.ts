@@ -10,13 +10,13 @@ export type allowanceConfirmFn = (
 ) => Promise<boolean>;
 
 export const ensureEnoughAllowance = async (
-	manager: Manager,
+	manager: Exclude<Manager, Manager.ReportManager>,
 	amount: bigint,
 	wallet: ethers.Wallet,
 	confirm?: allowanceConfirmFn
 ) => {
 	const mangerContract = await getManagerContract(wallet, manager);
-
+	// @ts-ignore -- manager excludes ReportManager
 	const stakeTokenAddress = await mangerContract.stakeTokenAddress();
 	const stakeToken = ERC20__factory.connect(stakeTokenAddress, wallet);
 

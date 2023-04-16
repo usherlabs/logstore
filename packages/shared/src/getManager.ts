@@ -5,6 +5,8 @@ import {
 	LogStoreNodeManager__factory,
 	LogStoreQueryManager,
 	LogStoreQueryManager__factory,
+	LogStoreReportManager,
+	LogStoreReportManager__factory,
 } from '@concertodao/logstore-contracts';
 import ContractAddresses from '@concertodao/logstore-contracts/address.json';
 import { ethers } from 'ethers';
@@ -32,6 +34,13 @@ export async function getStoreManagerContract(wallet: ethers.Wallet) {
 	)) as LogStoreManager;
 }
 
+export async function getReportManagerContract(wallet: ethers.Wallet) {
+	return (await getManagerContract(
+		wallet,
+		Manager.ReportManager
+	)) as LogStoreReportManager;
+}
+
 export async function getManagerContract(
 	wallet: ethers.Wallet,
 	manager: Manager
@@ -46,6 +55,8 @@ export async function getManagerContract(
 			return LogStoreQueryManager__factory.connect(managerAddress, wallet);
 		case Manager.StoreManager:
 			return LogStoreManager__factory.connect(managerAddress, wallet);
+		case Manager.ReportManager:
+			return LogStoreReportManager__factory.connect(managerAddress, wallet);
 		default:
 			throw new Error('Unexpected manager');
 	}
@@ -60,6 +71,8 @@ function getManagerAddress(chainId: number, manager: Manager) {
 			return ContractAddresses[network].queryManagerAddress;
 		case Manager.StoreManager:
 			return ContractAddresses[network].storeManagerAddress;
+		case Manager.ReportManager:
+			return ContractAddresses[network].reportManagerAddress;
 		default:
 			throw new Error('Unexpected manager');
 	}

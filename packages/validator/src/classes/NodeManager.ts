@@ -1,9 +1,10 @@
-import { abi as NodeManagerContractABI } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
-import { ethers } from 'ethers';
+import {
+	ERC20__factory,
+	LogStoreNodeManager,
+} from '@concertodao/logstore-contracts';
+import { BigNumber } from '@ethersproject/bignumber';
 
-import erc20ABI from '../abi/erc20';
 import { BrokerNode } from '../types';
-import { parseStruct } from '../utils/helpers';
 
 type StakeToken = {
 	minRequirement: number;
@@ -12,14 +13,8 @@ type StakeToken = {
 	decimals: number;
 };
 
-export class NodeManagerContract {
-	private _contract: ethers.Contract;
-
-	constructor(private provider: ethers.Provider, address: string) {
-		this._contract = new ethers.Contract(address, NodeManagerContractABI, {
-			provider,
-		});
-	}
+export class NodeManager {
+	constructor(private _contract: LogStoreNodeManager) {}
 
 	public get contract() {
 		return this._contract;
@@ -28,10 +23,10 @@ export class NodeManagerContract {
 	async getBrokerNodes(blockNumber?: number, minStakeRequirement?: number) {
 		const brokerNodes: BrokerNode[] = [];
 		const headBrokerNodeAddress: string = await this.contract.headNode({
-			blockNumber,
+			blockTag: blockNumber,
 		});
 		const tailBrokerNodeAddress: string = await this.contract.tailNode({
-			blockNumber,
+			blockTag: blockNumber,
 		});
 		console.log('Broker Node Head/Tail', {
 			head: headBrokerNodeAddress,
@@ -41,25 +36,47 @@ export class NodeManagerContract {
 		let currentBrokerNodeAddressInLoop = headBrokerNodeAddress;
 		while (currentBrokerNodeAddressInLoop !== '') {
 			// currentBrokerNodeAddressInLoop === '' when there's nothing left in brokerNode.next
+			// TODO: fix this.
 			const brokerNodeStruct = await this.contract.nodes(
-				currentBrokerNodeAddressInLoop
+				currentBrokerNodeAddressInLoop,
+				{ blockTag: blockNumber }
 			);
-			const brokerNode = parseStruct(brokerNodeStruct) as BrokerNode; // TODO: This doesn't work.
-			/**
-			 *  Broker Node Fetched! {
-      brokerNodeStruct: Result(6) [
-        0n,
-        '{ "hello": "world" }',
-        1680870273n,
-        '0x0000000000000000000000000000000000000000',
-        '0x0000000000000000000000000000000000000000',
-        999999999999999983222784n
-      ],
-      brokerNode: {}
-    }
-			 */
+			let brokerNode: BrokerNode = {
+				id: currentBrokerNodeAddressInLoop,
+				index: brokerNodeStruct.index.toNumber(),
+				metadata: brokerNodeStruct.metadata,
+				lastSeen: brokerNodeStruct.lastSeen.toNumber(),
+				next: brokerNodeStruct.next,
+				prev: brokerNodeStruct.prev,
+				stake: brokerNodeStruct.stake.toNumber(),
+				delegates: [],
+			};
+
+			// Hydrate the delegates
+			const nodeStakeUpdateEvents = await this.contract.queryFilter(
+				this.contract.filters.NodeStakeUpdated(),
+				0,
+				blockNumber
+			);
+			const delegates = {};
+			for (let i = 0; i < nodeStakeUpdateEvents.length; i++) {
+				const e = nodeStakeUpdateEvents[i];
+				const receipt = await e.getTransactionReceipt();
+				const { from } = receipt;
+				const nodeAddress = e.args.nodeAddress.toString();
+				const stake = e.args.stake.toNumber();
+				if (!delegates[from]) {
+					delegates[from] = [];
+				}
+				let isDelegate = false;
+				if (stake > (delegates[from].stake || 0)) {
+					isDelegate = true;
+				}
+				delegates[from].stake = stake;
+				delegates[from].a = nodeAddress;
+			}
+
 			console.log('Broker Node Fetched!', {
-				brokerNodeStruct,
 				brokerNode,
 			});
 			if (
@@ -78,25 +95,21 @@ export class NodeManagerContract {
 	}
 
 	async getStakeToken(blockNumber?: number): Promise<StakeToken> {
-		const minStakeRequirement: number = await this.contract.stakeRequiredAmount(
-			{ blockNumber }
-		);
+		const minStakeRequirement: BigNumber =
+			await this.contract.stakeRequiredAmount({ blockTag: blockNumber });
 		const stakeTokenAddress: string = await this.contract.stakeTokenAddress({
-			blockNumber,
+			blockTag: blockNumber,
 		});
 		// Get decimal count for the stake token
-		const stakeTokenContract = new ethers.Contract(
+		const stakeTokenContract = ERC20__factory.connect(
 			stakeTokenAddress,
-			erc20ABI,
-			{
-				provider: this.provider,
-			}
+			this.contract.provider
 		);
 		const stakeTokenSymbol = await stakeTokenContract.symbol();
 		const stakeTokenDecimals = await stakeTokenContract.decimals();
 
 		return {
-			minRequirement: minStakeRequirement,
+			minRequirement: minStakeRequirement.toNumber(),
 			address: stakeTokenAddress,
 			symbol: stakeTokenSymbol,
 			decimals: stakeTokenDecimals,
