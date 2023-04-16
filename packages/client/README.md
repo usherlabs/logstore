@@ -34,7 +34,7 @@ Returns a Promise that resolves to a **`MessageStream`** object that provides an
 
 ### **`stakeOrCreateStore(streamIdOrPath: string, amount: BigNumberish)`**
 
-Creates a stream in LogStore and/or stake some funds to an the provided stream.
+Creates a stream in LogStore and/or stake some funds to the provided stream.
 
 **`streamIdOrPath`** is the ID or path of the stream to be added. 
 
@@ -58,13 +58,13 @@ Gets all streams assigned to a storage node.
 
 Returns a Promise that resolves to an object with a **`blockNumber`** property indicating the current blockchain state and a **`Stream[]`** property representing the list of streams stored on LogStore nodes.
 
-## Code Example
+## Code Examples and Snippets
 
 ```jsx
 import { LogStoreClient } from '@concertodao/logstore-client';
 
 // Initialize the logstore client
-const queryClient = new LogStoreClient({
+const logStoreClient = new LogStoreClient({
 			auth: {
 				privateKey: "0xabc123...",
 			},
@@ -76,6 +76,8 @@ const newStream = await logStoreClient.createStream({
 	});
 
 // Adding the stream to logstore and staking some tokens to it
-await publisherClient.stakeOrCreateStore(newStream.id, STAKE_AMOUNT);
+await logStoreClient.addStreamToLogStore(newStream.id, STAKE_AMOUNT);
 
+// Staking some funds for the purpose of making a query
+await logStoreClient.queryStake(STAKE_AMOUNT)
 ```
