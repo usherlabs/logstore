@@ -76,7 +76,7 @@ export default class QuickLRU extends Map {
 		this._set(key, item);
 	}
 
-	* _entriesAscending() {
+	*_entriesAscending() {
 		for (const item of this.oldCache) {
 			const [key, value] = item;
 			if (!this.cache.has(key)) {
@@ -112,18 +112,18 @@ export default class QuickLRU extends Map {
 		}
 	}
 
-	set(key, value, {maxAge = this.maxAge} = {}) {
+	set(key, value, { maxAge = this.maxAge } = {}) {
 		const expiry =
-			typeof maxAge === 'number' && maxAge !== Number.POSITIVE_INFINITY ?
-				Date.now() + maxAge :
-				undefined;
+			typeof maxAge === 'number' && maxAge !== Number.POSITIVE_INFINITY
+				? Date.now() + maxAge
+				: undefined;
 		if (this.cache.has(key)) {
 			this.cache.set(key, {
 				value,
-				expiry
+				expiry,
 			});
 		} else {
-			this._set(key, {value, expiry});
+			this._set(key, { value, expiry });
 		}
 	}
 
@@ -188,19 +188,19 @@ export default class QuickLRU extends Map {
 		this.maxSize = newSize;
 	}
 
-	* keys() {
+	*keys() {
 		for (const [key] of this) {
 			yield key;
 		}
 	}
 
-	* values() {
+	*values() {
 		for (const [, value] of this) {
 			yield value;
 		}
 	}
 
-	* [Symbol.iterator]() {
+	*[Symbol.iterator]() {
 		for (const item of this.cache) {
 			const [key, value] = item;
 			const deleted = this._deleteIfExpired(key, value);
@@ -220,7 +220,7 @@ export default class QuickLRU extends Map {
 		}
 	}
 
-	* entriesDescending() {
+	*entriesDescending() {
 		let items = [...this.cache];
 		for (let i = items.length - 1; i >= 0; --i) {
 			const item = items[i];
@@ -244,7 +244,7 @@ export default class QuickLRU extends Map {
 		}
 	}
 
-	* entriesAscending() {
+	*entriesAscending() {
 		for (const [key, value] of this._entriesAscending()) {
 			yield [key, value.value];
 		}

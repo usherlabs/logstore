@@ -24,7 +24,10 @@ export interface Options<KeyType, ValueType> {
 	onEviction?: (key: KeyType, value: ValueType) => void;
 }
 
-export default class QuickLRU<KeyType, ValueType> extends Map implements Iterable<[KeyType, ValueType]> {
+export default class QuickLRU<KeyType, ValueType>
+	extends Map
+	implements Iterable<[KeyType, ValueType]>
+{
 	/**
 	The stored item count.
 	*/
@@ -61,7 +64,7 @@ export default class QuickLRU<KeyType, ValueType> extends Map implements Iterabl
 
 	@returns The list instance.
 	*/
-	set(key: KeyType, value: ValueType, options?: {maxAge?: number}): this;
+	set(key: KeyType, value: ValueType, options?: { maxAge?: number }): this;
 
 	/**
 	Get an item.
