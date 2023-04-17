@@ -1,5 +1,5 @@
 import { ERC20__factory } from '@concertodao/logstore-contracts';
-import { ethers } from 'ethers';
+import { Signer } from 'ethers';
 import { Logger } from 'tslog';
 
 import { allowanceConfirmFn, ensureEnoughAllowance } from './allowance';
@@ -10,27 +10,27 @@ import { Manager } from './types';
 export const logger = new Logger();
 
 export async function prepareStakeForNodeManager(
-	signer: ethers.Wallet,
-	amount: number,
-	isUsd: boolean,
+	signer: Signer,
+	amount: bigint | number,
+	isUsd?: boolean,
 	confirm?: allowanceConfirmFn
 ) {
 	return prepareStake(Manager.NodeManager, signer, amount, isUsd, confirm);
 }
 
 export async function prepareStakeForStoreManager(
-	signer: ethers.Wallet,
-	amount: number,
-	isUsd: boolean,
+	signer: Signer,
+	amount: bigint | number,
+	isUsd?: boolean,
 	confirm?: allowanceConfirmFn
 ) {
 	return prepareStake(Manager.StoreManager, signer, amount, isUsd, confirm);
 }
 
 export async function prepareStakeForQueryManager(
-	signer: ethers.Wallet,
-	amount: number,
-	isUsd: boolean,
+	signer: Signer,
+	amount: bigint | number,
+	isUsd?: boolean,
 	confirm?: allowanceConfirmFn
 ) {
 	return prepareStake(Manager.QueryManager, signer, amount, isUsd, confirm);
@@ -38,9 +38,9 @@ export async function prepareStakeForQueryManager(
 
 async function prepareStake(
 	manager: Exclude<Manager, Manager.ReportManager>,
-	signer: ethers.Wallet,
-	amount: number,
-	isUsd: boolean,
+	signer: Signer,
+	amount: bigint | number,
+	isUsd?: boolean,
 	confirm?: allowanceConfirmFn
 ) {
 	if (amount <= 0) {
@@ -60,7 +60,11 @@ async function prepareStake(
 
 	let realAmount = amount;
 	if (isUsd) {
-		realAmount = await convertFromUsd(stakeTokenAddress, amount, signer);
+		realAmount = await convertFromUsd(
+			stakeTokenAddress,
+			amount as number,
+			signer
+		);
 	}
 
 	const bnAmount = BigInt(realAmount);

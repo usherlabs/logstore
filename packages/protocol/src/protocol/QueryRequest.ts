@@ -4,9 +4,9 @@ import QueryMessage, {
 } from './QueryMessage';
 
 export enum QueryType {
-	Last = 0,
-	From = 1,
-	Range = 2,
+	Last = 'last',
+	From = 'from',
+	Range = 'range',
 }
 
 export interface QueryRef {

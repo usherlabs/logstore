@@ -1,4 +1,3 @@
-import { BigNumberish } from 'ethers';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import StreamrClient, {
@@ -16,6 +15,7 @@ import {
 import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
+	redactConfig,
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
@@ -25,8 +25,7 @@ import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { StreamIDBuilder } from './StreamIDBuilder';
 
 export class LogStoreClient extends StreamrClient {
-	// TODO: logStoreRegistry must be private (it's a temporary workaround)
-	public readonly logStoreRegistry: LogStoreRegistry;
+	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreStreamIdBuilder: StreamIDBuilder;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
@@ -36,19 +35,19 @@ export class LogStoreClient extends StreamrClient {
 		/** @internal */
 		parentContainer = rootContainer
 	) {
-		// TODO: Review needed. Make the call of super(streamrClientConfig) pass its config validation.
+		// TODO: ensure there is a correct container instance used
+		const container = parentContainer.createChildContainer();
+
+		// Prepare a copy of `config` to call the super() method
 		const streamrClientConfig = cloneDeep(config);
 		delete streamrClientConfig.contracts?.logStoreNodeManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
+		super(streamrClientConfig, container);
 
 		const strictConfig = createStrictConfig(config);
 		const authentication = createAuthentication(strictConfig);
-
-		// TODO: ensure there is a correct container instance used
-		const container = parentContainer.createChildContainer();
-		// const container = parentContainer;
-		super(streamrClientConfig, container);
+		redactConfig(strictConfig);
 
 		container.register(LogStoreClient, {
 			useValue: this,
@@ -89,7 +88,7 @@ export class LogStoreClient extends StreamrClient {
 	/**
 	 * Stake funds so can query
 	 */
-	async queryStake(amount: BigNumberish, options = { usd: false }) {
+	async queryStake(amount: bigint, options = { usd: false }) {
 		return this.logStoreRegistry.queryStake(amount, { usd: options.usd });
 	}
 
@@ -131,9 +130,9 @@ export class LogStoreClient extends StreamrClient {
 	/**
 	 * Add a stream to LogStore.
 	 */
-	async addStreamToLogStore(
+	async stakeOrCreateStore(
 		streamIdOrPath: string,
-		amount: BigNumberish
+		amount: bigint
 	): Promise<void> {
 		return this.logStoreRegistry.stakeOrCreateStore(streamIdOrPath, amount);
 	}

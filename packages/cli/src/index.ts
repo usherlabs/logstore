@@ -69,7 +69,7 @@ program
 				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
 			)
 			.action(async (amt: string, cmdOptions: { usd: boolean }) => {
-				const amount = parseFloat(amt);
+				const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
 				logger.debug('Command Params: ', { amount, ...options, ...cmdOptions });
 
 				try {
@@ -82,7 +82,9 @@ program
 						allowanceConfirm
 					);
 					const queryManagerContract = await getQueryManagerContract(signer);
+					logger.info(`Staking ${stakeAmount}...`);
 					await (await queryManagerContract.stake(stakeAmount)).wait();
+					logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
 				} catch (e) {
 					logger.info(chalk.red('Stake failed'));
 					logger.error(e);
@@ -110,7 +112,7 @@ program
 			)
 			.action(
 				async (streamId: string, amt: string, cmdOptions: { usd: boolean }) => {
-					const amount = parseFloat(amt);
+					const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
 					if (!streamId) {
 						throw new Error('Stream ID is invalid');
 					}
@@ -132,9 +134,11 @@ program
 							allowanceConfirm
 						);
 						const storeManagerContract = await getStoreManagerContract(signer);
+						logger.info(`Staking ${stakeAmount}...`);
 						await (
 							await storeManagerContract.stake(streamId, stakeAmount)
 						).wait();
+						logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
 					} catch (e) {
 						logger.info(chalk.red('Stake failed'));
 						logger.error(e);

@@ -1,4 +1,31 @@
+import { Defer } from '@streamr/utils';
 import pLimit from 'p-limit';
+import pThrottle from 'p-throttle';
+
+/**
+ * Execute functions in parallel, but ensure they resolve in the order they were executed
+ */
+export function pOrderedResolve<ArgsType extends unknown[], ReturnType>(
+	fn: (...args: ArgsType) => ReturnType
+): ((...args: ArgsType) => Promise<any>) & { clear(): void } {
+	const queue = pLimit(1);
+	return Object.assign(
+		async (...args: ArgsType) => {
+			const d = new Defer<ReturnType>();
+			const done = queue(() => d);
+			await Promise.resolve(fn(...args)).then(
+				d.resolve.bind(d),
+				d.reject.bind(d)
+			);
+			return done;
+		},
+		{
+			clear() {
+				queue.clearQueue();
+			},
+		}
+	);
+}
 
 /**
  * Returns a function that executes with limited concurrency.
@@ -186,6 +213,18 @@ export function pOnce<ArgsType extends unknown[], ReturnType>(
 // 		p.resolve(undefined);
 // 	});
 // }
+
+// TODO better type annotations
+export const withThrottling = (
+	fn: (...args: any[]) => Promise<any>,
+	maxInvocationsPerSecond: number
+): ((...args: any[]) => Promise<any>) => {
+	const throttler = pThrottle({
+		limit: maxInvocationsPerSecond,
+		interval: 1000,
+	});
+	return throttler(fn);
+};
 
 export const tryInSequence = async <T>(
 	fns: ((...args: any[]) => Promise<T>)[]

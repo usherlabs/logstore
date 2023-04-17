@@ -22,6 +22,7 @@ import { Stream } from 'streamr-client';
 
 import { Plugin, PluginOptions } from '../../Plugin';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
+import { createDataQueryEndpoint } from './dataQueryEndpoint';
 import {
 	LogStore,
 	MAX_SEQUENCE_NUMBER_VALUE,
@@ -188,6 +189,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					partition: msg.getStreamPartition(),
 					timestamp: msg.getTimestamp(),
 					sequenceNumber: msg.getSequenceNumber(),
+					size,
 					hash,
 				});
 
@@ -199,6 +201,9 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		};
 		const node = await this.logStoreClient.getNode();
 		node.addMessageListener(this.messageListener);
+		this.addHttpServerEndpoint(
+			createDataQueryEndpoint(this.brokerConfig, this.logStore, metricsContext)
+		);
 	}
 
 	async stop(): Promise<void> {

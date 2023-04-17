@@ -3,6 +3,8 @@ import {
 	validateConfig as validateClientConfig,
 } from '@concertodao/logstore-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
+import { Server as HttpServer } from 'http';
+import { Server as HttpsServer } from 'https';
 import { NetworkNodeStub } from 'streamr-client';
 
 import { version as CURRENT_VERSION } from '../package.json';
@@ -10,7 +12,8 @@ import { Config } from './config/config';
 import BROKER_CONFIG_SCHEMA from './config/config.schema.json';
 import { validateConfig } from './config/validateConfig';
 import { generateMnemonicFromAddress } from './helpers/generateMnemonicFromAddress';
-import { Plugin, PluginOptions } from './Plugin';
+import { startServer as startHttpServer, stopServer } from './httpServer';
+import { HttpServerEndpoint, Plugin, PluginOptions } from './Plugin';
 import { createPlugin } from './pluginRegistry';
 
 const logger = new Logger(module);
@@ -39,6 +42,7 @@ export const createBroker = async (
 	});
 
 	let started = false;
+	let httpServer: HttpServer | HttpsServer | undefined;
 
 	const getNode = async (): Promise<NetworkNodeStub> => {
 		if (!started) {
@@ -52,6 +56,21 @@ export const createBroker = async (
 		start: async () => {
 			logger.info(`Starting LogStore broker version ${CURRENT_VERSION}`);
 			await Promise.all(plugins.map((plugin) => plugin.start()));
+			const httpServerEndpoints = plugins.flatMap((plugin: Plugin<any>) => {
+				return plugin
+					.getHttpServerEndpoints()
+					.map((endpoint: HttpServerEndpoint) => {
+						return {
+							...endpoint,
+						};
+					});
+			});
+			if (httpServerEndpoints.length > 0) {
+				httpServer = await startHttpServer(
+					httpServerEndpoints,
+					config.httpServer
+				);
+			}
 
 			const nodeId = (await logStoreClient.getNode()).getNodeId();
 			const brokerAddress = await logStoreClient.getAddress();
@@ -93,6 +112,9 @@ export const createBroker = async (
 			started = true;
 		},
 		stop: async () => {
+			if (httpServer !== undefined) {
+				await stopServer(httpServer);
+			}
 			await Promise.all(plugins.map((plugin) => plugin.stop()));
 			await logStoreClient.destroy();
 		},

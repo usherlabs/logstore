@@ -9,27 +9,33 @@ import {
 	LogStoreReportManager__factory,
 } from '@concertodao/logstore-contracts';
 import ContractAddresses from '@concertodao/logstore-contracts/address.json';
-import { ethers } from 'ethers';
+import { providers, Signer } from 'ethers';
 
 import { Manager, Network } from './types';
 
-export async function getNodeManagerContract(wallet: ethers.Wallet) {
+export async function getNodeManagerContract(
+	signerOrProvider: Signer | providers.Provider
+) {
 	return (await getManagerContract(
-		wallet,
+		signerOrProvider,
 		Manager.NodeManager
 	)) as LogStoreNodeManager;
 }
 
-export async function getQueryManagerContract(wallet: ethers.Wallet) {
+export async function getQueryManagerContract(
+	signerOrProvider: Signer | providers.Provider
+) {
 	return (await getManagerContract(
-		wallet,
+		signerOrProvider,
 		Manager.QueryManager
 	)) as LogStoreQueryManager;
 }
 
-export async function getStoreManagerContract(wallet: ethers.Wallet) {
+export async function getStoreManagerContract(
+	signerOrProvider: Signer | providers.Provider
+) {
 	return (await getManagerContract(
-		wallet,
+		signerOrProvider,
 		Manager.StoreManager
 	)) as LogStoreManager;
 }
@@ -42,21 +48,38 @@ export async function getReportManagerContract(wallet: ethers.Wallet) {
 }
 
 export async function getManagerContract(
-	wallet: ethers.Wallet,
+	signerOrProvider: Signer | providers.Provider,
 	manager: Manager
 ) {
-	const network = await wallet.provider.getNetwork();
+	const network =
+		signerOrProvider instanceof Signer
+			? await signerOrProvider.provider?.getNetwork()
+			: await signerOrProvider.getNetwork();
+
+	if (!network) {
+		throw new Error('Network not defined');
+	}
+
 	const managerAddress = getManagerAddress(network.chainId, manager);
 
 	switch (manager) {
 		case Manager.NodeManager:
-			return LogStoreNodeManager__factory.connect(managerAddress, wallet);
+			return LogStoreNodeManager__factory.connect(
+				managerAddress,
+				signerOrProvider
+			);
 		case Manager.QueryManager:
-			return LogStoreQueryManager__factory.connect(managerAddress, wallet);
+			return LogStoreQueryManager__factory.connect(
+				managerAddress,
+				signerOrProvider
+			);
 		case Manager.StoreManager:
-			return LogStoreManager__factory.connect(managerAddress, wallet);
+			return LogStoreManager__factory.connect(managerAddress, signerOrProvider);
 		case Manager.ReportManager:
-			return LogStoreReportManager__factory.connect(managerAddress, wallet);
+			return LogStoreReportManager__factory.connect(
+				managerAddress,
+				signerOrProvider
+			);
 		default:
 			throw new Error('Unexpected manager');
 	}

@@ -9,6 +9,7 @@ export class ProofOfMessageStored extends SystemMessage {
 	partition: number;
 	timestamp: number;
 	sequenceNumber: number;
+	size: number;
 	hash: string;
 
 	constructor({
@@ -17,6 +18,7 @@ export class ProofOfMessageStored extends SystemMessage {
 		partition,
 		timestamp,
 		sequenceNumber,
+		size,
 		hash,
 	}: ProofOfMessageStoredOptions) {
 		super(version, SystemMessageType.ProofOfMessageStored);
@@ -25,6 +27,7 @@ export class ProofOfMessageStored extends SystemMessage {
 		this.partition = partition;
 		this.timestamp = timestamp;
 		this.sequenceNumber = sequenceNumber;
+		this.size = size;
 		this.hash = hash;
 	}
 }
@@ -34,5 +37,6 @@ interface ProofOfMessageStoredOptions extends SystemMessageOptions {
 	partition: number;
 	timestamp: number;
 	sequenceNumber: number;
+	size: number;
 	hash: string;
 }
