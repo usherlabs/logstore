@@ -4,56 +4,46 @@ import sinon from 'sinon';
 import UnsupportedTypeError from '../src/errors/UnsupportedTypeError';
 import UnsupportedVersionError from '../src/errors/UnsupportedVersionError';
 import ValidationError from '../src/errors/ValidationError';
-import QueryMessage, { QueryMessageType } from '../src/protocol/QueryMessage';
 import { Serializer } from '../src/Serializer';
+import { SystemMessage, SystemMessageType } from '../src/system';
 
 const VERSION = 123;
 const TYPE = 0;
-const REQUEST_ID = 'requestId';
 
-class TestQueryMessage extends QueryMessage {}
+class TestSystemMessage extends SystemMessage {}
 
 const msg = () => {
-	return new TestQueryMessage(VERSION, TYPE, REQUEST_ID);
+	return new TestSystemMessage(VERSION, TYPE);
 };
 
-describe('QueryMessage', () => {
-	let serializer: Serializer<QueryMessage>;
+describe('SystemMessage', () => {
+	let serializer: Serializer<SystemMessage>;
 
 	beforeEach(() => {
 		serializer = {
 			fromArray: sinon.stub(),
 			toArray: sinon.stub(),
 		};
-		QueryMessage.registerSerializer(VERSION, TYPE, serializer);
+		SystemMessage.registerSerializer(VERSION, TYPE, serializer);
 	});
 
 	afterEach(() => {
-		QueryMessage.unregisterSerializer(VERSION, TYPE);
+		SystemMessage.unregisterSerializer(VERSION, TYPE);
 	});
 
 	describe('constructor', () => {
 		it('is abstract', () => {
-			assert.throws(
-				() => new QueryMessage(VERSION, TYPE, REQUEST_ID),
-				TypeError
-			);
+			assert.throws(() => new SystemMessage(VERSION, TYPE), TypeError);
 		});
 		it('validates version', () => {
 			assert.throws(
-				() => new TestQueryMessage('invalid' as any, TYPE, REQUEST_ID),
+				() => new TestSystemMessage('invalid' as any, TYPE),
 				ValidationError
 			);
 		});
 		it('validates type', () => {
 			assert.throws(
-				() => new TestQueryMessage(VERSION, 'invalid' as any, REQUEST_ID),
-				ValidationError
-			);
-		});
-		it('validates requestId', () => {
-			assert.throws(
-				() => new TestQueryMessage(VERSION, TYPE, null as any),
+				() => new TestSystemMessage(VERSION, 'invalid' as any),
 				ValidationError
 			);
 		});
@@ -62,17 +52,20 @@ describe('QueryMessage', () => {
 	describe('registerSerializer', () => {
 		beforeEach(() => {
 			// Start from a clean slate
-			QueryMessage.unregisterSerializer(VERSION, TYPE);
+			SystemMessage.unregisterSerializer(VERSION, TYPE);
 		});
 
 		it('registers a Serializer retrievable by getSerializer()', () => {
-			QueryMessage.registerSerializer(VERSION, TYPE, serializer);
-			assert.strictEqual(QueryMessage.getSerializer(VERSION, TYPE), serializer);
+			SystemMessage.registerSerializer(VERSION, TYPE, serializer);
+			assert.strictEqual(
+				SystemMessage.getSerializer(VERSION, TYPE),
+				serializer
+			);
 		});
 		it('throws if the Serializer for a [version, type] is already registered', () => {
-			QueryMessage.registerSerializer(VERSION, TYPE, serializer);
+			SystemMessage.registerSerializer(VERSION, TYPE, serializer);
 			assert.throws(() =>
-				QueryMessage.registerSerializer(VERSION, TYPE, serializer)
+				SystemMessage.registerSerializer(VERSION, TYPE, serializer)
 			);
 		});
 		it('throws if the Serializer does not implement fromArray', () => {
@@ -80,7 +73,7 @@ describe('QueryMessage', () => {
 				toArray: sinon.stub(),
 			};
 			assert.throws(() =>
-				QueryMessage.registerSerializer(VERSION, TYPE, invalidSerializer)
+				SystemMessage.registerSerializer(VERSION, TYPE, invalidSerializer)
 			);
 		});
 		it('throws if the Serializer does not implement toArray', () => {
@@ -88,7 +81,7 @@ describe('QueryMessage', () => {
 				fromArray: sinon.stub(),
 			};
 			assert.throws(() =>
-				QueryMessage.registerSerializer(VERSION, TYPE, invalidSerializer)
+				SystemMessage.registerSerializer(VERSION, TYPE, invalidSerializer)
 			);
 		});
 	});
@@ -102,7 +95,7 @@ describe('QueryMessage', () => {
 		});
 
 		it('should throw on unsupported version', () => {
-			const m = new TestQueryMessage(999, TYPE, REQUEST_ID);
+			const m = new TestSystemMessage(999, TYPE);
 			assert.throws(
 				() => m.serialize(),
 				(err: UnsupportedVersionError) => {
@@ -114,11 +107,7 @@ describe('QueryMessage', () => {
 		});
 
 		it('should throw on unsupported type', () => {
-			const m = new TestQueryMessage(
-				VERSION,
-				999 as QueryMessageType,
-				REQUEST_ID
-			);
+			const m = new TestSystemMessage(VERSION, 999 as SystemMessageType);
 			assert.throws(
 				() => m.serialize(),
 				(err: UnsupportedTypeError) => {
@@ -135,14 +124,14 @@ describe('QueryMessage', () => {
 			const arr = [VERSION, TYPE];
 			const m = msg();
 			serializer.fromArray = sinon.stub().returns(m);
-			assert.strictEqual(QueryMessage.deserialize(JSON.stringify(arr)), m);
+			assert.strictEqual(SystemMessage.deserialize(JSON.stringify(arr)), m);
 			assert((serializer.fromArray as any).calledWith(arr));
 		});
 
 		it('should throw on unsupported version', () => {
 			const arr = [999, TYPE];
 			assert.throws(
-				() => QueryMessage.deserialize(JSON.stringify(arr)),
+				() => SystemMessage.deserialize(JSON.stringify(arr)),
 				(err: UnsupportedVersionError) => {
 					assert(err instanceof UnsupportedVersionError);
 					assert.strictEqual(err.version, 999);
@@ -154,7 +143,7 @@ describe('QueryMessage', () => {
 		it('should throw on unsupported type', () => {
 			const arr = [VERSION, 999];
 			assert.throws(
-				() => QueryMessage.deserialize(JSON.stringify(arr)),
+				() => SystemMessage.deserialize(JSON.stringify(arr)),
 				(err: UnsupportedTypeError) => {
 					assert(err instanceof UnsupportedTypeError);
 					assert.strictEqual(err.type, 999);
@@ -166,7 +155,7 @@ describe('QueryMessage', () => {
 
 	describe('getSupportedVersions', () => {
 		it('returns an array of registered versions', () => {
-			assert.deepStrictEqual(QueryMessage.getSupportedVersions(), [VERSION]);
+			assert.deepStrictEqual(SystemMessage.getSupportedVersions(), [VERSION]);
 		});
 	});
 });

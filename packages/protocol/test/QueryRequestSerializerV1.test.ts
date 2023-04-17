@@ -1,8 +1,8 @@
 import assert from 'assert';
 
-import QueryMessage, { QueryMessageType } from '../src/protocol/QueryMessage';
-import QueryRequest, { QueryType } from '../src/protocol/QueryRequest';
-import '../src/protocol/QueryRequestSerializerV1';
+import { SystemMessage, SystemMessageType } from '../src/system';
+import { QueryRequest, QueryType } from '../src/system/QueryRequest';
+import '../src/system/QueryRequestSerializerV1';
 
 const VERSION = 1;
 
@@ -17,7 +17,7 @@ const message = new QueryRequest({
 
 const serializedMessage = JSON.stringify([
 	VERSION,
-	QueryMessageType.QueryRequest,
+	SystemMessageType.QueryRequest,
 	'requestId',
 	'streamId',
 	QueryType.Last,
@@ -30,7 +30,7 @@ describe('QueryRequestSerializerV1', () => {
 	describe('deserialize', () => {
 		it('correctly parses messages', () => {
 			assert.deepStrictEqual(
-				QueryMessage.deserialize(serializedMessage),
+				SystemMessage.deserialize(serializedMessage),
 				message
 			);
 		});

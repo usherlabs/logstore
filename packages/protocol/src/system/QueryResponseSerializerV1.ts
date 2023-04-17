@@ -1,6 +1,6 @@
 import { Serializer } from '../Serializer';
-import QueryMessage, { QueryMessageType } from './QueryMessage';
-import QueryResponse from './QueryResponse';
+import { SystemMessage, SystemMessageType } from './SystemMessage';
+import { QueryResponse } from './QueryResponse';
 
 const VERSION = 1;
 
@@ -8,7 +8,7 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 	toArray(message: QueryResponse): any[] {
 		return [
 			VERSION,
-			QueryMessageType.QueryResponse,
+			SystemMessageType.QueryResponse,
 			message.requestId,
 			message.isFinal,
 			message.payload,
@@ -27,8 +27,8 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 	}
 }
 
-QueryMessage.registerSerializer(
+SystemMessage.registerSerializer(
 	VERSION,
-	QueryMessageType.QueryResponse,
+	SystemMessageType.QueryResponse,
 	new QueryResponseSerializerV1()
 );

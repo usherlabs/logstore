@@ -1,7 +1,8 @@
-import QueryMessage, {
-	QueryMessageOptions,
-	QueryMessageType,
-} from './QueryMessage';
+import {
+	SystemMessage,
+	SystemMessageOptions,
+	SystemMessageType,
+} from './SystemMessage';
 
 export enum QueryType {
 	Last = 'last',
@@ -13,15 +14,16 @@ export interface QueryRef {
 	timestamp: number;
 	sequenceNumber?: number;
 }
+
 /**
- * Resend the latest "n" messages.
+ * Query the latest "n" messages.
  */
 export interface QueryLastOptions {
 	last: number;
 }
 
 /**
- * Resend messages starting from a given point in time.
+ * Query messages starting from a given point in time.
  */
 export interface QueryFromOptions {
 	from: QueryRef;
@@ -29,7 +31,7 @@ export interface QueryFromOptions {
 }
 
 /**
- * Resend messages between two points in time.
+ * Query messages between two points in time.
  */
 export interface QueryRangeOptions {
 	from: QueryRef;
@@ -39,34 +41,37 @@ export interface QueryRangeOptions {
 }
 
 /**
- * The supported resend types.
+ * The supported Query types.
  */
 export type QueryOptions =
 	| QueryLastOptions
 	| QueryFromOptions
 	| QueryRangeOptions;
 
-interface QueryRequestOptions extends QueryMessageOptions {
+interface QueryRequestOptions extends SystemMessageOptions {
+	requestId: string;
 	streamId: string;
 	queryType: QueryType;
 	queryOptions: QueryOptions;
 }
 
-export default class QueryRequest extends QueryMessage {
+export class QueryRequest extends SystemMessage {
+	requestId: string;
 	streamId: string;
 	queryType: QueryType;
 	queryOptions: QueryOptions;
 
 	constructor({
-		version = QueryMessage.LATEST_VERSION,
+		version = SystemMessage.LATEST_VERSION,
 		requestId,
 		streamId,
 		queryType,
 		queryOptions,
 	}: QueryRequestOptions) {
-		super(version, QueryMessageType.QueryRequest, requestId);
+		super(version, SystemMessageType.QueryRequest);
 
 		// TODO: Validate the arguments
+		this.requestId = requestId;
 		this.streamId = streamId;
 		this.queryType = queryType;
 		this.queryOptions = queryOptions;

@@ -4,8 +4,8 @@ import {
 	ProofOfMessageStored,
 	SystemMessage,
 	SystemMessageType,
-} from '../../src/system';
-import '../../src/system/ProofOfMessageStoredSerializerV1';
+} from '../src/system';
+import '../src/system/ProofOfMessageStoredSerializerV1';
 
 const VERSION = 1;
 

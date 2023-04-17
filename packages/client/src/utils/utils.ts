@@ -102,12 +102,6 @@ export function formLogStoreSystemStreamId(
 	return toStreamID('/system', toEthereumAddress(logStoreNodeManagerAddress));
 }
 
-export function formLogStoreQueryStreamId(
-	logStoreStoreManagerAddress: string
-): StreamID {
-	return toStreamID('/query', toEthereumAddress(logStoreStoreManagerAddress));
-}
-
 export class MaxSizedSet<T> {
 	private readonly delegate: LRU<T, true>;
 
