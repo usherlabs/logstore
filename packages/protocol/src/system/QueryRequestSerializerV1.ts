@@ -1,5 +1,4 @@
 import { Serializer } from '../Serializer';
-import { SystemMessage, SystemMessageType } from './SystemMessage';
 import {
 	QueryFromOptions,
 	QueryLastOptions,
@@ -8,6 +7,7 @@ import {
 	QueryRequest,
 	QueryType,
 } from './QueryRequest';
+import { SystemMessage, SystemMessageType } from './SystemMessage';
 
 const VERSION = 1;
 
@@ -18,6 +18,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 			SystemMessageType.QueryRequest,
 			message.requestId,
 			message.streamId,
+			message.partition,
 			message.queryType,
 		];
 
@@ -55,6 +56,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 			_messageType,
 			requestId,
 			streamId,
+			partition,
 			queryType,
 			...queryOptionsArr
 		] = arr;
@@ -93,6 +95,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 			version,
 			requestId,
 			streamId,
+			partition,
 			queryType,
 			queryOptions,
 		});

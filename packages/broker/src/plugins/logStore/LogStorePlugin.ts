@@ -93,7 +93,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 							readableStrem = this.logStore!.requestLast(
 								queryRequest.streamId,
-								0, // TODO: Pass Partition number
+								queryRequest.partition,
 								last
 							);
 							break;
@@ -104,7 +104,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 							readableStrem = this.logStore!.requestFrom(
 								queryRequest.streamId,
-								0, // TODO: Pass Partition number
+								queryRequest.partition,
 								from.timestamp,
 								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
 								publisherId
@@ -117,7 +117,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 							readableStrem = this.logStore!.requestRange(
 								queryRequest.streamId,
-								0, // TODO: Pass Partition number
+								queryRequest.partition,
 								from.timestamp,
 								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
 								to.timestamp,

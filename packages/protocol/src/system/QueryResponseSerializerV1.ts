@@ -1,6 +1,6 @@
 import { Serializer } from '../Serializer';
-import { SystemMessage, SystemMessageType } from './SystemMessage';
 import { QueryResponse } from './QueryResponse';
+import { SystemMessage, SystemMessageType } from './SystemMessage';
 
 const VERSION = 1;
 
