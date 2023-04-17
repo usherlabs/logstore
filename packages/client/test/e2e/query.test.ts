@@ -68,7 +68,7 @@ describe('query', () => {
 			stream = await createTestStream(publisherClient, module, {
 				partitions: 1,
 			});
-			await publisherClient.addStreamToLogStore(stream.id, STAKE_AMOUNT);
+			await publisherClient.stakeOrCreateStore(stream.id, STAKE_AMOUNT);
 		}, TIMEOUT);
 
 		it(

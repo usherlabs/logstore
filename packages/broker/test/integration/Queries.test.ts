@@ -111,7 +111,7 @@ describe('Queries', () => {
 			],
 		});
 
-		await logStoreClient.addStreamToLogStore(testStream.id, STAKE_AMOUNT);
+		await logStoreClient.stakeOrCreateStore(testStream.id, STAKE_AMOUNT);
 		await streamrClient.publish(testStream.id, {
 			foo: 'bar 1',
 		});

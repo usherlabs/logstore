@@ -102,7 +102,7 @@ describe('LogStoreConfig', () => {
 	it('when client publishes a message, it is written to the store', async () => {
 		stream = await createTestStream(streamrClient, module);
 
-		await logStoreClient.addStreamToLogStore(stream.id, STAKE_AMOUNT);
+		await logStoreClient.stakeOrCreateStore(stream.id, STAKE_AMOUNT);
 
 		const publishMessage = await streamrClient.publish(stream.id, {
 			foo: 'bar',
