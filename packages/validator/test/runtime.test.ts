@@ -252,13 +252,13 @@ describe('Validator Runtime', () => {
 		// testSystemStream = await createTestStream(publisherClient, module, {
 		// 	partitions: 1,
 		// });
-		// await publisherClient.addStreamToLogStore(testSystemStream.id, STAKE_AMOUNT);
+		// await publisherClient.stakeOrCreateStore(testSystemStream.id, STAKE_AMOUNT);
 
 		// for (let i = 0; i < 3; i++) {
 		// 	const stream = await createTestStream(publisherClient, module, {
 		// 		partitions: 1,
 		// 	});
-		// 	await publisherClient.addStreamToLogStore(stream.id, STAKE_AMOUNT);
+		// 	await publisherClient.stakeOrCreateStore(stream.id, STAKE_AMOUNT);
 		// 	storeStreams.push(stream.id);
 		// }
 
@@ -268,8 +268,8 @@ describe('Validator Runtime', () => {
 		// queryStream = await createTestStream(publisherClient, module, {
 		// 	partitions: 1,
 		// });
-		// await publisherClient.addStreamToLogStore(systemStream.id, STAKE_AMOUNT);
-		// await publisherClient.addStreamToLogStore(queryStream.id, STAKE_AMOUNT);
+		// await publisherClient.stakeOrCreateStore(systemStream.id, STAKE_AMOUNT);
+		// await publisherClient.stakeOrCreateStore(queryStream.id, STAKE_AMOUNT);
 
 		// v.systemStreamId = systemStream.id;
 		// v.queryStreamId = queryStream.id;

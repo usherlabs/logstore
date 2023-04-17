@@ -9,7 +9,7 @@
 	"types": "./dist/types/src/exports.d.ts",
 	"main": "./dist/src/exports.js",
 	"scripts": {
-    "postbuild": "bash copy-package.sh",
+		"postbuild": "bash copy-package.sh",
 		"build": "tsc",
 		"format": "prettier --write .",
 		"test": "echo \"Error: no test specified\" && exit 1"
@@ -60,7 +60,7 @@
 		"@streamr/test-utils": "^8.0.2",
 		"@tsconfig/node16": "^1.0.3",
 		"@types/heap": "^0.2.31",
-		"@types/jest": "^29.4.0",
+		"@types/jest": "^29.5.0",
 		"@types/lodash": "^4.14.191",
 		"@types/node": "^18.15.10",
 		"@types/node-fetch": "^2.6.2",
