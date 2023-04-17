@@ -1,14 +1,24 @@
-import { fastPrivateKey, fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import {
+	LogStoreManager,
+	LogStoreQueryManager,
+} from '@concertodao/logstore-contracts';
+import {
+	getQueryManagerContract,
+	getStoreManagerContract,
+	prepareStakeForQueryManager,
+	prepareStakeForStoreManager,
+} from '@concertodao/logstore-shared';
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
-import { BigNumber } from 'ethers';
+import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
-import { Stream } from 'streamr-client';
+import { Stream, StreamPermission } from 'streamr-client';
 
 import { CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
 import { createTestStream } from '../test-utils/utils';
 
-const STAKE_AMOUNT = BigNumber.from('100000000000000000');
+const STAKE_AMOUNT = BigInt('1000000000000000000');
 const NUM_OF_LAST_MESSAGES = 20;
 const NUM_OF_FROM_MESSAGES = 15;
 const NUM_OF_RANGE_MESSAGES = 10;
@@ -20,20 +30,46 @@ function sleep(ms: number) {
 }
 
 describe('query', () => {
+	const provider = new providers.JsonRpcProvider(
+		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
+		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+	);
+
+	// Accounts
+	let publisherAccount: Wallet;
+	let storeOwnerAccount: Wallet;
+	let storeConsumerAccount: Wallet;
+
+	// Clients
 	let publisherClient: LogStoreClient;
-	let queryClient: LogStoreClient;
+	let consumerClient: LogStoreClient;
+
+	// Contracts
+	let storeManager: LogStoreManager;
+	let queryManager: LogStoreQueryManager;
 
 	beforeEach(async () => {
+		// Accounts
+		publisherAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+		storeOwnerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+		storeConsumerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+
+		// Contracts
+		storeManager = await getStoreManagerContract(storeOwnerAccount);
+		queryManager = await getQueryManagerContract(storeConsumerAccount);
+
+		// Clients
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
 			auth: {
-				privateKey: await fetchPrivateKeyWithGas(),
+				privateKey: publisherAccount.privateKey,
 			},
 		});
-		queryClient = new LogStoreClient({
+
+		consumerClient = new LogStoreClient({
 			...CONFIG_TEST,
 			auth: {
-				privateKey: fastPrivateKey(),
+				privateKey: storeConsumerAccount.privateKey,
 			},
 		});
 	}, TIMEOUT);
@@ -41,7 +77,7 @@ describe('query', () => {
 	afterEach(async () => {
 		await Promise.allSettled([
 			publisherClient?.destroy(),
-			queryClient?.destroy(),
+			consumerClient?.destroy(),
 		]);
 	}, TIMEOUT);
 
@@ -68,7 +104,22 @@ describe('query', () => {
 			stream = await createTestStream(publisherClient, module, {
 				partitions: 1,
 			});
-			await publisherClient.stakeOrCreateStore(stream.id, STAKE_AMOUNT);
+
+			// TODO: the consumer must have permission to subscribe to the stream or the strem have to be public
+			await stream.grantPermissions({
+				user: await consumerClient.getAddress(),
+				permissions: [StreamPermission.SUBSCRIBE],
+			});
+			// await stream.grantPermissions({
+			// 	public: true,
+			// 	permissions: [StreamPermission.SUBSCRIBE],
+			// });
+
+			await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
+			await storeManager.stake(stream.id, STAKE_AMOUNT);
+
+			await prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT);
+			await queryManager.stake(STAKE_AMOUNT);
 		}, TIMEOUT);
 
 		it(
@@ -77,7 +128,7 @@ describe('query', () => {
 				await publishMessages(NUM_OF_LAST_MESSAGES);
 
 				const messages: unknown[] = [];
-				await queryClient.query(
+				await consumerClient.query(
 					{
 						streamId: stream.id,
 						partition: 0,
@@ -108,7 +159,7 @@ describe('query', () => {
 				await publishMessages(NUM_OF_FROM_MESSAGES);
 
 				const messages: unknown[] = [];
-				await queryClient.query(
+				await consumerClient.query(
 					{
 						streamId: stream.id,
 						partition: 0,
@@ -143,7 +194,7 @@ describe('query', () => {
 				await publishMessages(5);
 
 				const messages: unknown[] = [];
-				await queryClient.query(
+				await consumerClient.query(
 					{
 						streamId: stream.id,
 						partition: 0,

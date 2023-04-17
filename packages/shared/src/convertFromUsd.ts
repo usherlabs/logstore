@@ -1,5 +1,5 @@
 import { ERC20__factory } from '@concertodao/logstore-contracts';
-import { ethers } from 'ethers';
+import { ethers, Signer } from 'ethers';
 import redstone from 'redstone-api';
 import { Logger } from 'tslog';
 
@@ -8,7 +8,7 @@ const logger = new Logger();
 export const convertFromUsd = async (
 	stakeTokenAddress: string,
 	amount: number,
-	signer: ethers.Wallet
+	signer: Signer
 ) => {
 	const stakeTokenContract = ERC20__factory.connect(stakeTokenAddress, signer);
 	const stakeTokenSymbol = await stakeTokenContract.symbol();

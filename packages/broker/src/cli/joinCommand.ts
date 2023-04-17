@@ -17,7 +17,7 @@ export const joinCommand = new Command('join')
 	.addOption(usdOption)
 	.action(async (amountStr: string, cmdOptions: { usd: boolean }) => {
 		try {
-			const amount = parseFloat(amountStr);
+			const amount = cmdOptions.usd ? parseFloat(amountStr) : BigInt(amountStr);
 			const options = joinCommand.opts();
 			const config = readConfigAndMigrateIfNeeded(options.config);
 

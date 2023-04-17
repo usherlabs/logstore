@@ -1,3 +1,4 @@
+import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import secp256k1 from 'secp256k1';
 import { Keccak } from 'sha3';
 
@@ -13,6 +14,17 @@ function hash(messageBuffer: Buffer) {
 	keccak.reset();
 	keccak.update(merged);
 	return keccak.digest('binary');
+}
+
+function recoverPublicKey(signatureBuffer: Buffer, payloadBuffer: Buffer) {
+	const recoveryId = signatureBuffer.readUInt8(signatureBuffer.length - 1) - 27;
+	return secp256k1.ecdsaRecover(
+		signatureBuffer.subarray(0, signatureBuffer.length - 1),
+		recoveryId,
+		hash(payloadBuffer),
+		false,
+		Buffer.alloc
+	);
 }
 
 function normalize(privateKeyOrAddress: string): string {
@@ -32,4 +44,38 @@ export function sign(payload: string, privateKey: string): string {
 	);
 	result.writeInt8(27 + sigObj.recid, result.length - 1);
 	return '0x' + result.toString('hex');
+}
+
+export function recover(
+	signature: string,
+	payload: string,
+	publicKeyBuffer: Buffer | Uint8Array | undefined = undefined
+): string {
+	const signatureBuffer = Buffer.from(normalize(signature), 'hex'); // remove '0x' prefix
+	const payloadBuffer = Buffer.from(payload, 'utf-8');
+
+	if (!publicKeyBuffer) {
+		publicKeyBuffer = recoverPublicKey(signatureBuffer, payloadBuffer);
+	}
+	const pubKeyWithoutFirstByte = publicKeyBuffer.subarray(
+		1,
+		publicKeyBuffer.length
+	);
+	keccak.reset();
+	keccak.update(Buffer.from(pubKeyWithoutFirstByte));
+	const hashOfPubKey = keccak.digest('binary');
+	return '0x' + hashOfPubKey.subarray(12, hashOfPubKey.length).toString('hex');
+}
+
+export function verify(
+	address: EthereumAddress,
+	payload: string,
+	signature: string
+): boolean {
+	try {
+		const recoveredAddress = toEthereumAddress(recover(signature, payload));
+		return recoveredAddress === address;
+	} catch (err) {
+		return false;
+	}
 }

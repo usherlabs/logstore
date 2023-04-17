@@ -3,6 +3,7 @@ import { Schema } from 'ajv';
 
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';
+import { Endpoint } from './httpServer';
 
 export interface PluginOptions {
 	name: string;
@@ -10,11 +11,14 @@ export interface PluginOptions {
 	brokerConfig: StrictConfig;
 }
 
-export abstract class Plugin<T> {
+export type HttpServerEndpoint = Omit<Endpoint, 'apiAuthentication'>;
+
+export abstract class Plugin<T extends object> {
 	readonly name: string;
 	readonly logStoreClient: LogStoreClient;
 	readonly brokerConfig: StrictConfig;
 	readonly pluginConfig: T;
+	private readonly httpServerEndpoints: HttpServerEndpoint[] = [];
 
 	constructor(options: PluginOptions) {
 		this.name = options.name;
@@ -25,6 +29,14 @@ export abstract class Plugin<T> {
 		if (configSchema !== undefined) {
 			validateConfig(this.pluginConfig, configSchema, `${this.name} plugin`);
 		}
+	}
+
+	addHttpServerEndpoint(endpoint: HttpServerEndpoint): void {
+		this.httpServerEndpoints.push(endpoint);
+	}
+
+	getHttpServerEndpoints(): HttpServerEndpoint[] {
+		return this.httpServerEndpoints;
 	}
 
 	/**

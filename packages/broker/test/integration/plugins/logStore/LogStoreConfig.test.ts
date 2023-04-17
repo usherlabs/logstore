@@ -1,24 +1,28 @@
-import { LogStoreClient } from '@concertodao/logstore-client';
+import { CONFIG_TEST } from '@concertodao/logstore-client';
+import {
+	LogStoreManager,
+	LogStoreNodeManager,
+} from '@concertodao/logstore-contracts';
+import {
+	getNodeManagerContract,
+	getStoreManagerContract,
+	prepareStakeForNodeManager,
+	prepareStakeForStoreManager,
+} from '@concertodao/logstore-shared';
 import { Tracker } from '@streamr/network-tracker';
 import { StreamMessage } from '@streamr/protocol';
-import {
-	fastWallet,
-	fetchPrivateKeyWithGas,
-	KeyServer,
-} from '@streamr/test-utils';
+import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { waitForCondition } from '@streamr/utils';
 import cassandra, { Client } from 'cassandra-driver';
-import { BigNumber, Wallet } from 'ethers';
-import { Broker as StreamrBroker } from 'streamr-broker';
+import { providers, Wallet } from 'ethers';
 import StreamrClient, { Stream } from 'streamr-client';
 
 import { Broker } from '../../../../src/broker';
 import {
-	createLogStoreClient,
 	createStreamrClient,
 	createTestStream,
+	sleep,
 	startLogStoreBroker,
-	startStreamrBroker,
 	startTestTracker,
 	STREAMR_DOCKER_DEV_HOST,
 } from '../../../utils';
@@ -29,28 +33,49 @@ const contactPoints = [STREAMR_DOCKER_DEV_HOST];
 const localDataCenter = 'datacenter1';
 const keyspace = 'logstore_dev';
 
-const STAKE_AMOUNT = BigNumber.from('100000000000000000');
+const STAKE_AMOUNT = BigInt('1000000000000000000');
 const HTTP_PORT = 17770;
 const TRACKER_PORT = 17772;
 
 describe('LogStoreConfig', () => {
-	let cassandraClient: Client;
-	let tracker: Tracker;
-	let logStoreBroker: Broker;
-	let logStoreClient: LogStoreClient;
-	let streamrBroker: StreamrBroker;
-	let streamrClient: StreamrClient;
-	let stream: Stream;
-	let publisherAccount: Wallet;
-	let logStoreClientAccount: Wallet;
+	const provider = new providers.JsonRpcProvider(
+		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
+		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+	);
+
+	// Accounts
 	let logStoreBrokerAccount: Wallet;
-	let streamrBrokerAccount: Wallet;
+	let publisherAccount: Wallet;
+	let storeOwnerAccount: Wallet;
+
+	// Broker
+	let logStoreBroker: Broker;
+
+	// Clients
+	let publisherClient: StreamrClient;
+	let cassandraClient: Client;
+
+	// Contracts
+	let nodeManager: LogStoreNodeManager;
+	let storeManager: LogStoreManager;
+
+	let tracker: Tracker;
+	let testStream: Stream;
 
 	beforeAll(async () => {
-		publisherAccount = new Wallet(await fetchPrivateKeyWithGas());
-		logStoreBrokerAccount = fastWallet();
-		streamrBrokerAccount = fastWallet();
-		logStoreClientAccount = new Wallet(await fetchPrivateKeyWithGas());
+		// Accounts
+		logStoreBrokerAccount = new Wallet(
+			await fetchPrivateKeyWithGas(),
+			provider
+		);
+		publisherAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+		storeOwnerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+
+		// Contracts
+		nodeManager = await getNodeManagerContract(logStoreBrokerAccount);
+		storeManager = await getStoreManagerContract(storeOwnerAccount);
+
+		// Clients
 		cassandraClient = new cassandra.Client({
 			contactPoints,
 			localDataCenter,
@@ -67,56 +92,48 @@ describe('LogStoreConfig', () => {
 	beforeEach(async () => {
 		tracker = await startTestTracker(TRACKER_PORT);
 
+		await prepareStakeForNodeManager(logStoreBrokerAccount, STAKE_AMOUNT);
+		(await nodeManager.join(STAKE_AMOUNT, 'my node metadata')).wait();
+
+		// Wait for the granted permissions to the system stream
+		await sleep(5000);
+
 		logStoreBroker = await startLogStoreBroker({
 			privateKey: logStoreBrokerAccount.privateKey,
 			trackerPort: TRACKER_PORT,
 			enableCassandra: true,
 		});
 
-		logStoreClient = await createLogStoreClient(
-			tracker,
-			logStoreClientAccount.privateKey
-		);
-
-		streamrBroker = await startStreamrBroker({
-			privateKey: streamrBrokerAccount.privateKey,
-			trackerPort: TRACKER_PORT,
-		});
-
-		streamrClient = await createStreamrClient(
+		publisherClient = await createStreamrClient(
 			tracker,
 			publisherAccount.privateKey
 		);
+
+		testStream = await createTestStream(publisherClient, module);
+
+		await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
+		(await storeManager.stake(testStream.id, STAKE_AMOUNT)).wait();
 	});
 
 	afterEach(async () => {
-		await streamrClient.destroy();
-		await logStoreClient.destroy();
-		await Promise.allSettled([
-			logStoreBroker?.stop(),
-			streamrBroker?.stop(),
-			tracker?.stop(),
-		]);
+		await publisherClient.destroy();
+		await Promise.allSettled([logStoreBroker?.stop(), tracker?.stop()]);
 	});
 
 	it('when client publishes a message, it is written to the store', async () => {
-		stream = await createTestStream(streamrClient, module);
-
-		await logStoreClient.stakeOrCreateStore(stream.id, STAKE_AMOUNT);
-
-		const publishMessage = await streamrClient.publish(stream.id, {
+		const publishMessage = await publisherClient.publish(testStream.id, {
 			foo: 'bar',
 		});
 		await waitForCondition(async () => {
 			const result = await cassandraClient.execute(
 				'SELECT COUNT(*) FROM stream_data WHERE stream_id = ? ALLOW FILTERING',
-				[stream.id]
+				[testStream.id]
 			);
 			return result.first().count > 0;
 		}, 10000);
 		const result = await cassandraClient.execute(
 			'SELECT * FROM stream_data WHERE stream_id = ? ALLOW FILTERING',
-			[stream.id]
+			[testStream.id]
 		);
 		const storeMessage = StreamMessage.deserialize(
 			JSON.parse(result.first().payload.toString())

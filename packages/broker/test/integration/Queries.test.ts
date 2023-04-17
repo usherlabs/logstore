@@ -1,14 +1,22 @@
-import { LogStoreClient } from '@concertodao/logstore-client';
-import { Tracker } from '@streamr/network-tracker';
+import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
 import {
-	fastWallet,
-	fetchPrivateKeyWithGas,
-	KeyServer,
-} from '@streamr/test-utils';
+	LogStoreManager,
+	LogStoreNodeManager,
+	LogStoreQueryManager,
+} from '@concertodao/logstore-contracts';
+import {
+	getNodeManagerContract,
+	getQueryManagerContract,
+	getStoreManagerContract,
+	prepareStakeForNodeManager,
+	prepareStakeForQueryManager,
+	prepareStakeForStoreManager,
+} from '@concertodao/logstore-shared';
+import { Tracker } from '@streamr/network-tracker';
+import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { waitForCondition } from '@streamr/utils';
 import cassandra, { Client } from 'cassandra-driver';
-import { BigNumber, Wallet } from 'ethers';
-import { Broker as StreamrBroker } from 'streamr-broker';
+import { providers, Wallet } from 'ethers';
 import StreamrClient, { Stream, StreamPermission } from 'streamr-client';
 
 import { Broker } from '../../src/broker';
@@ -18,7 +26,6 @@ import {
 	createTestStream,
 	sleep,
 	startLogStoreBroker,
-	startStreamrBroker,
 	startTestTracker,
 	STREAMR_DOCKER_DEV_HOST,
 } from '../utils';
@@ -29,29 +36,54 @@ const contactPoints = [STREAMR_DOCKER_DEV_HOST];
 const localDataCenter = 'datacenter1';
 const keyspace = 'logstore_dev';
 
-const STAKE_AMOUNT = BigNumber.from('100000000000000000');
+const STAKE_AMOUNT = BigInt('1000000000000000000');
 const HTTP_PORT = 17770;
 const TRACKER_PORT = 17772;
 
-// TODO: See analogous test in Streamr repo packages/client/test/end-to-end/resend.test.ts
 describe('Queries', () => {
-	let cassandraClient: Client;
-	let tracker: Tracker;
-	let logStoreBroker: Broker;
-	let logStoreClient: LogStoreClient;
-	let streamrBroker: StreamrBroker;
-	let streamrClient: StreamrClient;
-	let testStream: Stream;
-	let publisherAccount: Wallet;
+	const provider = new providers.JsonRpcProvider(
+		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
+		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+	);
+
+	// Accounts
 	let logStoreBrokerAccount: Wallet;
-	let logStoreClientAccount: Wallet;
-	let streamrBrokerAccount: Wallet;
+	let publisherAccount: Wallet;
+	let storeOwnerAccount: Wallet;
+	let storeConsumerAccount: Wallet;
+
+	// Broker
+	let logStoreBroker: Broker;
+
+	// Clients
+	let publisherClient: StreamrClient;
+	let consumerClient: LogStoreClient;
+	let cassandraClient: Client;
+
+	// Contracts
+	let nodeManager: LogStoreNodeManager;
+	let storeManager: LogStoreManager;
+	let queryManager: LogStoreQueryManager;
+
+	let tracker: Tracker;
+	let testStream: Stream;
 
 	beforeAll(async () => {
-		publisherAccount = new Wallet(await fetchPrivateKeyWithGas());
-		logStoreBrokerAccount = fastWallet();
-		streamrBrokerAccount = fastWallet();
-		logStoreClientAccount = new Wallet(await fetchPrivateKeyWithGas());
+		logStoreBrokerAccount = new Wallet(
+			await fetchPrivateKeyWithGas(),
+			provider
+		);
+		// Accounts
+		publisherAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+		storeOwnerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+		storeConsumerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+
+		// Contracts
+		nodeManager = await getNodeManagerContract(logStoreBrokerAccount);
+		storeManager = await getStoreManagerContract(storeOwnerAccount);
+		queryManager = await getQueryManagerContract(storeConsumerAccount);
+
+		// Clients
 		cassandraClient = new cassandra.Client({
 			contactPoints,
 			localDataCenter,
@@ -68,72 +100,74 @@ describe('Queries', () => {
 	beforeEach(async () => {
 		tracker = await startTestTracker(TRACKER_PORT);
 
+		await prepareStakeForNodeManager(logStoreBrokerAccount, STAKE_AMOUNT);
+		(await nodeManager.join(STAKE_AMOUNT, 'my node metadata')).wait();
+
+		// Wait for the granted permissions to the system stream
+		await sleep(5000);
+
 		logStoreBroker = await startLogStoreBroker({
 			privateKey: logStoreBrokerAccount.privateKey,
 			trackerPort: TRACKER_PORT,
 			enableCassandra: true,
 		});
 
-		logStoreClient = await createLogStoreClient(
-			tracker,
-			logStoreClientAccount.privateKey
-		);
-
-		streamrBroker = await startStreamrBroker({
-			privateKey: streamrBrokerAccount.privateKey,
-			trackerPort: TRACKER_PORT,
-		});
-
-		streamrClient = await createStreamrClient(
+		publisherClient = await createStreamrClient(
 			tracker,
 			publisherAccount.privateKey
 		);
+
+		consumerClient = await createLogStoreClient(
+			tracker,
+			storeConsumerAccount.privateKey
+		);
+
+		testStream = await createTestStream(publisherClient, module);
+
+		await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
+		(await storeManager.stake(testStream.id, STAKE_AMOUNT)).wait();
+
+		await prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT);
+		(await queryManager.stake(STAKE_AMOUNT)).wait();
 	});
 
 	afterEach(async () => {
-		await streamrClient.destroy();
-		await logStoreClient.destroy();
-		await Promise.allSettled([
-			logStoreBroker?.stop(),
-			streamrBroker?.stop(),
-			tracker?.stop(),
-		]);
+		await publisherClient.destroy();
+		await consumerClient.destroy();
+		await Promise.allSettled([logStoreBroker?.stop(), tracker?.stop()]);
 	});
 
 	it('when client publishes a message, it is written to the store', async () => {
-		testStream = await createTestStream(streamrClient, module);
-
-		// TODO: Currently works only for unencrypted messages (public)
-		streamrClient.setPermissions({
-			streamId: testStream.id,
-			assignments: [
-				{ permissions: [StreamPermission.SUBSCRIBE], public: true },
-			],
+		// TODO: the consumer must have permission to subscribe to the stream or the strem have to be public
+		await testStream.grantPermissions({
+			user: await consumerClient.getAddress(),
+			permissions: [StreamPermission.SUBSCRIBE],
 		});
+		// await testStream.grantPermissions({
+		// 	public: true,
+		// 	permissions: [StreamPermission.SUBSCRIBE],
+		// });
 
-		await logStoreClient.stakeOrCreateStore(testStream.id, STAKE_AMOUNT);
-		await streamrClient.publish(testStream.id, {
+		await publisherClient.publish(testStream.id, {
 			foo: 'bar 1',
 		});
-		await streamrClient.publish(testStream.id, {
+		await publisherClient.publish(testStream.id, {
 			foo: 'bar 2',
 		});
-		await streamrClient.publish(testStream.id, {
+		await publisherClient.publish(testStream.id, {
 			foo: 'bar 3',
 		});
 
-		// TODO: Research why the delay is here
 		await sleep(5000);
 
 		const messages = [];
 
-		const messageStream = await logStoreClient.query(testStream.id, {
+		const messageStream = await consumerClient.query(testStream.id, {
 			last: 2,
 		});
 
 		for await (const message of messageStream) {
 			const { content } = message;
-			console.log(content);
 			messages.push({ content });
 		}
 
