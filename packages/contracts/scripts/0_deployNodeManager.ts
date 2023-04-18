@@ -103,9 +103,9 @@ async function main() {
 		);
 		const wallets: string[] = [];
 		const NUM_ACCOUNTS = 1000;
-		const NUM_ACCOUNTS_IN_BATCH = 150;
+		const NUM_ACCOUNTS_IN_BATCH = 250;
 
-		// Call mintAndApproveMany with batches to speed up the process and not exceed the gas limit.
+		// Call mintMany with batches to speed up the process and not exceed the gas limit.
 		for (let accountIndex = 1; accountIndex <= NUM_ACCOUNTS; accountIndex++) {
 			const hexString = accountIndex.toString(16);
 			const privkey = '0x' + hexString.padStart(64, '0');
@@ -115,9 +115,7 @@ async function main() {
 				accountIndex === NUM_ACCOUNTS ||
 				wallets.length === NUM_ACCOUNTS_IN_BATCH
 			) {
-				await (
-					await token.mintAndApproveMany(wallets, storeManagerAddress)
-				).wait();
+				await (await token.mintMany(wallets)).wait();
 				wallets.splice(0);
 				console.log(`Minted to ${accountIndex} account out of ${NUM_ACCOUNTS}`);
 			}
