@@ -186,7 +186,10 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					hash,
 				});
 
-				await this.logStoreClient.publish(systemStream, proofOfMessageStored);
+				await this.logStoreClient.publish(
+					systemStream,
+					proofOfMessageStored.serialize()
+				);
 			}
 		};
 		const node = await this.logStoreClient.getNode();
@@ -245,11 +248,15 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						// no-op
 					}
 					try {
-						await systemStream.publish({
-							streamPart,
-						});
+						// TODO: Temporary disabled sending of assignment messages through the system stream.
+						// Originally, it has been sending the message to the `assignments` stream as a plaing `streamPart` sting,
+						// which then has been listened by waitForAssignmentsToPropagate func on the client.
+						// Need to get back to it later!!!
+						// await systemStream.publish({
+						// 	streamPart,
+						// });
 						logger.debug(
-							'published message to system stream %s',
+							'published Assignment message to system stream %s',
 							systemStream.id
 						);
 					} catch (e) {
