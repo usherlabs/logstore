@@ -82,7 +82,9 @@ program
 						allowanceConfirm
 					);
 					const queryManagerContract = await getQueryManagerContract(signer);
+					logger.info(`Staking ${stakeAmount}...`);
 					await (await queryManagerContract.stake(stakeAmount)).wait();
+					logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
 				} catch (e) {
 					logger.info(chalk.red('Stake failed'));
 					logger.error(e);
@@ -132,9 +134,11 @@ program
 							allowanceConfirm
 						);
 						const storeManagerContract = await getStoreManagerContract(signer);
+						logger.info(`Staking ${stakeAmount}...`);
 						await (
 							await storeManagerContract.stake(streamId, stakeAmount)
 						).wait();
+						logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
 					} catch (e) {
 						logger.info(chalk.red('Stake failed'));
 						logger.error(e);

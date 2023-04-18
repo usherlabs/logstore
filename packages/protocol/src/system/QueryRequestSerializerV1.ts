@@ -1,12 +1,13 @@
 import { Serializer } from '../Serializer';
-import QueryMessage, { QueryMessageType } from './QueryMessage';
-import QueryRequest, {
+import {
 	QueryFromOptions,
 	QueryLastOptions,
 	QueryOptions,
 	QueryRangeOptions,
+	QueryRequest,
 	QueryType,
 } from './QueryRequest';
+import { SystemMessage, SystemMessageType } from './SystemMessage';
 
 const VERSION = 1;
 
@@ -14,9 +15,10 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 	toArray(message: QueryRequest): any[] {
 		const result: any[] = [
 			VERSION,
-			QueryMessageType.QueryRequest,
+			SystemMessageType.QueryRequest,
 			message.requestId,
 			message.streamId,
+			message.partition,
 			message.queryType,
 		];
 
@@ -54,6 +56,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 			_messageType,
 			requestId,
 			streamId,
+			partition,
 			queryType,
 			...queryOptionsArr
 		] = arr;
@@ -92,14 +95,15 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 			version,
 			requestId,
 			streamId,
+			partition,
 			queryType,
 			queryOptions,
 		});
 	}
 }
 
-QueryMessage.registerSerializer(
+SystemMessage.registerSerializer(
 	VERSION,
-	QueryMessageType.QueryRequest,
+	SystemMessageType.QueryRequest,
 	new QueryRequestSerializerV1()
 );

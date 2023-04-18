@@ -11,7 +11,8 @@ const LATEST_VERSION = 1;
 
 export enum SystemMessageType {
 	ProofOfMessageStored = 0,
-	ProofOfQueryProcessed = 1,
+	QueryRequest = 1,
+	QueryResponse = 2,
 }
 
 export interface SystemMessageOptions {

@@ -1,17 +1,14 @@
-import {
-	formLogStoreQueryStreamId,
-	formLogStoreSystemStreamId,
-} from '@concertodao/logstore-client';
+import { formLogStoreSystemStreamId } from '@concertodao/logstore-client';
 import {
 	ProofOfMessageStored,
 	QueryFromOptions,
 	QueryLastOptions,
-	QueryMessage,
-	QueryMessageType,
 	QueryRangeOptions,
 	QueryRequest,
 	QueryResponse,
 	QueryType,
+	SystemMessage,
+	SystemMessageType,
 } from '@concertodao/logstore-protocol';
 import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
@@ -73,12 +70,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			)
 		);
 
-		const logStoreQueryStreamId = formLogStoreQueryStreamId(
-			this.brokerConfig.client.contracts!.logStoreStoreManagerChainAddress!
-		).toString();
-
 		await this.logStoreClient.subscribe(
-			logStoreQueryStreamId,
+			systemStream,
 			async (content, metadata) => {
 				logger.trace(
 					'Received LogStoreQuery, content: %s metadata: %s',
@@ -86,10 +79,10 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					metadata
 				);
 
-				const queryMessage = QueryMessage.deserialize(content);
+				const queryMessage = SystemMessage.deserialize(content);
 				logger.trace('Deserialized QueryRequest: %s', queryMessage);
 
-				if (queryMessage.messageType === QueryMessageType.QueryRequest) {
+				if (queryMessage.messageType === SystemMessageType.QueryRequest) {
 					const queryRequest = queryMessage as QueryRequest;
 					logger.trace('Deserialized queryRequest: %s', queryRequest);
 
@@ -100,7 +93,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 							readableStrem = this.logStore!.requestLast(
 								queryRequest.streamId,
-								0, // TODO: Pass Partition number
+								queryRequest.partition,
 								last
 							);
 							break;
@@ -111,7 +104,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 							readableStrem = this.logStore!.requestFrom(
 								queryRequest.streamId,
-								0, // TODO: Pass Partition number
+								queryRequest.partition,
 								from.timestamp,
 								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
 								publisherId
@@ -124,7 +117,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 							readableStrem = this.logStore!.requestRange(
 								queryRequest.streamId,
-								0, // TODO: Pass Partition number
+								queryRequest.partition,
 								from.timestamp,
 								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
 								to.timestamp,
@@ -141,24 +134,24 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						for await (const chunk of readableStrem) {
 							const streamMessage = chunk as StreamMessage;
 							const queryResponse = new QueryResponse({
-								requestId: queryMessage.requestId,
+								requestId: queryRequest.requestId,
 								payload: streamMessage.serialize(),
 								isFinal: false,
 							});
 							await this.logStoreClient.publish(
-								logStoreQueryStreamId,
+								systemStream,
 								queryResponse.serialize()
 							);
 						}
 
 						// eslint-disable-next-line no-case-declarations
 						const fianleQqueryResponse = new QueryResponse({
-							requestId: queryMessage.requestId,
+							requestId: queryRequest.requestId,
 							payload: '',
 							isFinal: true,
 						});
 						await this.logStoreClient.publish(
-							logStoreQueryStreamId,
+							systemStream,
 							fianleQqueryResponse.serialize()
 						);
 					}
@@ -193,10 +186,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					hash,
 				});
 
-				await this.logStoreClient.publish(
-					systemStream,
-					proofOfMessageStored.serialize()
-				);
+				await this.logStoreClient.publish(systemStream, proofOfMessageStored);
 			}
 		};
 		const node = await this.logStoreClient.getNode();
