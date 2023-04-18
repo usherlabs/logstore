@@ -16,7 +16,6 @@
 	},
 	"dependencies": {
 		"@concertodao/logstore-contracts": "workspace:^",
-		"@concertodao/logstore-protocol": "workspace:^",
 		"@concertodao/logstore-shared": "workspace:^",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",

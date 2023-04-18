@@ -1,4 +1,3 @@
-import { QueryType } from '@concertodao/logstore-protocol';
 import { StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
 import { StreamPartID } from 'streamr-client';
@@ -21,6 +20,12 @@ import { LoggerFactory } from './utils/LoggerFactory';
 import { counterId } from './utils/utils';
 
 const MIN_SEQUENCE_NUMBER_VALUE = 0;
+
+export enum QueryType {
+	Last = 'last',
+	From = 'from',
+	Range = 'range',
+}
 
 type QueryDict = Record<string, string | number | boolean | null | undefined>;
 
@@ -206,6 +211,7 @@ export class Queries {
 		// ).http;
 
 		// TODO: Get the broker URL from config.
+		// ? This can default to the Centralised Log Store Gateway, unless its passed into a config.
 		const nodeUrl = 'http://localhost:7171';
 		const url = this.createUrl(nodeUrl, queryType, streamPartId, query);
 		const messageStream = createSubscribePipeline({
