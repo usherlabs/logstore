@@ -3,8 +3,10 @@ import { program } from 'commander';
 
 import pkg from '../package.json';
 import {
+	delegateCommand,
 	initCommand,
 	joinCommand,
+	leaveCommand,
 	startCommand,
 	testCommand,
 } from '../src/cli';
@@ -17,4 +19,6 @@ program
 	.addCommand(testCommand)
 	.addCommand(joinCommand)
 	.addCommand(startCommand)
+	.addCommand(leaveCommand)
+	.addCommand(delegateCommand)
 	.parse(process.argv);
