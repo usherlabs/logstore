@@ -1,4 +1,3 @@
-import { validateIsString } from '../utils/validations';
 import {
 	SystemMessage,
 	SystemMessageOptions,
@@ -7,27 +6,21 @@ import {
 
 interface QueryResponseOptions extends SystemMessageOptions {
 	requestId: string;
-	isFinal: boolean;
-	payload: string;
+	hash: string;
 }
 
 export class QueryResponse extends SystemMessage {
 	requestId: string;
-	isFinal: boolean;
-	payload: string;
+	hash: string;
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
 		requestId,
-		isFinal,
-		payload,
+		hash,
 	}: QueryResponseOptions) {
 		super(version, SystemMessageType.QueryResponse);
 
 		this.requestId = requestId;
-		this.isFinal = isFinal;
-
-		validateIsString('payload', payload);
-		this.payload = payload;
+		this.hash = hash;
 	}
 }
