@@ -11,6 +11,7 @@ import {
 	startCommand,
 	testCommand,
 	undelegateCommand,
+	withdrawCommand,
 } from '../src/cli';
 
 program
@@ -25,4 +26,5 @@ program
 	.addCommand(stakeCommand)
 	.addCommand(delegateCommand)
 	.addCommand(undelegateCommand)
+	.addCommand(withdrawCommand)
 	.parse(process.argv);
