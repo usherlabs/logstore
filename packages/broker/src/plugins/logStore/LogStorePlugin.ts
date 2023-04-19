@@ -73,6 +73,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		await this.logStoreClient.subscribe(
 			systemStream,
 			async (content, metadata) => {
+				// Do not process own messages
+				if (metadata.publisherId === (await this.logStoreClient.getAddress())) {
+					return;
+				}
+
 				logger.trace(
 					'Received LogStoreQuery, content: %s metadata: %s',
 					content,
