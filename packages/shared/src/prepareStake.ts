@@ -13,27 +13,51 @@ export async function prepareStakeForNodeManager(
 	signer: Signer,
 	amount: bigint | number,
 	isUsd?: boolean,
-	confirm?: allowanceConfirmFn
+	confirm?: allowanceConfirmFn,
+	ensureAllowance: boolean = true
 ) {
-	return prepareStake(Manager.NodeManager, signer, amount, isUsd, confirm);
+	return prepareStake(
+		Manager.NodeManager,
+		signer,
+		amount,
+		isUsd,
+		confirm,
+		ensureAllowance
+	);
 }
 
 export async function prepareStakeForStoreManager(
 	signer: Signer,
 	amount: bigint | number,
 	isUsd?: boolean,
-	confirm?: allowanceConfirmFn
+	confirm?: allowanceConfirmFn,
+	ensureAllowance: boolean = true
 ) {
-	return prepareStake(Manager.StoreManager, signer, amount, isUsd, confirm);
+	return prepareStake(
+		Manager.StoreManager,
+		signer,
+		amount,
+		isUsd,
+		confirm,
+		ensureAllowance
+	);
 }
 
 export async function prepareStakeForQueryManager(
 	signer: Signer,
 	amount: bigint | number,
 	isUsd?: boolean,
-	confirm?: allowanceConfirmFn
+	confirm?: allowanceConfirmFn,
+	ensureAllowance: boolean = true
 ) {
-	return prepareStake(Manager.QueryManager, signer, amount, isUsd, confirm);
+	return prepareStake(
+		Manager.QueryManager,
+		signer,
+		amount,
+		isUsd,
+		confirm,
+		ensureAllowance
+	);
 }
 
 async function prepareStake(
@@ -41,7 +65,8 @@ async function prepareStake(
 	signer: Signer,
 	amount: bigint | number,
 	isUsd?: boolean,
-	confirm?: allowanceConfirmFn
+	confirm?: allowanceConfirmFn,
+	ensureAllowance: boolean = true
 ) {
 	if (amount <= 0) {
 		throw new Error('Amount must be > 0');
@@ -68,15 +93,19 @@ async function prepareStake(
 
 	const bnAmount = BigInt(realAmount);
 
-	const isEnoughAllowance = await ensureEnoughAllowance(
-		manager,
-		bnAmount,
-		signer,
-		confirm
-	);
+	if (ensureAllowance) {
+		const isEnoughAllowance = await ensureEnoughAllowance(
+			manager,
+			bnAmount,
+			signer,
+			confirm
+		);
 
-	if (!isEnoughAllowance) {
-		process.exit(0);
+		if (!isEnoughAllowance) {
+			throw new Error(
+				'Not enough of an allowance to authorise a token transfer'
+			);
+		}
 	}
 
 	return bnAmount;

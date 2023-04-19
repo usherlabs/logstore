@@ -7,18 +7,12 @@ import { ethers } from 'ethers';
 import { PrivateKeyAuthConfig } from 'streamr-client';
 
 import { readConfigAndMigrateIfNeeded } from '../config/migration';
-import {
-	amountArgument,
-	configOption,
-	delegateAddressArgument,
-	usdOption,
-} from './options';
+import { amountArgument, configOption, usdOption } from './options';
 import { allowanceConfirm } from './utils';
 
 export const delegateCommand = new Command('delegate')
-	.description('join the LogStore network')
+	.description('Delegate your stake to a Node on the LogStore Network')
 	.addArgument(amountArgument)
-	.addArgument(delegateAddressArgument)
 	.addOption(configOption)
 	.addOption(usdOption)
 	.action(

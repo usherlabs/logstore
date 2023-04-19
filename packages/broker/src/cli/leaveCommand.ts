@@ -7,7 +7,7 @@ import { readConfigAndMigrateIfNeeded } from '../config/migration';
 import { configOption } from './options';
 
 export const leaveCommand = new Command('leave')
-	.description('leave the LogStore network')
+	.description('Unstake and Leave the LogStore Network')
 	.addOption(configOption)
 	.action(async () => {
 		try {

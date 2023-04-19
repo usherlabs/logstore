@@ -10,15 +10,17 @@ import { readConfigAndMigrateIfNeeded } from '../config/migration';
 import { amountArgument, configOption, usdOption } from './options';
 import { allowanceConfirm } from './utils';
 
-export const joinCommand = new Command('join')
-	.description('Join the LogStore Network as a Node Operator')
+export const withdrawCommand = new Command('withdraw')
+	.description(
+		'Stake in the LogStore Network before delegating your stake to a specific Node'
+	)
 	.addArgument(amountArgument)
 	.addOption(configOption)
 	.addOption(usdOption)
 	.action(async (amountStr: string, cmdOptions: { usd: boolean }) => {
 		try {
 			const amount = cmdOptions.usd ? parseFloat(amountStr) : BigInt(amountStr);
-			const options = joinCommand.opts();
+			const options = withdrawCommand.opts();
 			const config = readConfigAndMigrateIfNeeded(options.config);
 
 			const privateKey = (config.client!.auth as PrivateKeyAuthConfig)
@@ -33,12 +35,11 @@ export const joinCommand = new Command('join')
 				signer,
 				amount,
 				cmdOptions.usd,
-				allowanceConfirm
+				allowanceConfirm,
+				false
 			);
 			const nodeManagerContract = await getNodeManagerContract(signer);
-			await (
-				await nodeManagerContract.join(stakeAmount, 'my node metadata')
-			).wait();
+			await (await nodeManagerContract.withdraw(stakeAmount)).wait();
 		} catch (err) {
 			console.error(err);
 			process.exit(1);
