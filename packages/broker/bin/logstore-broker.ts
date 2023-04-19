@@ -7,8 +7,10 @@ import {
 	initCommand,
 	joinCommand,
 	leaveCommand,
+	stakeCommand,
 	startCommand,
 	testCommand,
+	undelegateCommand,
 } from '../src/cli';
 
 program
@@ -20,5 +22,7 @@ program
 	.addCommand(joinCommand)
 	.addCommand(startCommand)
 	.addCommand(leaveCommand)
+	.addCommand(stakeCommand)
 	.addCommand(delegateCommand)
+	.addCommand(undelegateCommand)
 	.parse(process.argv);
