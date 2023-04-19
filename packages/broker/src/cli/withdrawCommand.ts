@@ -11,9 +11,7 @@ import { amountArgument, configOption, usdOption } from './options';
 import { allowanceConfirm } from './utils';
 
 export const withdrawCommand = new Command('withdraw')
-	.description(
-		'Stake in the LogStore Network before delegating your stake to a specific Node'
-	)
+	.description('Withdraw your stake from the LogStore Network')
 	.addArgument(amountArgument)
 	.addOption(configOption)
 	.addOption(usdOption)

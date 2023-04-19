@@ -15,8 +15,10 @@ import {
 } from './options';
 import { allowanceConfirm } from './utils';
 
-export const delegateCommand = new Command('delegate')
-	.description('Delegate your stake to a Node on the LogStore Network')
+export const undelegateCommand = new Command('undelegate')
+	.description(
+		'Undelegate your stake from a Node on the LogStore Network before being able to withdraw'
+	)
 	.addArgument(amountArgument)
 	.addArgument(delegateAddressArgument)
 	.addOption(configOption)
@@ -31,7 +33,7 @@ export const delegateCommand = new Command('delegate')
 				const amount = cmdOptions.usd
 					? parseFloat(amountStr)
 					: BigInt(amountStr);
-				const options = delegateCommand.opts();
+				const options = undelegateCommand.opts();
 				const config = readConfigAndMigrateIfNeeded(options.config);
 
 				const privateKey = (config.client!.auth as PrivateKeyAuthConfig)
@@ -46,11 +48,12 @@ export const delegateCommand = new Command('delegate')
 					signer,
 					amount,
 					cmdOptions.usd,
-					allowanceConfirm
+					allowanceConfirm,
+					false
 				);
 				const nodeManagerContract = await getNodeManagerContract(signer);
 				await (
-					await nodeManagerContract.delegate(stakeAmount, delegateAddress)
+					await nodeManagerContract.undelegate(stakeAmount, delegateAddress)
 				).wait();
 			} catch (err) {
 				console.error(err);
