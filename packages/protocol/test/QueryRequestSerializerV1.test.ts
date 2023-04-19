@@ -10,6 +10,7 @@ const VERSION = 1;
 const message = new QueryRequest({
 	version: VERSION,
 	requestId: 'requestId',
+	consumerId: 'consumerId',
 	streamId: 'streamId',
 	partition: 42,
 	queryType: QueryType.Last,
@@ -20,6 +21,7 @@ const serializedMessage = JSON.stringify([
 	VERSION,
 	SystemMessageType.QueryRequest,
 	'requestId',
+	'consumerId',
 	'streamId',
 	42,
 	QueryType.Last,

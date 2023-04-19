@@ -80,8 +80,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 				);
 
 				const queryMessage = SystemMessage.deserialize(content);
-				logger.trace('Deserialized QueryRequest: %s', queryMessage);
-
 				if (queryMessage.messageType === SystemMessageType.QueryRequest) {
 					const queryRequest = queryMessage as QueryRequest;
 					logger.trace('Deserialized queryRequest: %s', queryRequest);
@@ -131,22 +129,25 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 							throw new Error('Unknown QueryType');
 					}
 
+					let size = 0;
 					let hash = keccak256(
 						Uint8Array.from(Buffer.from(queryRequest.requestId))
 					);
 					for await (const chunk of readableStrem) {
 						const streamMessage = chunk as StreamMessage;
-						const content = streamMessage.getContent();
+						const content = streamMessage.getContent(false);
+						size += content.length;
 						hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
 					}
 
-					const finalQqueryResponse = new QueryResponse({
+					const finalQueryResponse = new QueryResponse({
 						requestId: queryRequest.requestId,
+						size,
 						hash,
 					});
 					await this.logStoreClient.publish(
 						systemStream,
-						finalQqueryResponse.serialize()
+						finalQueryResponse.serialize()
 					);
 				}
 			}

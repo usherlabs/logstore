@@ -164,6 +164,7 @@ const handleLast = async (
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
 		requestId,
+		consumerId: req.consumer!,
 		streamId,
 		partition,
 		queryType: QueryType.Last,
@@ -220,6 +221,7 @@ const handleFrom = async (
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
 		requestId,
+		consumerId: req.consumer!,
 		streamId,
 		partition,
 		queryType: QueryType.From,
@@ -318,6 +320,7 @@ const handleRange = async (
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
 		requestId,
+		consumerId: req.consumer!,
 		streamId,
 		partition,
 		queryType: QueryType.Range,
@@ -471,10 +474,12 @@ export const getConsensus = async (
 ) => {
 	const CONSENSUS_THRESHOLD = 1;
 
+	let size = 0;
 	let hash = keccak256(Uint8Array.from(Buffer.from(queryRequest.requestId)));
 	for await (const chunk of data) {
 		const streamMessage = chunk as StreamMessage;
-		const content = streamMessage.getContent(true);
+		const content = streamMessage.getContent(false);
+		size += content.length;
 		hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
 	}
 
@@ -496,7 +501,7 @@ export const getConsensus = async (
 
 					// TODO: Currently, rejects once an incorrect hash received.
 					// It should collect majority of hashes to reach a consesnsus.
-					if (queryResponse.hash != hash) {
+					if (queryResponse.size != size && queryResponse.hash != hash) {
 						reject('No concensus');
 						return;
 					}

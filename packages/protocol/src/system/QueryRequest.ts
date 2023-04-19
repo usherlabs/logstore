@@ -50,6 +50,7 @@ export type QueryOptions =
 
 interface QueryRequestOptions extends SystemMessageOptions {
 	requestId: string;
+	consumerId: string;
 	streamId: string;
 	partition: number;
 	queryType: QueryType;
@@ -58,6 +59,7 @@ interface QueryRequestOptions extends SystemMessageOptions {
 
 export class QueryRequest extends SystemMessage {
 	requestId: string;
+	consumerId: string;
 	streamId: string;
 	partition: number;
 	queryType: QueryType;
@@ -66,6 +68,7 @@ export class QueryRequest extends SystemMessage {
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
 		requestId,
+		consumerId,
 		streamId,
 		partition,
 		queryType,
@@ -75,6 +78,7 @@ export class QueryRequest extends SystemMessage {
 
 		// TODO: Validate the arguments
 		this.requestId = requestId;
+		this.consumerId = consumerId;
 		this.streamId = streamId;
 		this.partition = partition;
 		this.queryType = queryType;
