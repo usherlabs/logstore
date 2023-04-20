@@ -34,7 +34,6 @@ describe('local propagation', () => {
 		broker = await startLogStoreBroker({
 			privateKey: brokerWallet.privateKey,
 			trackerPort,
-			enableCassandra: true,
 		});
 
 		client1 = await createStreamrClient(tracker, privateKey);

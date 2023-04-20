@@ -2,6 +2,7 @@
  * Endpoints for RESTful data requests
  */
 import { LogStoreClient } from '@concertodao/logstore-client';
+import { LogStoreNodeManager } from '@concertodao/logstore-contracts';
 import {
 	QueryRequest,
 	QueryResponse,
@@ -9,7 +10,10 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
-import { getQueryManagerContract } from '@concertodao/logstore-shared';
+import {
+	getNodeManagerContract,
+	getQueryManagerContract,
+} from '@concertodao/logstore-shared';
 import { StreamMessage } from '@streamr/protocol';
 import {
 	Logger,
@@ -146,6 +150,7 @@ const handleLast = async (
 	format: Format,
 	version: number | undefined,
 	res: Response,
+	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
@@ -173,7 +178,15 @@ const handleLast = async (
 		},
 	});
 
-	if (await getConsensus(queryMessage, logStoreClient, systemStream, data)) {
+	if (
+		await getConsensus(
+			queryMessage,
+			nodeManager,
+			logStoreClient,
+			systemStream,
+			data
+		)
+	) {
 		data = logStore.requestLast(streamId, partition, count!);
 		sendSuccess(data, format, version, streamId, res);
 	} else {
@@ -188,6 +201,7 @@ const handleFrom = async (
 	format: Format,
 	version: number | undefined,
 	res: Response,
+	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
@@ -234,7 +248,15 @@ const handleFrom = async (
 		},
 	});
 
-	if (await getConsensus(queryMessage, logStoreClient, systemStream, data)) {
+	if (
+		await getConsensus(
+			queryMessage,
+			nodeManager,
+			logStoreClient,
+			systemStream,
+			data
+		)
+	) {
 		data = logStore.requestFrom(
 			streamId,
 			partition,
@@ -255,6 +277,7 @@ const handleRange = async (
 	format: Format,
 	version: number | undefined,
 	res: Response,
+	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
@@ -338,7 +361,15 @@ const handleRange = async (
 		},
 	});
 
-	if (await getConsensus(queryMessage, logStoreClient, systemStream, data)) {
+	if (
+		await getConsensus(
+			queryMessage,
+			nodeManager,
+			logStoreClient,
+			systemStream,
+			data
+		)
+	) {
 		data = logStore.requestRange(
 			streamId,
 			partition,
@@ -384,6 +415,7 @@ const createHandler = (
 		const provider = new ethers.providers.JsonRpcProvider(
 			config.client!.contracts?.streamRegistryChainRPCs!.rpcs[0]
 		);
+		const nodeManager = await getNodeManagerContract(provider);
 		const queryManager = await getQueryManagerContract(provider);
 		const balance = await queryManager.balanceOf(consumer);
 		if (!balance.gt(0)) {
@@ -403,6 +435,7 @@ const createHandler = (
 					format,
 					version,
 					res,
+					nodeManager,
 					logStore,
 					logStoreClient,
 					systemStream,
@@ -417,6 +450,7 @@ const createHandler = (
 					format,
 					version,
 					res,
+					nodeManager,
 					logStore,
 					logStoreClient,
 					systemStream,
@@ -431,6 +465,7 @@ const createHandler = (
 					format,
 					version,
 					res,
+					nodeManager,
 					logStore,
 					logStoreClient,
 					systemStream,
@@ -468,11 +503,12 @@ export const createDataQueryEndpoint = (
 
 export const getConsensus = async (
 	queryRequest: QueryRequest,
+	nodeManager: LogStoreNodeManager,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
 	data: Readable
 ) => {
-	const CONSENSUS_THRESHOLD = 1;
+	const CONSENSUS_THRESHOLD = (await nodeManager.totalNodes()).toNumber();
 
 	let size = 0;
 	let hash = keccak256(Uint8Array.from(Buffer.from(queryRequest.requestId)));
@@ -483,7 +519,12 @@ export const getConsensus = async (
 		hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
 	}
 
-	const hashes: string[] = [];
+	const hashes: string[] = [hash];
+
+	// Do not wait for a consensus if there is only one node in the network
+	if (hashes.length >= CONSENSUS_THRESHOLD) {
+		return true;
+	}
 
 	try {
 		await new Promise<void>((resolve, reject) => {

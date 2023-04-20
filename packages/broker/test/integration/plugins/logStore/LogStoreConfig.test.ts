@@ -31,7 +31,7 @@ jest.setTimeout(30000);
 
 const contactPoints = [STREAMR_DOCKER_DEV_HOST];
 const localDataCenter = 'datacenter1';
-const keyspace = 'logstore_dev';
+const keyspace = 'logstore_test';
 
 const STAKE_AMOUNT = BigInt('1000000000000000000');
 const HTTP_PORT = 17770;
@@ -101,7 +101,7 @@ describe('LogStoreConfig', () => {
 		logStoreBroker = await startLogStoreBroker({
 			privateKey: logStoreBrokerAccount.privateKey,
 			trackerPort: TRACKER_PORT,
-			enableCassandra: true,
+			keyspace,
 		});
 
 		publisherClient = await createStreamrClient(
@@ -117,7 +117,11 @@ describe('LogStoreConfig', () => {
 
 	afterEach(async () => {
 		await publisherClient.destroy();
-		await Promise.allSettled([logStoreBroker?.stop(), tracker?.stop()]);
+		await Promise.allSettled([
+			logStoreBroker?.stop(),
+			nodeManager.leave(),
+			tracker?.stop(),
+		]);
 	});
 
 	it('when client publishes a message, it is written to the store', async () => {
