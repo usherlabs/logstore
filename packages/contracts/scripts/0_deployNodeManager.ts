@@ -98,9 +98,7 @@ async function main() {
 		const devTokenArtifact = await hre.ethers.getContractFactory('DevToken');
 		const token = await devTokenArtifact.attach(devTokenAddress);
 
-		console.log(
-			'Minting DevToken to the test accounts and set infinite approval for StoreManager contranct...'
-		);
+		console.log('Minting DevToken to the test accounts...');
 		const wallets: string[] = [];
 		const NUM_ACCOUNTS = 1000;
 		const NUM_ACCOUNTS_IN_BATCH = 250;
