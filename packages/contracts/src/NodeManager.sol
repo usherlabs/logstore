@@ -290,6 +290,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         }
         nodes[node].delegates[removeIndex] = nodes[node].delegates[nodes[node].delegates.length - 1];
         nodes[node].delegates.pop();
+        nodes[node].delegateExists[msg.sender] = false;
 
         _checkAndGrantAccess(node);
 
@@ -347,13 +348,17 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         // Delete before loop as to no conflict
         delete nodes[nodeAddress];
 
-        nodes[removedNode.next].prev = removedNode.prev;
+        if (removedNode.next != address(0)) {
+            nodes[removedNode.next].prev = removedNode.prev;
+        }
         if (headNode == nodeAddress) {
             headNode = removedNode.next;
         }
         if (tailNode == nodeAddress) {
             tailNode = removedNode.prev;
         }
+
+        totalNodes -= 1;
 
         // Go through all the nodes after the removed one
         // and reduce the index value to account for a deduction
@@ -376,6 +381,10 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     function nodeAddresses() public view returns (address[] memory resultAddresses) {
         address[] memory result = new address[](totalNodes);
 
+        if (headNode == address(0)) {
+            return result;
+        }
+
         address tailAddress = headNode;
         uint256 index = 0;
         do {
@@ -386,16 +395,6 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         } while (tailAddress != address(0));
 
         return result;
-    }
-
-    function countNodes() public view returns (uint) {
-        uint256 index = 0;
-        address tailAddress = headNode;
-        while (nodes[tailAddress].next != address(0)) {
-            tailAddress = nodes[tailAddress].next;
-            index++;
-        }
-        return index + 1;
     }
 
     function nodeStake(address node) public view returns (uint256) {
