@@ -3,10 +3,15 @@ import { program } from 'commander';
 
 import pkg from '../package.json';
 import {
+	delegateCommand,
 	initCommand,
 	joinCommand,
+	leaveCommand,
+	stakeCommand,
 	startCommand,
 	testCommand,
+	undelegateCommand,
+	withdrawCommand,
 } from '../src/cli';
 
 program
@@ -17,4 +22,9 @@ program
 	.addCommand(testCommand)
 	.addCommand(joinCommand)
 	.addCommand(startCommand)
+	.addCommand(leaveCommand)
+	.addCommand(stakeCommand)
+	.addCommand(delegateCommand)
+	.addCommand(undelegateCommand)
+	.addCommand(withdrawCommand)
 	.parse(process.argv);
