@@ -507,7 +507,8 @@ export const getConsensus = async (
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
 	data: Readable
-) => {
+): Promise<boolean> => {
+	const CONSENSUS_TIMEOUT = 10 * 1000; // 10 seconds
 	const CONSENSUS_THRESHOLD = (await nodeManager.totalNodes()).toNumber();
 
 	let size = 0;
@@ -521,48 +522,59 @@ export const getConsensus = async (
 
 	const hashes: string[] = [hash];
 
-	// Do not wait for a consensus if there is only one node in the network
-	if (hashes.length >= CONSENSUS_THRESHOLD) {
-		return true;
-	}
+	return new Promise<boolean>((resolve) => {
+		// Do not wait for a consensus if there is only one node in the network
+		if (hashes.length >= CONSENSUS_THRESHOLD) {
+			return true;
+		}
 
-	try {
-		await new Promise<void>((resolve, reject) => {
-			logStoreClient
-				.subscribe(systemStream, (msg) => {
-					const systemMessage = SystemMessage.deserialize(msg);
-					if (systemMessage.messageType != SystemMessageType.QueryResponse) {
-						return;
-					}
+		let timeout: NodeJS.Timeout;
+		logStoreClient
+			.subscribe(systemStream, (msg) => {
+				const systemMessage = SystemMessage.deserialize(msg);
 
-					const queryResponse = systemMessage as QueryResponse;
-					if (queryResponse.requestId != queryRequest.requestId) {
-						return;
-					}
+				if (systemMessage.messageType != SystemMessageType.QueryResponse) {
+					return;
+				}
 
-					// TODO: Currently, rejects once an incorrect hash received.
-					// It should collect majority of hashes to reach a consesnsus.
-					if (queryResponse.size != size && queryResponse.hash != hash) {
-						reject('No concensus');
-						return;
-					}
+				const queryResponse = systemMessage as QueryResponse;
+				if (queryResponse.requestId != queryRequest.requestId) {
+					return;
+				}
 
-					hashes.push(queryResponse.hash);
+				// TODO: Currently, rejects once an incorrect hash received.
+				// It should collect majority of hashes to reach a consesnsus.
+				if (queryResponse.size != size && queryResponse.hash != hash) {
+					clearTimeout(timeout);
+					resolve(false);
+					return;
+				}
 
-					if (hashes.length >= CONSENSUS_THRESHOLD) {
-						resolve();
-						return;
-					}
-				})
-				.then(() => {
-					logStoreClient.publish(systemStream, queryRequest.serialize());
-				});
-		});
-	} catch (err) {
-		logger.debug(err);
-		return false;
-	}
+				hashes.push(queryResponse.hash);
 
+				if (hashes.length >= CONSENSUS_THRESHOLD) {
+					clearTimeout(timeout);
+					resolve(true);
+					return;
+				}
+			})
+			.then(() => {
+				logStoreClient
+					.publish(systemStream, queryRequest.serialize())
+					.then(() => {
+						timeout = setTimeout(() => {
+							resolve(false);
+						}, CONSENSUS_TIMEOUT);
+					});
+			})
+			.catch((err) => {
+				logger.error(err);
+				clearTimeout(timeout);
+				resolve(false);
+			});
+	});
+
+	///
 	// 1. Iterate over all the items in data readable
 	// 2. hash each of them, prepending the previous hash -- ie.
 	// hash = keccak256(fromStringToUint8Array(toString(hash) + data[i].message))
@@ -572,5 +584,4 @@ export const getConsensus = async (
 	// 5. Compare local metadata to received metadata
 	// 6. Collate all system publisher ids, signatures and hashhes and include them as items in the readable stream.... -- if this is possible...
 	// Send the response
-	return true;
 };
