@@ -6,7 +6,7 @@ import { readConfigAndMigrateIfNeeded } from '../config/migration';
 import { configOption } from './options';
 
 export const startCommand = new Command('start')
-	.description('start the broker node')
+	.description('Start the broker node')
 	.addOption(configOption)
 	.action(async (args) => {
 		try {
