@@ -19,7 +19,6 @@ const gitRevisionPlugin = new GitRevisionPlugin()
 
 module.exports = (_, argv) => {
     const isProduction = argv.mode === 'production' || process.env.NODE_ENV === 'production'
-
     const analyze = !!process.env.BUNDLE_ANALYSIS
 
     const commonConfig = {
@@ -122,9 +121,8 @@ module.exports = (_, argv) => {
             ] : [])
         ]
     })
-
+    
     let clientMinifiedConfig
-
     if (isProduction) {
         clientMinifiedConfig = merge({}, clientConfig, {
             cache: false,
@@ -147,5 +145,6 @@ module.exports = (_, argv) => {
             },
         })
     }
+
     return [clientConfig, clientMinifiedConfig].filter(Boolean)
 }
