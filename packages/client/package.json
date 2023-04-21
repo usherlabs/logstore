@@ -11,7 +11,7 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"postbuild": "bash copy-package.sh",
-		"build": "npm run clean; NODE_ENV=production npm run build:node-production && npm run build:browser-production",
+		"build": "npm run clean; npm run build:node-production && npm run build:browser-production",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"clean": "jest --clearCache || true; rm -rf dist  *.tsbuildinfo node_modules/.cache || true",
 		"build:browser-development": "NODE_ENV=development webpack --mode=development --progress",
