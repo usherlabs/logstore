@@ -149,6 +149,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						requestId: queryRequest.requestId,
 						size,
 						hash,
+						signature: await this.signer.signMessage(hash),
 					});
 					await this.logStoreClient.publish(
 						systemStream,
@@ -198,6 +199,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 				this.brokerConfig,
 				this.logStore,
 				this.logStoreClient,
+				this.signer,
 				systemStream,
 				metricsContext
 			)

@@ -3,9 +3,10 @@ import {
 	validateConfig as validateClientConfig,
 } from '@concertodao/logstore-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
+import { ethers } from 'ethers';
 import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
-import { NetworkNodeStub } from 'streamr-client';
+import { NetworkNodeStub, PrivateKeyAuthConfig } from 'streamr-client';
 
 import { version as CURRENT_VERSION } from '../package.json';
 import { Config } from './config/config';
@@ -32,11 +33,19 @@ export const createBroker = async (
 
 	const logStoreClient = new LogStoreClient(config.client);
 
+	const privateKey = (config.client!.auth as PrivateKeyAuthConfig).privateKey;
+
+	const provider = new ethers.providers.JsonRpcProvider(
+		config.client!.contracts?.streamRegistryChainRPCs!.rpcs[0]
+	);
+	const signer = new ethers.Wallet(privateKey, provider);
+
 	const plugins: Plugin<any>[] = Object.keys(config.plugins).map((name) => {
 		const pluginOptions: PluginOptions = {
 			name,
 			logStoreClient,
 			brokerConfig: config,
+			signer,
 		};
 		return createPlugin(name, pluginOptions);
 	});

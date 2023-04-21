@@ -1,11 +1,13 @@
 import { StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
+import { ethers } from 'ethers';
 import fetch, { Response } from 'node-fetch';
 import split2 from 'split2';
 import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import { Authentication, AuthenticationInjectionToken } from './Authentication';
+import { Consensus } from './Consensus';
 import { LoggerFactory } from './utils/LoggerFactory';
 import { getVersionString } from './utils/utils';
 import { WebStreamToNodeStream } from './utils/WebStreamToNodeStream';
@@ -106,6 +108,24 @@ export class HttpUtil {
 		});
 		if (!response.body) {
 			throw new Error('No Response Body');
+		}
+
+		try {
+			const consensus = JSON.parse(
+				response.headers.get('consensus') ?? ''
+			) as Consensus[];
+
+			const hash = consensus[0].hash;
+
+			for (const item of consensus) {
+				const signer = ethers.utils.verifyMessage(item.hash, item.signature);
+
+				if (item.hash != hash || item.signer != signer) {
+					throw new Error('No consensus');
+				}
+			}
+		} catch {
+			throw new Error('No consensus');
 		}
 
 		let stream: Readable | undefined;

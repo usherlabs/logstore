@@ -12,6 +12,7 @@ const message = new QueryResponse({
 	requestId: 'requestId',
 	size: 1024,
 	hash: 'hash',
+	signature: '0123456789ABCDEF',
 });
 
 const serializedMessage = JSON.stringify([
@@ -20,6 +21,7 @@ const serializedMessage = JSON.stringify([
 	'requestId',
 	1024,
 	'hash',
+	'0123456789ABCDEF',
 ]);
 
 describe('QueryResponseSerializerV1', () => {
