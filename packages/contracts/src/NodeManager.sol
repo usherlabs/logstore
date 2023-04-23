@@ -345,9 +345,9 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         Node storage removedNode = nodes[nodeAddress];
         require(removedNode.lastSeen != 0, "error_notFound");
 
-        // Delete before loop as to no conflict
-        delete nodes[nodeAddress];
-
+        if (removedNode.prev != address(0)) {
+            nodes[removedNode.prev].next = removedNode.next;
+        }
         if (removedNode.next != address(0)) {
             nodes[removedNode.next].prev = removedNode.prev;
         }
@@ -357,6 +357,9 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         if (tailNode == nodeAddress) {
             tailNode = removedNode.prev;
         }
+
+        // Delete before loop as to no conflict
+        delete nodes[nodeAddress];
 
         totalNodes -= 1;
 
