@@ -85,7 +85,7 @@ describe('Queries', () => {
 		tracker = await startTestTracker(TRACKER_PORT);
 
 		await prepareStakeForNodeManager(logStoreBrokerAccount, STAKE_AMOUNT);
-		(await nodeManager.join(STAKE_AMOUNT, 'my node metadata')).wait();
+		(await nodeManager.join(STAKE_AMOUNT, 'http://127.0.0.1:7171')).wait();
 
 		// Wait for the granted permissions to the system stream
 		await sleep(5000);

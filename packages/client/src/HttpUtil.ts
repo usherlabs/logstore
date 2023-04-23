@@ -1,5 +1,5 @@
 import { StreamMessage } from '@streamr/protocol';
-import { Logger } from '@streamr/utils';
+import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
 import fetch, { Response } from 'node-fetch';
 import split2 from 'split2';
@@ -118,9 +118,12 @@ export class HttpUtil {
 			const hash = consensus[0].hash;
 
 			for (const item of consensus) {
-				const signer = ethers.utils.verifyMessage(item.hash, item.signature);
+				const signer = toEthereumAddress(
+					ethers.utils.verifyMessage(item.hash, item.signature)
+				);
 
-				if (item.hash != hash || item.signer != signer) {
+				const itemSigner = toEthereumAddress(item.signer);
+				if (item.hash != hash || itemSigner != signer) {
 					throw new Error('No consensus');
 				}
 			}
@@ -195,6 +198,7 @@ async function fetchResponse(
 		url,
 		response.status,
 		response.statusText,
+		response.size,
 		timeEnd - timeStart
 	);
 

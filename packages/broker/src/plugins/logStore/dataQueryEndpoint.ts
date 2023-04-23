@@ -24,7 +24,7 @@ import { v4 as uuid } from 'uuid';
 
 import { StrictConfig } from '../../config/config';
 import { HttpServerEndpoint } from '../../Plugin';
-import { Consensus, getConsensus } from './Consesnsus';
+import { Consensus, getConsensus } from './Consensus';
 import { Format, getFormat } from './DataQueryFormat';
 import { LogStore } from './LogStore';
 

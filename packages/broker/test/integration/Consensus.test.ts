@@ -88,7 +88,9 @@ describe('Consensus', () => {
 
 		for (let i = 0; i < BROKERS_NUM; i++) {
 			await prepareStakeForNodeManager(logStoreBrokerAccounts[i], STAKE_AMOUNT);
-			(await nodeManagers[i].join(STAKE_AMOUNT, 'my node metadata')).wait();
+			(
+				await nodeManagers[i].join(STAKE_AMOUNT, `http://127.0.0.1:717${i + 1}`)
+			).wait();
 		}
 
 		// Wait for the granted permissions to the system stream

@@ -1,10 +1,12 @@
 import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
+import { LogStoreNodeManager } from '@concertodao/logstore-contracts';
 import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
 } from '@concertodao/logstore-shared';
 // import { createTestStream } from '@concertodao/logstore-client/dist/test/test-utils/utils';
 // import { BigNumber } from '@ethersproject/bignumber';
+import { ICompression, IStorageProvider } from '@kyvejs/protocol';
 import {
 	// ICacheProvider,
 	ICompression,
@@ -55,6 +57,7 @@ describe('Validator Runtime', () => {
 	// let testSystemStream: Stream;
 
 	let evmPrivateKey: string;
+	let nodeManagerContract: LogStoreNodeManager;
 
 	const publishStorageMessages = async (numOfMessages: number) => {
 		try {
@@ -236,9 +239,9 @@ describe('Validator Runtime', () => {
 			true,
 			10000
 		);
-		const nodeManagerContract = await getNodeManagerContract(signer);
+		nodeManagerContract = await getNodeManagerContract(signer);
 		await (
-			await nodeManagerContract.join(stakeAmount, 'my node metadata')
+			await nodeManagerContract.join(stakeAmount, 'http://127.0.0.1:7171')
 		).wait();
 
 		publisherClient = new LogStoreClient({
@@ -285,6 +288,7 @@ describe('Validator Runtime', () => {
 		register.clear();
 
 		await publisherClient?.destroy();
+		(await nodeManagerContract.leave()).wait();
 	});
 
 	it('should produce cache items', async () => {
