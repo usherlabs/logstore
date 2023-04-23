@@ -6,6 +6,11 @@ export const amountArgument = new Argument(
 	'Amount in Wei to stake into the Node Manager Contract. Ensure funds are available for queries to the Log Store Network.'
 );
 
+export const metadataArgument = new Argument(
+	'metadata <string>',
+	"Broker Node's metadata representing its http endpoint."
+);
+
 export const delegateAddressArgument = new Argument(
 	'address <string>',
 	'Address of node to delegate your stake to'
