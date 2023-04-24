@@ -114,6 +114,7 @@ export const produceReport = async (
 		});
 
 		// ? StreamrClient Subscribe method includes publisher signature verification
+		// TODO: Update way `content` is used.
 		if (content?.id && content?.hash && content?.size) {
 			const h = sha256(Buffer.from(JSON.stringify(content))); // the content should be the same across received messages from all broker nodes.
 			if (content?.query && content?.consumer) {
@@ -145,7 +146,7 @@ export const produceReport = async (
 				delAddr,
 				bNode.id
 			);
-			const delegatePortion = delegateAmount / bNode.stake;
+			const delegatePortion = delegateAmount.toNumber() / bNode.stake;
 			if (!report.delegates[delAddr]) {
 				report.delegates[delAddr] = {};
 			}

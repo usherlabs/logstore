@@ -1,6 +1,7 @@
 import type { PoolConfig } from '../types';
 import Validator from '../validator';
 
+// TODO: Default the contracts to the hardcoded addressses inside of @concertodao/logstore-contracts/shared
 export const getConfig = (core: Validator): PoolConfig => {
 	return {
 		itemTimeRange: 1000,

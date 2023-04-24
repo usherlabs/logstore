@@ -96,6 +96,7 @@ export default class Listener {
 	// 	return this._storeMap;
 	// }
 
+	// TODO: The `content` variable is received as a System Stream message in a serialized format
 	private async onMessage(content: any, metadata: MessageMetadata) {
 		// Add to store
 		const key = `${Date.now().toString()}:${metadata.publisherId}`;
