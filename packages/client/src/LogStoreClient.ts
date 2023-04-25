@@ -2,7 +2,6 @@ import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import StreamrClient, {
 	MessageListener,
-	NetworkNodeStub,
 	Stream,
 	StreamDefinition,
 } from 'streamr-client';
@@ -35,7 +34,6 @@ export class LogStoreClient extends StreamrClient {
 		/** @internal */
 		parentContainer = rootContainer
 	) {
-		// TODO: ensure there is a correct container instance used
 		const container = parentContainer.createChildContainer();
 
 		// Prepare a copy of `config` to call the super() method
@@ -70,15 +68,6 @@ export class LogStoreClient extends StreamrClient {
 		this.logStoreStreamIdBuilder =
 			container.resolve<StreamIDBuilder>(StreamIDBuilder);
 		this.logStoreQueries = container.resolve<Queries>(Queries);
-	}
-
-	// --------------------------------------------------------------------------------------------
-	// Network node
-	// --------------------------------------------------------------------------------------------
-
-	// TODO: getNode() is marked and deprecated in StreamrClient class. Needs to resolve.
-	override getNode(): Promise<NetworkNodeStub> {
-		return super.getNode();
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -138,13 +127,6 @@ export class LogStoreClient extends StreamrClient {
 	}
 
 	/**
-	 * Removes a stream from LogStore.
-	 */
-	async removeStreamFromLogStore(streamIdOrPath: string): Promise<void> {
-		return this.logStoreRegistry.removeStreamFromLogStore(streamIdOrPath);
-	}
-
-	/**
 	 * Checks whether a stream is assigned to a storage node.
 	 */
 	async isLogStoreStream(streamIdOrPath: string): Promise<boolean> {
@@ -162,42 +144,6 @@ export class LogStoreClient extends StreamrClient {
 	}> {
 		return this.logStoreRegistry.getStoredStreams();
 	}
-
-	// /**
-	//  * Gets a list of storage nodes.
-	//  *
-	//  * @param streamIdOrPath - if a stream is given, returns the list of storage nodes the stream has been assigned to;
-	//  * leave as `undefined` to return all storage nodes
-	//  */
-	// async getStorageNodes(streamIdOrPath?: string): Promise<EthereumAddress[]> {
-	// 	return this.streamStorageRegistry.getStorageNodes(streamIdOrPath);
-	// }
-
-	// /**
-	//  * Sets the metadata of a storage node in the storage node registry.
-	//  *
-	//  * @remarks Acts on behalf of the wallet associated with the current {@link StreamrClient} instance.
-	//  *
-	//  * @param metadata - if `undefined`, removes the storage node from the registry
-	//  */
-	// setStorageNodeMetadata(
-	// 	metadata: StorageNodeMetadata | undefined
-	// ): Promise<void> {
-	// 	return this.storageNodeRegistry.setStorageNodeMetadata(metadata);
-	// }
-
-	// /**
-	//  * Gets the metadata of a storage node from the storage node registry.
-	//  *
-	//  * @returns rejects if the storage node is not found
-	//  */
-	// async getStorageNodeMetadata(
-	// 	nodeAddress: string
-	// ): Promise<StorageNodeMetadata> {
-	// 	return this.storageNodeRegistry.getStorageNodeMetadata(
-	// 		toEthereumAddress(nodeAddress)
-	// 	);
-	// }
 
 	/**
 	 * Destroys an instance of a {@link StreamrClient} by disconnecting from peers, clearing any pending tasks, and

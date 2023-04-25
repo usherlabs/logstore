@@ -5,31 +5,24 @@ import { DestroySignal } from '../DestroySignal';
 import { DecryptError, EncryptionUtil } from '../encryption/EncryptionUtil';
 import { GroupKey } from '../encryption/GroupKey';
 import { GroupKeyManager } from '../encryption/GroupKeyManager';
-// import { StreamRegistryCached } from '../registry/StreamRegistryCached';
 import { LoggerFactory } from '../utils/LoggerFactory';
 
 export class Decrypt {
 	private groupKeyManager: GroupKeyManager;
-	// private streamRegistryCached: StreamRegistryCached;
 	private destroySignal: DestroySignal;
 	private readonly logger: Logger;
 
 	constructor(
 		groupKeyManager: GroupKeyManager,
-		// streamRegistryCached: StreamRegistryCached,
 		destroySignal: DestroySignal,
 		loggerFactory: LoggerFactory
 	) {
 		this.groupKeyManager = groupKeyManager;
-		// this.streamRegistryCached = streamRegistryCached;
 		this.destroySignal = destroySignal;
 		this.logger = loggerFactory.createLogger(module);
 		this.decrypt = this.decrypt.bind(this);
 	}
 
-	// TODO if this.destroySignal.isDestroyed() is true, would it make sense to reject the promise
-	// and not to return the original encrypted message?
-	// - e.g. StoppedError, which is not visible to end-user
 	async decrypt(streamMessage: StreamMessage): Promise<StreamMessage> {
 		if (this.destroySignal.isDestroyed()) {
 			return streamMessage;
@@ -80,9 +73,6 @@ export class Decrypt {
 				streamMessage.getMessageID(),
 				err
 			);
-			// TODO: Research what streamRegistryCached.clearStream() does
-			// clear cached permissions if cannot decrypt, likely permissions need updating
-			// this.streamRegistryCached.clearStream(streamMessage.getStreamId());
 			throw err;
 		}
 	}

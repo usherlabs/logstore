@@ -194,21 +194,6 @@ export class Queries {
 			streamPartId,
 			query
 		);
-		// const streamId = StreamPartIDUtils.getStreamID(streamPartId);
-		// const nodeAddresses = await this.streamStorageRegistry.getStorageNodes(
-		// 	streamId
-		// );
-		// if (!nodeAddresses.length) {
-		// 	throw new StreamrClientError(
-		// 		`no storage assigned: ${streamId}`,
-		// 		'NO_STORAGE_NODES'
-		// 	);
-		// }
-
-		// const nodeAddress = nodeAddresses[random(0, nodeAddresses.length - 1)];
-		// const nodeUrl = (
-		// 	await this.storageNodeRegistry.getStorageNodeMetadata(nodeAddress)
-		// ).http;
 
 		// TODO: Get the broker URL from config.
 		// ? This can default to the Centralised Log Store Gateway, unless its passed into a config.
@@ -237,72 +222,6 @@ export class Queries {
 		);
 		return messageStream;
 	}
-
-	// private async fetchStream(
-	// 	queryType: QueryType,
-	// 	streamPartId: StreamPartID,
-	// 	queryOptions: QueryOptions
-	// ): Promise<MessageStream> {
-	// 	const loggerIdx = counterId('fetchStream');
-	// 	this.logger.debug(
-	// 		'[%s] fetching query %s for %s with options %o',
-	// 		loggerIdx,
-	// 		queryType,
-	// 		streamPartId,
-	// 		queryOptions
-	// 	);
-	// 	const streamId = StreamPartIDUtils.getStreamID(streamPartId);
-	// 	const requestId = uuid();
-	// 	const queryRequest = new QueryRequest({
-	// 		requestId,
-	// 		streamId,
-	// 		queryType,
-	// 		queryOptions,
-	// 	});
-
-	// 	const queryStreamId = formLogStoreQueryStreamId(
-	// 		this.config.contracts.logStoreStoreManagerChainAddress
-	// 	);
-
-	// 	const messageStream = new MessageStream();
-
-	// 	await this.logStoreClient.publish(queryStreamId, queryRequest.serialize());
-
-	// 	await new Promise<void>((resolve, reject) => {
-	// 		this.logStoreClient
-	// 			.subscribe(queryStreamId, (content) => {
-	// 				const qyeryMessage = QueryMessage.deserialize(content);
-	// 				if (
-	// 					qyeryMessage.messageType === QueryMessageType.QueryResponse &&
-	// 					qyeryMessage.requestId === requestId
-	// 				) {
-	// 					const queryResponse = qyeryMessage as QueryResponse;
-	// 					this.logger.trace(
-	// 						'Received queryResponse: %s',
-	// 						JSON.stringify(queryResponse.payload, null, 2)
-	// 					);
-
-	// 					if (!queryResponse.isFinal) {
-	// 						const streamMessage = StreamMessage.deserialize(
-	// 							queryResponse.payload
-	// 						);
-	// 						messageStream.push(streamMessage);
-	// 					} else {
-	// 						messageStream.endWrite();
-	// 						resolve();
-	// 					}
-	// 				} else {
-	// 					// TODO:
-	// 				}
-	// 			})
-	// 			// .then(async (subscription) => {
-	// 			// 	await subscription.unsubscribe();
-	// 			// })
-	// 			.catch(reject);
-	// 	});
-
-	// 	return messageStream;
-	// }
 
 	async last(
 		streamPartId: StreamPartID,

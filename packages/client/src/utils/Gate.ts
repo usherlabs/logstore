@@ -63,20 +63,6 @@ export class Gate {
 	}
 
 	/**
-	 * Opens gate but resolves pending with an error.
-	 * TODO: remove? might not be needed.
-	 */
-	error(err: Error): void {
-		if (this.isLocked) {
-			// do nothing
-			return;
-		}
-
-		// this.debug('error', err)
-		this.clearPending(err);
-	}
-
-	/**
 	 * Closes gate.
 	 * Noop if already closed.
 	 * Future check calls will block, until open or lock called.

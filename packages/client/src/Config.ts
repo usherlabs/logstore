@@ -32,7 +32,6 @@ export type StrictLogStoreClientConfig = MarkOptional<
 export const createStrictConfig = (
 	input: LogStoreClientConfig = {}
 ): StrictLogStoreClientConfig => {
-	// TODO is it good to cloneDeep the input object as it may have object references (e.g. auth.ethereum)?
 	const config: StrictLogStoreClientConfig = validateConfig(cloneDeep(input));
 	config.id ??= generateClientId();
 	return config;
