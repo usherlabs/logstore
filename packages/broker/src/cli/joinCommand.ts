@@ -10,7 +10,7 @@ import { readConfigAndMigrateIfNeeded } from '../config/migration';
 import {
 	amountArgument,
 	configOption,
-	metadataArgument,
+	metadataOption,
 	usdOption,
 } from './options';
 import { allowanceConfirm } from './utils';
@@ -18,14 +18,13 @@ import { allowanceConfirm } from './utils';
 export const joinCommand = new Command('join')
 	.description('Join the LogStore Network as a Node Operator')
 	.addArgument(amountArgument)
-	.addArgument(metadataArgument)
+	.addOption(metadataOption)
 	.addOption(configOption)
 	.addOption(usdOption)
 	.action(
 		async (
 			amountStr: string,
-			metadata: string,
-			cmdOptions: { usd: boolean }
+			cmdOptions: { usd?: boolean; metadata?: string }
 		) => {
 			try {
 				const amount = cmdOptions.usd
@@ -50,10 +49,7 @@ export const joinCommand = new Command('join')
 				);
 				const nodeManagerContract = await getNodeManagerContract(signer);
 				await (
-					await nodeManagerContract.join(
-						stakeAmount,
-						metadata ?? 'http://127.0.0.1:7171'
-					)
+					await nodeManagerContract.join(stakeAmount, cmdOptions.metadata || '')
 				).wait();
 			} catch (err) {
 				console.error(err);

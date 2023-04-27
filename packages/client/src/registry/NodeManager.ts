@@ -14,6 +14,10 @@ import { getStreamRegistryChainProviders } from '../Ethereum';
 import { queryAllReadonlyContracts } from '../utils/contract';
 import { LoggerFactory } from '../utils/LoggerFactory';
 
+type NodeMetadata = {
+	http: string;
+};
+
 @scoped(Lifecycle.ContainerScoped)
 export class NodeManager {
 	private contractFactory: ContractFactory;
@@ -63,8 +67,13 @@ export class NodeManager {
 				},
 				this.logStoreManagerContractsReadonly
 			);
-			if (node.metadata.startsWith('http')) {
-				return node.metadata;
+			if (node.metadata.includes('http')) {
+				try {
+					const metadata = JSON.parse(node.metadata) as NodeMetadata;
+					return metadata.http;
+				} catch (e) {
+					// ...
+				}
 			}
 		}
 
