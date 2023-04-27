@@ -1,11 +1,13 @@
 import { StreamMessage } from '@streamr/protocol';
-import { Logger } from '@streamr/utils';
+import { Logger, toEthereumAddress } from '@streamr/utils';
+import { ethers } from 'ethers';
 import fetch, { Response } from 'node-fetch';
 import split2 from 'split2';
 import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import { Authentication, AuthenticationInjectionToken } from './Authentication';
+import { Consensus } from './Consensus';
 import { LoggerFactory } from './utils/LoggerFactory';
 import { getVersionString } from './utils/utils';
 import { WebStreamToNodeStream } from './utils/WebStreamToNodeStream';
@@ -108,6 +110,27 @@ export class HttpUtil {
 			throw new Error('No Response Body');
 		}
 
+		try {
+			const consensus = JSON.parse(
+				response.headers.get('consensus') ?? ''
+			) as Consensus[];
+
+			const hash = consensus[0].hash;
+
+			for (const item of consensus) {
+				const signer = toEthereumAddress(
+					ethers.utils.verifyMessage(item.hash, item.signature)
+				);
+
+				const itemSigner = toEthereumAddress(item.signer);
+				if (item.hash != hash || itemSigner != signer) {
+					throw new Error('No consensus');
+				}
+			}
+		} catch {
+			throw new Error('No consensus');
+		}
+
 		let stream: Readable | undefined;
 		try {
 			// in the browser, response.body will be a web stream. Convert this into a node stream.
@@ -175,6 +198,7 @@ async function fetchResponse(
 		url,
 		response.status,
 		response.statusText,
+		response.size,
 		timeEnd - timeStart
 	);
 

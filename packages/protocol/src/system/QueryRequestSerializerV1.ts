@@ -17,6 +17,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 			VERSION,
 			SystemMessageType.QueryRequest,
 			message.requestId,
+			message.consumerId,
 			message.streamId,
 			message.partition,
 			message.queryType,
@@ -55,6 +56,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 			version,
 			_messageType,
 			requestId,
+			consumerId,
 			streamId,
 			partition,
 			queryType,
@@ -94,6 +96,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 		return new QueryRequest({
 			version,
 			requestId,
+			consumerId,
 			streamId,
 			partition,
 			queryType,

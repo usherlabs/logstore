@@ -1,5 +1,6 @@
 import { LogStoreClient } from '@concertodao/logstore-client';
 import { Schema } from 'ajv';
+import { Signer } from 'ethers';
 
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';
@@ -9,6 +10,7 @@ export interface PluginOptions {
 	name: string;
 	logStoreClient: LogStoreClient;
 	brokerConfig: StrictConfig;
+	signer: Signer;
 }
 
 export type HttpServerEndpoint = Omit<Endpoint, 'apiAuthentication'>;
@@ -17,6 +19,7 @@ export abstract class Plugin<T extends object> {
 	readonly name: string;
 	readonly logStoreClient: LogStoreClient;
 	readonly brokerConfig: StrictConfig;
+	readonly signer: Signer;
 	readonly pluginConfig: T;
 	private readonly httpServerEndpoints: HttpServerEndpoint[] = [];
 
@@ -24,6 +27,7 @@ export abstract class Plugin<T extends object> {
 		this.name = options.name;
 		this.logStoreClient = options.logStoreClient;
 		this.brokerConfig = options.brokerConfig;
+		this.signer = options.signer;
 		this.pluginConfig = options.brokerConfig.plugins[this.name];
 		const configSchema = this.getConfigSchema();
 		if (configSchema !== undefined) {

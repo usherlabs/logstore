@@ -12,7 +12,7 @@ import { GroupKeyManager } from './encryption/GroupKeyManager';
 import { HttpUtil } from './HttpUtil';
 import { LogStoreClient } from './LogStoreClient';
 import { MessageStream } from './MessageStream';
-import { LogStoreRegistry } from './registry/LogStoreRegistry';
+import { NodeManager } from './registry/NodeManager';
 import { StreamrClientError } from './StreamrClientError';
 import { createSubscribePipeline } from './subscribe/subscribePipeline';
 import { counting } from './utils/GeneratorUtils';
@@ -100,8 +100,7 @@ function isQueryRange<T extends QueryRangeOptions>(options: any): options is T {
 @scoped(Lifecycle.ContainerScoped)
 export class Queries {
 	private readonly logStoreClient: LogStoreClient;
-	private readonly logStoreRegistry: LogStoreRegistry;
-	// private readonly streamRegistryCached: StreamRegistryCached;
+	private readonly nodeManager: NodeManager;
 	private readonly httpUtil: HttpUtil;
 	private readonly groupKeyManager: GroupKeyManager;
 	private readonly destroySignal: DestroySignal;
@@ -112,10 +111,8 @@ export class Queries {
 	constructor(
 		@inject(delay(() => LogStoreClient))
 		logStoreClient: LogStoreClient,
-		@inject(delay(() => LogStoreRegistry))
-		logStoreRegistry: LogStoreRegistry,
-		// @inject(delay(() => StreamRegistryCached))
-		// streamRegistryCached: StreamRegistryCached,
+		@inject(NodeManager)
+		nodeManager: NodeManager,
 		@inject(HttpUtil)
 		httpUtil: HttpUtil,
 		@inject(GroupKeyManager)
@@ -124,11 +121,11 @@ export class Queries {
 		destroySignal: DestroySignal,
 		@inject(LogStoreClientConfigInjectionToken)
 		config: StrictLogStoreClientConfig,
-		@inject(LoggerFactory) loggerFactory: LoggerFactory
+		@inject(LoggerFactory)
+		loggerFactory: LoggerFactory
 	) {
 		this.logStoreClient = logStoreClient;
-		this.logStoreRegistry = logStoreRegistry;
-		// this.streamRegistryCached = streamRegistryCached;
+		this.nodeManager = nodeManager;
 		this.httpUtil = httpUtil;
 		this.groupKeyManager = groupKeyManager;
 		this.destroySignal = destroySignal;
@@ -194,32 +191,14 @@ export class Queries {
 			streamPartId,
 			query
 		);
-		// const streamId = StreamPartIDUtils.getStreamID(streamPartId);
-		// const nodeAddresses = await this.streamStorageRegistry.getStorageNodes(
-		// 	streamId
-		// );
-		// if (!nodeAddresses.length) {
-		// 	throw new StreamrClientError(
-		// 		`no storage assigned: ${streamId}`,
-		// 		'NO_STORAGE_NODES'
-		// 	);
-		// }
 
-		// const nodeAddress = nodeAddresses[random(0, nodeAddresses.length - 1)];
-		// const nodeUrl = (
-		// 	await this.storageNodeRegistry.getStorageNodeMetadata(nodeAddress)
-		// ).http;
-
-		// TODO: Get the broker URL from config.
-		// ? This can default to the Centralised Log Store Gateway, unless its passed into a config.
-		const nodeUrl = 'http://localhost:7171';
+		const nodeUrl = await this.nodeManager.getRandomNodeUrl();
 		const url = this.createUrl(nodeUrl, queryType, streamPartId, query);
 		const messageStream = createSubscribePipeline({
 			streamPartId,
 			queries: this,
 			groupKeyManager: this.groupKeyManager,
 			logStoreClient: this.logStoreClient,
-			// streamRegistryCached: this.streamRegistryCached,
 			destroySignal: this.destroySignal,
 			config: this.config,
 			loggerFactory: this.loggerFactory,
@@ -237,72 +216,6 @@ export class Queries {
 		);
 		return messageStream;
 	}
-
-	// private async fetchStream(
-	// 	queryType: QueryType,
-	// 	streamPartId: StreamPartID,
-	// 	queryOptions: QueryOptions
-	// ): Promise<MessageStream> {
-	// 	const loggerIdx = counterId('fetchStream');
-	// 	this.logger.debug(
-	// 		'[%s] fetching query %s for %s with options %o',
-	// 		loggerIdx,
-	// 		queryType,
-	// 		streamPartId,
-	// 		queryOptions
-	// 	);
-	// 	const streamId = StreamPartIDUtils.getStreamID(streamPartId);
-	// 	const requestId = uuid();
-	// 	const queryRequest = new QueryRequest({
-	// 		requestId,
-	// 		streamId,
-	// 		queryType,
-	// 		queryOptions,
-	// 	});
-
-	// 	const queryStreamId = formLogStoreQueryStreamId(
-	// 		this.config.contracts.logStoreStoreManagerChainAddress
-	// 	);
-
-	// 	const messageStream = new MessageStream();
-
-	// 	await this.logStoreClient.publish(queryStreamId, queryRequest.serialize());
-
-	// 	await new Promise<void>((resolve, reject) => {
-	// 		this.logStoreClient
-	// 			.subscribe(queryStreamId, (content) => {
-	// 				const qyeryMessage = QueryMessage.deserialize(content);
-	// 				if (
-	// 					qyeryMessage.messageType === QueryMessageType.QueryResponse &&
-	// 					qyeryMessage.requestId === requestId
-	// 				) {
-	// 					const queryResponse = qyeryMessage as QueryResponse;
-	// 					this.logger.trace(
-	// 						'Received queryResponse: %s',
-	// 						JSON.stringify(queryResponse.payload, null, 2)
-	// 					);
-
-	// 					if (!queryResponse.isFinal) {
-	// 						const streamMessage = StreamMessage.deserialize(
-	// 							queryResponse.payload
-	// 						);
-	// 						messageStream.push(streamMessage);
-	// 					} else {
-	// 						messageStream.endWrite();
-	// 						resolve();
-	// 					}
-	// 				} else {
-	// 					// TODO:
-	// 				}
-	// 			})
-	// 			// .then(async (subscription) => {
-	// 			// 	await subscription.unsubscribe();
-	// 			// })
-	// 			.catch(reject);
-	// 	});
-
-	// 	return messageStream;
-	// }
 
 	async last(
 		streamPartId: StreamPartID,

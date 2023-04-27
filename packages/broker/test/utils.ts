@@ -39,8 +39,9 @@ interface LogStoreBrokerTestConfig {
 	trackerPort: number;
 	privateKey: string;
 	extraPlugins?: Record<string, unknown>;
-	enableCassandra?: boolean;
+	keyspace?: string;
 	logStoreConfigRefreshInterval?: number;
+	httpServerPort?: number;
 }
 
 export const formStreamrBrokerConfig = ({
@@ -82,25 +83,24 @@ export const formLogStoreBrokerConfig = ({
 	trackerPort,
 	privateKey,
 	extraPlugins = {},
-	enableCassandra = false,
+	keyspace = 'logstore_test',
 	logStoreConfigRefreshInterval = 0,
+	httpServerPort = 7171,
 }: LogStoreBrokerTestConfig): Config => {
 	const plugins: Record<string, any> = { ...extraPlugins };
-	if (enableCassandra) {
-		plugins['logStore'] = {
-			cassandra: {
-				hosts: [STREAMR_DOCKER_DEV_HOST],
-				datacenter: 'datacenter1',
-				username: '',
-				password: '',
-				keyspace: 'logstore_dev',
-			},
-			logStoreConfig: {
-				refreshInterval: logStoreConfigRefreshInterval,
-				// logStoreManagerChainAddress,
-			},
-		};
-	}
+	plugins['logStore'] = {
+		cassandra: {
+			hosts: [STREAMR_DOCKER_DEV_HOST],
+			datacenter: 'datacenter1',
+			username: '',
+			password: '',
+			keyspace,
+		},
+		logStoreConfig: {
+			refreshInterval: logStoreConfigRefreshInterval,
+			// logStoreManagerChainAddress,
+		},
+	};
 
 	return {
 		client: {
@@ -128,6 +128,9 @@ export const formLogStoreBrokerConfig = ({
 			},
 		},
 		plugins,
+		httpServer: {
+			port: httpServerPort,
+		},
 	};
 };
 

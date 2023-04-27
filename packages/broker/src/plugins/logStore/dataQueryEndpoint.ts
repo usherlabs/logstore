@@ -2,14 +2,12 @@
  * Endpoints for RESTful data requests
  */
 import { LogStoreClient } from '@concertodao/logstore-client';
+import { LogStoreNodeManager } from '@concertodao/logstore-contracts';
+import { QueryRequest, QueryType } from '@concertodao/logstore-protocol';
 import {
-	QueryRequest,
-	QueryResponse,
-	QueryType,
-	SystemMessage,
-	SystemMessageType,
-} from '@concertodao/logstore-protocol';
-import { getQueryManagerContract } from '@concertodao/logstore-shared';
+	getNodeManagerContract,
+	getQueryManagerContract,
+} from '@concertodao/logstore-shared';
 import { StreamMessage } from '@streamr/protocol';
 import {
 	Logger,
@@ -18,8 +16,7 @@ import {
 	RateMetric,
 	toEthereumAddress,
 } from '@streamr/utils';
-import { ethers } from 'ethers';
-import { keccak256 } from 'ethers/lib/utils';
+import { ethers, Signer } from 'ethers';
 import { Request, RequestHandler, Response } from 'express';
 import { pipeline, Readable, Transform } from 'stream';
 import { Stream } from 'streamr-client';
@@ -27,6 +24,7 @@ import { v4 as uuid } from 'uuid';
 
 import { StrictConfig } from '../../config/config';
 import { HttpServerEndpoint } from '../../Plugin';
+import { Consensus, getConsensus } from './Consensus';
 import { Format, getFormat } from './DataQueryFormat';
 import { LogStore } from './LogStore';
 
@@ -79,6 +77,7 @@ function parseIntIfExists(x: string | undefined): number | undefined {
 
 const sendSuccess = (
 	data: Readable,
+	consensus: Consensus[],
 	format: Format,
 	version: number | undefined,
 	streamId: string,
@@ -87,6 +86,7 @@ const sendSuccess = (
 	data.once('data', () => {
 		res.writeHead(200, {
 			'Content-Type': format.contentType,
+			Consensus: JSON.stringify(consensus),
 		});
 	});
 	data.once('error', () => {
@@ -146,8 +146,10 @@ const handleLast = async (
 	format: Format,
 	version: number | undefined,
 	res: Response,
+	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
+	signer: Signer,
 	systemStream: Stream,
 	metrics: MetricsDefinition
 ) => {
@@ -164,6 +166,7 @@ const handleLast = async (
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
 		requestId,
+		consumerId: req.consumer!,
 		streamId,
 		partition,
 		queryType: QueryType.Last,
@@ -172,12 +175,17 @@ const handleLast = async (
 		},
 	});
 
-	if (await getConsensus(queryMessage, logStoreClient, systemStream, data)) {
-		data = logStore.requestLast(streamId, partition, count!);
-		sendSuccess(data, format, version, streamId, res);
-	} else {
-		sendError('There is no consensus', res);
-	}
+	const consensus = await getConsensus(
+		queryMessage,
+		nodeManager,
+		logStoreClient,
+		signer,
+		systemStream,
+		data
+	);
+
+	data = logStore.requestLast(streamId, partition, count!);
+	sendSuccess(data, consensus, format, version, streamId, res);
 };
 
 const handleFrom = async (
@@ -187,8 +195,10 @@ const handleFrom = async (
 	format: Format,
 	version: number | undefined,
 	res: Response,
+	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
+	signer: Signer,
 	systemStream: Stream,
 	metrics: MetricsDefinition
 ) => {
@@ -220,6 +230,7 @@ const handleFrom = async (
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
 		requestId,
+		consumerId: req.consumer!,
 		streamId,
 		partition,
 		queryType: QueryType.From,
@@ -232,18 +243,23 @@ const handleFrom = async (
 		},
 	});
 
-	if (await getConsensus(queryMessage, logStoreClient, systemStream, data)) {
-		data = logStore.requestFrom(
-			streamId,
-			partition,
-			fromTimestamp,
-			fromSequenceNumber,
-			publisherId
-		);
-		sendSuccess(data, format, version, streamId, res);
-	} else {
-		sendError('There is no consensus', res);
-	}
+	const consensus = await getConsensus(
+		queryMessage,
+		nodeManager,
+		logStoreClient,
+		signer,
+		systemStream,
+		data
+	);
+
+	data = logStore.requestFrom(
+		streamId,
+		partition,
+		fromTimestamp,
+		fromSequenceNumber,
+		publisherId
+	);
+	sendSuccess(data, consensus, format, version, streamId, res);
 };
 
 const handleRange = async (
@@ -253,8 +269,10 @@ const handleRange = async (
 	format: Format,
 	version: number | undefined,
 	res: Response,
+	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
+	signer: Signer,
 	systemStream: Stream,
 	metrics: MetricsDefinition
 ) => {
@@ -318,6 +336,7 @@ const handleRange = async (
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
 		requestId,
+		consumerId: req.consumer!,
 		streamId,
 		partition,
 		queryType: QueryType.Range,
@@ -335,27 +354,33 @@ const handleRange = async (
 		},
 	});
 
-	if (await getConsensus(queryMessage, logStoreClient, systemStream, data)) {
-		data = logStore.requestRange(
-			streamId,
-			partition,
-			fromTimestamp,
-			fromSequenceNumber,
-			toTimestamp,
-			toSequenceNumber,
-			publisherId,
-			msgChainId
-		);
-		sendSuccess(data, format, version, streamId, res);
-	} else {
-		sendError('There is no consensus', res);
-	}
+	const consensus = await getConsensus(
+		queryMessage,
+		nodeManager,
+		logStoreClient,
+		signer,
+		systemStream,
+		data
+	);
+
+	data = logStore.requestRange(
+		streamId,
+		partition,
+		fromTimestamp,
+		fromSequenceNumber,
+		toTimestamp,
+		toSequenceNumber,
+		publisherId,
+		msgChainId
+	);
+	sendSuccess(data, consensus, format, version, streamId, res);
 };
 
 const createHandler = (
 	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
+	signer: Signer,
 	systemStream: Stream,
 	metrics: MetricsDefinition
 ): RequestHandler => {
@@ -381,6 +406,7 @@ const createHandler = (
 		const provider = new ethers.providers.JsonRpcProvider(
 			config.client!.contracts?.streamRegistryChainRPCs!.rpcs[0]
 		);
+		const nodeManager = await getNodeManagerContract(provider);
 		const queryManager = await getQueryManagerContract(provider);
 		const balance = await queryManager.balanceOf(consumer);
 		if (!balance.gt(0)) {
@@ -400,8 +426,10 @@ const createHandler = (
 					format,
 					version,
 					res,
+					nodeManager,
 					logStore,
 					logStoreClient,
+					signer,
 					systemStream,
 					metrics
 				);
@@ -414,8 +442,10 @@ const createHandler = (
 					format,
 					version,
 					res,
+					nodeManager,
 					logStore,
 					logStoreClient,
+					signer,
 					systemStream,
 					metrics
 				);
@@ -428,8 +458,10 @@ const createHandler = (
 					format,
 					version,
 					res,
+					nodeManager,
 					logStore,
 					logStoreClient,
+					signer,
 					systemStream,
 					metrics
 				);
@@ -445,6 +477,7 @@ export const createDataQueryEndpoint = (
 	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
+	signer: Signer,
 	systemStream: Stream,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
@@ -458,73 +491,14 @@ export const createDataQueryEndpoint = (
 		path: `/streams/:id/data/partitions/:partition/:queryType`,
 		method: 'get',
 		requestHandlers: [
-			createHandler(config, logStore, logStoreClient, systemStream, metrics),
+			createHandler(
+				config,
+				logStore,
+				logStoreClient,
+				signer,
+				systemStream,
+				metrics
+			),
 		],
 	};
-};
-
-export const getConsensus = async (
-	queryRequest: QueryRequest,
-	logStoreClient: LogStoreClient,
-	systemStream: Stream,
-	data: Readable
-) => {
-	const CONSENSUS_THRESHOLD = 1;
-
-	let hash = keccak256(Uint8Array.from(Buffer.from(queryRequest.requestId)));
-	for await (const chunk of data) {
-		const streamMessage = chunk as StreamMessage;
-		const content = streamMessage.getContent(true);
-		hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
-	}
-
-	const hashes: string[] = [];
-
-	try {
-		await new Promise<void>((resolve, reject) => {
-			logStoreClient
-				.subscribe(systemStream, (msg) => {
-					const systemMessage = SystemMessage.deserialize(msg);
-					if (systemMessage.messageType != SystemMessageType.QueryResponse) {
-						return;
-					}
-
-					const queryResponse = systemMessage as QueryResponse;
-					if (queryResponse.requestId != queryRequest.requestId) {
-						return;
-					}
-
-					// TODO: Currently, rejects once an incorrect hash received.
-					// It should collect majority of hashes to reach a consesnsus.
-					if (queryResponse.hash != hash) {
-						reject('No concensus');
-						return;
-					}
-
-					hashes.push(queryResponse.hash);
-
-					if (hashes.length >= CONSENSUS_THRESHOLD) {
-						resolve();
-						return;
-					}
-				})
-				.then(() => {
-					logStoreClient.publish(systemStream, queryRequest.serialize());
-				});
-		});
-	} catch (err) {
-		logger.debug(err);
-		return false;
-	}
-
-	// 1. Iterate over all the items in data readable
-	// 2. hash each of them, prepending the previous hash -- ie.
-	// hash = keccak256(fromStringToUint8Array(toString(hash) + data[i].message))
-	// size = size + Buffer.byteLength(data[i].message);
-	// 3. Ship the message over the system stream
-	// 4. Await messages to be received via the system stream listner
-	// 5. Compare local metadata to received metadata
-	// 6. Collate all system publisher ids, signatures and hashhes and include them as items in the readable stream.... -- if this is possible...
-	// Send the response
-	return true;
 };

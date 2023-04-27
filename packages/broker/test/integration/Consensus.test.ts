@@ -32,28 +32,29 @@ jest.setTimeout(60000);
 
 const STAKE_AMOUNT = BigInt('1000000000000000000');
 const TRACKER_PORT = 17772;
+const BROKERS_NUM = 3;
 
-describe('Queries', () => {
+describe('Consensus', () => {
 	const provider = new providers.JsonRpcProvider(
 		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
 		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
 	);
 
 	// Accounts
-	let logStoreBrokerAccount: Wallet;
+	const logStoreBrokerAccounts: Wallet[] = [];
 	let publisherAccount: Wallet;
 	let storeOwnerAccount: Wallet;
 	let storeConsumerAccount: Wallet;
 
 	// Broker
-	let logStoreBroker: Broker;
+	const logStoreBrokers: Broker[] = [];
 
 	// Clients
 	let publisherClient: StreamrClient;
 	let consumerClient: LogStoreClient;
 
 	// Contracts
-	let nodeManager: LogStoreNodeManager;
+	const nodeManagers: LogStoreNodeManager[] = [];
 	let storeManager: LogStoreManager;
 	let queryManager: LogStoreQueryManager;
 
@@ -61,17 +62,18 @@ describe('Queries', () => {
 	let testStream: Stream;
 
 	beforeAll(async () => {
-		logStoreBrokerAccount = new Wallet(
-			await fetchPrivateKeyWithGas(),
-			provider
-		);
+		for (let i = 0; i < BROKERS_NUM; i++) {
+			const account = new Wallet(await fetchPrivateKeyWithGas(), provider);
+			logStoreBrokerAccounts.push(account);
+			nodeManagers.push(await getNodeManagerContract(account));
+		}
+
 		// Accounts
 		publisherAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 		storeOwnerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 		storeConsumerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 
 		// Contracts
-		nodeManager = await getNodeManagerContract(logStoreBrokerAccount);
 		storeManager = await getStoreManagerContract(storeOwnerAccount);
 		queryManager = await getQueryManagerContract(storeConsumerAccount);
 	});
@@ -84,17 +86,25 @@ describe('Queries', () => {
 	beforeEach(async () => {
 		tracker = await startTestTracker(TRACKER_PORT);
 
-		await prepareStakeForNodeManager(logStoreBrokerAccount, STAKE_AMOUNT);
-		(await nodeManager.join(STAKE_AMOUNT, 'http://127.0.0.1:7171')).wait();
+		for (let i = 0; i < BROKERS_NUM; i++) {
+			await prepareStakeForNodeManager(logStoreBrokerAccounts[i], STAKE_AMOUNT);
+			(
+				await nodeManagers[i].join(STAKE_AMOUNT, `http://127.0.0.1:717${i + 1}`)
+			).wait();
+		}
 
 		// Wait for the granted permissions to the system stream
 		await sleep(5000);
-
-		logStoreBroker = await startLogStoreBroker({
-			privateKey: logStoreBrokerAccount.privateKey,
-			trackerPort: TRACKER_PORT,
-		});
-
+		for (let i = 0; i < BROKERS_NUM; i++) {
+			logStoreBrokers.push(
+				await startLogStoreBroker({
+					privateKey: logStoreBrokerAccounts[i].privateKey,
+					trackerPort: TRACKER_PORT,
+					keyspace: `logstore_test_0${i + 1}`,
+					httpServerPort: 7171 + i,
+				})
+			);
+		}
 		publisherClient = await createStreamrClient(
 			tracker,
 			publisherAccount.privateKey
@@ -117,14 +127,15 @@ describe('Queries', () => {
 	afterEach(async () => {
 		await publisherClient.destroy();
 		await consumerClient.destroy();
-		await Promise.allSettled([
-			logStoreBroker?.stop(),
-			nodeManager.leave(),
-			tracker?.stop(),
-		]);
+		await tracker?.stop();
+		for (let i = 0; i < BROKERS_NUM; i++) {
+			await logStoreBrokers[i]?.stop();
+			(await nodeManagers[i].leave()).wait();
+		}
 	});
 
-	it('when client publishes a message, it is written to the store', async () => {
+	// TODO: Add explanation here
+	it('broker nodes reach consensus', async () => {
 		// TODO: the consumer must have permission to subscribe to the stream or the strem have to be public
 		await testStream.grantPermissions({
 			user: await consumerClient.getAddress(),
