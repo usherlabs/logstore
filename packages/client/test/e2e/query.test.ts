@@ -48,7 +48,7 @@ describe('query', () => {
 	let storeManager: LogStoreManager;
 	let queryManager: LogStoreQueryManager;
 
-	beforeEach(async () => {
+	beforeAll(async () => {
 		// Accounts
 		publisherAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 		storeOwnerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
@@ -74,7 +74,7 @@ describe('query', () => {
 		});
 	}, TIMEOUT);
 
-	afterEach(async () => {
+	afterAll(async () => {
 		await Promise.allSettled([
 			publisherClient?.destroy(),
 			consumerClient?.destroy(),
@@ -100,7 +100,7 @@ describe('query', () => {
 			await wait(MESSAGE_STORE_TIMEOUT);
 		}
 
-		beforeEach(async () => {
+		beforeAll(async () => {
 			stream = await createTestStream(publisherClient, module, {
 				partitions: 1,
 			});

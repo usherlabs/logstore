@@ -9,7 +9,7 @@ import {
 	LogStoreReportManager__factory,
 } from '@concertodao/logstore-contracts';
 import ContractAddresses from '@concertodao/logstore-contracts/address.json';
-import { providers, Signer } from 'ethers';
+import { providers, Signer, Wallet } from 'ethers';
 
 import { Manager, Network } from './types';
 
@@ -40,7 +40,7 @@ export async function getStoreManagerContract(
 	)) as LogStoreManager;
 }
 
-export async function getReportManagerContract(wallet: ethers.Wallet) {
+export async function getReportManagerContract(wallet: Wallet) {
 	return (await getManagerContract(
 		wallet,
 		Manager.ReportManager
