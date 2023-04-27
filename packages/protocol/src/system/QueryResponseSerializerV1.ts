@@ -10,19 +10,17 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 			VERSION,
 			SystemMessageType.QueryResponse,
 			message.requestId,
-			message.isFinal,
-			message.payload,
+			message.hash,
 		];
 	}
 
 	fromArray(arr: any[]): QueryResponse {
-		const [version, _messageType, requestId, isFinal, payload] = arr;
+		const [version, _messageType, requestId, hash] = arr;
 
 		return new QueryResponse({
 			version,
 			requestId,
-			isFinal,
-			payload,
+			hash,
 		});
 	}
 }

@@ -10,16 +10,14 @@ const VERSION = 1;
 const message = new QueryResponse({
 	version: VERSION,
 	requestId: 'requestId',
-	isFinal: false,
-	payload: 'payload',
+	hash: 'hash',
 });
 
 const serializedMessage = JSON.stringify([
 	VERSION,
 	SystemMessageType.QueryResponse,
 	'requestId',
-	false,
-	'payload',
+	'hash',
 ]);
 
 describe('QueryResponseSerializerV1', () => {

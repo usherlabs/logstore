@@ -127,34 +127,27 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 							);
 							break;
 						}
+						default:
+							throw new Error('Unknown QueryType');
 					}
 
-					// TODO: Temporary IF
-					if (readableStrem) {
-						for await (const chunk of readableStrem) {
-							const streamMessage = chunk as StreamMessage;
-							const queryResponse = new QueryResponse({
-								requestId: queryRequest.requestId,
-								payload: streamMessage.serialize(),
-								isFinal: false,
-							});
-							await this.logStoreClient.publish(
-								systemStream,
-								queryResponse.serialize()
-							);
-						}
-
-						// eslint-disable-next-line no-case-declarations
-						const fianleQqueryResponse = new QueryResponse({
-							requestId: queryRequest.requestId,
-							payload: '',
-							isFinal: true,
-						});
-						await this.logStoreClient.publish(
-							systemStream,
-							fianleQqueryResponse.serialize()
-						);
+					let hash = keccak256(
+						Uint8Array.from(Buffer.from(queryRequest.requestId))
+					);
+					for await (const chunk of readableStrem) {
+						const streamMessage = chunk as StreamMessage;
+						const content = streamMessage.getContent();
+						hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
 					}
+
+					const finalQqueryResponse = new QueryResponse({
+						requestId: queryRequest.requestId,
+						hash,
+					});
+					await this.logStoreClient.publish(
+						systemStream,
+						finalQqueryResponse.serialize()
+					);
 				}
 			}
 		);
@@ -186,13 +179,22 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					hash,
 				});
 
-				await this.logStoreClient.publish(systemStream, proofOfMessageStored);
+				await this.logStoreClient.publish(
+					systemStream,
+					proofOfMessageStored.serialize()
+				);
 			}
 		};
 		const node = await this.logStoreClient.getNode();
 		node.addMessageListener(this.messageListener);
 		this.addHttpServerEndpoint(
-			createDataQueryEndpoint(this.brokerConfig, this.logStore, metricsContext)
+			createDataQueryEndpoint(
+				this.brokerConfig,
+				this.logStore,
+				this.logStoreClient,
+				systemStream,
+				metricsContext
+			)
 		);
 	}
 
@@ -245,11 +247,15 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						// no-op
 					}
 					try {
-						await systemStream.publish({
-							streamPart,
-						});
+						// TODO: Temporary disabled sending of assignment messages through the system stream.
+						// Originally, it has been sending the message to the `assignments` stream as a plaing `streamPart` sting,
+						// which then has been listened by waitForAssignmentsToPropagate func on the client.
+						// Need to get back to it later!!!
+						// await systemStream.publish({
+						// 	streamPart,
+						// });
 						logger.debug(
-							'published message to system stream %s',
+							'published Assignment message to system stream %s',
 							systemStream.id
 						);
 					} catch (e) {
