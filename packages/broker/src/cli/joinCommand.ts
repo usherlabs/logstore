@@ -48,9 +48,15 @@ export const joinCommand = new Command('join')
 					allowanceConfirm
 				);
 				const nodeManagerContract = await getNodeManagerContract(signer);
-				await (
+				console.log(
+					`Joining network with stake amount ${stakeAmount} and metadata ${cmdOptions.metadata}...`
+				);
+				const receipt = await (
 					await nodeManagerContract.join(stakeAmount, cmdOptions.metadata || '')
 				).wait();
+				console.log(
+					`Successfully joined the network: Tx ${receipt.transactionHash}`
+				);
 			} catch (err) {
 				console.error(err);
 				process.exit(1);
