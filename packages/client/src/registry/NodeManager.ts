@@ -11,12 +11,9 @@ import {
 } from '../Config';
 import { ContractFactory } from '../ContractFactory';
 import { getStreamRegistryChainProviders } from '../Ethereum';
+import { NodeMetadata } from '../NodeMetadata';
 import { queryAllReadonlyContracts } from '../utils/contract';
 import { LoggerFactory } from '../utils/LoggerFactory';
-
-type NodeMetadata = {
-	http: string;
-};
 
 @scoped(Lifecycle.ContainerScoped)
 export class NodeManager {

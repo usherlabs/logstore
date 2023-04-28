@@ -1,4 +1,8 @@
-import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
+import {
+	CONFIG_TEST,
+	LogStoreClient,
+	NodeMetadata,
+} from '@concertodao/logstore-client';
 import {
 	LogStoreManager,
 	LogStoreNodeManager,
@@ -87,9 +91,13 @@ describe('Consensus', () => {
 		tracker = await startTestTracker(TRACKER_PORT);
 
 		for (let i = 0; i < BROKERS_NUM; i++) {
+			const nodeMetadata: NodeMetadata = {
+				http: `http://127.0.0.1:717${i + 1}`,
+			};
+
 			await prepareStakeForNodeManager(logStoreBrokerAccounts[i], STAKE_AMOUNT);
 			(
-				await nodeManagers[i].join(STAKE_AMOUNT, `http://127.0.0.1:717${i + 1}`)
+				await nodeManagers[i].join(STAKE_AMOUNT, JSON.stringify(nodeMetadata))
 			).wait();
 		}
 
