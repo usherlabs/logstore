@@ -18,7 +18,6 @@ import { SEPARATOR } from './uuid';
  * counterId('test') => test.1
  */
 
-// TODO convert to a class?
 type CounterIdType = ((prefix: string, separator?: string) => string) & {
 	clear: (...args: [string] | []) => void;
 };

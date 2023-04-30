@@ -88,12 +88,6 @@ export const createAuthentication = (
 					);
 				}
 				return signer;
-				// TODO: handle events
-				// ethereum.on('accountsChanged', (accounts) => { })
-				// https://docs.metamask.io/guide/ethereum-provider.html#events says:
-				//   "We recommend reloading the page unless you have a very good reason not to"
-				//   Of course we can't and won't do that, but if we need something chain-dependent...
-				// ethereum.on('chainChanged', (chainId) => { window.location.reload() });
 			},
 		};
 	} else {

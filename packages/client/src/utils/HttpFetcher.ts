@@ -2,10 +2,6 @@ import { Logger } from '@streamr/utils';
 import fetch, { Response } from 'node-fetch';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
-// import {
-// 	ClientConfigInjectionToken,
-// 	StrictStreamrClientConfig,
-// } from '../Config';
 import { LoggerFactory } from './LoggerFactory';
 
 @scoped(Lifecycle.ContainerScoped)

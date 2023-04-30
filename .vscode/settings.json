@@ -19,5 +19,6 @@
 	"solidity.formatter": "prettier",
 	"jest.autoRun": {
 		"onStartup": []
-	}
+	},
+	"typescript.tsdk": "node_modules/typescript/lib"
 }
