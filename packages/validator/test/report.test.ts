@@ -18,7 +18,7 @@ import {
 const TIMEOUT = 900 * 1000;
 const PUBLISH_MESSAGE_COUNT = 15;
 const brokerNodeAddress = ethers.computeAddress(BROKER_NODE_PRIVATE_KEY);
-console.log({ brokerNodeAddress });
+
 describe('Report', () => {
 	let v: Validator;
 
@@ -63,7 +63,6 @@ describe('Report', () => {
 			}
 
 			expect(listenerCacheCount).toBe(1 + PUBLISH_MESSAGE_COUNT * 2); // 30 + the initial event
-
 			const config = getConfig(v);
 			const managers = new Managers(config.sources[0]);
 			await managers.init();

@@ -23,6 +23,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
     event NodeStakeUpdated(address indexed nodeAddress, uint stake);
+    event StakeDelegated(address indexed delegate, address indexed node, uint amount, uint delegated);
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
@@ -261,6 +262,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
         _checkAndGrantAccess(node);
 
+        emit StakeDelegated(msg.sender, node, amount, 1);
         emit NodeStakeUpdated(node, nodes[node].stake);
     }
 
@@ -274,6 +276,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
         _checkAndGrantAccess(node);
 
+        emit StakeDelegated(msg.sender, node, amount, 0);
         emit NodeStakeUpdated(node, nodes[node].stake);
     }
 

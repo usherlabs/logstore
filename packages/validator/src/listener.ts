@@ -2,6 +2,7 @@
 // import { LogLevel } from 'camadb/dist/interfaces/logger-level.enum';
 // import { PersistenceAdapterEnum } from 'camadb/dist/interfaces/perisistence-adapter.enum';
 // import chokidar from 'chokidar';
+import { SystemMessage } from '@concertodao/logstore-protocol';
 import { open, RootDatabase } from 'lmdb';
 import path from 'path';
 import StreamrClient, { CONFIG_TEST, MessageMetadata } from 'streamr-client';
@@ -92,11 +93,6 @@ export default class Listener {
 		throw new Error(`atIndex: No key at index: ${index}`);
 	}
 
-	// public getStoreMap(){
-	// 	return this._storeMap;
-	// }
-
-	// TODO: The `content` variable is received as a System Stream message in a serialized format
 	private async onMessage(content: any, metadata: MessageMetadata) {
 		// Add to store
 		const key = `${Date.now().toString()}:${metadata.publisherId}`;
@@ -109,7 +105,9 @@ export default class Listener {
 			}
 		);
 
+		const parsedContent = SystemMessage.deserialize(content);
+		// deserialize the content gotten
 		const db = this.db();
-		await db.put(key, { content, metadata });
+		await db.put(key, { content: parsedContent, metadata });
 	}
 }

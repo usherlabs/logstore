@@ -122,10 +122,10 @@ export const produceReport = async (
 		}
 
 		// ? StreamrClient Subscribe method includes publisher signature verification
-		// TODO: Update way `content` is used.
-		if (content?.id && content?.hash && content?.size) {
+
+		if (content?.streamId && content?.hash && content?.size) {
 			const h = sha256(Buffer.from(JSON.stringify(content))); // the content should be the same across received messages from all broker nodes.
-			if (content?.query && content?.consumer) {
+			if (content?.queryOptions && content?.consumer) {
 				// Add to query hashMap
 				// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
 				if (!queryHashKeyMap[h]) {
@@ -184,7 +184,7 @@ export const produceReport = async (
 		}
 
 		// Stream ID is included in the system stream message.
-		const { id, size, hash } = event.content;
+		const { streamId: id, size, hash } = event.content;
 		report.events.storage.push({
 			id,
 			hash,
@@ -234,7 +234,13 @@ export const produceReport = async (
 
 		// Add consolidated event to report
 		const event = listenerCache.get(lKeys[0]);
-		const { id, query, consumer, hash, size } = event.content;
+		const {
+			streamId: id,
+			queryOptions: query,
+			consumer,
+			hash,
+			size,
+		} = event.content;
 		report.events.queries.push({
 			id,
 			query,

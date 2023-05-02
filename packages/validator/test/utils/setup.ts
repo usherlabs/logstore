@@ -1,5 +1,13 @@
 import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
 import {
+	ProofOfMessageStored,
+	QueryRequest,
+	QueryResponse,
+	QueryType,
+	SystemMessage,
+	SystemMessageType,
+} from '@concertodao/logstore-protocol';
+import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
 } from '@concertodao/logstore-shared';
@@ -53,6 +61,9 @@ let storageProvider: IStorageProvider;
 let compression: ICompression;
 let publisherClient: LogStoreClient;
 
+const VERSION = 1;
+
+// const storageSerializer = new ProofOfMessageStoredSerializerV1();
 export async function setupTests() {
 	const evmPrivateKey = fastPrivateKey();
 	process.env.EVM_PRIVATE_KEY = evmPrivateKey;
@@ -182,6 +193,7 @@ export async function cleanupTests() {
 	await v.listener.stop();
 }
 
+// todo serialize messages before sending
 export const publishStorageMessages = async (numOfMessages: number) => {
 	try {
 		const sourceStreamId = v.systemStreamId.replace('/system', '/test');
@@ -191,16 +203,35 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 			const size = Buffer.byteLength(msgStr, 'utf8');
 			const hash = ethers.keccak256(fromString(sourceStreamId + msgStr + size));
 			console.log(`Publishing storage message:`, msg, { hash, size });
+
+			const content = {
+				id: sourceStreamId,
+				hash,
+				size,
+			};
+			const serializer = SystemMessage.getSerializer(
+				VERSION,
+				SystemMessageType.ProofOfMessageStored
+			);
+
+			const serialisedStorageMessage = serializer.toArray(
+				new ProofOfMessageStored({
+					version: VERSION,
+					streamId: content.id,
+					partition: 0,
+					timestamp: +new Date(),
+					sequenceNumber: 0,
+					size: content.size,
+					hash: content.hash,
+				})
+			);
+
 			await publisherClient.publish(
 				{
 					id: v.systemStreamId,
 					partition: 0,
 				},
-				{
-					id: sourceStreamId,
-					hash,
-					size,
-				}
+				serialisedStorageMessage
 			);
 			await sleep(100);
 		}
@@ -211,6 +242,7 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 	}
 };
 
+// todo serialize messaegs before sending
 export const publishQueryMessages = async (numOfMessages: number) => {
 	const sourceStreamId = v.systemStreamId.replace('/system', '/test');
 	for (const idx of range(numOfMessages)) {
@@ -223,18 +255,40 @@ export const publishQueryMessages = async (numOfMessages: number) => {
 		const hash = ethers.keccak256(
 			fromString(sourceStreamId + queryStr + consumer + msgStr + size)
 		);
+
+		const content = {
+			id: sourceStreamId,
+			query,
+			consumer,
+			hash,
+			size,
+		};
+
+		const serializer = SystemMessage.getSerializer(
+			VERSION,
+			SystemMessageType.QueryResponse
+		);
+
+		// publish a query response so we recieve the same from listener that
+		// since no broker node to transform a request to a response and broadcast the response over teh systemstream
+		const serialisedStorageMessage = serializer.toArray(
+			new QueryResponse({
+				requestId: idx,
+				size: content.size,
+				hash: content.hash,
+				signature: content.hash,
+				consumer: content.consumer,
+				queryOptions: content.query,
+				streamId: content.id,
+			})
+		);
+
 		await publisherClient.publish(
 			{
 				id: v.systemStreamId,
 				partition: 0,
 			},
-			{
-				id: sourceStreamId,
-				query,
-				consumer,
-				hash,
-				size,
-			}
+			serialisedStorageMessage
 		);
 		await sleep(100);
 	}
