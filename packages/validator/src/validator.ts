@@ -20,10 +20,10 @@ export async function runCache(this: Validator): Promise<void> {
 
 export async function syncPoolConfig(this: Validator): Promise<void> {
 	await syncKyvePoolConfig.call(this);
-	// this.logger.debug(`Pool config:`, this.poolConfig);
+	this.logger.debug(`Pool config:`, this.poolConfig);
 	// Set the System Streams using the Smart Contract address
-	// const { contracts } = this.poolConfig as PoolConfig; // TODO: Get contract address from the `contracts` package.
-	this.systemStreamId = `.../system`;
+	const { contracts } = this.poolConfig;
+	this.systemStreamId = `${contracts.nodeManagerAddress}/system`;
 }
 
 export default class Validator extends KyveValidator {

@@ -20,8 +20,7 @@ export default class Runtime implements IRuntime {
 	): Promise<DataItem> {
 		core.logger.debug(`getDataItem`, source, key);
 
-		const config = getConfig(core);
-		const managers = new Managers(source, config.contracts);
+		const managers = new Managers(source);
 
 		// IF REPORT
 		if (key.startsWith(reportPrefix)) {

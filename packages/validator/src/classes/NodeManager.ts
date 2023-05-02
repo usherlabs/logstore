@@ -3,7 +3,6 @@ import {
 	LogStoreNodeManager,
 } from '@concertodao/logstore-contracts';
 import { BigNumber } from '@ethersproject/bignumber';
-import { ethers } from 'ethers';
 
 import { BrokerNode } from '../types';
 
@@ -21,107 +20,68 @@ export class NodeManager {
 		return this._contract;
 	}
 
-	async getBrokerNodes(blockNumber?: number, minStakeRequirement?: number) {
-		const brokerNodes: BrokerNode[] = [];
-		const headBrokerNodeAddress: string = await this.contract.headNode({
+	async getBrokerNodes(
+		blockNumber?: number,
+		minStakeRequirement?: number
+	): Promise<Array<BrokerNode>> {
+		// get all the node addresses
+		const nodeAddresses = await this.contract.nodeAddresses({
 			blockTag: blockNumber,
 		});
-		const tailBrokerNodeAddress: string = await this.contract.tailNode({
-			blockTag: blockNumber,
-		});
-		console.log('Broker Node Head/Tail', {
-			head: headBrokerNodeAddress,
-			tail: tailBrokerNodeAddress,
-		});
-		const nodeStakeUpdateEvents = await this.contract.queryFilter(
-			this.contract.filters.NodeStakeUpdated(),
-			0,
-			blockNumber
+
+		// get more details for each node's address
+		const detailedAllNodes = await Promise.all(
+			nodeAddresses.map(async (nodeAddress) => {
+				const nodeDetail = await this.contract.nodes(nodeAddress, {
+					blockTag: blockNumber,
+				});
+				const allDelegates = await this.getDelegates(nodeAddress, blockNumber);
+				console.log({ allDelegates, nodeAddress });
+				return {
+					id: nodeAddress,
+					index: nodeDetail.index.toNumber(),
+					metadata: nodeDetail.metadata,
+					lastSeen: nodeDetail.lastSeen.toNumber(),
+					next: nodeDetail.next,
+					prev: nodeDetail.prev,
+					stake: +nodeDetail.stake,
+					delegates: allDelegates,
+				};
+			})
 		);
 
-		// const isSingleNode = headBrokerNodeAddress === tailBrokerNodeAddress;
-		let currentBrokerNodeAddressInLoop = headBrokerNodeAddress;
-		while (
-			currentBrokerNodeAddressInLoop !== '' &&
-			currentBrokerNodeAddressInLoop !== ethers.ZeroAddress
-		) {
-			// currentBrokerNodeAddressInLoop === '' when there's nothing left in brokerNode.next
-			const brokerNodeStruct = await this.contract.nodes(
-				currentBrokerNodeAddressInLoop,
-				{ blockTag: blockNumber }
-			);
-			let brokerNode: BrokerNode = {
-				id: currentBrokerNodeAddressInLoop,
-				index: brokerNodeStruct.index.toNumber(),
-				metadata: brokerNodeStruct.metadata,
-				lastSeen: brokerNodeStruct.lastSeen.toNumber(),
-				next: brokerNodeStruct.next,
-				prev: brokerNodeStruct.prev,
-				stake: brokerNodeStruct.stake.toNumber(),
-				delegates: [],
-			};
-			if (
-				typeof minStakeRequirement === 'undefined' ||
-				brokerNode.stake < minStakeRequirement
-			) {
-				currentBrokerNodeAddressInLoop = brokerNode.next;
-				continue;
-			}
-
-			// Hydrate the delegates
-
-			// ! Below is incorrect because captures managed by reports could yield outcomes where the undelegate amount is less than the original delegate amount.
-			// TODO: https://ethereum.stackexchange.com/questions/34555/how-to-get-value-of-input-parameters-from-transaction-history -- use to determine amount in block transaction parameters.
-			// let stake = 0;
-			// const delegates = {}
-			// for (let i = 0; i < nodeStakeUpdateEvents.length; i++) {
-			// 	const e = nodeStakeUpdateEvents[i];
-			// 	const receipt = await e.getTransactionReceipt();
-			// 	const { from } = receipt;
-			// 	const newStake = e.args.stake.toNumber();
-			// 	const diff = newStake - stake;
-			// 	if(!delegates[from]){
-			// 		delegates[from] = 0;
-			// 	}
-			// 	delegates[from] += diff;
-			// 	stake = newStake;
-			// }
-
-			// const nodeUpdates = nodeStakeUpdateEvents.filter(
-			// 	(e) => e.args.nodeAddress.toString() === brokerNode.id
-			// );
-			// const events = await Promise.all(nodeUpdates.map(async e => {
-			// 	const res = {
-			// 		...e,
-			// 		receipt: await e.getTransactionReceipt()
-			// 	}
-			// 	return res;
-			// }))
-			// events.sort((a, b) => {
-			// 	return a.receipt.blockNumber > b.receipt.blockNumber ? 1 : -1;
-			// })
-
-			// // Hydrate the delegates
-			// let stake = 0;
-			// const delegatesOf = {}
-			// for (let i = 0; i < events.length; i++) {
-			// 	const e = events[i];
-			// 	const { from } = e.receipt;
-			// 	const eventStake = e.args.stake.toNumber();
-			// 	const diff = eventStake - stake
-			// 	if(!delegates[from]){
-			// 		delegates[from] = 0;
-			// 	}
-			// 	delegates[from] += diff;
-			// }
-
-			console.log('Broker Node Fetched!', {
-				brokerNode,
-			});
-			currentBrokerNodeAddressInLoop = brokerNode.next;
-		}
+		// Filter out all nodes fetched which have a stake > minstake
+		const brokerNodes = detailedAllNodes.filter(
+			({ stake }) =>
+				typeof minStakeRequirement !== 'undefined' &&
+				stake > minStakeRequirement
+		);
 
 		return brokerNodes;
+	}
+
+	async getDelegates(nodeAddress: string, toBlockNumber: number) {
+		const delegateesEvent = await this.contract.queryFilter(
+			this.contract.filters.StakeDelegated(null, nodeAddress, null, null),
+			0,
+			toBlockNumber
+		);
+
+		const eventDetails = delegateesEvent.map(({ args }) => ({
+			delegate: args.delegate,
+			amount: Number(args.delegated)
+				? Number(args.amount)
+				: -Number(args.amount),
+		}));
+
+		return eventDetails.reduce((accumulator, curr) => {
+			if (accumulator[curr.delegate] === undefined) {
+				accumulator[curr.delegate] = 0;
+			} else {
+				accumulator[curr.delegate] += curr.amount;
+			}
+			return accumulator;
+		}, {});
 	}
 
 	async getStakeToken(blockNumber?: number): Promise<StakeToken> {
@@ -139,7 +99,7 @@ export class NodeManager {
 		const stakeTokenDecimals = await stakeTokenContract.decimals();
 
 		return {
-			minRequirement: minStakeRequirement.toNumber(),
+			minRequirement: +minStakeRequirement,
 			address: stakeTokenAddress,
 			symbol: stakeTokenSymbol,
 			decimals: stakeTokenDecimals,

@@ -55,7 +55,7 @@ export type BrokerNode = {
 	next: string;
 	prev: string;
 	stake: number;
-	delegates: string[];
+	delegates: Record<string, number>;
 };
 
 export type StreamrMessage = { content: any; metadata: MessageMetadata };

@@ -1,4 +1,4 @@
-import { getEvmPrivateKey } from '@/env-config';
+import { getEvmPrivateKey } from '../env-config';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,

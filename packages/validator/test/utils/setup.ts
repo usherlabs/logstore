@@ -37,8 +37,9 @@ const {
 	KYVE_DEV_HOST = 'localhost',
 	STREAMR_DOCKER_DEV_HOST = 'localhost',
 } = process.env;
-const BROKER_NODE_PRIVATE_KEY =
-	'0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const;
+export const BROKER_NODE_PRIVATE_KEY =
+	process.env.BROKER_NODE_PRIVATE_KEY ||
+	('0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const);
 const MESSAGE_STORE_TIMEOUT = 9 * 1000;
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
@@ -53,7 +54,7 @@ let compression: ICompression;
 let publisherClient: LogStoreClient;
 
 export async function setupTests() {
-	const evmPrivateKey = await fastPrivateKey();
+	const evmPrivateKey = fastPrivateKey();
 	process.env.EVM_PRIVATE_KEY = evmPrivateKey;
 
 	v = new Validator(new Runtime());

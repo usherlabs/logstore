@@ -51,7 +51,6 @@ export const produceReport = async (
 		stakeToken.minRequirement
 	);
 	core.logger.debug('Broker Nodes: ', brokerNodes); // TODO: This is returning an empty array.
-
 	const { fees } = config;
 
 	// ! Re-calling all queries here to determine its size is silly.
@@ -91,27 +90,36 @@ export const produceReport = async (
 
 	// Use events in the listener cache to determine which events are valid.
 	const listenerCache = core.listener.db();
+	// a mapping of "contentHash => [timestamp:publisherAddr1, timestamp:publisherAddr1]"
 	const queryHashKeyMap: Record<string, string[]> = {};
 	const storeHashKeyMap: Record<string, string[]> = {};
-	for (const { key: lKey, value: lValue } of listenerCache.getRange({
-		start: fromKey,
-		end: toKey,
-	})) {
+
+	// @todo @dev   key is in the format "const key = `${Date.now().toString()}:${metadata.publisherId}`"";
+	// can we query by getRange? because it returns empty when we do
+
+	// test with timestamps alone to confirm it works even when teh publisher id is not attached
+	// extend getrange function to abstract the concatenation of arrays
+	// store it as lrange[key] = array;
+	// const cachedItems = listenerCache.getRange({
+	// 	start: fromKey,
+	// 	end: toKey,
+	// });
+	// get all items in cache instead, since all items present are all we put in it
+	const cachedItems = listenerCache.getRange();
+
+	for (const { key: lKey, value: lValue } of cachedItems) {
 		if (!(lValue?.content && lValue?.metadata)) {
 			continue;
 		}
 
 		const { content, metadata } = lValue;
 		// verify that the publisher also a broker node
-		const brokerNode = brokerNodes.find((n) => n.id === metadata.publisherId);
+		const brokerNode = brokerNodes.find(
+			(n) => n.id.toLowerCase() === metadata.publisherId.toLowerCase()
+		);
 		if (typeof brokerNode === 'undefined') {
 			continue;
 		}
-
-		core.logger.debug('Producing HashKeyMaps: ', {
-			lKey,
-			lValue,
-		});
 
 		// ? StreamrClient Subscribe method includes publisher signature verification
 		// TODO: Update way `content` is used.
@@ -140,13 +148,14 @@ export const produceReport = async (
 	});
 
 	const applyFeeToDelegates = async (bNode: BrokerNode, nodeAmount: number) => {
-		for (let l = 0; l < bNode.delegates.length; l++) {
-			const delAddr = bNode.delegates[l];
+		const delegates = Object.keys(bNode.delegates);
+		for (let l = 0; l < delegates.length; l++) {
+			const delAddr = delegates[l];
 			const delegateAmount = await managers.node.contract.delegatesOf(
 				delAddr,
 				bNode.id
 			);
-			const delegatePortion = delegateAmount.toNumber() / bNode.stake;
+			const delegatePortion = +delegateAmount.toString() / bNode.stake;
 			if (!report.delegates[delAddr]) {
 				report.delegates[delAddr] = {};
 			}
@@ -159,12 +168,12 @@ export const produceReport = async (
 
 	// Apply valid storage events to report
 	const storeHashKeyMapEntries = Object.entries(storeHashKeyMap);
+	// get only messages which have been processed(stored) by at least half the broker nodes
 	for (let i = 0; i < storeHashKeyMapEntries.length; i++) {
 		const [, lKeys] = storeHashKeyMapEntries[i];
 		if (lKeys.length < brokerNodes.length / 2) {
 			continue;
 		}
-
 		// Add consolidated event to report
 		let event: StreamrMessage;
 		const contributingPublishers = [];
@@ -181,7 +190,6 @@ export const produceReport = async (
 			hash,
 			size,
 		});
-
 		const existingStreamIndex = report.streams.findIndex((s) => s.id === id);
 		const captureAmount = writeFee * size;
 		if (existingStreamIndex < 0) {
@@ -208,11 +216,10 @@ export const produceReport = async (
 			const nodeAmount =
 				writeNodeFee *
 				size *
-				(contributingPublishers.includes(bNode.id) ? 1 : -1);
+				(contributingPublishers.includes(bNode.id.toLowerCase()) ? 1 : -1);
 
 			report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
-
-			await applyFeeToDelegates(bNode, nodeAmount);
+			// await applyFeeToDelegates(bNode, nodeAmount);
 		}
 	}
 
@@ -275,15 +282,21 @@ export const produceReport = async (
 	} catch (e) {
 		core.logger.warn(`Could not fetch the Price of ${stakeToken.symbol}`);
 	}
-	const toStakeToken = (usdValue: number) =>
-		Math.floor(
+	const toStakeToken = (usdValue: number) => {
+		console.log({ usdValue, priceOfStakeToken });
+		return Math.floor(
 			parseInt(
 				ethers
-					.parseUnits(`${usdValue / priceOfStakeToken}`, stakeToken.decimals)
+					.parseUnits(
+						// reduce precision to max allowed to prevent errors
+						`${(usdValue / priceOfStakeToken).toPrecision(15)}`,
+						stakeToken.decimals
+					)
 					.toString(10),
 				10
 			)
 		);
+	};
 	report.treasury = toStakeToken(report.treasury);
 	report.consumers = report.consumers.map((c) => {
 		c.capture = toStakeToken(c.capture);
@@ -297,6 +310,6 @@ export const produceReport = async (
 			report.delegates[d][n] = toStakeToken(report.delegates[d][n]);
 		});
 	});
-
+	core.logger.debug('Report Generated', report);
 	return report;
 };
