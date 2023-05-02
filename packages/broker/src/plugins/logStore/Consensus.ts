@@ -10,7 +10,7 @@ import { Logger } from '@streamr/utils';
 import { Signer } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
-import { Stream, StreamMessage } from 'streamr-client';
+import type { Stream, StreamMessage, Subscription } from 'streamr-client';
 
 const logger = new Logger(module);
 
@@ -20,6 +20,23 @@ export type Consensus = {
 	signature: string;
 };
 
+export const hashResponse = async (id: string, data: Readable) => {
+	let size = 0;
+	let hash = keccak256(Uint8Array.from(Buffer.from(id)));
+	for await (const chunk of data) {
+		const streamMessage = chunk as StreamMessage;
+		const content = streamMessage.getContent(false);
+		size += Buffer.byteLength(content, 'utf8');
+		hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
+	}
+	hash = keccak256(Uint8Array.from(Buffer.from(hash + size)));
+	return { size, hash };
+};
+
+/**
+ * On receiving a HTTP Query Request, forward the request to other Broker Nodes.
+ * The wait for the Broker Network's response.
+ */
 export const getConsensus = async (
 	queryRequest: QueryRequest,
 	nodeManager: LogStoreNodeManager,
@@ -31,14 +48,7 @@ export const getConsensus = async (
 	const CONSENSUS_TIMEOUT = 10 * 1000; // 10 seconds
 	const CONSENSUS_THRESHOLD = (await nodeManager.totalNodes()).toNumber();
 
-	let size = 0;
-	let hash = keccak256(Uint8Array.from(Buffer.from(queryRequest.requestId)));
-	for await (const chunk of data) {
-		const streamMessage = chunk as StreamMessage;
-		const content = streamMessage.getContent(false);
-		size += content.length;
-		hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
-	}
+	const { size, hash } = await hashResponse(queryRequest.requestId, data);
 
 	const consensus: Consensus[] = [
 		{
@@ -55,8 +65,9 @@ export const getConsensus = async (
 
 	return new Promise<Consensus[]>((resolve, reject) => {
 		let timeout: NodeJS.Timeout;
+		let sub: Subscription;
 		logStoreClient
-			.subscribe(systemStream, (msg, metadata) => {
+			.subscribe(systemStream, async (msg, metadata) => {
 				const systemMessage = SystemMessage.deserialize(msg);
 
 				if (systemMessage.messageType != SystemMessageType.QueryResponse) {
@@ -68,10 +79,11 @@ export const getConsensus = async (
 					return;
 				}
 
-				// TODO: Currently, rejects once an incorrect hash received.
+				// TODO: Currently, rejects once an incorrect hash received. Will need to eventually update to manage a count of mismatches
 				// It should collect majority of hashes to reach a consesnsus.
 				if (queryResponse.size != size && queryResponse.hash != hash) {
 					clearTimeout(timeout);
+					await sub.unsubscribe();
 					reject('No consensus');
 					return;
 				}
@@ -84,11 +96,13 @@ export const getConsensus = async (
 
 				if (consensus.length >= CONSENSUS_THRESHOLD) {
 					clearTimeout(timeout);
+					await sub.unsubscribe();
 					resolve(consensus);
 					return;
 				}
 			})
-			.then(() => {
+			.then((subscription) => {
+				// On successful subscription, forward the request to broker network
 				logStoreClient
 					.publish(systemStream, queryRequest.serialize())
 					.then(() => {
@@ -96,6 +110,8 @@ export const getConsensus = async (
 							reject('Consensus timeout');
 						}, CONSENSUS_TIMEOUT);
 					});
+				// save subscription for clean up
+				sub = subscription;
 			})
 			.catch((err) => {
 				logger.error(err);
