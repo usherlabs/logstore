@@ -49,14 +49,23 @@ export const getConsensus = async (
 	const CONSENSUS_THRESHOLD = (await nodeManager.totalNodes()).toNumber();
 
 	const { size, hash } = await hashResponse(queryRequest.requestId, data);
-
+	const signature = await signer.signMessage(hash);
 	const consensus: Consensus[] = [
 		{
 			hash,
 			signer: await signer.getAddress(),
-			signature: await signer.signMessage(hash),
+			signature,
 		},
 	];
+
+	// ? On the query request, the Broker Node is required to emit a response so that validators can ensure it also is producing the correct response.
+	const finalQueryResponse = new QueryResponse({
+		requestId: queryRequest.requestId,
+		size,
+		hash,
+		signature,
+	});
+	await logStoreClient.publish(systemStream, finalQueryResponse.serialize());
 
 	// Do not wait for a consensus if there is only one node in the network
 	if (consensus.length >= CONSENSUS_THRESHOLD) {
