@@ -89,12 +89,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					const queryRequest = queryMessage as QueryRequest;
 					logger.trace('Deserialized queryRequest: %s', queryRequest);
 
-					let readableStrem: Readable;
+					let readableStream: Readable;
 					switch (queryRequest.queryType) {
 						case QueryType.Last: {
 							const { last } = queryRequest.queryOptions as QueryLastOptions;
 
-							readableStrem = this.logStore!.requestLast(
+							readableStream = this.logStore!.requestLast(
 								queryRequest.streamId,
 								queryRequest.partition,
 								last
@@ -105,7 +105,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 							const { from, publisherId } =
 								queryRequest.queryOptions as QueryFromOptions;
 
-							readableStrem = this.logStore!.requestFrom(
+							readableStream = this.logStore!.requestFrom(
 								queryRequest.streamId,
 								queryRequest.partition,
 								from.timestamp,
@@ -118,7 +118,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 							const { from, publisherId, to, msgChainId } =
 								queryRequest.queryOptions as QueryRangeOptions;
 
-							readableStrem = this.logStore!.requestRange(
+							readableStream = this.logStore!.requestRange(
 								queryRequest.streamId,
 								queryRequest.partition,
 								from.timestamp,
@@ -138,7 +138,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					let hash = keccak256(
 						Uint8Array.from(Buffer.from(queryRequest.requestId))
 					);
-					for await (const chunk of readableStrem) {
+					for await (const chunk of readableStream) {
 						const streamMessage = chunk as StreamMessage;
 						const content = streamMessage.getContent(false);
 						size += content.length;
