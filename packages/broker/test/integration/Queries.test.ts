@@ -1,4 +1,8 @@
-import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
+import {
+	CONFIG_TEST,
+	LogStoreClient,
+	NodeMetadata,
+} from '@concertodao/logstore-client';
 import {
 	LogStoreManager,
 	LogStoreNodeManager,
@@ -83,9 +87,12 @@ describe('Queries', () => {
 
 	beforeEach(async () => {
 		tracker = await startTestTracker(TRACKER_PORT);
+		const nodeMetadata: NodeMetadata = {
+			http: 'http://127.0.0.1:7171',
+		};
 
 		await prepareStakeForNodeManager(logStoreBrokerAccount, STAKE_AMOUNT);
-		(await nodeManager.join(STAKE_AMOUNT, 'http://127.0.0.1:7171')).wait();
+		(await nodeManager.join(STAKE_AMOUNT, JSON.stringify(nodeMetadata))).wait();
 
 		// Wait for the granted permissions to the system stream
 		await sleep(5000);
