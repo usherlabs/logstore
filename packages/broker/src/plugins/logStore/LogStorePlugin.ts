@@ -63,6 +63,10 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private logStoreConfig?: LogStoreConfig;
 	private messageListener?: (msg: StreamMessage) => void;
 
+	getApiAuthentication(): undefined {
+		return undefined;
+	}
+
 	async start(): Promise<void> {
 		const systemStream = await this.logStoreClient.getStream(
 			formLogStoreSystemStreamId(
