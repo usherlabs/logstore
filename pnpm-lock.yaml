@@ -151,6 +151,9 @@ importers:
       inquirer:
         specifier: ^8.1.1
         version: 8.2.5
+      js-base64:
+        specifier: ^3.7.5
+        version: 3.7.5
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -246,7 +249,7 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0
       streamr-broker:
-        specifier: ^33.0.0
+        specifier: ^33.1.1
         version: 33.1.1(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5)
       supertest:
         specifier: ^6.3.3
@@ -405,6 +408,9 @@ importers:
       idb-keyval:
         specifier: ^6.2.0
         version: 6.2.0
+      js-base64:
+        specifier: ^3.7.5
+        version: 3.7.5
       lit-siwe:
         specifier: ^1.1.8
         version: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
@@ -13153,6 +13159,10 @@ packages:
   /joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
+
+  /js-base64@3.7.5:
+    resolution: {integrity: sha512-3MEt5DTINKqfScXKfJFrRbxkrnk2AxPWGBL/ycjz4dK8iqiSJ06UxD8jh8xuh6p10TX4t2+7FsBYVxxQbMg+qA==}
+    dev: false
 
   /js-sdsl@4.4.0:
     resolution: {integrity: sha512-FfVSdx6pJ41Oa+CF7RDaFmTnCaFhua+SNYQX74riGOpl96x+2jQCqEfQ2bnXu/5DPCqlRuiqyvTJM0Qjz26IVg==}

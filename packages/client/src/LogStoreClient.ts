@@ -93,12 +93,10 @@ export class LogStoreClient extends StreamrClient {
 	 * not stored (i.e. is not assigned to a storage node).
 	 */
 	async query(
-		streamDefinition: StreamDefinition, // TODO: This should not include the partition. The partition is determined within this method.
+		streamDefinition: StreamDefinition,
 		options: QueryOptions,
 		onMessage?: MessageListener
 	): Promise<MessageStream> {
-		// TODO: 1. Get the query partition for this specific store -- this should be a public method
-		// TODO: 2. Query the store using its query partition
 		const streamPartId = await this.logStoreStreamIdBuilder.toStreamPartID(
 			streamDefinition
 		);

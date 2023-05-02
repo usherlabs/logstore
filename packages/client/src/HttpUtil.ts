@@ -1,6 +1,7 @@
 import { StreamMessage } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
+import { Base64 } from 'js-base64';
 import fetch, { Response } from 'node-fetch';
 import split2 from 'split2';
 import { Readable } from 'stream';
@@ -103,7 +104,7 @@ export class HttpUtil {
 		const response = await fetchResponse(url, this.logger, {
 			signal: abortController.signal,
 			headers: {
-				Authorization: `Basic ${authUser}:${authPassword}`,
+				Authorization: `Basic ${Base64.encode(`${authUser}:${authPassword}`)}`,
 			},
 		});
 		if (!response.body) {
