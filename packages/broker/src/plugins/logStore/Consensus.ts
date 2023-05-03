@@ -52,20 +52,6 @@ export const getConsensus = async (
 	const signature = await signer.signMessage(hash);
 	const consensus: Consensus[] = [];
 
-	// ? On the query request, the Broker Node is required to emit a response so that validators can ensure it also is producing the correct response.
-	const queryResponse = new QueryResponse({
-		requestId: queryRequest.requestId,
-		size,
-		hash,
-		signature,
-	});
-	await logStoreClient.publish(systemStream, queryResponse.serialize());
-
-	// Do not wait for a consensus if there is only one node in the network
-	if (consensus.length >= CONSENSUS_THRESHOLD) {
-		return consensus;
-	}
-
 	return new Promise<Consensus[]>((resolve, reject) => {
 		let timeout: NodeJS.Timeout;
 		let sub: Subscription;
@@ -107,6 +93,9 @@ export const getConsensus = async (
 				}
 			})
 			.then((subscription) => {
+				// save subscription for clean up
+				sub = subscription;
+
 				// On successful subscription, forward the request to broker network
 				logStoreClient
 					.publish(systemStream, queryRequest.serialize())
@@ -117,8 +106,15 @@ export const getConsensus = async (
 							});
 						}, CONSENSUS_TIMEOUT);
 					});
-				// save subscription for clean up
-				sub = subscription;
+
+				// ? On the query request, the Broker Node is required to emit a response so that validators can ensure it also is producing the correct response.
+				const queryResponse = new QueryResponse({
+					requestId: queryRequest.requestId,
+					size,
+					hash,
+					signature,
+				});
+				logStoreClient.publish(systemStream, queryResponse.serialize()).then();
 			})
 			.catch((err) => {
 				logger.error(err);
