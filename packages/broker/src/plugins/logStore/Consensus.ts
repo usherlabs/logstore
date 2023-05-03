@@ -53,13 +53,13 @@ export const getConsensus = async (
 	const consensus: Consensus[] = [];
 
 	// ? On the query request, the Broker Node is required to emit a response so that validators can ensure it also is producing the correct response.
-	const finalQueryResponse = new QueryResponse({
+	const queryResponse = new QueryResponse({
 		requestId: queryRequest.requestId,
 		size,
 		hash,
 		signature,
 	});
-	await logStoreClient.publish(systemStream, finalQueryResponse.serialize());
+	await logStoreClient.publish(systemStream, queryResponse.serialize());
 
 	// Do not wait for a consensus if there is only one node in the network
 	if (consensus.length >= CONSENSUS_THRESHOLD) {

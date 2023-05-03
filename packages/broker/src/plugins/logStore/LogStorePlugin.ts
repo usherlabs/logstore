@@ -140,7 +140,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						readableStream
 					);
 
-					const finalQueryResponse = new QueryResponse({
+					const queryResponse = new QueryResponse({
 						requestId: queryRequest.requestId,
 						size,
 						hash,
@@ -148,7 +148,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					});
 					await this.logStoreClient.publish(
 						systemStream,
-						finalQueryResponse.serialize()
+						queryResponse.serialize()
 					);
 				}
 			}
