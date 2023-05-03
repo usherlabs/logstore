@@ -19,6 +19,7 @@ import { Stream } from 'streamr-client';
 
 import { Plugin, PluginOptions } from '../../Plugin';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
+import { hashResponse } from './Consensus';
 import { createDataQueryEndpoint } from './dataQueryEndpoint';
 import {
 	LogStore,
@@ -89,12 +90,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					const queryRequest = queryMessage as QueryRequest;
 					logger.trace('Deserialized queryRequest: %s', queryRequest);
 
-					let readableStrem: Readable;
+					let readableStream: Readable;
 					switch (queryRequest.queryType) {
 						case QueryType.Last: {
 							const { last } = queryRequest.queryOptions as QueryLastOptions;
 
-							readableStrem = this.logStore!.requestLast(
+							readableStream = this.logStore!.requestLast(
 								queryRequest.streamId,
 								queryRequest.partition,
 								last
@@ -105,7 +106,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 							const { from, publisherId } =
 								queryRequest.queryOptions as QueryFromOptions;
 
-							readableStrem = this.logStore!.requestFrom(
+							readableStream = this.logStore!.requestFrom(
 								queryRequest.streamId,
 								queryRequest.partition,
 								from.timestamp,
@@ -118,7 +119,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 							const { from, publisherId, to, msgChainId } =
 								queryRequest.queryOptions as QueryRangeOptions;
 
-							readableStrem = this.logStore!.requestRange(
+							readableStream = this.logStore!.requestRange(
 								queryRequest.streamId,
 								queryRequest.partition,
 								from.timestamp,
@@ -134,18 +135,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 							throw new Error('Unknown QueryType');
 					}
 
-					let size = 0;
-					let hash = keccak256(
-						Uint8Array.from(Buffer.from(queryRequest.requestId))
+					const { size, hash } = await hashResponse(
+						queryRequest.requestId,
+						readableStream
 					);
-					for await (const chunk of readableStrem) {
-						const streamMessage = chunk as StreamMessage;
-						const content = streamMessage.getContent(false);
-						size += content.length;
-						hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
-					}
 
-					const finalQueryResponse = new QueryResponse({
+					const queryResponse = new QueryResponse({
 						requestId: queryRequest.requestId,
 						size,
 						hash,
@@ -153,7 +148,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					});
 					await this.logStoreClient.publish(
 						systemStream,
-						finalQueryResponse.serialize()
+						queryResponse.serialize()
 					);
 				}
 			}

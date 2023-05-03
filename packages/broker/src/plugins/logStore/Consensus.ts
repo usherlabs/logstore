@@ -10,7 +10,7 @@ import { Logger } from '@streamr/utils';
 import { Signer } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
-import { Stream, StreamMessage } from 'streamr-client';
+import type { Stream, StreamMessage, Subscription } from 'streamr-client';
 
 const logger = new Logger(module);
 
@@ -20,6 +20,23 @@ export type Consensus = {
 	signature: string;
 };
 
+export const hashResponse = async (id: string, data: Readable) => {
+	let size = 0;
+	let hash = keccak256(Uint8Array.from(Buffer.from(id)));
+	for await (const chunk of data) {
+		const streamMessage = chunk as StreamMessage;
+		const content = streamMessage.getContent(false);
+		size += Buffer.byteLength(content, 'utf8');
+		hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
+	}
+	hash = keccak256(Uint8Array.from(Buffer.from(hash + size)));
+	return { size, hash };
+};
+
+/**
+ * On receiving a HTTP Query Request, forward the request to other Broker Nodes.
+ * The wait for the Broker Network's response.
+ */
 export const getConsensus = async (
 	queryRequest: QueryRequest,
 	nodeManager: LogStoreNodeManager,
@@ -31,30 +48,13 @@ export const getConsensus = async (
 	const CONSENSUS_TIMEOUT = 10 * 1000; // 10 seconds
 	const CONSENSUS_THRESHOLD = (await nodeManager.totalNodes()).toNumber();
 
-	let size = 0;
-	let hash = keccak256(Uint8Array.from(Buffer.from(queryRequest.requestId)));
-	for await (const chunk of data) {
-		const streamMessage = chunk as StreamMessage;
-		const content = streamMessage.getContent(false);
-		size += content.length;
-		hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
-	}
-
-	const consensus: Consensus[] = [
-		{
-			hash,
-			signer: await signer.getAddress(),
-			signature: await signer.signMessage(hash),
-		},
-	];
-
-	// Do not wait for a consensus if there is only one node in the network
-	if (consensus.length >= CONSENSUS_THRESHOLD) {
-		return consensus;
-	}
+	const { size, hash } = await hashResponse(queryRequest.requestId, data);
+	const signature = await signer.signMessage(hash);
+	const consensus: Consensus[] = [];
 
 	return new Promise<Consensus[]>((resolve, reject) => {
 		let timeout: NodeJS.Timeout;
+		let sub: Subscription;
 		logStoreClient
 			.subscribe(systemStream, (msg, metadata) => {
 				const systemMessage = SystemMessage.deserialize(msg);
@@ -68,11 +68,13 @@ export const getConsensus = async (
 					return;
 				}
 
-				// TODO: Currently, rejects once an incorrect hash received.
+				// TODO: Currently, rejects once an incorrect hash received. Will need to eventually update to manage a count of mismatches
 				// It should collect majority of hashes to reach a consesnsus.
 				if (queryResponse.size != size && queryResponse.hash != hash) {
 					clearTimeout(timeout);
-					reject('No consensus');
+					sub.unsubscribe().then(() => {
+						reject('No consensus');
+					});
 					return;
 				}
 
@@ -84,18 +86,35 @@ export const getConsensus = async (
 
 				if (consensus.length >= CONSENSUS_THRESHOLD) {
 					clearTimeout(timeout);
-					resolve(consensus);
+					sub.unsubscribe().then(() => {
+						resolve(consensus);
+					});
 					return;
 				}
 			})
-			.then(() => {
+			.then((subscription) => {
+				// save subscription for clean up
+				sub = subscription;
+
+				// On successful subscription, forward the request to broker network
 				logStoreClient
 					.publish(systemStream, queryRequest.serialize())
 					.then(() => {
 						timeout = setTimeout(() => {
-							reject('Consensus timeout');
+							sub.unsubscribe().then(() => {
+								reject('Consensus timeout');
+							});
 						}, CONSENSUS_TIMEOUT);
 					});
+
+				// ? On the query request, the Broker Node is required to emit a response so that validators can ensure it also is producing the correct response.
+				const queryResponse = new QueryResponse({
+					requestId: queryRequest.requestId,
+					size,
+					hash,
+					signature,
+				});
+				logStoreClient.publish(systemStream, queryResponse.serialize()).then();
 			})
 			.catch((err) => {
 				logger.error(err);
