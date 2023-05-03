@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"declaration": true,
 		"declarationMap": true,
-		"target": "es2019",
+		"target": "es2020",
 		"module": "commonjs",
 		"strict": true,
 		"esModuleInterop": true,
@@ -12,7 +12,8 @@
 		"forceConsistentCasingInFileNames": true,
 		"sourceMap": true,
 		"noImplicitAny": true,
-		"removeComments": true
+		"removeComments": true,
+		"skipLibCheck": true
 	},
 	"exclude": ["node_modules"],
 	"include": ["./scripts", "./test", "./tasks"],

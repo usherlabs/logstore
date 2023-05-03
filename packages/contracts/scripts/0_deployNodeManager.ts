@@ -2,6 +2,7 @@ import { Wallet } from 'ethers';
 import hre from 'hardhat';
 
 import {
+	getBlockTime,
 	getNodeManagerInputParameters,
 	getQueryManagerInputParameters,
 	getStoreManagerInputParameters,
@@ -69,6 +70,8 @@ async function main() {
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- deploy the report manager contract --------------------------- //
+	// Get block time of chain id
+	const blockTime = await getBlockTime();
 	const Lib = await hre.ethers.getContractFactory('VerifySignature');
 	const lib = await Lib.deploy();
 	await lib.deployed();
@@ -81,16 +84,20 @@ async function main() {
 			},
 		}
 	);
+	const reportBlockBuffer = Math.ceil(30000 / blockTime); // The number of blocks to wait between each reporter starting from the height of the report.
 	const reportManagerContract = await hre.upgrades.deployProxy(
 		reportManager,
-		[nodeManagerAddress],
+		[nodeManagerAddress, reportBlockBuffer],
 		{
 			unsafeAllowLinkedLibraries: true,
 		}
 	);
 	await reportManagerContract.deployed();
 	const { address: reportManagerAddress } = reportManagerContract;
-	console.log(`LogStoreReportanager deployed to ${reportManagerAddress}`);
+	console.log(`LogStoreReportManager deployed to ${reportManagerAddress}`, {
+		nodeManagerAddress,
+		reportBlockBuffer,
+	});
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //
