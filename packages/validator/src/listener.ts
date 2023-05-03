@@ -11,7 +11,7 @@ import { useStreamrTestConfig } from './env-config';
 import type { StreamrMessage } from './types';
 import type Validator from './validator';
 
-type DB = RootDatabase<StreamrMessage, string>;
+type DB = RootDatabase<Record<string, StreamrMessage>, number>;
 
 export default class Listener {
 	private client: StreamrClient;
@@ -40,7 +40,7 @@ export default class Listener {
 			// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
 			const db = this.db();
 			await db.drop();
-			await db.put(Date.now().toString(), null);
+			await db.put(+Date.now(), null);
 
 			// Chokidar listening to reinitiate the cache after each flush/drop/wipe.
 			// chokidar.watch(this.cachePath).on('unlink', async (eventPath) => {
@@ -78,7 +78,7 @@ export default class Listener {
 	}
 
 	public createDb(dbPath: string) {
-		return open<StreamrMessage, string>({
+		return open<Record<string, StreamrMessage>, number>({
 			path: dbPath,
 			compression: true,
 			encoding: 'json',
@@ -95,7 +95,7 @@ export default class Listener {
 
 	private async onMessage(content: any, metadata: MessageMetadata) {
 		// Add to store
-		const key = `${Date.now().toString()}:${metadata.publisherId}`;
+		const key = +Date.now();
 
 		this.core.logger.debug(
 			'New message received over stream: ' + metadata.streamId,
@@ -105,9 +105,18 @@ export default class Listener {
 			}
 		);
 
-		const parsedContent = SystemMessage.deserialize(content);
 		// deserialize the content gotten
+		const parsedContent = SystemMessage.deserialize(content);
+		// represent the intems in the DB as
+		// timestamp => {publisherId: {content, metadata}, publisherId2: {content, metadata}}
 		const db = this.db();
-		await db.put(key, { content: parsedContent, metadata });
+
+		// try getting the key first then updating later
+		const value = db.get(key) || {};
+		value[metadata.publisherId] = {
+			content: parsedContent,
+			metadata,
+		};
+		await db.put(key, value);
 	}
 }

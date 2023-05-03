@@ -1,9 +1,7 @@
 import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
 import {
 	ProofOfMessageStored,
-	QueryRequest,
 	QueryResponse,
-	QueryType,
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
