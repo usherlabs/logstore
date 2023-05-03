@@ -291,12 +291,16 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         reports[currentReport.id] = currentReport;
         lastReportId = currentReport.id;
 
-        // Increase reputation of reporter
+        // Adjust reputation of reporters
+				bool leadReporterAdjusted = false;
         for (uint256 i = 0; i < orderedReportersList.length; i++) {
             if (msg.sender == orderedReportersList[i]) {
                 reputationOf[msg.sender] += 10;
-            } else {
-                reputationOf[orderedReportersList[i]] += 1;
+								leadReporterAdjusted = true;
+						} else if(leadReporterAdjusted == false){
+							reputationOf[orderedReportersList[i]] = reputationOf[orderedReportersList[i]] >= 5 ? 5 : 0;
+						} else {
+              reputationOf[orderedReportersList[i]] += 1;
             }
         }
 
