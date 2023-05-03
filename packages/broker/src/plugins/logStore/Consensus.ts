@@ -70,7 +70,7 @@ export const getConsensus = async (
 		let timeout: NodeJS.Timeout;
 		let sub: Subscription;
 		logStoreClient
-			.subscribe(systemStream, async (msg, metadata) => {
+			.subscribe(systemStream, (msg, metadata) => {
 				const systemMessage = SystemMessage.deserialize(msg);
 
 				if (systemMessage.messageType != SystemMessageType.QueryResponse) {
@@ -86,8 +86,9 @@ export const getConsensus = async (
 				// It should collect majority of hashes to reach a consesnsus.
 				if (queryResponse.size != size && queryResponse.hash != hash) {
 					clearTimeout(timeout);
-					await sub.unsubscribe();
-					reject('No consensus');
+					sub.unsubscribe().then(() => {
+						reject('No consensus');
+					});
 					return;
 				}
 
@@ -99,8 +100,9 @@ export const getConsensus = async (
 
 				if (consensus.length >= CONSENSUS_THRESHOLD) {
 					clearTimeout(timeout);
-					await sub.unsubscribe();
-					resolve(consensus);
+					sub.unsubscribe().then(() => {
+						resolve(consensus);
+					});
 					return;
 				}
 			})
@@ -110,7 +112,9 @@ export const getConsensus = async (
 					.publish(systemStream, queryRequest.serialize())
 					.then(() => {
 						timeout = setTimeout(() => {
-							reject('Consensus timeout');
+							sub.unsubscribe().then(() => {
+								reject('Consensus timeout');
+							});
 						}, CONSENSUS_TIMEOUT);
 					});
 				// save subscription for clean up
