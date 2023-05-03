@@ -50,13 +50,7 @@ export const getConsensus = async (
 
 	const { size, hash } = await hashResponse(queryRequest.requestId, data);
 	const signature = await signer.signMessage(hash);
-	const consensus: Consensus[] = [
-		{
-			hash,
-			signer: await signer.getAddress(),
-			signature,
-		},
-	];
+	const consensus: Consensus[] = [];
 
 	// ? On the query request, the Broker Node is required to emit a response so that validators can ensure it also is producing the correct response.
 	const finalQueryResponse = new QueryResponse({
