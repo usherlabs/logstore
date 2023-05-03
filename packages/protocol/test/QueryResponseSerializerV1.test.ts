@@ -13,6 +13,9 @@ const message = new QueryResponse({
 	size: 1024,
 	hash: 'hash',
 	signature: '0123456789ABCDEF',
+	consumer: '0xconsumer',
+	streamId: '0xstreamaddr/test',
+	queryOptions: { last: 10 },
 });
 
 const serializedMessage = JSON.stringify([
@@ -22,6 +25,9 @@ const serializedMessage = JSON.stringify([
 	1024,
 	'hash',
 	'0123456789ABCDEF',
+	'0xconsumer',
+	'0xstreamaddr/test',
+	{ last: 10 },
 ]);
 
 describe('QueryResponseSerializerV1', () => {
