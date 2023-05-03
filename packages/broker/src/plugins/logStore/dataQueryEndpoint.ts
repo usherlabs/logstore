@@ -417,58 +417,62 @@ const createHandler = (
 		const streamId = req.params.id;
 		const partition = parseInt(req.params.partition);
 		const version = parseIntIfExists(req.query.version as string);
-		switch (req.params.queryType) {
-			case 'last':
-				await handleLast(
-					req,
-					streamId,
-					partition,
-					format,
-					version,
-					res,
-					nodeManager,
-					logStore,
-					logStoreClient,
-					signer,
-					systemStream,
-					metrics
-				);
-				break;
-			case 'from':
-				await handleFrom(
-					req,
-					streamId,
-					partition,
-					format,
-					version,
-					res,
-					nodeManager,
-					logStore,
-					logStoreClient,
-					signer,
-					systemStream,
-					metrics
-				);
-				break;
-			case 'range':
-				await handleRange(
-					req,
-					streamId,
-					partition,
-					format,
-					version,
-					res,
-					nodeManager,
-					logStore,
-					logStoreClient,
-					signer,
-					systemStream,
-					metrics
-				);
-				break;
-			default:
-				sendError('Unknown query type', res);
-				break;
+		try {
+			switch (req.params.queryType) {
+				case 'last':
+					await handleLast(
+						req,
+						streamId,
+						partition,
+						format,
+						version,
+						res,
+						nodeManager,
+						logStore,
+						logStoreClient,
+						signer,
+						systemStream,
+						metrics
+					);
+					break;
+				case 'from':
+					await handleFrom(
+						req,
+						streamId,
+						partition,
+						format,
+						version,
+						res,
+						nodeManager,
+						logStore,
+						logStoreClient,
+						signer,
+						systemStream,
+						metrics
+					);
+					break;
+				case 'range':
+					await handleRange(
+						req,
+						streamId,
+						partition,
+						format,
+						version,
+						res,
+						nodeManager,
+						logStore,
+						logStoreClient,
+						signer,
+						systemStream,
+						metrics
+					);
+					break;
+				default:
+					sendError('Unknown query type', res);
+					break;
+			}
+		} catch (error) {
+			sendError(error, res);
 		}
 	};
 };
