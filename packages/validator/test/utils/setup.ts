@@ -1,7 +1,9 @@
 import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
 import {
 	ProofOfMessageStored,
+	QueryRequest,
 	QueryResponse,
+	QueryType,
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
@@ -187,11 +189,9 @@ export async function cleanupTests() {
 	register.clear();
 
 	await publisherClient?.destroy();
-
 	await v.listener.stop();
 }
 
-// todo serialize messages before sending
 export const publishStorageMessages = async (numOfMessages: number) => {
 	try {
 		const sourceStreamId = v.systemStreamId.replace('/system', '/test');
@@ -240,11 +240,13 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 	}
 };
 
-// todo serialize messaegs before sending
-export const publishQueryMessages = async (numOfMessages: number) => {
+export const publishQueryMessages = async (
+	numOfMessages: number,
+	{ brokerNodeCount = 1 } = {}
+) => {
 	const sourceStreamId = v.systemStreamId.replace('/system', '/test');
 	for (const idx of range(numOfMessages)) {
-		const query = { from: { timestamp: 0 }, to: { timestamp: 0 } };
+		const query = { from: { timestamp: 1 }, to: { timestamp: 2 } };
 		const consumer = '0x00000000000';
 		const msg = { messageNo: idx };
 		const queryStr = JSON.stringify(query);
@@ -254,6 +256,7 @@ export const publishQueryMessages = async (numOfMessages: number) => {
 			fromString(sourceStreamId + queryStr + consumer + msgStr + size)
 		);
 
+		// create one Query request, send it across the stream
 		const content = {
 			id: sourceStreamId,
 			query,
@@ -261,34 +264,55 @@ export const publishQueryMessages = async (numOfMessages: number) => {
 			hash,
 			size,
 		};
-
-		const serializer = SystemMessage.getSerializer(
+		// publish single request to stream
+		const requestSerializer = SystemMessage.getSerializer(
 			VERSION,
-			SystemMessageType.QueryResponse
+			SystemMessageType.QueryRequest
 		);
-
-		// publish a query response so we recieve the same from listener that
-		// since no broker node to transform a request to a response and broadcast the response over teh systemstream
-		const serialisedStorageMessage = serializer.toArray(
-			new QueryResponse({
+		const serialisedRequest = requestSerializer.toArray(
+			new QueryRequest({
 				requestId: idx,
-				size: content.size,
-				hash: content.hash,
-				signature: content.hash,
-				consumer: content.consumer,
-				queryOptions: content.query,
+				consumerId: content.consumer,
 				streamId: content.id,
+				partition: 0,
+				queryType: QueryType.Range,
+				queryOptions: content.query,
 			})
 		);
-
 		await publisherClient.publish(
 			{
 				id: v.systemStreamId,
 				partition: 0,
 			},
-			serialisedStorageMessage
+			serialisedRequest
 		);
-		await sleep(100);
+
+		// publish multiple responses to imitate multiple broker nodes responsible
+		for (const jdx of range(brokerNodeCount)) {
+			// add random wait to account for minor delay/latency
+			await sleep(jdx * 100);
+			// simulate and publish a response to this request
+			const responseSerializer = SystemMessage.getSerializer(
+				VERSION,
+				SystemMessageType.QueryResponse
+			);
+			const serializedResponse = responseSerializer.toArray(
+				new QueryResponse({
+					requestId: idx,
+					size: content.size,
+					hash: content.hash,
+					signature: content.hash,
+				})
+			);
+
+			await publisherClient.publish(
+				{
+					id: v.systemStreamId,
+					partition: 0,
+				},
+				serializedResponse
+			);
+		}
 	}
 	await wait(MESSAGE_STORE_TIMEOUT);
 };

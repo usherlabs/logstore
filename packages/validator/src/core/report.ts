@@ -107,7 +107,8 @@ export const produceReport = async (
 	// cached items is of type [{publisherId: {content, metadata}}]
 	for (const { key: lKey, value: lValue } of cachedItems) {
 		if (!lValue) continue;
-		for (const [publisherId, { content, metadata }] of Object.entries(lValue)) {
+		for (const [publisherId, value] of Object.entries(lValue)) {
+			const { content, metadata } = value as StreamrMessage;
 			if (!(content && metadata)) {
 				continue;
 			}
@@ -116,16 +117,16 @@ export const produceReport = async (
 			const brokerNode = brokerNodes.find(
 				(n) => n.id.toLowerCase() === metadata.publisherId.toLowerCase()
 			);
-			console.log({ brokerNode });
 			if (typeof brokerNode === 'undefined') {
 				continue;
 			}
 
 			// ? StreamrClient Subscribe method includes publisher signature verification
+			// use the request id to get the corresponding response from the listener cache
 
-			if (content?.streamId && content?.hash && content?.size) {
+			if (content?.streamId) {
 				const h = sha256(Buffer.from(JSON.stringify(content))); // the content should be the same across received messages from all broker nodes.
-				if (content?.queryOptions && content?.consumer) {
+				if (content?.queryOptions && content?.consumerId) {
 					// Add to query hashMap
 					// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
 					if (!queryHashKeyMap[h]) {
@@ -181,7 +182,7 @@ export const produceReport = async (
 		for (let j = 0; j < lKeys.length; j++) {
 			const [key, publisher] = lKeys[j].split(':');
 			// Determine all broker nodes that validly contributed to this event.
-			const event = listenerCache.get(+key)?.[publisher]; // All of these events for this hash will be the same.
+			const event = listenerCache.get(+key)?.[publisher] as StreamrMessage; // All of these events for this hash will be the same.
 			contributingPublishers.push(event.metadata.publisherId);
 
 			// Stream ID is included in the system stream message.
@@ -220,7 +221,7 @@ export const produceReport = async (
 					(contributingPublishers.includes(bNode.id.toLowerCase()) ? 1 : -1);
 
 				report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
-				// await applyFeeToDelegates(bNode, nodeAmount);
+				await applyFeeToDelegates(bNode, nodeAmount);
 			}
 		}
 	}
@@ -238,15 +239,23 @@ export const produceReport = async (
 		// lKeys => [ '1683072807034:0x4178babe9e5148c6d5fd431cd72884b07ad855a0',... ] => ['timestamp:publisher',...]
 		for (let j = 0; j < lKeys.length; j++) {
 			const [key, publisher] = lKeys[j].split(':');
-			const event = listenerCache.get(+key)?.[publisher];
+			const event = listenerCache.get(+key)?.[publisher] as StreamrMessage;
+
 			if (!event) continue;
+			const brokerResponse = listenerCache.get(event.content.requestId);
+			const { content: responseContent } =
+				brokerResponse.data as StreamrMessage;
+			// validate that this request has a response from more than half the broker nodes in the network
+			const recievedQueryResponseCount = brokerResponse.count as number;
+			if (recievedQueryResponseCount < brokerNodes.length / 2) continue;
+			// get required information from both request and response
 			const {
+				consumerId: consumer,
 				streamId: id,
 				queryOptions: query,
-				consumer,
-				hash,
-				size,
 			} = event.content;
+			const { hash, size } = responseContent;
+
 			report.events.queries.push({
 				id,
 				query,
@@ -274,13 +283,11 @@ export const produceReport = async (
 			// ? All nodes managing all streams right now
 			for (let j = 0; j < brokerNodes.length; j++) {
 				const bNode = brokerNodes[j];
-				if (typeof report.nodes[bNode.id] !== 'undefined') {
+				if (typeof report.nodes[bNode.id] === 'undefined') {
 					report.nodes[bNode.id] = 0;
 				}
 				const nodeAmount = readNodeFee * size;
-
 				report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
-
 				await applyFeeToDelegates(bNode, nodeAmount);
 			}
 		}
@@ -296,7 +303,6 @@ export const produceReport = async (
 		core.logger.warn(`Could not fetch the Price of ${stakeToken.symbol}`);
 	}
 	const toStakeToken = (usdValue: number) => {
-		console.log({ usdValue, priceOfStakeToken });
 		return Math.floor(
 			parseInt(
 				ethers

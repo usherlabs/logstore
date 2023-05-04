@@ -7,7 +7,7 @@
 	"private": false,
 	"scripts": {
 		"build": "del dist && tsc",
-		"bin": "del out && pkg --no-bytecode --public-packages '*' --output out/logstore package.json && node ../../common/core/dist/src/scripts/checksum.js",
+		"bin": "del out && pkg -d --public-packages '*' --output out/logstore package.json && node ./dist/src/scripts/checksum.js",
 		"build:binaries": "run-s build bin",
 		"start": "node ./dist/src/index.js",
 		"format": "prettier --write .",

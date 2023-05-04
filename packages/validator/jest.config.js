@@ -13,5 +13,6 @@ module.exports = {
 	},
 	setupFilesAfterEnv: ['jest-extended/all'],
 	transformIgnorePatterns: ['^.+\\.js$'],
+	testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 	testTimeout: 30000,
 };

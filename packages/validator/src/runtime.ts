@@ -21,6 +21,7 @@ export default class Runtime implements IRuntime {
 		core.logger.debug(`getDataItem`, source, key);
 
 		const managers = new Managers(source);
+		await managers.init();
 
 		// IF REPORT
 		if (key.startsWith(reportPrefix)) {
@@ -79,8 +80,8 @@ export default class Runtime implements IRuntime {
 		const itemKeyInt = parseInt(item.key, 10);
 		try {
 			const cacheItem = core.listener.atIndex(0);
-			const [key] = cacheItem.key.split(':');
-			const keyInt = parseInt(key, 10);
+			const key = cacheItem.key;
+			const keyInt = parseInt(String(key), 10);
 			if (keyInt > itemKeyInt) {
 				return null; // Will cause the validator to abstain from the vote
 			}

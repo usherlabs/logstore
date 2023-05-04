@@ -13,24 +13,11 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 			message.size,
 			message.hash,
 			message.signature,
-			message.consumer,
-			message.queryOptions,
-			message.streamId,
 		];
 	}
 
 	fromArray(arr: any[]): QueryResponse {
-		const [
-			version,
-			_messageType,
-			requestId,
-			size,
-			hash,
-			signature,
-			consumer,
-			queryOptions,
-			streamId,
-		] = arr;
+		const [version, _messageType, requestId, size, hash, signature] = arr;
 
 		return new QueryResponse({
 			version,
@@ -38,9 +25,6 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 			size,
 			hash,
 			signature,
-			consumer,
-			queryOptions,
-			streamId,
 		});
 	}
 }

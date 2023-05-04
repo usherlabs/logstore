@@ -37,7 +37,6 @@ describe('Report', () => {
 			v.pool = {
 				...genesis_pool,
 			} as any;
-			// console.log(JSON.parse(v.pool.data.config));
 
 			// ACT
 			await syncPoolConfig.call(v);
@@ -62,7 +61,9 @@ describe('Report', () => {
 				listenerCacheCount++;
 			}
 
-			expect(listenerCacheCount).toBe(1 + PUBLISH_MESSAGE_COUNT * 2); // 30 + the initial event
+			expect(listenerCacheCount).toBe(
+				1 + PUBLISH_MESSAGE_COUNT + PUBLISH_MESSAGE_COUNT * 2
+			); // 30 + the initial event
 			const config = getConfig(v);
 			const managers = new Managers(config.sources[0]);
 			await managers.init();
@@ -70,24 +71,23 @@ describe('Report', () => {
 
 			console.log('Result Report', report);
 
-			// // TODO validate delegates and modify write fee in such a way a fraction of a value is distributed even when all is zero
-			// expect(report.id).toBe(`report_${now}`);
-			// expect(report.events.queries.length).toBe(15);
-			// expect(report.events.storage.length).toBe(15);
-			// expect(report.treasury).toBe(115000000000000);
-			// expect(report.consumers).toEqual([
-			// 	{ id: '0x00000000000', capture: 230000000000000, bytes: 230 },
-			// ]);
-			// expect(report.streams).toEqual([
-			// 	{
-			// 		id: '0x55B183b2936B57CB7aF86ae0707373fA1AEc7328/test',
-			// 		capture: 0,
-			// 		bytes: 230,
-			// 	},
-			// ]);
-			// expect(report.delegates[brokerNodeAddress][brokerNodeAddress]).toEqual(
-			// 	115000000000000
-			// );
+			expect(report.id).toBe(`report_${now}`);
+			expect(report.events.queries.length).toBe(15);
+			expect(report.events.storage.length).toBe(15);
+			expect(report.treasury).toBe(115000000000000);
+			expect(report.consumers).toEqual([
+				{ id: '0x00000000000', capture: 230000000000000, bytes: 230 },
+			]);
+			expect(report.streams).toEqual([
+				{
+					id: '0x55B183b2936B57CB7aF86ae0707373fA1AEc7328/test',
+					capture: 0,
+					bytes: 230,
+				},
+			]);
+			expect(report.delegates[brokerNodeAddress][brokerNodeAddress]).toEqual(
+				115000000000000
+			);
 		},
 		TIMEOUT
 	);

@@ -2,7 +2,11 @@
 // import { LogLevel } from 'camadb/dist/interfaces/logger-level.enum';
 // import { PersistenceAdapterEnum } from 'camadb/dist/interfaces/perisistence-adapter.enum';
 // import chokidar from 'chokidar';
-import { SystemMessage } from '@concertodao/logstore-protocol';
+import {
+	QueryResponse,
+	SystemMessage,
+	SystemMessageType,
+} from '@concertodao/logstore-protocol';
 import { open, RootDatabase } from 'lmdb';
 import path from 'path';
 import StreamrClient, { CONFIG_TEST, MessageMetadata } from 'streamr-client';
@@ -11,7 +15,14 @@ import { useStreamrTestConfig } from './env-config';
 import type { StreamrMessage } from './types';
 import type Validator from './validator';
 
-type DB = RootDatabase<Record<string, StreamrMessage>, number>;
+// -------------> usual storage of QueryRequest and POS in listener cache
+// timestamp(number) => {node1 => {content, metadata},node1 => {content, metadata}}
+// -------------> way in which requests are stored to efficiently retrieve the request object and how many nodes have sent it over
+// requestid(string) => {request => {content, metadata}, count => 10}}
+type DB = RootDatabase<
+	Record<string, StreamrMessage | number>,
+	number | string
+>;
 
 export default class Listener {
 	private client: StreamrClient;
@@ -63,7 +74,7 @@ export default class Listener {
 
 	public async subscribe(streamId: string) {
 		await this.client.subscribe(streamId, (content, metadata) => {
-			return this.onMessage(content, metadata);
+			return this.onMessage(content as any[], metadata);
 		});
 	}
 
@@ -93,7 +104,7 @@ export default class Listener {
 		throw new Error(`atIndex: No key at index: ${index}`);
 	}
 
-	private async onMessage(content: any, metadata: MessageMetadata) {
+	private async onMessage(content: any[], metadata: MessageMetadata) {
 		// Add to store
 		const key = +Date.now();
 
@@ -104,19 +115,44 @@ export default class Listener {
 				value: { content, metadata },
 			}
 		);
-
+		// ? we are only going to store requests dorectly to the cache
+		// ? we are then going to then just count the responses we recieve
 		// deserialize the content gotten
 		const parsedContent = SystemMessage.deserialize(content);
-		// represent the intems in the DB as
-		// timestamp => {publisherId: {content, metadata}, publisherId2: {content, metadata}}
 		const db = this.db();
+		// if its a query response handle it differetly from proof of storage and query requests
+		if (parsedContent.messageType !== SystemMessageType.QueryResponse) {
+			// represent the items in the DB as
+			// timestamp => {publisherId: {content, metadata}, publisherId2: {content, metadata}}
 
-		// try getting the key first then updating later
-		const value = db.get(key) || {};
-		value[metadata.publisherId] = {
-			content: parsedContent,
-			metadata,
-		};
-		await db.put(key, value);
+			// try getting the key first then updating later
+			const value = db.get(key) || {};
+			value[metadata.publisherId] = {
+				content: parsedContent,
+				metadata,
+			};
+			await db.put(key, value);
+		} else {
+			// ?need to map the request id to the response
+			// ?need to maintain how many count we have gotten from the broker node
+			// for each response check if teh request id exists in cache
+			// if it exists increment its count
+			// if it doesnt then do not increment the count
+			const responseContent = parsedContent as QueryResponse;
+			const requestKey = responseContent.requestId;
+			let existingResponse = db.get(requestKey);
+			if (!existingResponse) {
+				existingResponse = {
+					data: { content: parsedContent, metadata },
+					count: 1,
+				};
+				await db.put(requestKey, existingResponse);
+			} else {
+				// TOOO validate that the response recieved is exactly the same before increasing the count
+				// ? what if it is not, which would be marked as correct, first come first serve?
+				existingResponse.count = +existingResponse.count + 1;
+				await db.put(requestKey, existingResponse);
+			}
+		}
 	}
 }

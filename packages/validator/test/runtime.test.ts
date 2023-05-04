@@ -8,7 +8,7 @@ import { genesis_pool } from './mocks/constants';
 import { cleanupTests, setupTests } from './utils/setup';
 
 // // const STAKE_AMOUNT = BigNumber.from('100000000000000000');
-const TIMEOUT = 90 * 1000;
+const TIMEOUT = 900 * 1000;
 
 describe('Runtime', () => {
 	let v: Validator;

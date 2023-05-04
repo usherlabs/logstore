@@ -10,9 +10,6 @@ interface QueryResponseOptions extends SystemMessageOptions {
 	size: number;
 	hash: string;
 	signature: string;
-	consumer: string;
-	streamId: string;
-	queryOptions: QueryOptions;
 }
 
 export class QueryResponse extends SystemMessage {
@@ -20,9 +17,6 @@ export class QueryResponse extends SystemMessage {
 	size: number;
 	hash: string;
 	signature: string;
-	consumer: string;
-	streamId: string;
-	queryOptions: QueryOptions;
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
@@ -30,9 +24,6 @@ export class QueryResponse extends SystemMessage {
 		size,
 		hash,
 		signature,
-		consumer,
-		streamId,
-		queryOptions,
 	}: QueryResponseOptions) {
 		super(version, SystemMessageType.QueryResponse);
 
@@ -40,8 +31,5 @@ export class QueryResponse extends SystemMessage {
 		this.size = size;
 		this.hash = hash;
 		this.signature = signature;
-		this.consumer = consumer;
-		this.streamId = streamId;
-		this.queryOptions = queryOptions;
 	}
 }
