@@ -55,10 +55,10 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         _;
     }
 
+		address[] public reporters;
     uint256 internal reportBlockBuffer;
     string internal lastReportId;
     mapping(address => uint256) internal reputationOf;
-    mapping(string => address[]) internal reportersOf;
     mapping(string => Report) internal reports;
     LogStoreNodeManager private _nodeManager;
 
@@ -76,6 +76,34 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
     /// @dev required by the OZ UUPS module
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
+		function _orderReporters() internal returns (address[] memory) {
+        // Determine an array of addresses
+        address[] memory reporterAddresses = new address[](reporters.length);
+        uint256 ceilingReputation = 0;
+        for (uint256 i = 0; i < reporters.length; i++) {
+            address nextReporterAddress = address(0);
+            for (uint256 j = 0; j < reporters.length; j++) {
+                if (reputationOf[reporters[j]] >= ceilingReputation && ceilingReputation > 0) {
+									// Skip the reporter address that already been added to the reporters list
+									continue;
+                }
+                if (nextReporterAddress == address(0)) {
+									// Set next reporter if no next reporter has been set
+									nextReporterAddress = reporters[j];
+									continue;
+                }
+                if (reputationOf[reporters[j]] > reputationOf[nextReporterAddress]) {
+									// Set reporter with highest reputation, but less than the ceiling, as the next reporter.
+									nextReporterAddress = reporters[j];
+                }
+            }
+            ceilingReputation = reputationOf[nextReporterAddress];
+            reporterAddresses[i] = nextReporterAddress;
+        }
+
+        return reporterAddresses;
+    }
+
     function getReport(string calldata id) public view returns (Report memory) {
         return reports[id];
     }
@@ -84,42 +112,23 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         return reports[lastReportId];
     }
 
-    function getReportersList(string calldata id) internal returns (address[] memory reporters) {
-        if (reportersOf[id].length > 0) {
-            // Use cache in case previous report attempt was invalid.
-            return reportersOf[id];
-        }
+		function newReporter(address nodeAddress) public onlyOwner {
+			reporters.push(nodeAddress);
+		}
 
-        address[] memory nodeAddresses = _nodeManager.nodeAddresses();
-
-        // Determine an array of addresses
-        address[] memory reporterAddresses = new address[](nodeAddresses.length);
-        uint256 ceilingReputation = 0;
-        for (uint256 i = 0; i < nodeAddresses.length; i++) {
-            address nextReporterAddress = address(0);
-            for (uint256 j = 0; j < nodeAddresses.length; j++) {
-                if (reputationOf[nodeAddresses[j]] >= ceilingReputation && ceilingReputation > 0) {
-									// Skip the reporter address that already been added to the reporters list
-									continue;
-                }
-                if (nextReporterAddress == address(0)) {
-									// Set next reporter if no next reporter has been set
-									nextReporterAddress = nodeAddresses[j];
-									continue;
-                }
-                if (reputationOf[nodeAddresses[j]] > reputationOf[nextReporterAddress]) {
-									// Set reporter with highest reputation, but less than the ceiling, as the next reporter.
-									nextReporterAddress = nodeAddresses[j];
-                }
-            }
-            ceilingReputation = reputationOf[nextReporterAddress];
-            reporterAddresses[i] = nextReporterAddress;
-        }
-
-        reportersOf[id] = reporterAddresses;
-
-        return reporterAddresses;
-    }
+		function removeReporter(address nodeAddress) public onlyOwner {
+			address[] memory newReporters = new address[](reporters.length - 1);
+			bool nodeAddressFound = false;
+			for(uint256 i = 0; i < reporters.length; i ++){
+				if(reporters[i] != nodeAddress){
+					// The index will decrement by one for all indexes after removed Node address is found
+					newReporters[nodeAddressFound ? i - 1 : i] = reporters[i];
+				}else{
+					nodeAddressFound = true;
+				}
+			}
+			reporters = newReporters;
+		}
 
     function processReport(string calldata id) public onlyOwner {
         reports[id]._processed = true;
@@ -149,9 +158,8 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         require(quorumIsMet(addresses), "error_quorumNotMet");
 
         // validate that the appropriate reporters can submit reports based on the current block
-        address[] memory orderedReportersList = getReportersList(id);
-        for (uint256 i = 0; i < orderedReportersList.length; i++) {
-            if (orderedReportersList[i] == msg.sender) {
+        for (uint256 i = 0; i < reporters.length; i++) {
+            if (reporters[i] == msg.sender) {
 							// Ensure that the current block number > report generation block height + reporter block buffer
 							// Give the leading reporter a head-start to hydrate the report from foreign sources
 							require(block.number > i * reportBlockBuffer + (i > 0 ? reportBlockBuffer : 0) + blockHeight, "error_invalidReporter");
@@ -293,16 +301,17 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
 
         // Adjust reputation of reporters
 				bool leadReporterAdjusted = false;
-        for (uint256 i = 0; i < orderedReportersList.length; i++) {
-            if (msg.sender == orderedReportersList[i]) {
+        for (uint256 i = 0; i < reporters.length; i++) {
+            if (msg.sender == reporters[i]) {
                 reputationOf[msg.sender] += 10;
 								leadReporterAdjusted = true;
 						} else if(leadReporterAdjusted == false){
-							reputationOf[orderedReportersList[i]] -= reputationOf[orderedReportersList[i]] >= 5 ? 5 : reputationOf[orderedReportersList[i]];
+							reputationOf[reporters[i]] -= reputationOf[reporters[i]] >= 5 ? 5 : reputationOf[reporters[i]];
 						} else {
-              reputationOf[orderedReportersList[i]] += 1;
+              reputationOf[reporters[i]] += 1;
             }
         }
+				_orderReporters();
 
         emit ReportAccepted(reportJson);
     }
@@ -312,13 +321,12 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
 		 */
     function quorumIsMet(address[] memory submittedNodes) public view returns (bool isMet) {
         uint256 count;
-        address[] memory existingNodes = _nodeManager.nodeAddresses();
-        uint256 requiredNodes = existingNodes.length / 2;
+        uint256 requiredNodes = reporters.length / 2;
         uint256 minimumNodes = requiredNodes <= 0 ? 1 : requiredNodes; //condition for only one node
 
-        for (uint256 i = 0; i < existingNodes.length; i++) {
+        for (uint256 i = 0; i < reporters.length; i++) {
             for (uint256 j = 0; j < submittedNodes.length; j++) {
-                if (existingNodes[i] == submittedNodes[j]) {
+                if (reporters[i] == submittedNodes[j]) {
                     count++;
                     break;
                 }
