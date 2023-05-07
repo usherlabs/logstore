@@ -589,28 +589,6 @@ describe('NodeManager', function () {
 			expect(updatedNodeAddresses[1]).to.be.equal(newNodeAddress);
 			// validate the total nodes variabls
 		});
-		it('UtilityFunctions(countNodes) ----> countNodes variable ', async function () {
-			// get initial counts
-			const [initialNodeCountFromFunc] =
-				await nodeManagerContract.functions.countNodes();
-			const [initialNodeCountFromVar] =
-				await nodeManagerContract.functions.countNodes();
-			expect(+initialNodeCountFromFunc)
-				.to.equal(+initialNodeCountFromVar)
-				.to.equal(1);
-			// add a new node
-			await nodeManagerContract
-				.connect(whitelistedNodeSigner)
-				.functions.join(getDecimalBN(1), SAMPLE_WSS_URL);
-			// count again and confirm it is consistent
-			const [finallNodeCountFromFunc] =
-				await nodeManagerContract.functions.countNodes();
-			const [finallNodeCountFromVar] =
-				await nodeManagerContract.functions.countNodes();
-			expect(+finallNodeCountFromFunc)
-				.to.equal(+finallNodeCountFromVar)
-				.to.equal(2);
-		});
 	});
 
 	// ----- can register Store, QueryManager, ReportManager

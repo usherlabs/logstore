@@ -134,3 +134,9 @@ export const getBlockTime = async () => {
 
 	return avgBlockTime;
 };
+
+export const getReportBlockBuffer = async () => {
+	const blockTime = await getBlockTime();
+	const reportBlockBuffer = Math.ceil(30000 / blockTime); // The number of blocks to wait between each reporter starting from the height of the report.
+	return reportBlockBuffer;
+};

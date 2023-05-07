@@ -2,9 +2,9 @@ import { Wallet } from 'ethers';
 import hre from 'hardhat';
 
 import {
-	getBlockTime,
 	getNodeManagerInputParameters,
 	getQueryManagerInputParameters,
+	getReportBlockBuffer,
 	getStoreManagerInputParameters,
 	writeJSONToFileOutside,
 } from '../utils/functions';
@@ -71,7 +71,7 @@ async function main() {
 
 	// --------------------------- deploy the report manager contract --------------------------- //
 	// Get block time of chain id
-	const blockTime = await getBlockTime();
+	const reportBlockBuffer = await getReportBlockBuffer();
 	const Lib = await hre.ethers.getContractFactory('VerifySignature');
 	const lib = await Lib.deploy();
 	await lib.deployed();
@@ -84,7 +84,6 @@ async function main() {
 			},
 		}
 	);
-	const reportBlockBuffer = Math.ceil(30000 / blockTime); // The number of blocks to wait between each reporter starting from the height of the report.
 	const reportManagerContract = await hre.upgrades.deployProxy(
 		reportManager,
 		[nodeManagerAddress, reportBlockBuffer],
