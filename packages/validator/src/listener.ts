@@ -16,21 +16,18 @@ import type { StreamrMessage } from './types';
 import type Validator from './validator';
 
 // -------------> usual storage of QueryRequest and POS in listener cache
-// timestamp(number) => {node1 => {content, metadata},node1 => {content, metadata}}
-// -------------> way in which requests are stored to efficiently retrieve the request object and how many nodes have sent it over
-// requestid(string) => {request => {content, metadata}, count => 10}}
-type DB = RootDatabase<
-	Record<string, StreamrMessage | number>,
-	number | string
->;
+// timestamp(number)|requestId(string) => [{content, metadata},{content, metadata}]
+type DB = RootDatabase<Array<StreamrMessage>, number>;
+type ResponseDB = RootDatabase<StreamrMessage[], string>;
 
 export default class Listener {
 	private client: StreamrClient;
 	private _db!: DB;
+	private _queryResponsedb!: ResponseDB;
 	private cachePath: string;
 	// private _storeMap: Record<string, string[]>;
 
-	constructor(private core: Validator, cacheHome: string) {
+	constructor(protected core: Validator, cacheHome: string) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		// core.logger.debug('Streamr Config', streamrConfig);
 		this.client = new StreamrClient(streamrConfig);
@@ -38,7 +35,8 @@ export default class Listener {
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted
 		this.cachePath = path.join(cacheHome, 'system');
-		this._db = this.createDb(this.cachePath);
+		this._db = this.createDb(this.cachePath) as DB;
+		this._queryResponsedb = this.createDb(this.cachePath) as ResponseDB;
 	}
 
 	public async start(): Promise<void> {
@@ -52,6 +50,8 @@ export default class Listener {
 			const db = this.db();
 			await db.drop();
 			await db.put(+Date.now(), null);
+
+			// drop the response DB
 
 			// Chokidar listening to reinitiate the cache after each flush/drop/wipe.
 			// chokidar.watch(this.cachePath).on('unlink', async (eventPath) => {
@@ -82,14 +82,18 @@ export default class Listener {
 		if (!this._db) {
 			throw new Error('Database is not initialised');
 		}
-		// if (this._db.status === 'closed') {
-		// 	await this._db.open();
-		// }
 		return this._db;
 	}
 
+	public responseDB(): ResponseDB {
+		if (!this._queryResponsedb) {
+			throw new Error('Response Database is not initialised');
+		}
+		return this._queryResponsedb;
+	}
+
 	public createDb(dbPath: string) {
-		return open<Record<string, StreamrMessage>, number>({
+		return open({
 			path: dbPath,
 			compression: true,
 			encoding: 'json',
@@ -106,7 +110,7 @@ export default class Listener {
 
 	private async onMessage(content: any[], metadata: MessageMetadata) {
 		// Add to store
-		const key = +Date.now();
+		const key = metadata.timestamp;
 
 		this.core.logger.debug(
 			'New message received over stream: ' + metadata.streamId,
@@ -115,44 +119,29 @@ export default class Listener {
 				value: { content, metadata },
 			}
 		);
-		// ? we are only going to store requests dorectly to the cache
-		// ? we are then going to then just count the responses we recieve
+
 		// deserialize the content gotten
 		const parsedContent = SystemMessage.deserialize(content);
 		const db = this.db();
+		const responseDB = this.responseDB();
 		// if its a query response handle it differetly from proof of storage and query requests
 		if (parsedContent.messageType !== SystemMessageType.QueryResponse) {
 			// represent the items in the DB as
-			// timestamp => {publisherId: {content, metadata}, publisherId2: {content, metadata}}
-
-			// try getting the key first then updating later
-			const value = db.get(key) || {};
-			value[metadata.publisherId] = {
+			// timestamp => [{content1, metadata1}, {content2, metadata2}]
+			const value = db.get(key) || [];
+			value.push({
 				content: parsedContent,
 				metadata,
-			};
+			});
 			await db.put(key, value);
 		} else {
-			// ?need to map the request id to the response
-			// ?need to maintain how many count we have gotten from the broker node
-			// for each response check if teh request id exists in cache
-			// if it exists increment its count
-			// if it doesnt then do not increment the count
+			// represent the items in the response DB as
+			// requestId => [{content1, metadata1}, {content2, metadata2}]
 			const responseContent = parsedContent as QueryResponse;
 			const requestKey = responseContent.requestId;
-			let existingResponse = db.get(requestKey);
-			if (!existingResponse) {
-				existingResponse = {
-					data: { content: parsedContent, metadata },
-					count: 1,
-				};
-				await db.put(requestKey, existingResponse);
-			} else {
-				// TOOO validate that the response recieved is exactly the same before increasing the count
-				// ? what if it is not, which would be marked as correct, first come first serve?
-				existingResponse.count = +existingResponse.count + 1;
-				await db.put(requestKey, existingResponse);
-			}
+			const existingResponse = responseDB.get(requestKey) || [];
+			existingResponse.push({ content: parsedContent, metadata });
+			await responseDB.put(requestKey, existingResponse);
 		}
 	}
 }

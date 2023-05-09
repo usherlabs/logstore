@@ -242,7 +242,7 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 
 export const publishQueryMessages = async (
 	numOfMessages: number,
-	{ brokerNodeCount = 1 } = {}
+	{ brokerNodeCount = 2 } = {}
 ) => {
 	const sourceStreamId = v.systemStreamId.replace('/system', '/test');
 	for (const idx of range(numOfMessages)) {

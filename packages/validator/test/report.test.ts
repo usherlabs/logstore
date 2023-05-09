@@ -72,8 +72,8 @@ describe('Report', () => {
 			console.log('Result Report', report);
 
 			expect(report.id).toBe(`report_${now}`);
-			expect(report.events.queries.length).toBe(15);
-			expect(report.events.storage.length).toBe(15);
+			expect(report.events.queries.length).toBe(PUBLISH_MESSAGE_COUNT);
+			expect(report.events.storage.length).toBe(PUBLISH_MESSAGE_COUNT);
 			expect(report.treasury).toBe(115000000000000);
 			expect(report.consumers).toEqual([
 				{ id: '0x00000000000', capture: 230000000000000, bytes: 230 },

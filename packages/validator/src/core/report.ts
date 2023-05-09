@@ -1,3 +1,4 @@
+import { SystemMessageType } from '@concertodao/logstore-protocol';
 import { sha256 } from '@kyvejs/protocol';
 import { ethers } from 'ethers';
 import redstone from 'redstone-api';
@@ -7,6 +8,7 @@ import { BrokerNode, Report, StreamrMessage } from '../types';
 import { Arweave } from '../utils/arweave';
 import { getConfig } from '../utils/config';
 import { reportPrefix } from '../utils/constants';
+import { fetchResponseConsensus } from '../utils/helpers';
 import Validator from '../validator';
 
 export const produceReport = async (
@@ -90,28 +92,27 @@ export const produceReport = async (
 
 	// Use events in the listener cache to determine which events are valid.
 	const listenerCache = core.listener.db();
+	// Use events in the response cache to come to consensus on the response for  a given requet
+	const responseCache = core.listener.responseDB();
+
 	// a mapping of "contentHash => [timestamp:publisherAddr1, timestamp:publisherAddr1]"
 	const queryHashKeyMap: Record<string, string[]> = {};
 	const storeHashKeyMap: Record<string, string[]> = {};
 
-	// @todo @dev   key is in the format "const key = `${Date.now().toString()}:${metadata.publisherId}`"";
-	// can we query by getRange? because it returns empty when we do
-
-	// test with timestamps alone to confirm it works even when teh publisher id is not attached
-	// extend getrange function to abstract the concatenation of arrays
-	// store it as lrange[key] = array;
 	const cachedItems = listenerCache.getRange({
 		start: fromKey,
 		end: toKey,
 	});
-	// cached items is of type [{publisherId: {content, metadata}}]
+
+	// lKey => timestamp and lValue => [{content1, metadata1}, {content2, metadata2}]
 	for (const { key: lKey, value: lValue } of cachedItems) {
 		if (!lValue) continue;
-		for (const [publisherId, value] of Object.entries(lValue)) {
+		for (const value of lValue) {
 			const { content, metadata } = value as StreamrMessage;
 			if (!(content && metadata)) {
 				continue;
 			}
+			const { publisherId } = metadata;
 			const jointKey = `${lKey}:${publisherId}`;
 			// verify that the publisher also a broker node
 			const brokerNode = brokerNodes.find(
@@ -120,27 +121,24 @@ export const produceReport = async (
 			if (typeof brokerNode === 'undefined') {
 				continue;
 			}
-
 			// ? StreamrClient Subscribe method includes publisher signature verification
-			// use the request id to get the corresponding response from the listener cache
-
-			if (content?.streamId) {
-				const h = sha256(Buffer.from(JSON.stringify(content))); // the content should be the same across received messages from all broker nodes.
-				if (content?.queryOptions && content?.consumerId) {
-					// Add to query hashMap
-					// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
-					if (!queryHashKeyMap[h]) {
-						queryHashKeyMap[h] = [];
-					}
-					queryHashKeyMap[h].push(jointKey);
-				} else {
-					// Add to storage hashMap
-					// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
-					if (!storeHashKeyMap[h]) {
-						storeHashKeyMap[h] = [];
-					}
-					storeHashKeyMap[h].push(jointKey);
+			// verify the type of the content
+			if (content?.messageType === SystemMessageType.QueryResponse) continue;
+			const h = sha256(Buffer.from(JSON.stringify(content))); // the content should be the same across received messages from all broker nodes.
+			if (content?.messageType === SystemMessageType.QueryRequest) {
+				// Add to query hashMap
+				// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
+				if (!queryHashKeyMap[h]) {
+					queryHashKeyMap[h] = [];
 				}
+				queryHashKeyMap[h].push(jointKey);
+			} else {
+				// Add to storage hashMap
+				// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
+				if (!storeHashKeyMap[h]) {
+					storeHashKeyMap[h] = [];
+				}
+				storeHashKeyMap[h].push(jointKey);
 			}
 		}
 	}
@@ -182,46 +180,55 @@ export const produceReport = async (
 		for (let j = 0; j < lKeys.length; j++) {
 			const [key, publisher] = lKeys[j].split(':');
 			// Determine all broker nodes that validly contributed to this event.
-			const event = listenerCache.get(+key)?.[publisher] as StreamrMessage; // All of these events for this hash will be the same.
-			contributingPublishers.push(event.metadata.publisherId);
+			// filter all the events in this timestamp owned by the publisher in question
+			// reason being multiple publishers can publish multiple messages just within one timestamp x
+			// thus it is important to make sure that possibility is covered
+			const events = listenerCache
+				.get(+key)
+				.filter(
+					({ metadata }) => metadata.publisherId === publisher
+				) as Array<StreamrMessage>;
+			for (const event of events) {
+				if (!event) continue;
 
-			// Stream ID is included in the system stream message.
-			const { streamId: id, size, hash } = event.content;
-			report.events.storage.push({
-				id,
-				hash,
-				size,
-			});
-			const existingStreamIndex = report.streams.findIndex((s) => s.id === id);
-			const captureAmount = writeFee * size;
-			if (existingStreamIndex < 0) {
-				report.streams.push({
+				contributingPublishers.push(event.metadata.publisherId);
+				// Stream ID is included in the system stream message.
+				const { streamId: id, size, hash } = event.content;
+				report.events.storage.push({
 					id,
-					capture: captureAmount,
-					bytes: size,
+					hash,
+					size,
 				});
-			} else {
-				report.streams[existingStreamIndex].capture += captureAmount;
-				report.streams[existingStreamIndex].bytes += size;
-			}
-			report.treasury += writeTreasuryFee * size;
-
-			// ? All nodes managing all streams right now
-			for (let j = 0; j < brokerNodes.length; j++) {
-				const bNode = brokerNodes[j];
-				if (typeof report.nodes[bNode.id] !== 'undefined') {
-					report.nodes[bNode.id] = 0;
+				const existingStreamIndex = report.streams.findIndex(
+					(s) => s.id === id
+				);
+				const captureAmount = writeFee * size;
+				if (existingStreamIndex < 0) {
+					report.streams.push({
+						id,
+						capture: captureAmount,
+						bytes: size,
+					});
+				} else {
+					report.streams[existingStreamIndex].capture += captureAmount;
+					report.streams[existingStreamIndex].bytes += size;
 				}
-
-				// Deduct from Node based on the bytes missed.
-				// Use identification of publishers that validly contributed storage events to determine if current broker node was apart of that cohort.
-				const nodeAmount =
-					writeNodeFee *
-					size *
-					(contributingPublishers.includes(bNode.id.toLowerCase()) ? 1 : -1);
-
-				report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
-				await applyFeeToDelegates(bNode, nodeAmount);
+				report.treasury += writeTreasuryFee * size;
+				// ? All nodes managing all streams right now
+				for (let j = 0; j < brokerNodes.length; j++) {
+					const bNode = brokerNodes[j];
+					if (typeof report.nodes[bNode.id] !== 'undefined') {
+						report.nodes[bNode.id] = 0;
+					}
+					// Deduct from Node based on the bytes missed.
+					// Use identification of publishers that validly contributed storage events to determine if current broker node was apart of that cohort.
+					const nodeAmount =
+						writeNodeFee *
+						size *
+						(contributingPublishers.includes(bNode.id.toLowerCase()) ? 1 : -1);
+					report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
+					await applyFeeToDelegates(bNode, nodeAmount);
+				}
 			}
 		}
 	}
@@ -239,56 +246,71 @@ export const produceReport = async (
 		// lKeys => [ '1683072807034:0x4178babe9e5148c6d5fd431cd72884b07ad855a0',... ] => ['timestamp:publisher',...]
 		for (let j = 0; j < lKeys.length; j++) {
 			const [key, publisher] = lKeys[j].split(':');
-			const event = listenerCache.get(+key)?.[publisher] as StreamrMessage;
+			// get all the events made by this publisher in a given timestamp
+			const events = listenerCache
+				.get(+key)
+				.filter(
+					({ metadata }) => metadata.publisherId === publisher
+				) as Array<StreamrMessage>;
 
-			if (!event) continue;
-			const brokerResponse = listenerCache.get(event.content.requestId);
-			const { content: responseContent } =
-				brokerResponse.data as StreamrMessage;
-			// validate that this request has a response from more than half the broker nodes in the network
-			const recievedQueryResponseCount = brokerResponse.count as number;
-			if (recievedQueryResponseCount < brokerNodes.length / 2) continue;
-			// get required information from both request and response
-			const {
-				consumerId: consumer,
-				streamId: id,
-				queryOptions: query,
-			} = event.content;
-			const { hash, size } = responseContent;
+			for (const event of events) {
+				if (!event) continue;
 
-			report.events.queries.push({
-				id,
-				query,
-				consumer,
-				hash,
-				size,
-			});
-			const existingConsumerIndex = report.consumers.findIndex(
-				(c) => c.id === consumer
-			);
+				// get all the responses submitted by nodes for this particular request
+				const brokerResponse = responseCache.get(event.content.requestId);
+				const {
+					maxCount: recievedQueryResponseCount,
+					maxHash: consensusHash,
+					result: hashToResponses,
+				} = fetchResponseConsensus(brokerResponse);
+				// make sure at least hald the broker nodes agree on this response
+				// which has the highest occurence
+				if (recievedQueryResponseCount < brokerNodes.length / 2) continue;
 
-			const captureAmount = fees.read * size;
-			if (existingConsumerIndex < 0) {
-				report.consumers.push({
-					id: consumer,
-					capture: captureAmount, // the total amount of stake to capture token in wei based on the calculations
-					bytes: size,
+				// get required information from both request and response
+				const {
+					consumerId: consumer,
+					streamId: id,
+					queryOptions: query,
+				} = event.content;
+				// get the first item because they should all be the same as they have the same hash
+				// and we have confirmed that the length is greater than one so an item will be present
+				const { hash, size } = hashToResponses[consensusHash][0].content;
+
+				report.events.queries.push({
+					id,
+					query,
+					consumer,
+					hash,
+					size,
 				});
-			} else {
-				report.consumers[existingConsumerIndex].capture += captureAmount;
-				report.consumers[existingConsumerIndex].bytes += size;
-			}
-			report.treasury += readTreasuryFee * size;
+				const existingConsumerIndex = report.consumers.findIndex(
+					(c) => c.id === consumer
+				);
 
-			// ? All nodes managing all streams right now
-			for (let j = 0; j < brokerNodes.length; j++) {
-				const bNode = brokerNodes[j];
-				if (typeof report.nodes[bNode.id] === 'undefined') {
-					report.nodes[bNode.id] = 0;
+				const captureAmount = fees.read * size;
+				if (existingConsumerIndex < 0) {
+					report.consumers.push({
+						id: consumer,
+						capture: captureAmount, // the total amount of stake to capture token in wei based on the calculations
+						bytes: size,
+					});
+				} else {
+					report.consumers[existingConsumerIndex].capture += captureAmount;
+					report.consumers[existingConsumerIndex].bytes += size;
 				}
-				const nodeAmount = readNodeFee * size;
-				report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
-				await applyFeeToDelegates(bNode, nodeAmount);
+				report.treasury += readTreasuryFee * size;
+
+				// ? All nodes managing all streams right now
+				for (let j = 0; j < brokerNodes.length; j++) {
+					const bNode = brokerNodes[j];
+					if (typeof report.nodes[bNode.id] === 'undefined') {
+						report.nodes[bNode.id] = 0;
+					}
+					const nodeAmount = readNodeFee * size;
+					report.nodes[bNode.id] += nodeAmount / brokerNodes.length;
+					await applyFeeToDelegates(bNode, nodeAmount);
+				}
 			}
 		}
 	}
