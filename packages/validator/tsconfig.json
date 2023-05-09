@@ -14,7 +14,7 @@
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitReturns": true,
 		"noUnusedLocals": true,
-		"noUnusedParameters": false,
+		"noUnusedParameters": true,
 		"noImplicitAny": false,
 		"noImplicitThis": false,
 		"strictNullChecks": false,
@@ -28,7 +28,7 @@
 			"@tests/*": ["./tests/*"]
 		}
 	},
-	"exclude": ["node_modules", "build", "dist"],
+	"exclude": ["node_modules", "build", "dist", "test"],
 	"include": ["**/*.ts"],
 	"ts-node": {
 		"require": ["tsconfig-paths/register"]

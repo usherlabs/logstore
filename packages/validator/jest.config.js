@@ -8,6 +8,7 @@ module.exports = {
 			tsconfig: 'tsconfig.jest.json',
 			diagnostics: {
 				exclude: ['**'],
+				include: ["test"]
 			},
 		},
 	},
