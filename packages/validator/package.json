@@ -33,8 +33,8 @@
 	"dependencies": {
 		"@concertodao/logstore-client": "workspace:^0.0.1",
 		"@concertodao/logstore-contracts": "workspace:^0.0.1",
-		"@concertodao/logstore-shared": "workspace:^0.0.1",
 		"@concertodao/logstore-protocol": "workspace:^0.0.1",
+		"@concertodao/logstore-shared": "workspace:^0.0.1",
 		"@ethersproject/contract": "6.0.0-beta.1",
 		"@ethersproject/providers": "^5.7.2",
 		"@ethersproject/wallet": "^5.7.0",
@@ -43,7 +43,6 @@
 		"@sentry/tracing": "^7.13.0",
 		"@streamr/config": "^2.5.8",
 		"arweave": "^1.13.3",
-		"camadb": "^2.0.0",
 		"chokidar": "^3.5.3",
 		"classic-level": "^1.2.0",
 		"commander": "^10.0.0",

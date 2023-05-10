@@ -1,4 +1,3 @@
-import { QueryOptions } from './QueryRequest';
 import {
 	SystemMessage,
 	SystemMessageOptions,

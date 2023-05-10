@@ -1,6 +1,3 @@
-// import { Cama } from 'camadb';
-// import { LogLevel } from 'camadb/dist/interfaces/logger-level.enum';
-// import { PersistenceAdapterEnum } from 'camadb/dist/interfaces/perisistence-adapter.enum';
 // import chokidar from 'chokidar';
 import {
 	QueryResponse,
@@ -35,8 +32,11 @@ export default class Listener {
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted
 		this.cachePath = path.join(cacheHome, 'system');
-		this._db = this.createDb(this.cachePath) as DB;
-		this._queryResponsedb = this.createDb(this.cachePath) as ResponseDB;
+		this._db = this.createDb('ts', this.cachePath) as DB;
+		this._queryResponsedb = this.createDb(
+			'query-response',
+			this.cachePath
+		) as ResponseDB;
 	}
 
 	public async start(): Promise<void> {
@@ -49,7 +49,7 @@ export default class Listener {
 			// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
 			const db = this.db();
 			await db.drop();
-			await db.put(+Date.now(), null);
+			await db.put(+Date.now(), null); // ? Here it's OK to utilise the Date.now timestamp, as this is simply a marker to prevent the validator from losing stake.
 
 			// drop the response DB
 
@@ -92,8 +92,9 @@ export default class Listener {
 		return this._queryResponsedb;
 	}
 
-	public createDb(dbPath: string) {
+	public createDb(name: string, dbPath: string) {
 		return open({
+			name,
 			path: dbPath,
 			compression: true,
 			encoding: 'json',
@@ -141,7 +142,7 @@ export default class Listener {
 			const requestKey = responseContent.requestId;
 			const existingResponse = responseDB.get(requestKey) || [];
 			existingResponse.push({ content: parsedContent, metadata });
-			await responseDB.put(requestKey, existingResponse);
+			await responseDB.put(requestKey, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
 		}
 	}
 }
