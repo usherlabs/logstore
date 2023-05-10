@@ -5,7 +5,6 @@ import redstone from 'redstone-api';
 
 import { Managers } from '../classes/Managers';
 import { BrokerNode, Report, StreamrMessage } from '../types';
-import { Arweave } from '../utils/arweave';
 import { getConfig } from '../utils/config';
 import { reportPrefix } from '../utils/constants';
 import { fetchResponseConsensus } from '../utils/helpers';
@@ -16,14 +15,12 @@ export const produceReport = async (
 	managers: Managers,
 	key: string
 ) => {
-	const config = getConfig(core);
-
-	// 1. Use unique source to Smart Contracts to determine last accepted report
+	// 1. Use Smart Contracts to determine last accepted report
 	// 2. Use last accepted report to determine range between last report and this report (using key timestamp) and query for messages
 
 	const lastReport = await managers.report.getLastReport();
-	// The start key will be the timestamp at which the validator pool is live.
-	let fromKey = parseInt(core.pool.data.start_key, 10); // This needs to be the start key
+	// The start key will be the timestamp at which the Kyve Pool is created.
+	let fromKey = parseInt(core.pool.data.start_key, 10); // This defaults to be the Pool's start key
 	if ((lastReport || {})?.id) {
 		core.logger.debug('Last Report Id: ', lastReport.id);
 		const rKey = lastReport.id.substring(
@@ -35,7 +32,7 @@ export const produceReport = async (
 	const toKey = parseInt(key.substring(reportPrefix.length, key.length), 10);
 	core.logger.debug('Report Range: ', { fromKey, toKey });
 
-	// Get all latest state from Smart Contract
+	// Get all state from Smart Contract up to the current key (where key = block at a timestamp)
 	// We do this by using the key (timestamp) to determine the most relevant block
 	// ? We need to get the closest block because it may not be the most recent block...
 	core.logger.debug('getBlockByTime...');
@@ -52,23 +49,24 @@ export const produceReport = async (
 		blockNumber,
 		stakeToken.minRequirement
 	);
-	core.logger.debug('Broker Nodes: ', brokerNodes); // TODO: This is returning an empty array.
-	const { fees } = config;
+	core.logger.debug('Broker Nodes: ', brokerNodes);
 
-	// ! Re-calling all queries here to determine its size is silly.
-	// The previous bundle will have the size of data between the times of the last report to the current report.
+	// The previous bundle will contain the size/expense of data between the start of last bundle, and the start of this bundle.
 	// Determine the finalized_bundle id by referring to the Pool's total bundles -1.
-	const totalBundles = parseInt(core.pool.data.total_bundles, 10);
-	let expense = 0;
-	if (totalBundles > 0) {
-		const lastFinalizedBundleId = totalBundles - 1;
-		const lastBundle = await core.lcd[0].kyve.query.v1beta1.finalizedBundle({
-			id: `${lastFinalizedBundleId}`,
-			pool_id: core.pool.id,
-		});
-		const storageId = lastBundle.finalized_bundle.storage_id;
-		expense = await Arweave.getFee(storageId);
-	}
+	const config = getConfig(core);
+	const { fees } = config;
+	// const totalBundles = parseInt(core.pool.data.total_bundles, 10);
+	const expense = 0;
+	// if (totalBundles > 0) {
+	// 	const lastFinalizedBundleId = totalBundles - 1;
+	// 	const lastBundle = await core.lcd[0].kyve.query.v1beta1.finalizedBundle({
+	// 		id: `${lastFinalizedBundleId}`,
+	// 		pool_id: core.pool.id,
+	// 	});
+	// 	const storageId = lastBundle.finalized_bundle.storage_id;
+	// 	const totalBundleExpense = await Arweave.getFee(storageId); // This expense is going to be the total of all of the bytes stored.
+	// 	expense = totalBundleExpense / // Expense should be relative to each byte
+	// }
 	const writeFee = (fees.writeMultiplier + 1) * expense;
 	const writeTreasuryFee = fees.treasuryMultiplier * (writeFee - expense); // multiplier on the profit
 	const writeNodeFee = writeFee - writeTreasuryFee;
@@ -91,40 +89,81 @@ export const produceReport = async (
 	};
 
 	// Use events in the listener cache to determine which events are valid.
-	const listenerCache = core.listener.db();
+	const tsCache = core.listener.db();
 	// Use events in the response cache to come to consensus on the response for  a given requet
 	const responseCache = core.listener.responseDB();
 
 	// a mapping of "contentHash => [timestamp:publisherAddr1, timestamp:publisherAddr1]"
 	const queryHashKeyMap: Record<string, string[]> = {};
-	const storeHashKeyMap: Record<string, string[]> = {};
+	const storeHashKeyMap: Record<string, [number, string][]> = {};
 
-	const cachedItems = listenerCache.getRange({
+	const cachedItems = tsCache.getRange({
 		start: fromKey,
 		end: toKey,
 	});
 
-	// lKey => timestamp and lValue => [{content1, metadata1}, {content2, metadata2}]
 	for (const { key: lKey, value: lValue } of cachedItems) {
 		if (!lValue) continue;
-		for (const value of lValue) {
+		for (let i = 0; i < lValue.length; i++) {
+			const value = lValue[i];
+
 			const { content, metadata } = value as StreamrMessage;
 			if (!(content && metadata)) {
 				continue;
 			}
-			const { publisherId } = metadata;
-			const jointKey = `${lKey}:${publisherId}`;
-			// verify that the publisher also a broker node
+
+			// verify that the publisher is also a broker node
+			// -- despite access management being handled within the Smart Contracts, it's wise to validate here too
 			const brokerNode = brokerNodes.find(
 				(n) => n.id.toLowerCase() === metadata.publisherId.toLowerCase()
 			);
 			if (typeof brokerNode === 'undefined') {
 				continue;
 			}
+
+			if (content?.messageType === SystemMessageType.ProofOfMessageStored) {
+				// * The content should be the same across received ProofOfStoredMessage messages from all broker nodes.
+				const h = sha256(Buffer.from(JSON.stringify(content)));
+				// Add to storage hashMap
+				// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
+				if (!storeHashKeyMap[h]) {
+					storeHashKeyMap[h] = [];
+				}
+				storeHashKeyMap[h].push([lKey, metadata.publisherId]);
+			}
+		}
+	}
+
+	// lKey => timestamp and lValue => [{content1, metadata1}, {content2, metadata2}]
+	for (const { key: lKey, value: lValue } of cachedItems) {
+		if (!lValue) continue;
+		for (const value of lValue) {
+			// Iterate over each message stored at the same timestamp
+
+			const { content, metadata } = value as StreamrMessage;
+			if (!(content && metadata)) {
+				continue;
+			}
+
+			const { publisherId } = metadata;
+			const jointKey = `${lKey}:${publisherId}`;
+
+			// verify that the publisher is also a broker node
+			// -- despite access management being handled within the Smart Contracts, it's wise to validate here too
+			const brokerNode = brokerNodes.find(
+				(n) => n.id.toLowerCase() === metadata.publisherId.toLowerCase()
+			);
+			if (typeof brokerNode === 'undefined') {
+				continue;
+			}
+
 			// ? StreamrClient Subscribe method includes publisher signature verification
 			// verify the type of the content
 			if (content?.messageType === SystemMessageType.QueryResponse) continue;
-			const h = sha256(Buffer.from(JSON.stringify(content))); // the content should be the same across received messages from all broker nodes.
+
+			const h = sha256(Buffer.from(JSON.stringify(content)));
+			// * The content should be the same across received ProofOfStoredMessage and QueryRequest messages from all broker nodes.
+
 			if (content?.messageType === SystemMessageType.QueryRequest) {
 				// Add to query hashMap
 				// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
@@ -133,12 +172,6 @@ export const produceReport = async (
 				}
 				queryHashKeyMap[h].push(jointKey);
 			} else {
-				// Add to storage hashMap
-				// We need to consolidate the messages received in a sort of oracle manner -- ie. the majority of the nodes that shared with the query hash
-				if (!storeHashKeyMap[h]) {
-					storeHashKeyMap[h] = [];
-				}
-				storeHashKeyMap[h].push(jointKey);
 			}
 		}
 	}
@@ -183,7 +216,7 @@ export const produceReport = async (
 			// filter all the events in this timestamp owned by the publisher in question
 			// reason being multiple publishers can publish multiple messages just within one timestamp x
 			// thus it is important to make sure that possibility is covered
-			const events = listenerCache
+			const events = tsCache
 				.get(+key)
 				.filter(
 					({ metadata }) => metadata.publisherId === publisher
@@ -237,6 +270,7 @@ export const produceReport = async (
 	const queryHashKeyMapEntries = Object.entries(queryHashKeyMap);
 	for (let i = 0; i < queryHashKeyMapEntries.length; i++) {
 		const [, lKeys] = queryHashKeyMapEntries[i];
+		// TODO: This will never pass.
 		if (lKeys.length < brokerNodes.length / 2) {
 			// Clear out all hashes that the majority of the nodes did NOT "agree" with
 			continue;
@@ -247,7 +281,7 @@ export const produceReport = async (
 		for (let j = 0; j < lKeys.length; j++) {
 			const [key, publisher] = lKeys[j].split(':');
 			// get all the events made by this publisher in a given timestamp
-			const events = listenerCache
+			const events = tsCache
 				.get(+key)
 				.filter(
 					({ metadata }) => metadata.publisherId === publisher

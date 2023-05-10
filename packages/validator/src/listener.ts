@@ -1,5 +1,6 @@
 // import chokidar from 'chokidar';
 import {
+	ProofOfMessageStored,
 	QueryResponse,
 	SystemMessage,
 	SystemMessageType,
@@ -14,14 +15,19 @@ import type Validator from './validator';
 
 // -------------> usual storage of QueryRequest and POS in listener cache
 // timestamp(number)|requestId(string) => [{content, metadata},{content, metadata}]
-type DB = RootDatabase<Array<StreamrMessage>, number>;
-type ResponseDB = RootDatabase<StreamrMessage[], string>;
+type NumberKeyDatabase = RootDatabase<Array<StreamrMessage>, number>;
+type StringKeyDatabase = RootDatabase<Array<StreamrMessage>, string>;
+type DB = {
+	[SystemMessageType.ProofOfMessageStored]: NumberKeyDatabase;
+	[SystemMessageType.QueryRequest]: NumberKeyDatabase;
+	[SystemMessageType.QueryResponse]: StringKeyDatabase;
+};
 
 export default class Listener {
 	private client: StreamrClient;
 	private _db!: DB;
-	private _queryResponsedb!: ResponseDB;
 	private cachePath: string;
+	private _startTime: number;
 	// private _storeMap: Record<string, string[]>;
 
 	constructor(protected core: Validator, cacheHome: string) {
@@ -32,11 +38,24 @@ export default class Listener {
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted
 		this.cachePath = path.join(cacheHome, 'system');
-		this._db = this.createDb('ts', this.cachePath) as DB;
-		this._queryResponsedb = this.createDb(
-			'query-response',
-			this.cachePath
-		) as ResponseDB;
+		this._db = {
+			[SystemMessageType.ProofOfMessageStored]: this.createDb(
+				'ProofOfMessageStored',
+				this.cachePath
+			),
+			[SystemMessageType.QueryRequest]: this.createDb(
+				'QueryRequest',
+				this.cachePath
+			),
+			[SystemMessageType.QueryResponse]: this.createDb(
+				'QueryResponse',
+				this.cachePath
+			),
+		} as DB;
+	}
+
+	public get startTime() {
+		return this._startTime;
 	}
 
 	public async start(): Promise<void> {
@@ -46,12 +65,12 @@ export default class Listener {
 			this.core.logger.debug(`System Stream Id: `, this.core.systemStreamId);
 			await this.subscribe(this.core.systemStreamId);
 
+			this._startTime = Date.now();
 			// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
-			const db = this.db();
-			await db.drop();
-			await db.put(+Date.now(), null); // ? Here it's OK to utilise the Date.now timestamp, as this is simply a marker to prevent the validator from losing stake.
-
-			// drop the response DB
+			const dbTypes = Object.values(SystemMessageType);
+			for (let i = 0; i < dbTypes.length; i++) {
+				await this.db(dbTypes[i] as SystemMessageType).drop();
+			}
 
 			// Chokidar listening to reinitiate the cache after each flush/drop/wipe.
 			// chokidar.watch(this.cachePath).on('unlink', async (eventPath) => {
@@ -78,21 +97,28 @@ export default class Listener {
 		});
 	}
 
-	public db(): DB {
-		if (!this._db) {
+	public storeDb() {
+		return this.db<NumberKeyDatabase>(SystemMessageType.ProofOfMessageStored);
+	}
+
+	public queryRequestDb() {
+		return this.db<NumberKeyDatabase>(SystemMessageType.QueryRequest);
+	}
+
+	public queryResponseDb() {
+		return this.db<StringKeyDatabase>(SystemMessageType.QueryRequest);
+	}
+
+	private db<T = NumberKeyDatabase | StringKeyDatabase>(
+		type: SystemMessageType
+	) {
+		if (!this._db[type]) {
 			throw new Error('Database is not initialised');
 		}
-		return this._db;
+		return this._db[type] as T;
 	}
 
-	public responseDB(): ResponseDB {
-		if (!this._queryResponsedb) {
-			throw new Error('Response Database is not initialised');
-		}
-		return this._queryResponsedb;
-	}
-
-	public createDb(name: string, dbPath: string) {
+	private createDb(name: string, dbPath: string) {
 		return open({
 			name,
 			path: dbPath,
@@ -101,48 +127,86 @@ export default class Listener {
 		});
 	}
 
-	public atIndex(index: number) {
-		const db = this.db();
-		for (const item of db.getRange({ offset: index, limit: 1 })) {
-			return item;
-		}
-		throw new Error(`atIndex: No key at index: ${index}`);
-	}
-
 	private async onMessage(content: any[], metadata: MessageMetadata) {
 		// Add to store
-		const key = metadata.timestamp;
-
-		this.core.logger.debug(
-			'New message received over stream: ' + metadata.streamId,
-			{
-				key,
-				value: { content, metadata },
-			}
-		);
-
-		// deserialize the content gotten
 		const parsedContent = SystemMessage.deserialize(content);
-		const db = this.db();
-		const responseDB = this.responseDB();
-		// if its a query response handle it differetly from proof of storage and query requests
-		if (parsedContent.messageType !== SystemMessageType.QueryResponse) {
-			// represent the items in the DB as
-			// timestamp => [{content1, metadata1}, {content2, metadata2}]
-			const value = db.get(key) || [];
-			value.push({
-				content: parsedContent,
-				metadata,
-			});
-			await db.put(key, value);
-		} else {
-			// represent the items in the response DB as
-			// requestId => [{content1, metadata1}, {content2, metadata2}]
-			const responseContent = parsedContent as QueryResponse;
-			const requestKey = responseContent.requestId;
-			const existingResponse = responseDB.get(requestKey) || [];
-			existingResponse.push({ content: parsedContent, metadata });
-			await responseDB.put(requestKey, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
+		switch (parsedContent.messageType) {
+			case SystemMessageType.ProofOfMessageStored: {
+				/**
+					Cache with the timestamp in Proof (point at which the developer submits the message), rather than the timestamp of the metadata (point at which the broker submits the proof)
+					This prevents issues associated to eventual consistency on the decentralised network
+				 */
+				const db = this.storeDb();
+				// represent the items in the DB as
+				const proof = parsedContent as ProofOfMessageStored;
+				const key = proof.timestamp;
+
+				this.core.logger.debug('ProofOfMessageStored', {
+					key,
+					value: { content, metadata },
+				});
+
+				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
+				const value = db.get(key) || [];
+				value.push({
+					content: parsedContent,
+					metadata,
+				});
+				// Sort the values by their sequenceNumber to ensure they're deterministically ordered
+				value.sort((a, b) => {
+					if (a.content.sequenceNumber < b.content.sequenceNumber) {
+						return -1;
+					}
+					if (a.content.sequenceNumber > b.content.sequenceNumber) {
+						return 1;
+					}
+					return 0;
+				});
+				await db.put(key, value);
+				break;
+			}
+			case SystemMessageType.QueryRequest: {
+				// Query requests can use point at which broker publishes message because only a single broker will ever emit a query request message
+				const db = this.queryRequestDb();
+				const key = metadata.timestamp;
+				this.core.logger.debug('QueryRequest', {
+					key,
+					value: { content, metadata },
+				});
+
+				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
+				const value = db.get(key) || [];
+				value.push({
+					content: parsedContent,
+					metadata,
+				});
+				// Sort the values by their sequenceNumber to ensure they're deterministically ordered
+				value.sort((a, b) => {
+					if (a.metadata.sequenceNumber < b.metadata.sequenceNumber) {
+						return -1;
+					}
+					if (a.metadata.sequenceNumber > b.metadata.sequenceNumber) {
+						return 1;
+					}
+					return 0;
+				});
+				await db.put(key, value);
+				break;
+			}
+			case SystemMessageType.QueryResponse: {
+				const db = this.queryResponseDb();
+				// represent the items in the response DB as
+				// requestId => [{content1, metadata1}, {content2, metadata2}]
+				const responseContent = parsedContent as QueryResponse;
+				const requestKey = responseContent.requestId;
+				const existingResponse = db.get(requestKey) || [];
+				existingResponse.push({ content: parsedContent, metadata });
+				await db.put(requestKey, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
+				break;
+			}
+			default: {
+				break;
+			}
 		}
 	}
 }
