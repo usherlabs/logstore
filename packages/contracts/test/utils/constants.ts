@@ -24,7 +24,7 @@ export const NODE_MANAGER_EVENTS = {
 	NODE_REMOVED: 'NodeRemoved',
 	NOTE_WHITELIST_APPROVED: 'NodeWhitelistApproved',
 	NOTE_WHITELIST_REJECTED: 'NodeWhitelistRejected',
-	NODE_STAKE_UPDATED: 'NodeStakeUpdated',
+	STAKE_DELEGATE_UPDATED: 'StakeDelegateUpdated',
 	REQUIRES_WHITELIST_CHANGED: 'RequiresWhitelistChanged',
 	REPORT_PROCESSED: 'ReportProcessed',
 	TRANSFER: 'Transfer',

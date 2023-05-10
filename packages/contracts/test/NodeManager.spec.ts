@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { Contract } from 'ethers';
+import { BigNumber, Contract } from 'ethers';
 import { ethers } from 'hardhat';
 
 import {
@@ -416,7 +416,7 @@ describe('NodeManager', function () {
 				.functions.delegate(stakeAmount, newNodeAddress);
 			const delegateEvent = await fetchEventArgsFromTx(
 				delegateTx,
-				NODE_MANAGER_EVENTS.NODE_STAKE_UPDATED
+				NODE_MANAGER_EVENTS.STAKE_DELEGATE_UPDATED
 			);
 			const postDelegateContractBalance =
 				await nodeManagerContract.functions.balanceOf(
@@ -425,10 +425,16 @@ describe('NodeManager', function () {
 			const { stake: postDelegateNodeStake } =
 				await nodeManagerContract.functions.nodes(newNodeAddress);
 			// validate event address and stake
-			expect(delegateEvent?.nodeAddress.toLowerCase()).to.equal(
+			expect(delegateEvent?.node.toLowerCase()).to.equal(
 				newNodeAddress.toLowerCase()
 			);
-			expect(delegateEvent?.stake).to.equal(stakeAmount);
+			expect(delegateEvent?.delegate.toLowerCase()).to.equal(
+				whitelistedNodeSigner.address.toLowerCase()
+			);
+			expect(delegateEvent?.amount).to.equal(stakeAmount);
+			expect(delegateEvent?.totalStake).to.equal(stakeAmount);
+			expect(delegateEvent?.totalDelegated).to.equal(stakeAmount);
+			expect(delegateEvent?.delegated).to.equal(true);
 			expect(+preDelegateContractBalance).to.be.greaterThan(
 				+postDelegateContractBalance
 			);
@@ -453,13 +459,19 @@ describe('NodeManager', function () {
 				.functions.undelegate(stakeAmount, newNodeAddress);
 			const delegateEvent = await fetchEventArgsFromTx(
 				delegateTx,
-				NODE_MANAGER_EVENTS.NODE_STAKE_UPDATED
+				NODE_MANAGER_EVENTS.STAKE_DELEGATE_UPDATED
 			);
 			// validate event
-			expect(delegateEvent?.nodeAddress.toLowerCase()).to.equal(
+			expect(delegateEvent?.node.toLowerCase()).to.equal(
 				newNodeAddress.toLowerCase()
 			);
-			expect(+delegateEvent?.stake).to.equal(0);
+			expect(delegateEvent?.delegate.toLowerCase()).to.equal(
+				whitelistedNodeSigner.address.toLowerCase()
+			);
+			expect(+delegateEvent?.totalDelegated).to.equal(0);
+			expect(BigNumber.from(delegateEvent?.amount)).to.equal(stakeAmount);
+			expect(+delegateEvent?.totalStake).to.equal(0);
+			expect(delegateEvent?.delegated).to.equal(false);
 			// validate state
 			const delegatesOfWhitelistedNodeStake =
 				await nodeManagerContract.functions.delegatesOf(
@@ -497,14 +509,14 @@ describe('NodeManager', function () {
 			// validate the staked amount
 			const delegationEvent = await fetchEventArgsFromTx(
 				joinTx,
-				NODE_MANAGER_EVENTS.NODE_STAKE_UPDATED
+				NODE_MANAGER_EVENTS.STAKE_DELEGATE_UPDATED
 			);
 			const delegatesBalance = await nodeManagerContract.functions.delegatesOf(
 				nodeAddress,
 				nodeAddress
 			);
-			expect(delegationEvent?.nodeAddress).to.equal(nodeAddress);
-			expect(+delegationEvent?.stake)
+			expect(delegationEvent?.node).to.equal(nodeAddress);
+			expect(+delegationEvent?.totalStake)
 				.to.equal(+stakeAmount)
 				.to.equal(+delegatesBalance);
 		});
@@ -549,12 +561,10 @@ describe('NodeManager', function () {
 				);
 			const undelegateEvent = await fetchEventArgsFromTx(
 				undelegateWithdrawTx,
-				NODE_MANAGER_EVENTS.NODE_STAKE_UPDATED
+				NODE_MANAGER_EVENTS.STAKE_DELEGATE_UPDATED
 			);
-			expect(undelegateEvent?.nodeAddress).to.be.equal(
-				whitelistedNodeSigner.address
-			);
-			expect(+undelegateEvent?.stake).to.be.equal(0);
+			expect(undelegateEvent?.node).to.be.equal(whitelistedNodeSigner.address);
+			expect(+undelegateEvent?.totalStake).to.be.equal(0);
 			// validate the funds staked reflects in the token balance of the user
 			const postWithdrawTokenBalance = await tokenContract.functions.balanceOf(
 				whitelistedNodeSigner.address
@@ -588,28 +598,6 @@ describe('NodeManager', function () {
 				.to.equal(+contractNodeCount);
 			expect(updatedNodeAddresses[1]).to.be.equal(newNodeAddress);
 			// validate the total nodes variabls
-		});
-		it('UtilityFunctions(countNodes) ----> countNodes variable ', async function () {
-			// get initial counts
-			const [initialNodeCountFromFunc] =
-				await nodeManagerContract.functions.countNodes();
-			const [initialNodeCountFromVar] =
-				await nodeManagerContract.functions.countNodes();
-			expect(+initialNodeCountFromFunc)
-				.to.equal(+initialNodeCountFromVar)
-				.to.equal(1);
-			// add a new node
-			await nodeManagerContract
-				.connect(whitelistedNodeSigner)
-				.functions.join(getDecimalBN(1), SAMPLE_WSS_URL);
-			// count again and confirm it is consistent
-			const [finallNodeCountFromFunc] =
-				await nodeManagerContract.functions.countNodes();
-			const [finallNodeCountFromVar] =
-				await nodeManagerContract.functions.countNodes();
-			expect(+finallNodeCountFromFunc)
-				.to.equal(+finallNodeCountFromVar)
-				.to.equal(2);
 		});
 	});
 

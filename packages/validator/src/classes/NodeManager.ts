@@ -36,7 +36,12 @@ export class NodeManager {
 					blockTag: blockNumber,
 				});
 				const allDelegates = await this.getDelegates(nodeAddress, blockNumber);
-				console.log({ allDelegates, nodeAddress });
+
+				console.log('DEBUG: Delegates for Node Address', {
+					allDelegates,
+					nodeAddress,
+				});
+
 				return {
 					id: nodeAddress,
 					index: nodeDetail.index.toNumber(),
@@ -60,18 +65,33 @@ export class NodeManager {
 		return brokerNodes;
 	}
 
-	async getDelegates(nodeAddress: string, toBlockNumber: number) {
-		const delegateesEvent = await this.contract.queryFilter(
-			this.contract.filters.StakeDelegated(null, nodeAddress, null, null),
+	/**
+	 * Get all delegates and their corresponding amounts for a nodeAddress at a blockNumber
+	 *
+	 * @param   {string}  nodeAddress    [nodeAddress description]
+	 * @param   {number}  toBlockNumber  [toBlockNumber description]
+	 */
+	async getDelegates(
+		nodeAddress: string,
+		toBlockNumber: number
+	): Promise<Record<string, number>> {
+		const delegatesEvent = await this.contract.queryFilter(
+			this.contract.filters.StakeDelegateUpdated(
+				null,
+				nodeAddress,
+				null,
+				null,
+				null,
+				null
+			),
 			0,
 			toBlockNumber
 		);
 
-		const eventDetails = delegateesEvent.map(({ args }) => ({
+		const eventDetails = delegatesEvent.map(({ args }) => ({
 			delegate: args.delegate,
-			amount: Number(args.delegated)
-				? Number(args.amount)
-				: -Number(args.amount),
+			amount:
+				args.delegated === true ? Number(args.amount) : -Number(args.amount),
 		}));
 
 		return eventDetails.reduce((accumulator, curr) => {
