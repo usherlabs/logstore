@@ -365,22 +365,22 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     }
 
     function nodeAddresses() public view returns (address[] memory resultAddresses) {
-        address[] memory result = new address[](totalNodes);
+        resultAddresses = new address[](totalNodes);
 
         if (headNode == address(0)) {
-            return result;
+            return resultAddresses;
         }
 
         address tailAddress = headNode;
         uint256 index = 0;
         do {
-            result[index] = tailAddress;
+            resultAddresses[index] = tailAddress;
 
             tailAddress = nodes[tailAddress].next;
             index++;
         } while (tailAddress != address(0));
 
-        return result;
+        return resultAddresses;
     }
 
     function nodeStake(address node) public view returns (uint256) {
