@@ -24,6 +24,7 @@ import { v4 as uuid } from 'uuid';
 
 import { StrictConfig } from '../../config/config';
 import { HttpServerEndpoint } from '../../Plugin';
+import { createBasicAuthenticatorMiddleware } from './authentication';
 import { Consensus, getConsensus } from './Consensus';
 import { Format, getFormat } from './DataQueryFormat';
 import { LogStore } from './LogStore';
@@ -495,6 +496,7 @@ export const createDataQueryEndpoint = (
 		path: `/streams/:id/data/partitions/:partition/:queryType`,
 		method: 'get',
 		requestHandlers: [
+			createBasicAuthenticatorMiddleware(),
 			createHandler(
 				config,
 				logStore,
