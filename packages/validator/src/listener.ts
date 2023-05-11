@@ -82,16 +82,6 @@ export default class Listener {
 			for (let i = 0; i < dbTypes.length; i++) {
 				await this.db(dbTypes[i] as SystemMessageType).drop();
 			}
-
-			// Chokidar listening to reinitiate the cache after each flush/drop/wipe.
-			// chokidar.watch(this.cachePath).on('unlink', async (eventPath) => {
-			// 	if (eventPath == this.cachePath) {
-			// 		const db = await this.db();
-			// 		await db.put(Date.now().toString(), null);
-
-			// 		this.core.logger.info('System cache removed and reinitialised.');
-			// 	}
-			// });
 		} catch (e) {
 			this.core.logger.error(`Unexpected error starting listener...`);
 			this.core.logger.error(e);

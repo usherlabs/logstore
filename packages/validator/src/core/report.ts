@@ -327,6 +327,7 @@ export const produceReport = async (
 	// ------------ FEE CONVERSION ------------
 	// Convert fees to stake token
 	let priceOfStakeToken = 0.01;
+	// TODO: We should throw errors where redstone api fails as it could yield negative vote outcomes for the validator -- however, we need to incorporate methods that tests can mock
 	try {
 		const rsResp = await redstone.getPrice(stakeToken.symbol);
 		core.logger.debug('Fetched Price from Redstone', rsResp);
