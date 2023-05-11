@@ -106,7 +106,7 @@ export default class Listener {
 	}
 
 	public queryResponseDb() {
-		return this.db<StringKeyDatabase>(SystemMessageType.QueryRequest);
+		return this.db<StringKeyDatabase>(SystemMessageType.QueryResponse);
 	}
 
 	private db<T = NumberKeyDatabase | StringKeyDatabase>(
@@ -163,6 +163,7 @@ export default class Listener {
 					return 0;
 				});
 				await db.put(key, value);
+
 				break;
 			}
 			case SystemMessageType.QueryRequest: {
@@ -198,10 +199,10 @@ export default class Listener {
 				// represent the items in the response DB as
 				// requestId => [{content1, metadata1}, {content2, metadata2}]
 				const responseContent = parsedContent as QueryResponse;
-				const requestKey = responseContent.requestId;
-				const existingResponse = db.get(requestKey) || [];
+				const key = responseContent.requestId;
+				const existingResponse = db.get(key) || [];
 				existingResponse.push({ content: parsedContent, metadata });
-				await db.put(requestKey, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
+				await db.put(key, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
 				break;
 			}
 			default: {

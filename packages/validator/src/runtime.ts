@@ -79,10 +79,7 @@ export default class Runtime implements IRuntime {
 		const [item] = bundle; // first data item should always be the bundle
 		const itemKeyInt = parseInt(item.key, 10);
 		try {
-			const cacheItem = core.listener.atIndex(0);
-			const key = cacheItem.key;
-			const keyInt = parseInt(String(key), 10);
-			if (keyInt > itemKeyInt) {
+			if (core.listener.startTime > itemKeyInt) {
 				return null; // Will cause the validator to abstain from the vote
 			}
 		} catch (e) {
