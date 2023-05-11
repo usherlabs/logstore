@@ -1,3 +1,4 @@
+import type { QueryOptions } from '@concertodao/logstore-protocol';
 import type { MessageMetadata } from 'streamr-client';
 
 export type PoolConfigContract = {
@@ -40,7 +41,7 @@ export type Report = {
 	// The following properties are not signed by the Broker Nodes
 	events?: {
 		queries: (ReportEvent & {
-			query: string;
+			query: QueryOptions;
 			consumer: string;
 		})[];
 		storage: ReportEvent[];

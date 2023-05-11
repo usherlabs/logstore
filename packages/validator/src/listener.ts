@@ -1,6 +1,7 @@
 // import chokidar from 'chokidar';
 import {
 	ProofOfMessageStored,
+	QueryRequest,
 	QueryResponse,
 	SystemMessage,
 	SystemMessageType,
@@ -15,12 +16,22 @@ import type Validator from './validator';
 
 // -------------> usual storage of QueryRequest and POS in listener cache
 // timestamp(number)|requestId(string) => [{content, metadata},{content, metadata}]
-type NumberKeyDatabase = RootDatabase<Array<StreamrMessage>, number>;
-type StringKeyDatabase = RootDatabase<Array<StreamrMessage>, string>;
+type ProofOfMessageStoredDatabase = RootDatabase<
+	Array<Omit<StreamrMessage, 'content'> & { content: ProofOfMessageStored }>,
+	number
+>;
+type QueryRequestDatabase = RootDatabase<
+	Array<Omit<StreamrMessage, 'content'> & { content: QueryRequest }>,
+	number
+>;
+type QueryResponseDatabase = RootDatabase<
+	Array<Omit<StreamrMessage, 'content'> & { content: QueryResponse }>,
+	string
+>;
 type DB = {
-	[SystemMessageType.ProofOfMessageStored]: NumberKeyDatabase;
-	[SystemMessageType.QueryRequest]: NumberKeyDatabase;
-	[SystemMessageType.QueryResponse]: StringKeyDatabase;
+	[SystemMessageType.ProofOfMessageStored]: ProofOfMessageStoredDatabase;
+	[SystemMessageType.QueryRequest]: QueryRequestDatabase;
+	[SystemMessageType.QueryResponse]: QueryResponseDatabase;
 };
 
 export default class Listener {
@@ -98,24 +109,24 @@ export default class Listener {
 	}
 
 	public storeDb() {
-		return this.db<NumberKeyDatabase>(SystemMessageType.ProofOfMessageStored);
+		return this.db(
+			SystemMessageType.ProofOfMessageStored
+		) as ProofOfMessageStoredDatabase;
 	}
 
 	public queryRequestDb() {
-		return this.db<NumberKeyDatabase>(SystemMessageType.QueryRequest);
+		return this.db(SystemMessageType.QueryRequest) as QueryRequestDatabase;
 	}
 
 	public queryResponseDb() {
-		return this.db<StringKeyDatabase>(SystemMessageType.QueryResponse);
+		return this.db(SystemMessageType.QueryResponse) as QueryResponseDatabase;
 	}
 
-	private db<T = NumberKeyDatabase | StringKeyDatabase>(
-		type: SystemMessageType
-	) {
+	private db(type: SystemMessageType) {
 		if (!this._db[type]) {
 			throw new Error('Database is not initialised');
 		}
-		return this._db[type] as T;
+		return this._db[type];
 	}
 
 	private createDb(name: string, dbPath: string) {
@@ -149,7 +160,7 @@ export default class Listener {
 				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
 				const value = db.get(key) || [];
 				value.push({
-					content: parsedContent,
+					content: proof,
 					metadata,
 				});
 				// Sort the values by their sequenceNumber to ensure they're deterministically ordered
@@ -178,7 +189,7 @@ export default class Listener {
 				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
 				const value = db.get(key) || [];
 				value.push({
-					content: parsedContent,
+					content: parsedContent as QueryRequest,
 					metadata,
 				});
 				// Sort the values by their sequenceNumber to ensure they're deterministically ordered
@@ -201,7 +212,7 @@ export default class Listener {
 				const responseContent = parsedContent as QueryResponse;
 				const key = responseContent.requestId;
 				const existingResponse = db.get(key) || [];
-				existingResponse.push({ content: parsedContent, metadata });
+				existingResponse.push({ content: responseContent, metadata });
 				await db.put(key, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
 				break;
 			}
