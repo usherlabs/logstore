@@ -39,16 +39,15 @@ export default class Listener {
 	private _db!: DB;
 	private cachePath: string;
 	private _startTime: number;
-	// private _storeMap: Record<string, string[]>;
 
-	constructor(protected core: Validator, cacheHome: string) {
+	constructor(protected core: Validator, homeDir: string) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		// core.logger.debug('Streamr Config', streamrConfig);
 		this.client = new StreamrClient(streamrConfig);
 
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted
-		this.cachePath = path.join(cacheHome, 'system');
+		this.cachePath = path.join(homeDir, '.logstore-metadata');
 		this._db = {
 			[SystemMessageType.ProofOfMessageStored]: this.createDb(
 				'ProofOfMessageStored',
