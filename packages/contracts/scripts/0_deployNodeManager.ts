@@ -4,6 +4,7 @@ import hre from 'hardhat';
 import {
 	getNodeManagerInputParameters,
 	getQueryManagerInputParameters,
+	getReportBlockBuffer,
 	getStoreManagerInputParameters,
 	writeJSONToFileOutside,
 } from '../utils/functions';
@@ -69,6 +70,8 @@ async function main() {
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- deploy the report manager contract --------------------------- //
+	// Get block time of chain id
+	const reportBlockBuffer = await getReportBlockBuffer();
 	const Lib = await hre.ethers.getContractFactory('VerifySignature');
 	const lib = await Lib.deploy();
 	await lib.deployed();
@@ -83,14 +86,17 @@ async function main() {
 	);
 	const reportManagerContract = await hre.upgrades.deployProxy(
 		reportManager,
-		[nodeManagerAddress],
+		[nodeManagerAddress, reportBlockBuffer],
 		{
 			unsafeAllowLinkedLibraries: true,
 		}
 	);
 	await reportManagerContract.deployed();
 	const { address: reportManagerAddress } = reportManagerContract;
-	console.log(`LogStoreReportanager deployed to ${reportManagerAddress}`);
+	console.log(`LogStoreReportManager deployed to ${reportManagerAddress}`, {
+		nodeManagerAddress,
+		reportBlockBuffer,
+	});
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //

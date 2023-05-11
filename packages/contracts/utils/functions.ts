@@ -119,3 +119,24 @@ export async function writeJSONToFileOutside(
 		}
 	});
 }
+
+export const getBlockTime = async () => {
+	const lastBlock = await hre.ethers.provider.getBlock('latest');
+	let lastBlockTimestamp = lastBlock.timestamp;
+	let avgBlockTime = 0;
+	for (let i = 1; i < 11; i++) {
+		const block = await hre.ethers.provider.getBlock(lastBlock.number - i);
+		const diff = (lastBlockTimestamp - block.timestamp) * 1000;
+		avgBlockTime += diff;
+		lastBlockTimestamp = block.timestamp;
+	}
+	avgBlockTime = avgBlockTime / 10;
+
+	return avgBlockTime;
+};
+
+export const getReportBlockBuffer = async () => {
+	const blockTime = await getBlockTime();
+	const reportBlockBuffer = Math.ceil(30000 / blockTime); // The number of blocks to wait between each reporter starting from the height of the report.
+	return reportBlockBuffer;
+};

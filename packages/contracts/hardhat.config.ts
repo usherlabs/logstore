@@ -12,9 +12,7 @@ import snakeCase from 'lodash.snakecase';
 import { resolve } from 'path';
 
 // import 'solidity-coverage';
-import './tasks/accounts';
 
-// import './tasks/deploy';
 const { STREAMR_DOCKER_DEV_HOST = 'localhost' } = process.env;
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || './.env';
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });

@@ -3,15 +3,16 @@ import Wallet from 'ethereumjs-wallet';
 import { BigNumber, Contract, ContractTransaction, ethers } from 'ethers';
 import { ethers as hEthers, upgrades } from 'hardhat';
 
+import { getReportBlockBuffer } from '../../utils/functions';
+import ERC20 from './abi/ERC20.json';
 import {
-	CONSUMER_ADDRESS,
+	// CONSUMER_ADDRESS,
 	CONSUMER_INDEX,
 	FAKE_STREAMR_REGISTRY,
 	NODE_MANAGER,
 	SAMPLE_STREAM_ID,
 	SAMPLE_WSS_URL,
-} from '../utils/constants';
-import ERC20 from './abi/ERC20.json';
+} from './constants';
 import { ReportData } from './types';
 
 export const generateWallet = () => Wallet.generate().getAddressString();
@@ -160,9 +161,10 @@ export async function loadReportManager(
 		}
 	);
 
+	const reportBlockBuffer = await getReportBlockBuffer();
 	const reportManagerContract = await upgrades.deployProxy(
 		reportManager,
-		[nodeManagerContract.address],
+		[nodeManagerContract.address, reportBlockBuffer],
 		{ unsafeAllowLinkedLibraries: true }
 	);
 	return reportManagerContract;
