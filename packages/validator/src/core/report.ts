@@ -1,14 +1,15 @@
 import { SystemMessageType } from '@concertodao/logstore-protocol';
 import { sha256 } from '@kyvejs/protocol';
-import { ethers } from 'ethers';
-import redstone from 'redstone-api';
 
 import { Managers } from '../classes/Managers';
 import { Report } from '../types';
 import { Arweave } from '../utils/arweave';
 import { getConfig } from '../utils/config';
 import { reportPrefix } from '../utils/constants';
-import { fetchQueryResponseConsensus } from '../utils/helpers';
+import {
+	convertToStakeToken,
+	fetchQueryResponseConsensus,
+} from '../utils/helpers';
 import Validator from '../validator';
 
 export const produceReport = async (
@@ -326,29 +327,12 @@ export const produceReport = async (
 
 	// ------------ FEE CONVERSION ------------
 	// Convert fees to stake token
-	let priceOfStakeToken = 0.01;
-	// TODO: We should throw errors where redstone api fails as it could yield negative vote outcomes for the validator -- however, we need to incorporate methods that tests can mock
-	try {
-		const rsResp = await redstone.getPrice(stakeToken.symbol);
-		core.logger.debug('Fetched Price from Redstone', rsResp);
-		priceOfStakeToken = rsResp.value;
-	} catch (e) {
-		core.logger.warn(`Could not fetch the Price of ${stakeToken.symbol}`);
-	}
-	const toStakeToken = (usdValue: number) => {
-		return Math.floor(
-			parseInt(
-				ethers
-					.parseUnits(
-						// reduce precision to max allowed to prevent errors
-						`${(usdValue / priceOfStakeToken).toPrecision(15)}`,
-						stakeToken.decimals
-					)
-					.toString(10),
-				10
-			)
-		);
-	};
+	const stakeTokenPrice = await core.getTokenPrice(stakeToken.symbol);
+	core.logger.debug('Fetched Price from Oracle', stakeTokenPrice);
+	const toStakeToken = convertToStakeToken(
+		stakeTokenPrice,
+		stakeToken.decimals
+	);
 	report.treasury = toStakeToken(report.treasury);
 	report.streams = report.streams.map((s) => {
 		s.capture = toStakeToken(s.capture);

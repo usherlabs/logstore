@@ -1,5 +1,6 @@
 import { StreamrMessage } from '@/types';
 import { Provider } from '@ethersproject/providers';
+import { ethers } from 'ethers';
 
 /**
  * A function used to format a struct object gotten from the blockchain
@@ -76,3 +77,20 @@ export function fetchQueryResponseConsensus(arr: StreamrMessage[]) {
 	});
 	return { result, maxHash, maxCount };
 }
+
+export const convertToStakeToken =
+	(stakeTokenPrice: number, stakeTokenDecimals: number) =>
+	(usdValue: number) => {
+		return Math.floor(
+			parseInt(
+				ethers
+					.parseUnits(
+						// reduce precision to max allowed to prevent errors
+						`${(usdValue / stakeTokenPrice).toPrecision(15)}`,
+						stakeTokenDecimals
+					)
+					.toString(10), // radix 10
+				10
+			)
+		);
+	};

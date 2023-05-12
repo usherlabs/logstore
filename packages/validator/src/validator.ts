@@ -3,6 +3,7 @@ import {
 	runCache as runKyveCache,
 	syncPoolConfig as syncKyvePoolConfig,
 } from '@kyvejs/protocol/src/methods';
+import redstone from 'redstone-api';
 
 import Listener from './listener';
 
@@ -26,6 +27,21 @@ export async function syncPoolConfig(this: Validator): Promise<void> {
 	this.systemStreamId = `${contracts.nodeManagerAddress}/system`;
 }
 
+/**
+ * getTokenPrice wraps the request to an Oracle network to fetch a token's price.
+ * It will always use Redstone Price Oracles outside of tests.
+ * It is mocked in unit tests to return a constant where non-indexed Developer Tokens are used.
+ */
+export async function getTokenPrice(
+	this: Validator,
+	tokenSymbol: string
+): Promise<number> {
+	const resp = await redstone.getPrice(tokenSymbol, {
+		verifySignature: true,
+	});
+	return resp.value;
+}
+
 export default class Validator extends KyveValidator {
 	public listener: Listener;
 
@@ -33,4 +49,6 @@ export default class Validator extends KyveValidator {
 
 	protected override runCache = runCache;
 	protected override syncPoolConfig = syncPoolConfig;
+
+	public getTokenPrice = getTokenPrice;
 }
