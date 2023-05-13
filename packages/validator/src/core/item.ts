@@ -1,8 +1,8 @@
 import { LogStoreClient } from '@concertodao/logstore-client';
 import { omit } from 'lodash';
 
-import { Managers } from '../classes/Managers';
 import { getEvmPrivateKey } from '../env-config';
+import { Managers } from '../managers';
 import { getConfig } from '../utils/config';
 import Validator from '../validator';
 

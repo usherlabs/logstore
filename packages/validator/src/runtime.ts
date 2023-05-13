@@ -1,9 +1,9 @@
 import { DataItem, IRuntime, sha256 } from '@kyvejs/protocol';
 
-import { Managers } from './classes/Managers';
 import { produceItem } from './core/item';
 import { produceReport } from './core/report';
 import { appPackageName, appVersion } from './env-config';
+import { Managers } from './managers';
 import { getConfig } from './utils/config';
 import { reportPrefix } from './utils/constants';
 import Validator from './validator';

@@ -1,7 +1,7 @@
 import { SystemMessageType } from '@concertodao/logstore-protocol';
 import { sha256 } from '@kyvejs/protocol';
 
-import { Managers } from '../classes/Managers';
+import { Managers } from '../managers';
 import { Report } from '../types';
 import { Arweave } from '../utils/arweave';
 import { getConfig } from '../utils/config';
