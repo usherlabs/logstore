@@ -6,10 +6,7 @@ import { Report } from '../types';
 import { Arweave } from '../utils/arweave';
 import { getConfig } from '../utils/config';
 import { reportPrefix } from '../utils/constants';
-import {
-	convertToStakeToken,
-	fetchQueryResponseConsensus,
-} from '../utils/helpers';
+import { fetchQueryResponseConsensus } from '../utils/helpers';
 import Validator from '../validator';
 
 export const produceReport = async (
@@ -327,27 +324,21 @@ export const produceReport = async (
 
 	// ------------ FEE CONVERSION ------------
 	// Convert fees to stake token
-	const stakeTokenPrice = await core.getTokenPrice(stakeToken.symbol);
-	core.logger.debug('Fetched Price from Oracle', stakeTokenPrice);
-	const toStakeToken = convertToStakeToken(
-		stakeTokenPrice,
-		stakeToken.decimals
-	);
-	report.treasury = toStakeToken(report.treasury);
+	report.treasury = stakeToken.fromUSD(report.treasury);
 	report.streams = report.streams.map((s) => {
-		s.capture = toStakeToken(s.capture);
+		s.capture = stakeToken.fromUSD(s.capture);
 		return s;
 	});
 	report.consumers = report.consumers.map((c) => {
-		c.capture = toStakeToken(c.capture);
+		c.capture = stakeToken.fromUSD(c.capture);
 		return c;
 	});
 	Object.keys(report.nodes).forEach((n) => {
-		report.nodes[n] = toStakeToken(report.nodes[n]);
+		report.nodes[n] = stakeToken.fromUSD(report.nodes[n]);
 	});
 	Object.keys(report.delegates).forEach((d) => {
 		Object.keys(report.delegates[d]).forEach((n) => {
-			report.delegates[d][n] = toStakeToken(report.delegates[d][n]);
+			report.delegates[d][n] = stakeToken.fromUSD(report.delegates[d][n]);
 		});
 	});
 	// ------------ END FEE CONVERSION ------------

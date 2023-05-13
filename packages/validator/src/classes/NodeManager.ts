@@ -5,13 +5,7 @@ import {
 import { BigNumber } from '@ethersproject/bignumber';
 
 import { BrokerNode } from '../types';
-
-type StakeToken = {
-	minRequirement: number;
-	address: string;
-	symbol: string;
-	decimals: number;
-};
+import { StakeToken } from '../utils/stake-token';
 
 export class NodeManager {
 	constructor(private _contract: LogStoreNodeManager) {}
@@ -118,11 +112,15 @@ export class NodeManager {
 		const stakeTokenSymbol = await stakeTokenContract.symbol();
 		const stakeTokenDecimals = await stakeTokenContract.decimals();
 
-		return {
-			minRequirement: +minStakeRequirement,
-			address: stakeTokenAddress,
-			symbol: stakeTokenSymbol,
-			decimals: stakeTokenDecimals,
-		};
+		const stakeToken = new StakeToken(
+			stakeTokenAddress,
+			stakeTokenSymbol,
+			stakeTokenDecimals,
+			+minStakeRequirement
+		);
+
+		await stakeToken.init();
+
+		return stakeToken;
 	}
 }

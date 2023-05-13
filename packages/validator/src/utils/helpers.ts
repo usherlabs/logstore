@@ -77,20 +77,3 @@ export function fetchQueryResponseConsensus(arr: StreamrMessage[]) {
 	});
 	return { result, maxHash, maxCount };
 }
-
-export const convertToStakeToken =
-	(stakeTokenPrice: number, stakeTokenDecimals: number) =>
-	(usdValue: number) => {
-		return Math.floor(
-			parseInt(
-				ethers
-					.parseUnits(
-						// reduce precision to max allowed to prevent errors
-						`${(usdValue / stakeTokenPrice).toPrecision(15)}`,
-						stakeTokenDecimals
-					)
-					.toString(10), // radix 10
-				10
-			)
-		);
-	};
