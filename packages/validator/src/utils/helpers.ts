@@ -1,6 +1,5 @@
 import { StreamrMessage } from '@/types';
 import { Provider } from '@ethersproject/providers';
-import { ethers } from 'ethers';
 
 /**
  * A function used to format a struct object gotten from the blockchain
