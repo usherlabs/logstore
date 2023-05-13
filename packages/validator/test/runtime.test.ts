@@ -32,7 +32,7 @@ describe('Runtime', () => {
 			await syncPoolConfig.call(v);
 			await runCache.call(v);
 			expect(v['cacheProvider'].put).toHaveBeenCalledTimes(3);
-			const maxBundleSize = parseInt(v.pool.data.max_bundle_size, 10);
+			const maxBundleSize = parseInt(v.pool.data!.max_bundle_size, 10);
 			const lastItem = await v['cacheProvider'].get(`${maxBundleSize - 1}`);
 			const firstItem = await v['cacheProvider'].get(`0`);
 			const firstItemKeyInt = parseInt(firstItem.key, 10);
