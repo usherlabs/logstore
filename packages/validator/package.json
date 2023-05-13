@@ -7,7 +7,7 @@
 	"private": false,
 	"scripts": {
 		"build": "del dist && tsc",
-		"bin": "del out && pkg -d --public-packages '*' --output out/logstore package.json && node ./dist/src/scripts/checksum.js",
+		"bin": "del out && ncc build -o build ./dist/src/index.js && pkg --no-bytecode --public-packages '*' --output out/kyve-logstore ./build/index.js && node ./dist/src/scripts/checksum.js",
 		"build:binaries": "run-s build bin",
 		"start": "node ./dist/src/index.js",
 		"format": "prettier --write .",
@@ -20,9 +20,10 @@
 	"bin": "./dist/src/index.js",
 	"pkg": {
 		"scripts": "./dist/src/index.js",
-		"assets": "./node_modules/@kyve/sdk/dist/proto/*",
+		"assets": [],
 		"targets": [
 			"latest-linux-x64",
+			"latest-linux-arm64",
 			"latest-macos-x64"
 		],
 		"outputPath": "out"
@@ -39,7 +40,6 @@
 		"@ethersproject/providers": "^5.7.2",
 		"@ethersproject/wallet": "^5.7.0",
 		"@kyvejs/protocol": "1.0.0-beta.13",
-		"@streamr/config": "^2.5.8",
 		"arweave": "^1.13.7",
 		"commander": "^10.0.0",
 		"ethers": "^6.2.3",
@@ -54,17 +54,14 @@
 		"@streamr/utils": "^8.1.0",
 		"@types/jest": "^29.5.0",
 		"@types/node": "^18.7.18",
-		"@types/node-fetch": "^2.6.2",
 		"@types/pino": "^7.0.5",
-		"@types/websocket": "^1.0.5",
-		"@types/ws": "^8.5.3",
-		"cross-env": "^7.0.3",
 		"del-cli": "^5.0.0",
 		"dotenv": "^16.0.3",
 		"dotenv-cli": "^7.2.1",
 		"eslint": "^8.34.0",
 		"jest": "^29.4.3",
 		"jest-extended": "^3.2.4",
+		"ncc": "^0.3.6",
 		"npm-run-all": "^4.1.5",
 		"pkg": "^5.6.0",
 		"prettier": "^2.6.2",

@@ -2,8 +2,8 @@
 	"$schema": "https://json.schemastore.org/tsconfig",
 	"display": "Validator",
 	"compilerOptions": {
-		"target": "es6",
 		"module": "commonjs",
+		"target": "es2019",
 		"moduleResolution": "node",
 		"rootDir": ".",
 		"outDir": "dist",
