@@ -78,14 +78,8 @@ export default class Runtime implements IRuntime {
 		// ie. this node may have produced an invalid report because it began listening after it had joined the processing of voting
 		const [item] = bundle; // first data item should always be the bundle
 		const itemKeyInt = parseInt(item.key, 10);
-		try {
-			if (core.listener.startTime > itemKeyInt) {
-				return null; // Will cause the validator to abstain from the vote
-			}
-		} catch (e) {
-			core.logger.error('Cannot fetch first item in listener cache');
-			core.logger.error(e);
-			return null;
+		if (core.listener.startTime > itemKeyInt) {
+			return null; // Will cause the validator to abstain from the vote
 		}
 
 		// Get second last item's key

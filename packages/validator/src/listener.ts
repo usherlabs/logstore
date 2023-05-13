@@ -75,15 +75,17 @@ export default class Listener {
 			this.core.logger.debug(`System Stream Id: `, this.core.systemStreamId);
 			await this.subscribe(this.core.systemStreamId);
 
-			this._startTime = Date.now();
-			// First key in the cache is a timestamp that is comparable to the bundle start key -- ie. Node must have a timestamp < bundle_start_key
 			const dbTypes = Object.values(SystemMessageType);
 			for (let i = 0; i < dbTypes.length; i++) {
 				await this.db(dbTypes[i] as SystemMessageType).drop();
 			}
+
+			// Store a timestamp for when the listener starts so that the Node must have a timestamp < bundle_start_key to pariticpate.
+			this._startTime = Date.now();
 		} catch (e) {
 			this.core.logger.error(`Unexpected error starting listener...`);
 			this.core.logger.error(e);
+			throw e; // Fail if there's an issue with listening to data critical to performance of validator.
 		}
 	}
 

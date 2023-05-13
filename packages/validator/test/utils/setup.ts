@@ -38,6 +38,8 @@ import { fromString } from 'uint8arrays';
 
 import Listener from '../../src/listener';
 import Runtime from '../../src/runtime';
+import { Arweave } from '../../src/utils/arweave';
+import { StakeToken } from '../../src/utils/stake-token';
 import Validator from '../../src/validator';
 
 const {
@@ -179,7 +181,17 @@ export async function setupTests() {
 	});
 
 	// ? StreamrDevNet uses a Stake token that cannot be found in Redstone, so this will always yield stake token value of 0.01
-	// jest.spyOn(redstone, 'getPrice').mockImplementation((symbols: string[], opts?: GetPriceOptions) => Promise<{ [token: string]: PriceData; }>);
+	// Mock getPrice in Arweave and StakeToken util classes
+	StakeToken.prototype.getPrice = () =>
+		jest.fn(() => {
+			return 0.01; // return a constant for dev tokens in test.
+		});
+	Arweave.getPrice = (byteSize: number) =>
+		jest.fn(() => {
+			// const avgWinstonPerByte = 189781180 / 100000 // as per 13th of May 2023 from https://arweave.net/price/100000
+			const constantWinstonPerByte = 2000; // where 200000000 is required for 100000 bytes
+			return byteSize * constantWinstonPerByte;
+		});
 
 	return v;
 }
@@ -301,7 +313,7 @@ export const publishQueryMessages = async (
 					requestId: idx,
 					size: content.size,
 					hash: content.hash,
-					signature: content.hash,
+					signature: `test_sig_of_broker_${jdx}`,
 				})
 			);
 
