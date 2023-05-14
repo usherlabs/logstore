@@ -59,4 +59,8 @@ export type BrokerNode = {
 	delegates: Record<string, number>;
 };
 
-export type StreamrMessage = { content: any; metadata: MessageMetadata };
+export type StreamrMessage = {
+	// eslint-disable-next-line
+	content: any;
+	metadata: MessageMetadata;
+};

@@ -1,8 +1,8 @@
-import commander from 'commander';
+import { InvalidArgumentError } from 'commander';
 
 export const parseEvmPriv = (value: string) => {
 	if (!process.env[value]) {
-		throw new commander.InvalidArgumentError(
+		throw new InvalidArgumentError(
 			`Environment variable "${value}" has no value`
 		);
 	}
@@ -12,7 +12,7 @@ export const parseEvmPriv = (value: string) => {
 
 export const parseBoolean = (value: string, require = false) => {
 	if (require && !process.env[value]) {
-		throw new commander.InvalidArgumentError(
+		throw new InvalidArgumentError(
 			`Environment variable "${value}" has no value`
 		);
 	}
