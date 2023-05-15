@@ -10,12 +10,12 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
+import { Stream } from '@concertodao/streamr-client';
 import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
-import { Stream } from 'streamr-client';
 
 import { Plugin, PluginOptions } from '../../Plugin';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';

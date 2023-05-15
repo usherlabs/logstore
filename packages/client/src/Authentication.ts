@@ -1,10 +1,13 @@
+import {
+	PrivateKeyAuthConfig,
+	ProviderAuthConfig,
+} from '@concertodao/streamr-client';
 import type { Signer } from '@ethersproject/abstract-signer';
 import { Web3Provider } from '@ethersproject/providers';
 import { computeAddress } from '@ethersproject/transactions';
 import { Wallet } from '@ethersproject/wallet';
 import { EthereumAddress, toEthereumAddress, wait } from '@streamr/utils';
 import pMemoize from 'p-memoize';
-import { PrivateKeyAuthConfig, ProviderAuthConfig } from 'streamr-client';
 
 import { StrictLogStoreClientConfig } from './Config';
 import { getStreamRegistryChainProviders } from './Ethereum';

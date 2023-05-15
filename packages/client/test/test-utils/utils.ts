@@ -1,6 +1,6 @@
+import { Stream, StreamMetadata } from '@concertodao/streamr-client';
 import { Logger } from '@streamr/utils';
 import crypto from 'crypto';
-import { Stream, StreamMetadata } from 'streamr-client';
 
 import { LogStoreClient } from '../../src/LogStoreClient';
 import { LoggerFactory } from '../../src/utils/LoggerFactory';

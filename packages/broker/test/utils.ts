@@ -3,6 +3,12 @@ import {
 	LogStoreClient,
 	LogStoreClientConfig,
 } from '@concertodao/logstore-client';
+import StreamrClient, {
+	Stream,
+	StreamMetadata,
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
+	StreamrClientConfig,
+} from '@concertodao/streamr-client';
 import { TEST_CONFIG } from '@streamr/network-node';
 import { startTracker, Tracker } from '@streamr/network-tracker';
 import {
@@ -16,12 +22,6 @@ import {
 	createBroker as createStreamrBroker,
 	Broker as StreamrBroker,
 } from 'streamr-broker';
-import StreamrClient, {
-	Stream,
-	StreamMetadata,
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
-	StreamrClientConfig,
-} from 'streamr-client';
 
 import { Broker, createBroker as createLogStoreBroker } from '../src/broker';
 import { Config } from '../src/config/config';

@@ -16,11 +16,14 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertodao/logstore-shared';
+import StreamrClient, {
+	Stream,
+	StreamPermission,
+} from '@concertodao/streamr-client';
 import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { waitForCondition } from '@streamr/utils';
 import { providers, Wallet } from 'ethers';
-import StreamrClient, { Stream, StreamPermission } from 'streamr-client';
 
 import { Broker } from '../../src/broker';
 import {

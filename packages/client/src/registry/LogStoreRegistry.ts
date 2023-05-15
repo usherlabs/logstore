@@ -5,12 +5,12 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertodao/logstore-shared';
+import { Stream, StreamIDBuilder } from '@concertodao/streamr-client';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { min } from 'lodash';
-import { Stream } from 'streamr-client';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
@@ -32,7 +32,6 @@ import {
 	LogStoreClientEvents,
 } from '../events';
 import { LogStoreClient } from '../LogStoreClient';
-import { StreamIDBuilder } from '../StreamIDBuilder';
 import { queryAllReadonlyContracts, waitForTx } from '../utils/contract';
 import { collect } from '../utils/iterators';
 import { LoggerFactory } from '../utils/LoggerFactory';

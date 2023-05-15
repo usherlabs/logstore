@@ -3,9 +3,9 @@
  * Subscriptions are MessageStreams.
  * Not all MessageStreams are Subscriptions.
  */
+import { Message, MessageMetadata } from '@concertodao/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
 import { omit } from 'lodash';
-import { Message, MessageMetadata } from 'streamr-client';
 
 import { convertStreamMessageToMessage } from './Message';
 import * as G from './utils/GeneratorUtils';

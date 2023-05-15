@@ -1,4 +1,4 @@
-import { CONFIG_TEST as STREAMR_CONFIG_TEST } from 'streamr-client';
+import { CONFIG_TEST as STREAMR_CONFIG_TEST } from '@concertodao/streamr-client';
 
 import { LogStoreClientConfig } from './LogStoreClientConfig';
 

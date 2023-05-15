@@ -1,10 +1,11 @@
-import { cloneDeep } from 'lodash';
-import 'reflect-metadata';
 import StreamrClient, {
 	MessageListener,
 	Stream,
 	StreamDefinition,
-} from 'streamr-client';
+	StreamIDBuilder,
+} from '@concertodao/streamr-client';
+import { cloneDeep } from 'lodash';
+import 'reflect-metadata';
 import { container as rootContainer } from 'tsyringe';
 
 import {
@@ -21,12 +22,10 @@ import { LogStoreClientConfig } from './LogStoreClientConfig';
 import { MessageStream } from './MessageStream';
 import { Queries, QueryOptions } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
-import { StreamIDBuilder } from './StreamIDBuilder';
 
 export class LogStoreClient extends StreamrClient {
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
-	private readonly logStoreStreamIdBuilder: StreamIDBuilder;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 
 	constructor(
@@ -51,6 +50,11 @@ export class LogStoreClient extends StreamrClient {
 			useValue: this,
 		});
 
+		// TODO: Pay attention to this
+		container.register(StreamIDBuilder, {
+			useValue: this.streamIdBuilder,
+		});
+
 		container.register(LogStoreClientConfigInjectionToken, {
 			useValue: strictConfig,
 		});
@@ -65,8 +69,6 @@ export class LogStoreClient extends StreamrClient {
 		this.logStoreRegistry =
 			container.resolve<LogStoreRegistry>(LogStoreRegistry);
 
-		this.logStoreStreamIdBuilder =
-			container.resolve<StreamIDBuilder>(StreamIDBuilder);
 		this.logStoreQueries = container.resolve<Queries>(Queries);
 	}
 
@@ -97,7 +99,7 @@ export class LogStoreClient extends StreamrClient {
 		options: QueryOptions,
 		onMessage?: MessageListener
 	): Promise<MessageStream> {
-		const streamPartId = await this.logStoreStreamIdBuilder.toStreamPartID(
+		const streamPartId = await this.streamIdBuilder.toStreamPartID(
 			streamDefinition
 		);
 		const messageStream = await this.logStoreQueries.query(

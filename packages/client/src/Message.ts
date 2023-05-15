@@ -1,5 +1,5 @@
+import { Message } from '@concertodao/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
-import { Message } from 'streamr-client';
 
 export const convertStreamMessageToMessage = (msg: StreamMessage): Message => {
 	return {

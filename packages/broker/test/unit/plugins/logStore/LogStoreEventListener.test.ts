@@ -3,10 +3,10 @@ import {
 	LogStoreClient,
 	LogStoreClientEvents,
 } from '@concertodao/logstore-client';
+import { Stream } from '@concertodao/streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { wait } from '@streamr/utils';
 import { BigNumber } from 'ethers';
-import { Stream } from 'streamr-client';
 
 import { LogStoreEventListener } from '../../../../src/plugins/logStore/LogStoreEventListener';
 

@@ -1,5 +1,5 @@
+import { StreamrClientEvents } from '@concertodao/streamr-client';
 import EventEmitter3 from 'eventemitter3';
-import { StreamrClientEvents } from 'streamr-client';
 import { Lifecycle, scoped } from 'tsyringe';
 
 import { GroupKey } from './encryption/GroupKey';

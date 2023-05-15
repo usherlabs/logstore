@@ -1,5 +1,5 @@
+import { StreamPermission } from '@concertodao/streamr-client';
 import { BigNumber } from '@ethersproject/bignumber';
-import { StreamPermission } from 'streamr-client';
 
 export const streamPermissionToSolidityType = (
 	permission: StreamPermission

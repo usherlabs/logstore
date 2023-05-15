@@ -82,6 +82,9 @@ importers:
       '@concertodao/logstore-shared':
         specifier: workspace:^
         version: link:../shared
+      '@concertodao/streamr-client':
+        specifier: ^8.1.0
+        version: 8.1.0(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5)
       '@ethersproject/abstract-signer':
         specifier: ^5.7.0
         version: 5.7.0
@@ -119,11 +122,11 @@ importers:
         specifier: ^8.0.2
         version: 8.1.0
       ajv:
-        specifier: ^8.12.0
-        version: 8.12.0
+        specifier: 8.8.2
+        version: 8.8.2
       ajv-formats:
         specifier: ^2.1.1
-        version: 2.1.1(ajv@8.12.0)
+        version: 2.1.1(ajv@8.8.2)
       cassandra-driver:
         specifier: ^4.6.4
         version: 4.6.4
@@ -172,9 +175,6 @@ importers:
       sha3:
         specifier: ^2.1.4
         version: 2.1.4
-      streamr-client:
-        specifier: ^8.1
-        version: 8.1.0(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5)
       ts-toolbelt:
         specifier: ^9.6.0
         version: 9.6.0
@@ -351,6 +351,9 @@ importers:
       '@concertodao/logstore-shared':
         specifier: workspace:^
         version: link:../shared
+      '@concertodao/streamr-client':
+        specifier: ^8.1.0
+        version: 8.1.0(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5)
       '@ethersproject/abstract-signer':
         specifier: ^5.7.0
         version: 5.7.0
@@ -388,11 +391,11 @@ importers:
         specifier: ^8.0.2
         version: 8.1.0
       ajv:
-        specifier: ^8.12.0
-        version: 8.12.0
+        specifier: 8.8.2
+        version: 8.8.2
       ajv-formats:
         specifier: ^2.1.1
-        version: 2.1.1(ajv@8.12.0)
+        version: 2.1.1(ajv@8.8.2)
       env-paths:
         specifier: 2.2.1
         version: 2.2.1
@@ -450,9 +453,6 @@ importers:
       sqlite3:
         specifier: ^5.1.6
         version: 5.1.6
-      streamr-client:
-        specifier: ^8.0.2
-        version: 8.1.0(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5)
       strict-event-emitter-types:
         specifier: ^2.0.0
         version: 2.0.0
@@ -460,7 +460,7 @@ importers:
         specifier: ^9.6.0
         version: 9.6.0
       tsyringe:
-        specifier: ^4.7.0
+        specifier: ^4.6.0
         version: 4.7.0
       uuid:
         specifier: ^9.0.0
@@ -2402,6 +2402,70 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@concertodao/streamr-client@8.1.0(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5):
+    resolution: {integrity: sha512-yd9pRqbJMJmnvloGiinRvaW2gMz5fs0d7SiijhvRfJBWEcqRlb22T/7x9tuF5KKmiHfkMsUQRJmPTQ95bP8t1Q==}
+    dependencies:
+      '@babel/runtime': 7.21.0
+      '@babel/runtime-corejs3': 7.21.0
+      '@ethersproject/abi': 5.7.0
+      '@ethersproject/abstract-signer': 5.7.0
+      '@ethersproject/address': 5.7.0
+      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bytes': 5.7.0
+      '@ethersproject/constants': 5.7.0
+      '@ethersproject/contracts': 5.7.0
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@ethersproject/transactions': 5.7.0
+      '@ethersproject/wallet': 5.7.0
+      '@ethersproject/web': 5.7.1
+      '@lit-protocol/lit-node-client': 2.1.50(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)(@types/node@18.15.11)(bufferutil@4.0.7)(typescript@4.9.5)(utf-8-validate@5.0.10)
+      '@streamr/network-node': 8.1.0
+      '@streamr/protocol': 8.1.0
+      '@streamr/utils': 8.1.0
+      ajv: 8.8.2
+      ajv-formats: 2.1.1(ajv@8.8.2)
+      core-js: 3.29.1
+      env-paths: 2.2.1
+      eventemitter3: 4.0.7
+      heap: 0.2.7
+      idb: 7.1.1
+      lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
+      lodash: 4.17.21
+      mem: 8.1.1
+      node-fetch: 2.6.9
+      p-limit: 3.1.0
+      p-memoize: 4.0.3
+      p-throttle: 4.0.0
+      quick-lru: 6.1.1
+      readable-stream: 3.6.2
+      reflect-metadata: 0.1.13
+      secp256k1: 4.0.3
+      sha3: 2.1.4
+      split2: 3.2.2
+      sqlite: 4.1.2
+      sqlite3: 5.1.6
+      strict-event-emitter-types: 2.0.0
+      ts-toolbelt: 9.6.0
+      tsyringe: 4.7.0
+      uuid: 8.3.2
+    optionalDependencies:
+      bufferutil: 4.0.7
+      utf-8-validate: 5.0.10
+    transitivePeerDependencies:
+      - '@ethersproject/hash'
+      - '@react-native-async-storage/async-storage'
+      - '@swc/core'
+      - '@swc/wasm'
+      - '@types/node'
+      - '@web3modal/standalone'
+      - bluebird
+      - debug
+      - encoding
+      - lokijs
+      - supports-color
+      - typescript
+    dev: false
 
   /@confio/ics23@0.6.8:
     resolution: {integrity: sha512-wB6uo+3A50m0sW/EWcU64xpV/8wShZ6bMTa7pF8eYsTrSkQA7oLUIJcs/wb8g4y2Oyq701BaGiO6n/ak5WXO1w==}
@@ -5721,7 +5785,7 @@ packages:
       '@streamr/protocol': 8.1.0
       '@streamr/slackbot': 1.1.0
       '@streamr/utils': 8.1.0
-      ajv: 8.12.0
+      ajv: 8.8.2
       commander: 8.3.0
       compression: 1.7.4
       cors: 2.8.5
@@ -5748,7 +5812,7 @@ packages:
       '@streamr/protocol': 8.1.0-beta.0
       '@streamr/slackbot': 1.1.0
       '@streamr/utils': 8.1.0-beta.0
-      ajv: 8.12.0
+      ajv: 8.8.2
       commander: 8.3.0
       compression: 1.7.4
       cors: 2.8.5
@@ -7412,6 +7476,17 @@ packages:
         optional: true
     dependencies:
       ajv: 8.12.0
+    dev: true
+
+  /ajv-formats@2.1.1(ajv@8.8.2):
+    resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
+    peerDependencies:
+      ajv: ^8.0.0
+    peerDependenciesMeta:
+      ajv:
+        optional: true
+    dependencies:
+      ajv: 8.8.2
 
   /ajv-keywords@3.5.2(ajv@6.12.6):
     resolution: {integrity: sha512-5p6WTN0DdTGVQk6VjcEju19IgaHudalcfabD7yhDGeA6bcQnmL+CpveLJq/3hvfwd1aof6L386Ougkx6RfyMIQ==}
@@ -7440,6 +7515,15 @@ packages:
 
   /ajv@8.12.0:
     resolution: {integrity: sha512-sRu1kpcO9yLtYxBKvqfTeh9KzZEwO3STyX1HT+4CaDzC6HpTGYhIhPIzj9XuKU7KYDwnaeh5hcOwjy1QuJzBPA==}
+    dependencies:
+      fast-deep-equal: 3.1.3
+      json-schema-traverse: 1.0.0
+      require-from-string: 2.0.2
+      uri-js: 4.4.1
+    dev: true
+
+  /ajv@8.8.2:
+    resolution: {integrity: sha512-x9VuX+R/jcFj1DHo/fCp99esgGDWiHENrKxaCENuCxpoMCmAt/COCGVDwA7kleEpEzJjDnvh3yGoOuLu0Dtllw==}
     dependencies:
       fast-deep-equal: 3.1.3
       json-schema-traverse: 1.0.0
@@ -17106,8 +17190,8 @@ packages:
       '@streamr/slackbot': 1.1.0
       '@streamr/utils': 8.1.0-beta.0
       aedes: 0.47.0
-      ajv: 8.12.0
-      ajv-formats: 2.1.1(ajv@8.12.0)
+      ajv: 8.8.2
+      ajv-formats: 2.1.1(ajv@8.8.2)
       cassandra-driver: 4.6.4
       chalk: 4.1.2
       commander: 8.3.0
@@ -17163,8 +17247,8 @@ packages:
       '@streamr/network-node': 8.1.0
       '@streamr/protocol': 8.1.0
       '@streamr/utils': 8.1.0
-      ajv: 8.12.0
-      ajv-formats: 2.1.1(ajv@8.12.0)
+      ajv: 8.8.2
+      ajv-formats: 2.1.1(ajv@8.8.2)
       core-js: 3.29.1
       env-paths: 2.2.1
       eventemitter3: 4.0.7
@@ -17227,8 +17311,8 @@ packages:
       '@streamr/network-node': 8.1.0-beta.0
       '@streamr/protocol': 8.1.0-beta.0
       '@streamr/utils': 8.1.0-beta.0
-      ajv: 8.12.0
-      ajv-formats: 2.1.1(ajv@8.12.0)
+      ajv: 8.8.2
+      ajv-formats: 2.1.1(ajv@8.8.2)
       core-js: 3.29.1
       env-paths: 2.2.1
       eventemitter3: 4.0.7
@@ -17593,7 +17677,7 @@ packages:
     resolution: {integrity: sha512-Y4X9zqrCftUhMeH2EptSSERdVKt/nEdijTOacGD/97EKjhQ/Qs8RTlEGABSJNNN8lac9kheH+af7yAkEWlgneA==}
     engines: {node: '>=10.0.0'}
     dependencies:
-      ajv: 8.12.0
+      ajv: 8.8.2
       lodash.truncate: 4.4.2
       slice-ansi: 4.0.0
       string-width: 4.2.3

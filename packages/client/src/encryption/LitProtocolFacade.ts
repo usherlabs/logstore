@@ -1,9 +1,9 @@
+import { StreamPermission } from '@concertodao/streamr-client';
 import * as LitJsSdk from '@lit-protocol/lit-node-client';
 import { StreamID } from '@streamr/protocol';
 import { Logger, withRateLimit } from '@streamr/utils';
 import { ethers } from 'ethers';
 import * as siwe from 'lit-siwe';
-import { StreamPermission } from 'streamr-client';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {

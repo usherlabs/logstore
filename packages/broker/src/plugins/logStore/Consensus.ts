@@ -6,11 +6,15 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
+import type {
+	Stream,
+	StreamMessage,
+	Subscription,
+} from '@concertodao/streamr-client';
 import { Logger } from '@streamr/utils';
 import { Signer } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
-import type { Stream, StreamMessage, Subscription } from 'streamr-client';
 
 const logger = new Logger(module);
 

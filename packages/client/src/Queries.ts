@@ -1,6 +1,6 @@
+import { StreamPartID } from '@concertodao/streamr-client';
 import { StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
-import { StreamPartID } from 'streamr-client';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
 import {

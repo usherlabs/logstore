@@ -1,7 +1,7 @@
 import { LogStoreClient } from '@concertodao/logstore-client';
+import { Stream } from '@concertodao/streamr-client';
 import { StreamPartID } from '@streamr/protocol';
 import { keyToArrayIndex, Logger } from '@streamr/utils';
-import { Stream } from 'streamr-client';
 
 import { LogStoreEventListener } from './LogStoreEventListener';
 import { LogStorePoller } from './LogStorePoller';

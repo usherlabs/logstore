@@ -1,6 +1,6 @@
 import { LogStoreClient } from '@concertodao/logstore-client';
+import { Stream } from '@concertodao/streamr-client';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
-import { Stream } from 'streamr-client';
 
 const logger = new Logger(module);
 

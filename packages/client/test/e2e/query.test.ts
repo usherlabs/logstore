@@ -8,11 +8,11 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertodao/logstore-shared';
+import { Stream, StreamPermission } from '@concertodao/streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
-import { Stream, StreamPermission } from 'streamr-client';
 
 import { CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';

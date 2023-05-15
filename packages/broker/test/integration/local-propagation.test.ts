@@ -1,8 +1,11 @@
+import StreamrClient, {
+	Stream,
+	StreamPermission,
+} from '@concertodao/streamr-client';
 import { Wallet } from '@ethersproject/wallet';
 import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
-import StreamrClient, { Stream, StreamPermission } from 'streamr-client';
 
 import { Broker } from '../../src/broker';
 import {

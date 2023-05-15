@@ -8,6 +8,7 @@ import {
 	getNodeManagerContract,
 	getQueryManagerContract,
 } from '@concertodao/logstore-shared';
+import { Stream } from '@concertodao/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
 import {
 	Logger,
@@ -19,7 +20,6 @@ import {
 import { ethers, Signer } from 'ethers';
 import { Request, RequestHandler, Response } from 'express';
 import { pipeline, Readable, Transform } from 'stream';
-import { Stream } from 'streamr-client';
 import { v4 as uuid } from 'uuid';
 
 import { StrictConfig } from '../../config/config';

@@ -29,6 +29,7 @@
 		"@babel/runtime-corejs3": "^7.16.3",
 		"@concertodao/logstore-contracts": "workspace:^",
 		"@concertodao/logstore-shared": "workspace:^",
+		"@concertodao/streamr-client": "^8.1.0",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/bytes": "^5.7.0",
@@ -41,7 +42,7 @@
 		"@streamr/network-node": "^8.0.2",
 		"@streamr/protocol": "^8.0.2",
 		"@streamr/utils": "^8.0.2",
-		"ajv": "^8.12.0",
+		"ajv": "8.8.2",
 		"ajv-formats": "^2.1.1",
 		"env-paths": "2.2.1",
 		"ethers": "^5.4.7",
@@ -62,10 +63,9 @@
 		"split2": "^4.2.0",
 		"sqlite": "^4.1.2",
 		"sqlite3": "^5.1.6",
-		"streamr-client": "^8.0.2",
 		"strict-event-emitter-types": "^2.0.0",
 		"ts-toolbelt": "^9.6.0",
-		"tsyringe": "^4.7.0",
+		"tsyringe": "^4.6.0",
 		"uuid": "^9.0.0"
 	},
 	"devDependencies": {
