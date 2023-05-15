@@ -4,9 +4,17 @@ import { runCache as runKyveCache } from '@kyvejs/protocol/dist/src/methods';
 import Listener from './listener';
 
 export async function runCache(this: Validator): Promise<void> {
-	this.logger.debug('Start listener: ', this.home);
+	this.logger.debug(
+		'Start listener: ',
+		this.runtime.config.systemStreamId,
+		this.home
+	);
 
-	this.listener = new Listener(this, this.home);
+	this.listener = new Listener(
+		this,
+		this.runtime.config.systemStreamId,
+		this.home
+	);
 
 	// eslint-disable-next-line
 	this.listener.start();

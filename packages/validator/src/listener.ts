@@ -40,7 +40,11 @@ export default class Listener {
 	private cachePath: string;
 	private _startTime: number;
 
-	constructor(protected core: Validator, homeDir: string) {
+	constructor(
+		protected core: Validator,
+		protected systemStreamId: string,
+		homeDir: string
+	) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		// core.logger.debug('Streamr Config', streamrConfig);
 		this.client = new StreamrClient(streamrConfig);
@@ -72,8 +76,8 @@ export default class Listener {
 		try {
 			// const systemSubscription =
 			this.core.logger.info('Starting listeners ...');
-			this.core.logger.debug(`System Stream Id: `, this.core.systemStreamId);
-			await this.subscribe(this.core.systemStreamId);
+			this.core.logger.debug(`System Stream Id: `, this.systemStreamId);
+			await this.subscribe(this.systemStreamId);
 
 			const dbTypes = Object.values(SystemMessageType);
 			for (let i = 0; i < dbTypes.length; i++) {
