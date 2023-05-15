@@ -1,4 +1,3 @@
-import { getEvmPrivateKey } from '../env-config';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,
@@ -7,6 +6,7 @@ import {
 import { JsonRpcProvider, Provider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 
+import { getEvmPrivateKey } from '../env-config';
 import { getClosestBlockByTime } from '../utils/helpers';
 import { NodeManager } from './NodeManager';
 import { ReportManager } from './ReportManager';

@@ -4,7 +4,7 @@ import {
 } from '@concertodao/logstore-contracts';
 import { BigNumber } from '@ethersproject/bignumber';
 
-import { BrokerNode } from '../types';
+import { IBrokerNode } from '../types';
 import { StakeToken } from '../utils/stake-token';
 
 export class NodeManager {
@@ -17,7 +17,7 @@ export class NodeManager {
 	async getBrokerNodes(
 		blockNumber?: number,
 		minStakeRequirement?: number
-	): Promise<Array<BrokerNode>> {
+	): Promise<Array<IBrokerNode>> {
 		// get all the node addresses
 		const nodeAddresses = await this.contract.nodeAddresses({
 			blockTag: blockNumber,

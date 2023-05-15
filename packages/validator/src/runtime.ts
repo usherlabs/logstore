@@ -1,51 +1,101 @@
+import ContractAddresses from '@concertodao/logstore-contracts/address.json';
+import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, IRuntime, sha256 } from '@kyvejs/protocol';
 
-import { produceItem } from './core/item';
-import { produceReport } from './core/report';
+import { Item } from './core/item';
+import { Report } from './core/report';
 import { appPackageName, appVersion } from './env-config';
-import { Managers } from './managers';
-import { getConfig } from './utils/config';
+import { IConfig } from './types';
 import { reportPrefix } from './utils/constants';
 import Validator from './validator';
 
 export default class Runtime implements IRuntime {
 	public name = appPackageName;
 	public version = appVersion;
+	public config: IConfig = {
+		systemStreamId: '',
+		sources: [],
+		itemTimeRange: 1000,
+		fees: {
+			writeMultiplier: 1,
+			treasuryMultiplier: 0.5, // Consumed from the Brokers by treasury for re-allocation to finance Validators
+			read: 0.00000001, // value in USD
+		},
+	};
+
+	async validateSetConfig(rawConfig: string): Promise<void> {
+		const config: IConfig = JSON.parse(rawConfig);
+
+		if (!config.sources.length) {
+			throw new Error(`Config does not have any sources`);
+		}
+
+		let chainId = null;
+		for (const source of config.sources) {
+			const provider = new JsonRpcProvider(source);
+			const network = await provider.getNetwork();
+			if (typeof chainId !== 'number') {
+				chainId = network.chainId;
+			} else if (chainId !== network.chainId) {
+				throw new Error(
+					`Config sources have different network chain identifiers`
+				);
+			}
+		}
+		const systemContracts = ContractAddresses[chainId];
+		if (typeof systemContracts === 'undefined') {
+			throw new Error(`Config sources have invalid network chain identifier`);
+		}
+
+		if (!config.itemTimeRange) {
+			throw new Error(`Config itemTimeRange is invalid`);
+		}
+
+		if (
+			!config.fees.read ||
+			!config.fees.writeMultiplier ||
+			!config.fees.treasuryMultiplier
+		) {
+			throw new Error(`Config fee properties are invalid`);
+		}
+
+		this.config = {
+			...config,
+			systemStreamId: `${systemContracts.nodeManagerAddress}/system`,
+		};
+	}
 
 	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
-	async getDataItem(
-		core: Validator,
-		source: string,
-		key: string
-	): Promise<DataItem> {
-		core.logger.debug(`getDataItem`, source, key);
-
-		const managers = new Managers(source);
-		await managers.init();
+	async getDataItem(core: Validator, key: string): Promise<DataItem> {
+		core.logger.debug(`getDataItem`, key);
 
 		// IF REPORT
 		if (key.startsWith(reportPrefix)) {
 			core.logger.info(`Create Report: ${key}`);
-			const report = await produceReport(core, managers, key);
+			const report = new Report(core, this.config, key);
+			await report.prepare();
+			const value = await report.generate();
 
 			return {
 				key,
-				value: report,
+				value,
 			};
 		}
 
 		// IF NO REPORT
-		const item = await produceItem(core, managers, key);
+		const item = new Item(core, this.config, key);
+		await item.prepare();
+		const value = await item.generate();
 
 		return {
 			key,
-			value: item,
+			value,
 		};
 	}
 
 	// https://github.com/KYVENetwork/kyvejs/tree/main/common/protocol/src/methods/helpers/saveGetTransformDataItem.ts#L33
-	async prevalidateDataItem(_: Validator, __: DataItem): Promise<boolean> {
-		return true;
+	async prevalidateDataItem(_: Validator, item: DataItem): Promise<boolean> {
+		return !!item.value;
 	}
 
 	// https://github.com/KYVENetwork/kyvejs/tree/main/common/protocol/src/methods/helpers/saveGetTransformDataItem.ts#L44
@@ -89,7 +139,7 @@ export default class Runtime implements IRuntime {
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
 	// https://github.com/KYVENetwork/kyvejs/blob/main/common/protocol/src/methods/main/runCache.ts#L147
 	async nextKey(core: Validator, key: string): Promise<string> {
-		const { itemTimeRange } = getConfig(core);
+		const { itemTimeRange } = this.config;
 
 		if (key.startsWith(reportPrefix)) {
 			key = key.substring(reportPrefix.length, key.length);

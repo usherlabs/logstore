@@ -1,11 +1,8 @@
 import type { QueryOptions } from '@concertodao/logstore-protocol';
 import type { MessageMetadata } from 'streamr-client';
 
-export type PoolConfigContract = {
-	address: string;
-};
-
-export type PoolConfig = {
+export interface IConfig {
+	systemStreamId: string;
 	sources: string[];
 	itemTimeRange: number; // Some range in unix time between each data item
 	fees: {
@@ -13,7 +10,7 @@ export type PoolConfig = {
 		treasuryMultiplier: number;
 		read: number; // Amount in USD cents
 	};
-};
+}
 
 export type ReportEvent = {
 	id: string;
@@ -21,7 +18,7 @@ export type ReportEvent = {
 	size: number;
 };
 
-export type Report = {
+export interface IReport {
 	id: string;
 	height: number;
 	treasury: number;
@@ -46,9 +43,9 @@ export type Report = {
 		})[];
 		storage: ReportEvent[];
 	};
-};
+}
 
-export type BrokerNode = {
+export interface IBrokerNode {
 	id: string;
 	index: number;
 	metadata: string;
@@ -57,7 +54,7 @@ export type BrokerNode = {
 	prev: string;
 	stake: number;
 	delegates: Record<string, number>;
-};
+}
 
 export type StreamrMessage = {
 	// eslint-disable-next-line

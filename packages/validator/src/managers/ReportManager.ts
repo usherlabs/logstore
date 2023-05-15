@@ -1,6 +1,6 @@
 import { LogStoreReportManager } from '@concertodao/logstore-contracts';
 
-import { Report } from '../types';
+import { IReport } from '../types';
 
 export class ReportManager {
 	constructor(private _contract: LogStoreReportManager) {}
@@ -25,7 +25,7 @@ export class ReportManager {
 			delegates[d.id.toString()] = dNodes;
 		});
 
-		const report: Report = {
+		const report: IReport = {
 			id: r.id,
 			height: r.height.toNumber(),
 			treasury: r.treasury.toNumber(),
