@@ -8,6 +8,9 @@
 	"private": false,
 	"types": "./dist/index.d.ts",
 	"main": "./dist/index.js",
+	"files": [
+		"./dist"
+	],
 	"scripts": {
 		"build": "run-s compile types",
 		"clean": "del ./artifacts ./cache ./coverage ./dist ./types ./coverage.json",
@@ -23,7 +26,6 @@
 		"test": "hardhat test",
 		"format": "prettier --write \"**/*.sol\""
 	},
-	"files": [],
 	"keywords": [
 		"blockchain",
 		"ethers",

@@ -8,6 +8,9 @@
 	"private": false,
 	"types": "./dist/types/src/exports.d.ts",
 	"main": "./dist/src/exports.js",
+	"files": [
+		"./dist"
+	],
 	"scripts": {
 		"postbuild": "bash copy-package.sh",
 		"build": "tsc",
