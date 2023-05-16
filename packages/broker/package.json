@@ -2,7 +2,6 @@
 	"name": "@concertodao/logstore-broker",
 	"version": "0.0.1",
 	"description": "Concerto Log Store Broker Node",
-	"main": "src/index.ts",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "SEE LICENSE IN ./LICENSE",
@@ -10,6 +9,10 @@
 	"bin": {
 		"logstore-broker": "./dist/bin/logstore-broker.js"
 	},
+	"main": "src/index.ts",
+	"files": [
+		"./dist"
+	],
 	"scripts": {
 		"build": "del ./dist && tsc",
 		"format": "prettier --write .",
