@@ -1,5 +1,7 @@
 # Log Store Validator Node
 
+The Node is highly dependent on the [Kyve Protocol Node](https://github.com/KYVENetwork/kyvejs/blob/main/common/protocol/README.md).
+
 ## Testing
 
 `pnpm test`
