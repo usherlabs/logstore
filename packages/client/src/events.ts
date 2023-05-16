@@ -2,7 +2,6 @@ import { StreamrClientEvents } from '@concertodao/streamr-client';
 import EventEmitter3 from 'eventemitter3';
 import { Lifecycle, scoped } from 'tsyringe';
 
-import { GroupKey } from './encryption/GroupKey';
 import { LogStoreAssignmentEvent } from './registry/LogStoreRegistry';
 
 type Events<T> = { [K in keyof T]: (payload: any) => void };
@@ -10,8 +9,6 @@ type Events<T> = { [K in keyof T]: (payload: any) => void };
 export interface LogStoreClientEvents extends StreamrClientEvents {
 	addToLogStore: (payload: LogStoreAssignmentEvent) => void;
 	removeFromLogStore: (payload: LogStoreAssignmentEvent) => void;
-	/** @internal */
-	addGroupKey: (groupKey: GroupKey) => void;
 }
 
 // events for internal communication between StreamrClient components

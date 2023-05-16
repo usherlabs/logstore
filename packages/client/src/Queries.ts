@@ -1,22 +1,23 @@
-import { StreamPartID } from '@concertodao/streamr-client';
+import {
+	counting,
+	createSubscribePipeline,
+	DestroySignal,
+	GroupKeyManager,
+	IResends,
+	LoggerFactory,
+	MessageStream,
+	StreamPartID,
+	StreamrClientError,
+	StreamRegistryCached,
+	StrictStreamrClientConfig,
+} from '@concertodao/streamr-client';
 import { StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
-import {
-	LogStoreClientConfigInjectionToken,
-	StrictLogStoreClientConfig,
-} from './Config';
-import { DestroySignal } from './DestroySignal';
-import { GroupKeyManager } from './encryption/GroupKeyManager';
+import { LogStoreClientConfigInjectionToken } from './Config';
 import { HttpUtil } from './HttpUtil';
-import { LogStoreClient } from './LogStoreClient';
-import { MessageStream } from './MessageStream';
 import { NodeManager } from './registry/NodeManager';
-import { StreamrClientError } from './StreamrClientError';
-import { createSubscribePipeline } from './subscribe/subscribePipeline';
-import { counting } from './utils/GeneratorUtils';
-import { LoggerFactory } from './utils/LoggerFactory';
 import { counterId } from './utils/utils';
 
 const MIN_SEQUENCE_NUMBER_VALUE = 0;
@@ -98,19 +99,19 @@ function isQueryRange<T extends QueryRangeOptions>(options: any): options is T {
 }
 
 @scoped(Lifecycle.ContainerScoped)
-export class Queries {
-	private readonly logStoreClient: LogStoreClient;
+export class Queries implements IResends {
+	private readonly streamRegistryCached: StreamRegistryCached;
 	private readonly nodeManager: NodeManager;
 	private readonly httpUtil: HttpUtil;
 	private readonly groupKeyManager: GroupKeyManager;
 	private readonly destroySignal: DestroySignal;
-	private readonly config: StrictLogStoreClientConfig;
+	private readonly config: StrictStreamrClientConfig;
 	private readonly loggerFactory: LoggerFactory;
 	private readonly logger: Logger;
 
 	constructor(
-		@inject(delay(() => LogStoreClient))
-		logStoreClient: LogStoreClient,
+		@inject(delay(() => StreamRegistryCached))
+		streamRegistryCached: StreamRegistryCached,
 		@inject(NodeManager)
 		nodeManager: NodeManager,
 		@inject(HttpUtil)
@@ -120,11 +121,11 @@ export class Queries {
 		@inject(DestroySignal)
 		destroySignal: DestroySignal,
 		@inject(LogStoreClientConfigInjectionToken)
-		config: StrictLogStoreClientConfig,
+		config: StrictStreamrClientConfig,
 		@inject(LoggerFactory)
 		loggerFactory: LoggerFactory
 	) {
-		this.logStoreClient = logStoreClient;
+		this.streamRegistryCached = streamRegistryCached;
 		this.nodeManager = nodeManager;
 		this.httpUtil = httpUtil;
 		this.groupKeyManager = groupKeyManager;
@@ -196,9 +197,9 @@ export class Queries {
 		const url = this.createUrl(nodeUrl, queryType, streamPartId, query);
 		const messageStream = createSubscribePipeline({
 			streamPartId,
-			queries: this,
+			resends: this,
 			groupKeyManager: this.groupKeyManager,
-			logStoreClient: this.logStoreClient,
+			streamRegistryCached: this.streamRegistryCached,
 			destroySignal: this.destroySignal,
 			config: this.config,
 			loggerFactory: this.loggerFactory,

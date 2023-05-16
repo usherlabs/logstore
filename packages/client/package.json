@@ -16,8 +16,8 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"test": "dotenv -e .env jest --",
-		"postbuild": "bash copy-package.sh",
-		"build": "npm run clean; npm run build:node-production && npm run build:browser-production",
+		"build": "pnpm run clean; pnpm run build:node-production",
+		"build:full": "npm run clean; npm run build:node-production && npm run build:browser-production",
 		"clean": "jest --clearCache || true; rm -rf dist  *.tsbuildinfo node_modules/.cache || true",
 		"build:browser-development": "NODE_ENV=development webpack --mode=development --progress",
 		"build:browser-production": "NODE_ENV=production webpack --mode=production --progress",

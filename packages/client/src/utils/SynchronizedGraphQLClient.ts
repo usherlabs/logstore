@@ -1,10 +1,9 @@
+import { Gate, LoggerFactory } from '@concertodao/streamr-client';
 import { Logger, TimeoutError, wait, withTimeout } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 // import { ClientConfigInjectionToken, StrictStreamrClientConfig } from '../Config';
-import { Gate } from './Gate';
 import { GraphQLClient, GraphQLQuery } from './GraphQLClient';
-import { LoggerFactory } from './LoggerFactory';
 
 /*
  * SynchronizedGraphQLClient is used to query The Graph index. It is very similar to the

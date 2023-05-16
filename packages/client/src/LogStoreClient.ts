@@ -1,17 +1,13 @@
 import StreamrClient, {
 	MessageListener,
+	MessageStream,
 	Stream,
 	StreamDefinition,
-	StreamIDBuilder,
 } from '@concertodao/streamr-client';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import { container as rootContainer } from 'tsyringe';
 
-import {
-	AuthenticationInjectionToken,
-	createAuthentication,
-} from './Authentication';
 import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
@@ -19,7 +15,6 @@ import {
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
-import { MessageStream } from './MessageStream';
 import { Queries, QueryOptions } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 
@@ -40,27 +35,18 @@ export class LogStoreClient extends StreamrClient {
 		delete streamrClientConfig.contracts?.logStoreNodeManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
-		super(streamrClientConfig);
+
+		super(streamrClientConfig, container);
 
 		const strictConfig = createStrictConfig(config);
-		const authentication = createAuthentication(strictConfig);
 		redactConfig(strictConfig);
 
 		container.register(LogStoreClient, {
 			useValue: this,
 		});
 
-		// TODO: Pay attention to this
-		container.register(StreamIDBuilder, {
-			useValue: this.streamIdBuilder,
-		});
-
 		container.register(LogStoreClientConfigInjectionToken, {
 			useValue: strictConfig,
-		});
-
-		container.register(AuthenticationInjectionToken, {
-			useValue: authentication,
 		});
 
 		this.logStoreClientEventEmitter =
