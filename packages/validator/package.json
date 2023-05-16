@@ -6,6 +6,7 @@
 	"description": "Concerto Log Store Validator Node",
 	"private": false,
 	"scripts": {
+		"build:release": "del dist && tsc -p ./tsconfig.release.json",
 		"build": "del dist && tsc",
 		"start": "node ./dist/src/index.js",
 		"format": "prettier --write .",
@@ -15,9 +16,12 @@
 		"test": "dotenv -e .env jest --",
 		"run-script": "dotenv -e .env ts-node"
 	},
+	"files": [
+		"./dist"
+	],
 	"main": "./dist/src/index.js",
 	"bin": {
-		"logstore-validator": "./dist/src/index.js"
+		"logstore-validator": "./dist/bin/logstore-validate.js"
 	},
 	"dependencies": {
 		"@concertodao/logstore-client": "workspace:^0.0.1",

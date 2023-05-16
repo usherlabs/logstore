@@ -14,6 +14,3 @@ The following dependencies are not directly imported within this package, howeve
 
 - `bigint-buffer`
 - `@kyvejs/sdk`
-- `aws-sdk`
-- `mock-aws-s3`
-- `nock`
