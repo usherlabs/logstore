@@ -110,16 +110,16 @@ importers:
         specifier: ^5.7.1
         version: 5.7.1
       '@streamr/network-node':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       '@streamr/network-tracker':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       '@streamr/protocol':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       '@streamr/utils':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       ajv:
         specifier: 8.8.2
@@ -189,7 +189,7 @@ importers:
         version: 9.0.0
     devDependencies:
       '@streamr/test-utils':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       '@tsconfig/node16':
         specifier: ^1.0.3
@@ -382,13 +382,13 @@ importers:
         specifier: ^2.1.114
         version: 2.1.114(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)(@types/node@18.15.11)(react@18.2.0)(typescript@4.9.5)
       '@streamr/network-node':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       '@streamr/protocol':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       '@streamr/utils':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       ajv:
         specifier: 8.8.2
@@ -485,7 +485,7 @@ importers:
         specifier: ^7.16.0
         version: 7.16.0(@babel/core@7.21.3)
       '@streamr/test-utils':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       '@tsconfig/node16':
         specifier: ^1.0.3
@@ -897,7 +897,7 @@ importers:
         specifier: 1.0.0-beta.10
         version: 1.0.0-beta.10
       '@streamr/test-utils':
-        specifier: ^8.0.2
+        specifier: ^8.1.0
         version: 8.1.0
       '@streamr/utils':
         specifier: ^8.1.0
