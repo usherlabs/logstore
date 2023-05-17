@@ -15,18 +15,18 @@
 		"ts": "tsc --noEmit",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts"
 	},
-	"bin": "./dist/src/index.js",
-	"prettier": {
-		"singleQuote": true
+	"bin": {
+		"logstore-cli": "./dist/bin/logstore-cli.js"
 	},
+	"files": [
+		"./dist"
+	],
 	"dependencies": {
-		"@concertodao/logstore-contracts": "workspace:^",
 		"@concertodao/logstore-shared": "workspace:^",
 		"chalk": "^4.1.2",
 		"commander": "^10.0.0",
 		"ethers": "^5.7.0",
 		"inquirer": "^8.1.1",
-		"redstone-api": "^0.4.11",
 		"tslog": "^4.8.2"
 	},
 	"devDependencies": {

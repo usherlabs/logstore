@@ -2,8 +2,8 @@
 	"$schema": "https://json.schemastore.org/tsconfig",
 	"display": "Validator",
 	"compilerOptions": {
-		"target": "es6",
 		"module": "commonjs",
+		"target": "es2015",
 		"moduleResolution": "node",
 		"rootDir": ".",
 		"outDir": "dist",
@@ -28,7 +28,7 @@
 			"@tests/*": ["./tests/*"]
 		}
 	},
-	"exclude": ["node_modules", "build", "dist"],
+	"exclude": ["node_modules", "build", "dist", "test"],
 	"include": ["**/*.ts"],
 	"ts-node": {
 		"require": ["tsconfig-paths/register"]

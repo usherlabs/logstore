@@ -1,5 +1,13 @@
 import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
 import {
+	ProofOfMessageStored,
+	QueryRequest,
+	QueryResponse,
+	QueryType,
+	SystemMessage,
+	SystemMessageType,
+} from '@concertodao/logstore-protocol';
+import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
 } from '@concertodao/logstore-shared';
@@ -30,6 +38,8 @@ import { fromString } from 'uint8arrays';
 
 import Listener from '../../src/listener';
 import Runtime from '../../src/runtime';
+import { Arweave } from '../../src/utils/arweave';
+import { StakeToken } from '../../src/utils/stake-token';
 import Validator from '../../src/validator';
 
 const {
@@ -37,8 +47,9 @@ const {
 	KYVE_DEV_HOST = 'localhost',
 	STREAMR_DOCKER_DEV_HOST = 'localhost',
 } = process.env;
-const BROKER_NODE_PRIVATE_KEY =
-	'0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const;
+export const BROKER_NODE_PRIVATE_KEY =
+	process.env.BROKER_NODE_PRIVATE_KEY ||
+	('0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const);
 const MESSAGE_STORE_TIMEOUT = 9 * 1000;
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
@@ -52,8 +63,11 @@ let storageProvider: IStorageProvider;
 let compression: ICompression;
 let publisherClient: LogStoreClient;
 
+const VERSION = 1;
+
+// const storageSerializer = new ProofOfMessageStoredSerializerV1();
 export async function setupTests() {
-	const evmPrivateKey = await fastPrivateKey();
+	const evmPrivateKey = fastPrivateKey();
 	process.env.EVM_PRIVATE_KEY = evmPrivateKey;
 
 	v = new Validator(new Runtime());
@@ -167,7 +181,17 @@ export async function setupTests() {
 	});
 
 	// ? StreamrDevNet uses a Stake token that cannot be found in Redstone, so this will always yield stake token value of 0.01
-	// jest.spyOn(redstone, 'getPrice').mockImplementation((symbols: string[], opts?: GetPriceOptions) => Promise<{ [token: string]: PriceData; }>);
+	// Mock getPrice in Arweave and StakeToken util classes
+	StakeToken.prototype.getPrice = () =>
+		jest.fn(() => {
+			return 0.01; // return a constant for dev tokens in test.
+		});
+	Arweave.getPrice = (byteSize: number) =>
+		jest.fn(() => {
+			// const avgWinstonPerByte = 189781180 / 100000 // as per 13th of May 2023 from https://arweave.net/price/100000
+			const constantWinstonPerByte = 2000; // where 200000000 is required for 100000 bytes
+			return byteSize * constantWinstonPerByte;
+		});
 
 	return v;
 }
@@ -177,7 +201,6 @@ export async function cleanupTests() {
 	register.clear();
 
 	await publisherClient?.destroy();
-
 	await v.listener.stop();
 }
 
@@ -190,16 +213,35 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 			const size = Buffer.byteLength(msgStr, 'utf8');
 			const hash = ethers.keccak256(fromString(sourceStreamId + msgStr + size));
 			console.log(`Publishing storage message:`, msg, { hash, size });
+
+			const content = {
+				id: sourceStreamId,
+				hash,
+				size,
+			};
+			const serializer = SystemMessage.getSerializer(
+				VERSION,
+				SystemMessageType.ProofOfMessageStored
+			);
+
+			const serialisedStorageMessage = serializer.toArray(
+				new ProofOfMessageStored({
+					version: VERSION,
+					streamId: content.id,
+					partition: 0,
+					timestamp: +new Date(),
+					sequenceNumber: 0,
+					size: content.size,
+					hash: content.hash,
+				})
+			);
+
 			await publisherClient.publish(
 				{
 					id: v.systemStreamId,
 					partition: 0,
 				},
-				{
-					id: sourceStreamId,
-					hash,
-					size,
-				}
+				serialisedStorageMessage
 			);
 			await sleep(100);
 		}
@@ -210,10 +252,13 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 	}
 };
 
-export const publishQueryMessages = async (numOfMessages: number) => {
+export const publishQueryMessages = async (
+	numOfMessages: number,
+	brokerNodeCount: number
+) => {
 	const sourceStreamId = v.systemStreamId.replace('/system', '/test');
 	for (const idx of range(numOfMessages)) {
-		const query = { from: { timestamp: 0 }, to: { timestamp: 0 } };
+		const query = { from: { timestamp: 1 }, to: { timestamp: 2 } };
 		const consumer = '0x00000000000';
 		const msg = { messageNo: idx };
 		const queryStr = JSON.stringify(query);
@@ -222,20 +267,64 @@ export const publishQueryMessages = async (numOfMessages: number) => {
 		const hash = ethers.keccak256(
 			fromString(sourceStreamId + queryStr + consumer + msgStr + size)
 		);
+
+		// create one Query request, send it across the stream
+		const content = {
+			id: sourceStreamId,
+			query,
+			consumer,
+			hash,
+			size,
+		};
+		// publish single request to stream
+		const requestSerializer = SystemMessage.getSerializer(
+			VERSION,
+			SystemMessageType.QueryRequest
+		);
+		const serialisedRequest = requestSerializer.toArray(
+			new QueryRequest({
+				requestId: idx,
+				consumerId: content.consumer,
+				streamId: content.id,
+				partition: 0,
+				queryType: QueryType.Range,
+				queryOptions: content.query,
+			})
+		);
 		await publisherClient.publish(
 			{
 				id: v.systemStreamId,
 				partition: 0,
 			},
-			{
-				id: sourceStreamId,
-				query,
-				consumer,
-				hash,
-				size,
-			}
+			serialisedRequest
 		);
-		await sleep(100);
+
+		// publish multiple responses to imitate multiple broker nodes responsible
+		for (const jdx of range(brokerNodeCount)) {
+			// add random wait to account for minor delay/latency
+			await sleep(jdx * 100);
+			// simulate and publish a response to this request
+			const responseSerializer = SystemMessage.getSerializer(
+				VERSION,
+				SystemMessageType.QueryResponse
+			);
+			const serializedResponse = responseSerializer.toArray(
+				new QueryResponse({
+					requestId: idx,
+					size: content.size,
+					hash: content.hash,
+					signature: `test_sig_of_broker_${jdx}`,
+				})
+			);
+
+			await publisherClient.publish(
+				{
+					id: v.systemStreamId,
+					partition: 0,
+				},
+				serializedResponse
+			);
+		}
 	}
 	await wait(MESSAGE_STORE_TIMEOUT);
 };

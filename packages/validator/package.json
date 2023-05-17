@@ -6,9 +6,8 @@
 	"description": "Concerto Log Store Validator Node",
 	"private": false,
 	"scripts": {
+		"build:release": "del dist && tsc -p ./tsconfig.release.json",
 		"build": "del dist && tsc",
-		"bin": "del out && pkg --no-bytecode --public-packages '*' --output out/logstore package.json && node ../../common/core/dist/src/scripts/checksum.js",
-		"build:binaries": "run-s build bin",
 		"start": "node ./dist/src/index.js",
 		"format": "prettier --write .",
 		"start:fresh": "npm-run-all -s build start",
@@ -17,41 +16,29 @@
 		"test": "dotenv -e .env jest --",
 		"run-script": "dotenv -e .env ts-node"
 	},
-	"bin": "./dist/src/index.js",
-	"pkg": {
-		"scripts": "./dist/src/index.js",
-		"assets": "./node_modules/@kyve/sdk/dist/proto/*",
-		"targets": [
-			"latest-linux-x64",
-			"latest-macos-x64"
-		],
-		"outputPath": "out"
-	},
-	"prettier": {
-		"singleQuote": true
+	"files": [
+		"./dist"
+	],
+	"main": "./dist/src/index.js",
+	"bin": {
+		"logstore-validator": "./dist/bin/logstore-validate.js"
 	},
 	"dependencies": {
 		"@concertodao/logstore-client": "workspace:^0.0.1",
 		"@concertodao/logstore-contracts": "workspace:^0.0.1",
+		"@concertodao/logstore-protocol": "workspace:^0.0.1",
 		"@concertodao/logstore-shared": "workspace:^0.0.1",
-		"@ethersproject/contract": "6.0.0-beta.1",
+		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/providers": "^5.7.2",
 		"@ethersproject/wallet": "^5.7.0",
-		"@kyvejs/protocol": "1.0.0-beta.13",
-		"@sentry/node": "^7.13.0",
-		"@sentry/tracing": "^7.13.0",
-		"@streamr/config": "^2.5.8",
-		"arweave": "^1.13.3",
-		"camadb": "^2.0.0",
-		"chokidar": "^3.5.3",
-		"classic-level": "^1.2.0",
+		"@kyvejs/protocol": "1.0.0-beta.20",
+		"arweave": "^1.13.7",
+		"bigint-buffer": "^1.1.5",
 		"commander": "^10.0.0",
 		"ethers": "^6.2.3",
 		"lmdb": "^2.7.11",
 		"lodash": "^4.17.21",
-		"memory-level": "^1.0.0",
 		"redstone-api": "^0.4.11",
-		"reflect-metadata": "^0.1.13",
 		"streamr-client": "^8.1"
 	},
 	"devDependencies": {
@@ -73,7 +60,6 @@
 		"jest": "^29.4.3",
 		"jest-extended": "^3.2.4",
 		"npm-run-all": "^4.1.5",
-		"pkg": "^5.6.0",
 		"prettier": "^2.6.2",
 		"prom-client": "^14.2.0",
 		"resolve-tspaths": "^0.8.0",

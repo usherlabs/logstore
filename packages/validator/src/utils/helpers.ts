@@ -1,3 +1,4 @@
+import { StreamrMessage } from '@/types';
 import { Provider } from '@ethersproject/providers';
 
 /**
@@ -53,4 +54,25 @@ export async function getClosestBlockByTime(
 	}
 
 	return closestBlock;
+}
+
+// go through all the responses recieved and verify using the content.hash property
+// to find a consesnus of all the responses recieved the listener for a particular request
+export function fetchQueryResponseConsensus(arr: StreamrMessage[]) {
+	const result: Record<string, StreamrMessage[]> = {};
+	let maxHash = null;
+	let maxCount = -1;
+	arr.forEach((obj) => {
+		const hash = obj.content.hash;
+		if (!result[hash]) {
+			result[hash] = [obj];
+		} else {
+			result[hash].push(obj);
+		}
+		if (result[hash].length > maxCount) {
+			maxCount = result[hash].length;
+			maxHash = hash;
+		}
+	});
+	return { result, maxHash, maxCount };
 }

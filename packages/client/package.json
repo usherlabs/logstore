@@ -13,6 +13,9 @@
 		"browser": "./dist/browser/logstore-client.web.js",
 		"default": "./dist/src/exports.js"
 	},
+	"files": [
+		"./dist"
+	],
 	"scripts": {
 		"format": "prettier --write .",
 		"test": "dotenv -e .env jest --",

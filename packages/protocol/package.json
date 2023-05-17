@@ -8,8 +8,11 @@
 	"private": false,
 	"types": "./dist/types/src/exports.d.ts",
 	"main": "./dist/src/exports.js",
+	"files": [
+		"./dist"
+	],
 	"scripts": {
-		"build": "tsc",
+		"build": "del ./dist && tsc",
 		"format": "prettier --write .",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},

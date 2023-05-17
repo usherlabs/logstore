@@ -3,6 +3,7 @@ import redstone from 'redstone-api';
 
 export class Arweave {
 	private static _arweaveClient;
+	// private static _arweaveClientBackup;
 
 	private static get arweaveClient(): ArweaveClient {
 		if (!this._arweaveClient) {
@@ -14,10 +15,12 @@ export class Arweave {
 		return this._arweaveClient;
 	}
 
-	public static async getFee(storageId: string) {
-		const tx = await this.arweaveClient.transactions.get(storageId);
+	public static async getPrice(byteSize: number) {
+		const atomicPriceInWinston = await this.arweaveClient.transactions.getPrice(
+			byteSize
+		);
+		const priceInAr = this.arweaveClient.ar.winstonToAr(atomicPriceInWinston);
 		const arPrice = await redstone.getPrice('AR');
-		const arFee = this.arweaveClient.ar.winstonToAr(tx.reward);
-		return parseFloat(arFee) * arPrice.value;
+		return parseFloat(priceInAr) * arPrice.value;
 	}
 }
