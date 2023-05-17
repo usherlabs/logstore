@@ -6,9 +6,12 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
+import StreamrClient, {
+	CONFIG_TEST,
+	MessageMetadata,
+} from '@concertodao/streamr-client';
 import { open, RootDatabase } from 'lmdb';
 import path from 'path';
-import StreamrClient, { CONFIG_TEST, MessageMetadata } from 'streamr-client';
 
 import { useStreamrTestConfig } from './env-config';
 import type { StreamrMessage } from './types';

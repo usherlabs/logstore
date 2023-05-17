@@ -1,5 +1,5 @@
 import type { QueryOptions } from '@concertodao/logstore-protocol';
-import type { MessageMetadata } from 'streamr-client';
+import { MessageMetadata } from '@concertodao/streamr-client';
 
 export interface IConfig {
 	systemStreamId: string;

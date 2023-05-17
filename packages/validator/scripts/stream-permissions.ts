@@ -1,5 +1,5 @@
+import StreamrClient, { CONFIG_TEST } from '@concertodao/streamr-client';
 import 'dotenv/config';
-import { CONFIG_TEST, StreamrClient } from 'streamr-client';
 
 const BROKER_NODE_PRIVATE_KEY =
 	'0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const;
