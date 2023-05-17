@@ -83,8 +83,8 @@ importers:
         specifier: workspace:^
         version: link:../shared
       '@concertodao/streamr-client':
-        specifier: ^8.1.0
-        version: 8.1.0(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5)
+        specifier: file:../../node_artifacts/concertodao-streamr-client-8.1.0.tgz
+        version: file:node_artifacts/concertodao-streamr-client-8.1.0.tgz(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5)
       '@ethersproject/abstract-signer':
         specifier: ^5.7.0
         version: 5.7.0
@@ -352,8 +352,8 @@ importers:
         specifier: workspace:^
         version: link:../shared
       '@concertodao/streamr-client':
-        specifier: ^8.1.0
-        version: 8.1.0(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5)
+        specifier: file:../../node_artifacts/concertodao-streamr-client-8.1.0.tgz
+        version: file:node_artifacts/concertodao-streamr-client-8.1.0.tgz(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5)
       '@ethersproject/abstract-signer':
         specifier: ^5.7.0
         version: 5.7.0
@@ -2402,70 +2402,6 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
-
-  /@concertodao/streamr-client@8.1.0(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5):
-    resolution: {integrity: sha512-0otWYbgV6ipvQfngf0KLZ9egV5IGIpOjS7Cv9kIq/Eny4oio7O49fJNV3OVnYBNxGoJlOiInfc3z9BzWI51eOQ==}
-    dependencies:
-      '@babel/runtime': 7.21.0
-      '@babel/runtime-corejs3': 7.21.0
-      '@ethersproject/abi': 5.7.0
-      '@ethersproject/abstract-signer': 5.7.0
-      '@ethersproject/address': 5.7.0
-      '@ethersproject/bignumber': 5.7.0
-      '@ethersproject/bytes': 5.7.0
-      '@ethersproject/constants': 5.7.0
-      '@ethersproject/contracts': 5.7.0
-      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      '@ethersproject/transactions': 5.7.0
-      '@ethersproject/wallet': 5.7.0
-      '@ethersproject/web': 5.7.1
-      '@lit-protocol/lit-node-client': 2.1.50(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)(@types/node@18.15.11)(bufferutil@4.0.7)(typescript@4.9.5)(utf-8-validate@5.0.10)
-      '@streamr/network-node': 8.1.0
-      '@streamr/protocol': 8.1.0
-      '@streamr/utils': 8.1.0
-      ajv: 8.8.2
-      ajv-formats: 2.1.1(ajv@8.8.2)
-      core-js: 3.29.1
-      env-paths: 2.2.1
-      eventemitter3: 4.0.7
-      heap: 0.2.7
-      idb: 7.1.1
-      lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
-      lodash: 4.17.21
-      mem: 8.1.1
-      node-fetch: 2.6.9
-      p-limit: 3.1.0
-      p-memoize: 4.0.3
-      p-throttle: 4.0.0
-      quick-lru: 6.1.1
-      readable-stream: 3.6.2
-      reflect-metadata: 0.1.13
-      secp256k1: 4.0.3
-      sha3: 2.1.4
-      split2: 3.2.2
-      sqlite: 4.1.2
-      sqlite3: 5.1.6
-      strict-event-emitter-types: 2.0.0
-      ts-toolbelt: 9.6.0
-      tsyringe: 4.7.0
-      uuid: 8.3.2
-    optionalDependencies:
-      bufferutil: 4.0.7
-      utf-8-validate: 5.0.10
-    transitivePeerDependencies:
-      - '@ethersproject/hash'
-      - '@react-native-async-storage/async-storage'
-      - '@swc/core'
-      - '@swc/wasm'
-      - '@types/node'
-      - '@web3modal/standalone'
-      - bluebird
-      - debug
-      - encoding
-      - lokijs
-      - supports-color
-      - typescript
-    dev: false
 
   /@confio/ics23@0.6.8:
     resolution: {integrity: sha512-wB6uo+3A50m0sW/EWcU64xpV/8wShZ6bMTa7pF8eYsTrSkQA7oLUIJcs/wb8g4y2Oyq701BaGiO6n/ak5WXO1w==}
@@ -19201,6 +19137,73 @@ packages:
     dependencies:
       ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
     dev: true
+
+  file:node_artifacts/concertodao-streamr-client-8.1.0.tgz(@ethersproject/hash@5.7.0)(@types/node@18.15.11)(typescript@4.9.5):
+    resolution: {integrity: sha512-Hs6Z2zEiY73fNWOXX8POULeOX91q9X7LVzX6Io3ohJQ9Bb4CL/kB7ZFJBUKtNB6uqAf3+m/o7tbknqCRTw4+cQ==, tarball: file:node_artifacts/concertodao-streamr-client-8.1.0.tgz}
+    id: file:node_artifacts/concertodao-streamr-client-8.1.0.tgz
+    name: '@concertodao/streamr-client'
+    version: 8.1.0
+    dependencies:
+      '@babel/runtime': 7.21.0
+      '@babel/runtime-corejs3': 7.21.0
+      '@ethersproject/abi': 5.7.0
+      '@ethersproject/abstract-signer': 5.7.0
+      '@ethersproject/address': 5.7.0
+      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bytes': 5.7.0
+      '@ethersproject/constants': 5.7.0
+      '@ethersproject/contracts': 5.7.0
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@ethersproject/transactions': 5.7.0
+      '@ethersproject/wallet': 5.7.0
+      '@ethersproject/web': 5.7.1
+      '@lit-protocol/lit-node-client': 2.1.50(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)(@types/node@18.15.11)(bufferutil@4.0.7)(typescript@4.9.5)(utf-8-validate@5.0.10)
+      '@streamr/network-node': 8.1.0
+      '@streamr/protocol': 8.1.0
+      '@streamr/utils': 8.1.0
+      ajv: 8.8.2
+      ajv-formats: 2.1.1(ajv@8.8.2)
+      core-js: 3.29.1
+      env-paths: 2.2.1
+      eventemitter3: 4.0.7
+      heap: 0.2.7
+      idb: 7.1.1
+      lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
+      lodash: 4.17.21
+      mem: 8.1.1
+      node-fetch: 2.6.9
+      p-limit: 3.1.0
+      p-memoize: 4.0.3
+      p-throttle: 4.0.0
+      quick-lru: 6.1.1
+      readable-stream: 3.6.2
+      reflect-metadata: 0.1.13
+      secp256k1: 4.0.3
+      sha3: 2.1.4
+      split2: 3.2.2
+      sqlite: 4.1.2
+      sqlite3: 5.1.6
+      strict-event-emitter-types: 2.0.0
+      ts-toolbelt: 9.6.0
+      tsyringe: 4.7.0
+      uuid: 8.3.2
+    optionalDependencies:
+      bufferutil: 4.0.7
+      utf-8-validate: 5.0.10
+    transitivePeerDependencies:
+      - '@ethersproject/hash'
+      - '@react-native-async-storage/async-storage'
+      - '@swc/core'
+      - '@swc/wasm'
+      - '@types/node'
+      - '@web3modal/standalone'
+      - bluebird
+      - debug
+      - encoding
+      - lokijs
+      - supports-color
+      - typescript
+    dev: false
 
   github.com/Bundlr-Network/avsc/a730cc8018b79e114b6a3381bbb57760a24c6cef:
     resolution: {tarball: https://codeload.github.com/Bundlr-Network/avsc/tar.gz/a730cc8018b79e114b6a3381bbb57760a24c6cef}

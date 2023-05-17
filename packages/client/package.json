@@ -29,7 +29,7 @@
 		"@babel/runtime-corejs3": "^7.16.3",
 		"@concertodao/logstore-contracts": "workspace:^",
 		"@concertodao/logstore-shared": "workspace:^",
-		"@concertodao/streamr-client": "^8.1.0",
+		"@concertodao/streamr-client": "file:../../node_artifacts/concertodao-streamr-client-8.1.0.tgz",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/bytes": "^5.7.0",
