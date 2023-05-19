@@ -1,14 +1,14 @@
 import {
 	LogStoreAssignmentEvent,
 	LogStoreClient,
+	Stream,
 } from '@concertodao/logstore-client';
-import { Stream } from '@concertodao/streamr-client';
 import { Logger } from '@streamr/utils';
 
 const logger = new Logger(module);
 
 /**
- * Hooks up to StreamrClient event listener to learn about
+ * Hooks up to LogStoreClient event listener to learn about
  * stream assignment and removal events in real-time.
  */
 export class LogStoreEventListener {

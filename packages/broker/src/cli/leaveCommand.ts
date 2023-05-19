@@ -1,5 +1,5 @@
+import { PrivateKeyAuthConfig } from '@concertodao/logstore-client';
 import { getNodeManagerContract } from '@concertodao/logstore-shared';
-import { PrivateKeyAuthConfig } from '@concertodao/streamr-client';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
 

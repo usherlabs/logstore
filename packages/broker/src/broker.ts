@@ -1,11 +1,9 @@
 import {
 	LogStoreClient,
-	validateConfig as validateClientConfig,
-} from '@concertodao/logstore-client';
-import {
 	NetworkNodeStub,
 	PrivateKeyAuthConfig,
-} from '@concertodao/streamr-client';
+	validateConfig as validateClientConfig,
+} from '@concertodao/logstore-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { Server as HttpServer } from 'http';

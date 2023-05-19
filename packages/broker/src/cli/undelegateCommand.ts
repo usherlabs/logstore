@@ -1,8 +1,8 @@
+import { PrivateKeyAuthConfig } from '@concertodao/logstore-client';
 import {
 	getNodeManagerContract,
-	prepareStakeForNodeManager,
+	prepareStakeForNodeManager
 } from '@concertodao/logstore-shared';
-import { PrivateKeyAuthConfig } from '@concertodao/streamr-client';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
 
@@ -11,7 +11,7 @@ import {
 	amountArgument,
 	configOption,
 	delegateAddressArgument,
-	usdOption,
+	usdOption
 } from './options';
 import { allowanceConfirm } from './utils';
 

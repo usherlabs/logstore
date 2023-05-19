@@ -2,6 +2,8 @@ import {
 	CONFIG_TEST,
 	LogStoreClient,
 	NodeMetadata,
+	Stream,
+	StreamPermission,
 } from '@concertodao/logstore-client';
 import {
 	LogStoreManager,
@@ -16,10 +18,6 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertodao/logstore-shared';
-import StreamrClient, {
-	Stream,
-	StreamPermission,
-} from '@concertodao/streamr-client';
 import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { waitForCondition } from '@streamr/utils';
@@ -28,7 +26,6 @@ import { providers, Wallet } from 'ethers';
 import { Broker } from '../../src/broker';
 import {
 	createLogStoreClient,
-	createStreamrClient,
 	createTestStream,
 	sleep,
 	startLogStoreBroker,
@@ -57,7 +54,7 @@ describe('Consensus', () => {
 	const logStoreBrokers: Broker[] = [];
 
 	// Clients
-	let publisherClient: StreamrClient;
+	let publisherClient: LogStoreClient;
 	let consumerClient: LogStoreClient;
 
 	// Contracts
@@ -116,7 +113,7 @@ describe('Consensus', () => {
 				})
 			);
 		}
-		publisherClient = await createStreamrClient(
+		publisherClient = await createLogStoreClient(
 			tracker,
 			publisherAccount.privateKey
 		);

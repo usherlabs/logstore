@@ -1,3 +1,8 @@
+import type {
+	Stream,
+	StreamMessage,
+	Subscription,
+} from '@concertodao/logstore-client';
 import { LogStoreClient } from '@concertodao/logstore-client';
 import { LogStoreNodeManager } from '@concertodao/logstore-contracts';
 import {
@@ -6,11 +11,6 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
-import type {
-	Stream,
-	StreamMessage,
-	Subscription,
-} from '@concertodao/streamr-client';
 import { Logger } from '@streamr/utils';
 import { Signer } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';

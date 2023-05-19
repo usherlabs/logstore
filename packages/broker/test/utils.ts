@@ -2,13 +2,10 @@ import {
 	CONFIG_TEST as LOGSTORE_CONFIG_TEST,
 	LogStoreClient,
 	LogStoreClientConfig,
-} from '@concertodao/logstore-client';
-import StreamrClient, {
 	Stream,
 	StreamMetadata,
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
-	StreamrClientConfig,
-} from '@concertodao/streamr-client';
+} from '@concertodao/logstore-client';
 import { TEST_CONFIG } from '@streamr/network-node';
 import { startTracker, Tracker } from '@streamr/network-tracker';
 import {
@@ -168,28 +165,6 @@ export const createEthereumAddress = (id: number): EthereumAddress => {
 	return toEthereumAddress('0x' + _.padEnd(String(id), 40, '0'));
 };
 
-export const createStreamrClient = async (
-	tracker: Tracker,
-	privateKey: string,
-	clientOptions?: StreamrClientConfig
-): Promise<StreamrClient> => {
-	const networkOptions = {
-		...STREAMR_CONFIG_TEST?.network,
-		trackers: [tracker.getConfigRecord()],
-		...clientOptions?.network,
-	};
-
-	return new StreamrClient({
-		...STREAMR_CONFIG_TEST,
-		logLevel: 'trace',
-		auth: {
-			privateKey,
-		},
-		network: networkOptions,
-		...clientOptions,
-	});
-};
-
 export const createLogStoreClient = async (
 	tracker: Tracker,
 	privateKey: string,
@@ -219,17 +194,17 @@ export const getTestName = (module: NodeModule): string => {
 };
 
 export const createTestStream = async (
-	streamrClient: StreamrClient,
+	logStoreClient: LogStoreClient,
 	module: NodeModule,
 	props?: Partial<StreamMetadata>
 ): Promise<Stream> => {
 	const id =
-		(await streamrClient.getAddress()) +
+		(await logStoreClient.getAddress()) +
 		'/test/' +
 		getTestName(module) +
 		'/' +
 		Date.now();
-	const stream = await streamrClient.createStream({
+	const stream = await logStoreClient.createStream({
 		id,
 		...props,
 	});

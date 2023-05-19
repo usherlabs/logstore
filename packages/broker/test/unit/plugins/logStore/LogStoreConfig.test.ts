@@ -2,8 +2,8 @@ import {
 	LogStoreAssignmentEvent,
 	LogStoreClient,
 	LogStoreClientEvents,
+	Stream,
 } from '@concertodao/logstore-client';
-import { Stream } from '@concertodao/streamr-client';
 import {
 	StreamPartID,
 	StreamPartIDUtils,

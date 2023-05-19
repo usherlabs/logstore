@@ -1,4 +1,9 @@
-import { CONFIG_TEST, NodeMetadata } from '@concertodao/logstore-client';
+import {
+	CONFIG_TEST,
+	LogStoreClient,
+	NodeMetadata,
+	Stream,
+} from '@concertodao/logstore-client';
 import {
 	LogStoreManager,
 	LogStoreNodeManager,
@@ -9,7 +14,6 @@ import {
 	prepareStakeForNodeManager,
 	prepareStakeForStoreManager,
 } from '@concertodao/logstore-shared';
-import StreamrClient, { Stream } from '@concertodao/streamr-client';
 import { Tracker } from '@streamr/network-tracker';
 import { StreamMessage } from '@streamr/protocol';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
@@ -19,7 +23,7 @@ import { providers, Wallet } from 'ethers';
 
 import { Broker } from '../../../../src/broker';
 import {
-	createStreamrClient,
+	createLogStoreClient,
 	createTestStream,
 	sleep,
 	startLogStoreBroker,
@@ -52,7 +56,7 @@ describe('LogStoreConfig', () => {
 	let logStoreBroker: Broker;
 
 	// Clients
-	let publisherClient: StreamrClient;
+	let publisherClient: LogStoreClient;
 	let cassandraClient: Client;
 
 	// Contracts
@@ -107,7 +111,7 @@ describe('LogStoreConfig', () => {
 			keyspace,
 		});
 
-		publisherClient = await createStreamrClient(
+		publisherClient = await createLogStoreClient(
 			tracker,
 			publisherAccount.privateKey
 		);
