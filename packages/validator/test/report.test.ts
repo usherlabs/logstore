@@ -14,7 +14,7 @@ import {
 
 const TIMEOUT = 900 * 1000;
 const PUBLISH_MESSAGE_COUNT = 15;
-const brokerNodeAddress = ethers.computeAddress(BROKER_NODE_PRIVATE_KEY);
+const brokerNodeAddress = ethers.utils.computeAddress(BROKER_NODE_PRIVATE_KEY);
 
 describe('Report', () => {
 	let v: Validator;

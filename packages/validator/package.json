@@ -35,7 +35,7 @@
 		"arweave": "^1.13.7",
 		"bigint-buffer": "^1.1.5",
 		"commander": "^10.0.0",
-		"ethers": "^6.2.3",
+		"ethers": "^5",
 		"lmdb": "^2.7.11",
 		"lodash": "^4.17.21",
 		"redstone-api": "^0.4.11",

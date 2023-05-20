@@ -13,8 +13,6 @@ import {
 } from '@concertodao/logstore-shared';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
-// import { createTestStream } from '@concertodao/logstore-client/dist/test/test-utils/utils';
-// import { BigNumber } from '@ethersproject/bignumber';
 import {
 	ICacheProvider,
 	ICompression,
@@ -29,7 +27,6 @@ import { fastPrivateKey } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { range } from 'lodash';
-// import { MemoryLevel } from 'memory-level';
 import path from 'path';
 import { register } from 'prom-client';
 import { ILogObject, Logger } from 'tslog';
@@ -55,7 +52,6 @@ function sleep(ms: number) {
 
 let processExit: jest.Mock<never, never>;
 
-// let cacheProvider: ICacheProvider;
 let v: Validator;
 let storageProvider: IStorageProvider;
 let cacheProvider: ICacheProvider;
@@ -64,7 +60,6 @@ let publisherClient: LogStoreClient;
 
 const VERSION = 1;
 
-// const storageSerializer = new ProofOfMessageStoredSerializerV1();
 export async function setupTests() {
 	const evmPrivateKey = fastPrivateKey();
 	process.env.EVM_PRIVATE_KEY = evmPrivateKey;
@@ -159,15 +154,29 @@ export async function setupTests() {
 	const provider = new JsonRpcProvider(
 		`http://${STREAMR_DOCKER_DEV_HOST}:8546` // tunnel to remote server
 	);
+	await provider.ready;
 	const signer = new Wallet(BROKER_NODE_PRIVATE_KEY, provider);
 	const nodeManagerContract = await getNodeManagerContract(signer);
+	const nodeAddresses = await nodeManagerContract.nodeAddresses();
+	const nodeExists = nodeAddresses.includes(signer.address);
 	const isStaked = await nodeManagerContract.isStaked(signer.address);
+
+	console.log(`${signer.address} ${nodeExists ? 'exists' : 'DOES NOT exist'}!`);
 	console.log(`${signer.address} is ${isStaked ? 'already' : 'NOT'} staked!`);
+
 	if (!isStaked) {
 		const stakeAmount = await prepareStakeForNodeManager(signer, 10000, false);
-		await (
-			await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
-		).wait();
+		if (nodeExists) {
+			console.log(`${signer.address} will stake and delegate`);
+			await (
+				await nodeManagerContract.stakeAndDelegate(stakeAmount, signer.address)
+			).wait();
+		} else {
+			console.log(`${signer.address} will join`);
+			await (
+				await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
+			).wait();
+		}
 	}
 	console.log('Provider Latest Block: ', await provider.getBlockNumber());
 
@@ -212,7 +221,9 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 			const msg = { messageNo: idx };
 			const msgStr = JSON.stringify(msg);
 			const size = Buffer.byteLength(msgStr, 'utf8');
-			const hash = ethers.keccak256(fromString(sourceStreamId + msgStr + size));
+			const hash = ethers.utils.keccak256(
+				fromString(sourceStreamId + msgStr + size)
+			);
 			console.log(`Publishing storage message:`, msg, { hash, size });
 
 			const content = {
@@ -266,7 +277,7 @@ export const publishQueryMessages = async (
 		const queryStr = JSON.stringify(query);
 		const msgStr = JSON.stringify(msg);
 		const size = Buffer.byteLength(msgStr, 'utf8');
-		const hash = ethers.keccak256(
+		const hash = ethers.utils.keccak256(
 			fromString(sourceStreamId + queryStr + consumer + msgStr + size)
 		);
 

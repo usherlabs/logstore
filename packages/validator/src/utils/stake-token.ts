@@ -28,13 +28,13 @@ export class StakeToken {
 		}
 		return Math.floor(
 			parseInt(
-				ethers
+				ethers.utils
 					.parseUnits(
 						// reduce precision to max allowed to prevent errors
 						`${(usdValue / this.price).toPrecision(15)}`,
 						this.decimals
 					)
-					.toString(10), // radix 10
+					.toString(),
 				10
 			)
 		);
