@@ -6,8 +6,7 @@
 	"description": "Concerto Log Store Validator Node",
 	"private": false,
 	"scripts": {
-		"build:release": "del dist && tsc -p ./tsconfig.release.json",
-		"build": "del dist && tsc",
+		"build": "del dist && tsc -p ./tsconfig.release.json",
 		"start": "node ./dist/src/index.js",
 		"format": "prettier --write .",
 		"start:fresh": "npm-run-all -s build start",

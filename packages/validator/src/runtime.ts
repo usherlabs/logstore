@@ -47,19 +47,8 @@ export default class Runtime implements IRuntime {
 			throw new Error(`Config sources have invalid network chain identifier`);
 		}
 
-		if (!config.itemTimeRange) {
-			throw new Error(`Config itemTimeRange is invalid`);
-		}
-
-		if (
-			!config.fees.read ||
-			!config.fees.writeMultiplier ||
-			!config.fees.treasuryMultiplier
-		) {
-			throw new Error(`Config fee properties are invalid`);
-		}
-
 		this.config = {
+			...this.config,
 			...config,
 			systemStreamId: `${systemContracts.nodeManagerAddress}/system`,
 		};

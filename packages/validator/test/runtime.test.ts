@@ -25,6 +25,7 @@ describe('Runtime', () => {
 			v.pool = {
 				...genesis_pool,
 			} as any;
+			await v['runtime'].validateSetConfig(v.pool.data!.config);
 			// ACT
 			await runCache.call(v);
 			expect(v['cacheProvider'].put).toHaveBeenCalledTimes(3);

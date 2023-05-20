@@ -34,15 +34,13 @@ describe('Report', () => {
 			v.pool = {
 				...genesis_pool,
 			} as any;
-
-			// ACT
-			// Setup config
-			await v['syncPoolState'](true);
+			await v['runtime'].validateSetConfig(v.pool.data!.config);
 			v.listener = new Listener(
-				v,
 				v['runtime'].config.systemStreamId,
-				v['home']
+				v['home'],
+				v['logger']
 			);
+			// ACT
 			await v.listener.start();
 
 			const brokerNodeCount = 2;

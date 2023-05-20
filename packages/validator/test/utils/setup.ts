@@ -165,14 +165,23 @@ export async function setupTests() {
 	console.log(`${signer.address} is ${isStaked ? 'already' : 'NOT'} staked!`);
 
 	if (!isStaked) {
-		const stakeAmount = await prepareStakeForNodeManager(signer, 10000, false);
+		const stakeRequiredAmount = await nodeManagerContract.stakeRequiredAmount();
+		const stakeAmount = await prepareStakeForNodeManager(
+			signer,
+			stakeRequiredAmount.toBigInt(),
+			false
+		);
 		if (nodeExists) {
-			console.log(`${signer.address} will stake and delegate`);
+			console.log(
+				`${
+					signer.address
+				} will stake and delegate with ${stakeAmount.toString()}`
+			);
 			await (
 				await nodeManagerContract.stakeAndDelegate(stakeAmount, signer.address)
 			).wait();
 		} else {
-			console.log(`${signer.address} will join`);
+			console.log(`${signer.address} will join with ${stakeAmount.toString()}`);
 			await (
 				await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
 			).wait();

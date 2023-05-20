@@ -9,10 +9,10 @@ import {
 import { open, RootDatabase } from 'lmdb';
 import path from 'path';
 import StreamrClient, { CONFIG_TEST, MessageMetadata } from 'streamr-client';
+import type { Logger } from 'tslog';
 
 import { useStreamrTestConfig } from './env-config';
 import type { StreamrMessage } from './types';
-import type Validator from './validator';
 
 // -------------> usual storage of QueryRequest and POS in listener cache
 // timestamp(number)|requestId(string) => [{content, metadata},{content, metadata}]
@@ -41,9 +41,9 @@ export default class Listener {
 	private _startTime: number;
 
 	constructor(
-		protected core: Validator,
 		protected systemStreamId: string,
-		homeDir: string
+		homeDir: string,
+		protected logger: Logger
 	) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		// core.logger.debug('Streamr Config', streamrConfig);
@@ -75,20 +75,21 @@ export default class Listener {
 	public async start(): Promise<void> {
 		try {
 			// const systemSubscription =
-			this.core.logger.info('Starting listeners ...');
-			this.core.logger.debug(`System Stream Id: `, this.systemStreamId);
+			this.logger.info('Starting listeners ...');
+			this.logger.debug(`System Stream Id: `, this.systemStreamId);
 			await this.subscribe(this.systemStreamId);
 
-			const dbTypes = Object.values(SystemMessageType);
-			for (let i = 0; i < dbTypes.length; i++) {
-				await this.db(dbTypes[i] as SystemMessageType).drop();
-			}
+			await Promise.all([
+				this.storeDb().drop(),
+				this.queryRequestDb().drop(),
+				this.queryResponseDb().drop(),
+			]);
 
 			// Store a timestamp for when the listener starts so that the Node must have a timestamp < bundle_start_key to pariticpate.
 			this._startTime = Date.now();
 		} catch (e) {
-			this.core.logger.error(`Unexpected error starting listener...`);
-			this.core.logger.error(e);
+			this.logger.error(`Unexpected error starting listener...`);
+			this.logger.error(e);
 			throw e; // Fail if there's an issue with listening to data critical to performance of validator.
 		}
 	}
@@ -147,7 +148,7 @@ export default class Listener {
 				const proof = parsedContent as ProofOfMessageStored;
 				const key = proof.timestamp;
 
-				this.core.logger.debug('ProofOfMessageStored', {
+				this.logger.debug('ProofOfMessageStored', {
 					key,
 					value: { content, metadata },
 				});
@@ -176,7 +177,7 @@ export default class Listener {
 				// Query requests can use point at which broker publishes message because only a single broker will ever emit a query request message
 				const db = this.queryRequestDb();
 				const key = metadata.timestamp;
-				this.core.logger.debug('QueryRequest', {
+				this.logger.debug('QueryRequest', {
 					key,
 					value: { content, metadata },
 				});
