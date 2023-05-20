@@ -1,7 +1,6 @@
 import { ethers } from 'ethers';
 
 import { Report } from '../src/core/report';
-import Listener from '../src/listener';
 import Validator from '../src/validator';
 import { genesis_pool } from './mocks/constants';
 import { BROKER_NODE_PRIVATE_KEY } from './utils/setup';
@@ -35,14 +34,9 @@ describe('Report', () => {
 				...genesis_pool,
 			} as any;
 			await v['runtime'].validateSetConfig(v.pool.data!.config);
-			v.listener = new Listener(
-				v['runtime'].config.systemStreamId,
-				v['home'],
-				v['logger']
-			);
-			// ACT
-			await v.listener.start();
+			v['runtime'].setupThreads(v, v['home']);
 
+			// ACT
 			const brokerNodeCount = 2;
 			await publishStorageMessages(PUBLISH_MESSAGE_COUNT); // these messages are being fired after the current key...
 			await publishQueryMessages(PUBLISH_MESSAGE_COUNT, brokerNodeCount);
@@ -55,9 +49,9 @@ describe('Report', () => {
 			} as any;
 			// Re-initate the Validator now that the listener has started.
 
-			const storeCache = v.listener.storeDb();
-			const queryRequestCache = v.listener.queryRequestDb();
-			const queryResponseCache = v.listener.queryResponseDb();
+			const storeCache = v['runtime'].listener.storeDb();
+			const queryRequestCache = v['runtime'].listener.queryRequestDb();
+			const queryResponseCache = v['runtime'].listener.queryResponseDb();
 			// Implement AsyncIterable into Mock
 			let storeCacheCount = 0;
 			for (const { key: _k, value: _v } of storeCache.getRange()) {
@@ -78,7 +72,12 @@ describe('Report', () => {
 				PUBLISH_MESSAGE_COUNT * brokerNodeCount
 			);
 
-			const report = new Report(v, v['runtime'].config, currentKey);
+			const report = new Report(
+				v,
+				v['runtime'].listener,
+				v['runtime'].config,
+				currentKey
+			);
 			await report.prepare();
 			const value = await report.generate();
 

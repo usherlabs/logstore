@@ -75,6 +75,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		const {
 			core,
+			listener,
 			key,
 			config: { fees },
 		} = this;
@@ -155,7 +156,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		// ------------ STORAGE ------------
 		// Use events in the listener cache to determine which events are valid.
-		const storeCache = core.listener.storeDb();
+		const storeCache = listener.storeDb();
 		// a mapping of "contentHash => [[timestamp, valueIndex], [timestamp, valueIndex]]"
 		// With this mapping, we can determine which events in the storeCache pertain to the ProofOfMessageStored hash - and therefore which publishers/brokers contributed.
 		const storeHashKeyMap: Record<string, [number, number][]> = {};
@@ -276,8 +277,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// -------------------------------------
 
 		// ------------ QUERIES ----------------
-		const queryRequestCache = core.listener.queryRequestDb();
-		const queryResponseCache = core.listener.queryResponseDb();
+		const queryRequestCache = listener.queryRequestDb();
+		const queryResponseCache = listener.queryResponseDb();
 		// Iterate over the query-request events between the range
 		const queryRequestCachedItems = queryRequestCache.getRange({
 			start: fromKey,

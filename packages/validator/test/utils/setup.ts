@@ -217,8 +217,8 @@ export async function cleanupTests() {
 	register.clear();
 
 	await publisherClient?.destroy();
-	if (v.listener) {
-		await v.listener.stop();
+	if (v['runtime'].listener) {
+		await v['runtime'].listener.stop();
 	}
 }
 
