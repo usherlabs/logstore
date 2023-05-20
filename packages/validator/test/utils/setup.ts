@@ -16,11 +16,10 @@ import { Wallet } from '@ethersproject/wallet';
 // import { createTestStream } from '@concertodao/logstore-client/dist/test/test-utils/utils';
 // import { BigNumber } from '@ethersproject/bignumber';
 import {
-	// ICacheProvider,
+	ICacheProvider,
 	ICompression,
 	IStorageProvider,
 } from '@kyvejs/protocol';
-import { setupMetrics } from '@kyvejs/protocol/src/methods';
 import { TestCacheProvider } from '@kyvejs/protocol/test/mocks/cache.mock';
 import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
@@ -36,7 +35,6 @@ import { register } from 'prom-client';
 import { ILogObject, Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
 
-import Listener from '../../src/listener';
 import Runtime from '../../src/runtime';
 import { Arweave } from '../../src/utils/arweave';
 import { StakeToken } from '../../src/utils/stake-token';
@@ -60,6 +58,7 @@ let processExit: jest.Mock<never, never>;
 // let cacheProvider: ICacheProvider;
 let v: Validator;
 let storageProvider: IStorageProvider;
+let cacheProvider: ICacheProvider;
 let compression: ICompression;
 let publisherClient: LogStoreClient;
 
@@ -72,7 +71,13 @@ export async function setupTests() {
 
 	v = new Validator(new Runtime());
 
-	v['cacheProvider'] = new TestCacheProvider();
+	// mock cache provider
+	cacheProvider = new TestCacheProvider();
+	jest
+		.spyOn(Validator, 'cacheProviderFactory')
+		.mockImplementation(() => cacheProvider);
+
+	v['cacheProvider'] = cacheProvider;
 
 	// mock storage provider
 	storageProvider = new TestNormalStorageProvider();
@@ -86,8 +91,8 @@ export async function setupTests() {
 		.spyOn(Validator, 'compressionFactory')
 		.mockImplementation(() => compression);
 
-	// mock archiveDebugBundle
-	v['archiveDebugBundle'] = jest.fn();
+	// // mock archiveDebugBundle
+	// v['archiveDebugBundle'] = jest.fn();
 
 	// mock process.exit
 	processExit = jest.fn<never, never>();
@@ -148,16 +153,8 @@ export async function setupTests() {
 	// Set home value
 	v['home'] = path.join(__dirname, '../cache');
 
-	// jest.spyOn(Listener.prototype, 'createDb').mockImplementation(
-	// 	() =>
-	// 		new MemoryLevel<string, StreamrMessage>({
-	// 			valueEncoding: 'json',
-	// 		})
-	// );
-	v.listener = new Listener(v, v['home']);
-
 	// Ensure that all prom calls are setup
-	setupMetrics.call(v);
+	await v['setupMetrics']();
 
 	const provider = new JsonRpcProvider(
 		`http://${STREAMR_DOCKER_DEV_HOST}:8546` // tunnel to remote server
@@ -165,6 +162,7 @@ export async function setupTests() {
 	const signer = new Wallet(BROKER_NODE_PRIVATE_KEY, provider);
 	const nodeManagerContract = await getNodeManagerContract(signer);
 	const isStaked = await nodeManagerContract.isStaked(signer.address);
+	console.log(`${signer.address} is ${isStaked ? 'already' : 'NOT'} staked!`);
 	if (!isStaked) {
 		const stakeAmount = await prepareStakeForNodeManager(signer, 10000, false);
 		await (
@@ -182,12 +180,12 @@ export async function setupTests() {
 
 	// ? StreamrDevNet uses a Stake token that cannot be found in Redstone, so this will always yield stake token value of 0.01
 	// Mock getPrice in Arweave and StakeToken util classes
-	StakeToken.prototype.getPrice = () =>
-		jest.fn(() => {
-			return 0.01; // return a constant for dev tokens in test.
-		});
-	Arweave.getPrice = (byteSize: number) =>
-		jest.fn(() => {
+	jest.spyOn(StakeToken.prototype, 'getPrice').mockImplementation(async () => {
+		return 0.01; // return a constant for dev tokens in test.
+	});
+	jest
+		.spyOn(Arweave, 'getPrice')
+		.mockImplementation(async (byteSize: number) => {
 			// const avgWinstonPerByte = 189781180 / 100000 // as per 13th of May 2023 from https://arweave.net/price/100000
 			const constantWinstonPerByte = 2000; // where 200000000 is required for 100000 bytes
 			return byteSize * constantWinstonPerByte;
@@ -201,12 +199,15 @@ export async function cleanupTests() {
 	register.clear();
 
 	await publisherClient?.destroy();
-	await v.listener.stop();
+	if (v.listener) {
+		await v.listener.stop();
+	}
 }
 
 export const publishStorageMessages = async (numOfMessages: number) => {
+	const { systemStreamId } = v['runtime'].config;
 	try {
-		const sourceStreamId = v.systemStreamId.replace('/system', '/test');
+		const sourceStreamId = systemStreamId.replace('/system', '/test');
 		for (const idx of range(numOfMessages)) {
 			const msg = { messageNo: idx };
 			const msgStr = JSON.stringify(msg);
@@ -238,7 +239,7 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 
 			await publisherClient.publish(
 				{
-					id: v.systemStreamId,
+					id: systemStreamId,
 					partition: 0,
 				},
 				serialisedStorageMessage
@@ -256,7 +257,8 @@ export const publishQueryMessages = async (
 	numOfMessages: number,
 	brokerNodeCount: number
 ) => {
-	const sourceStreamId = v.systemStreamId.replace('/system', '/test');
+	const { systemStreamId } = v['runtime'].config;
+	const sourceStreamId = systemStreamId.replace('/system', '/test');
 	for (const idx of range(numOfMessages)) {
 		const query = { from: { timestamp: 1 }, to: { timestamp: 2 } };
 		const consumer = '0x00000000000';
@@ -293,7 +295,7 @@ export const publishQueryMessages = async (
 		);
 		await publisherClient.publish(
 			{
-				id: v.systemStreamId,
+				id: systemStreamId,
 				partition: 0,
 			},
 			serialisedRequest
@@ -319,7 +321,7 @@ export const publishQueryMessages = async (
 
 			await publisherClient.publish(
 				{
-					id: v.systemStreamId,
+					id: systemStreamId,
 					partition: 0,
 				},
 				serializedResponse

@@ -1,9 +1,8 @@
 import { ethers } from 'ethers';
 
-import { produceReport } from '../src/core/report';
-import { Managers } from '../src/managers';
-import { getConfig } from '../src/utils/config';
-import Validator, { syncPoolConfig } from '../src/validator';
+import { Report } from '../src/core/report';
+import Listener from '../src/listener';
+import Validator from '../src/validator';
 import { genesis_pool } from './mocks/constants';
 import { BROKER_NODE_PRIVATE_KEY } from './utils/setup';
 import {
@@ -37,7 +36,13 @@ describe('Report', () => {
 			} as any;
 
 			// ACT
-			await syncPoolConfig.call(v);
+			// Setup config
+			await v['syncPoolState'](true);
+			v.listener = new Listener(
+				v,
+				v['runtime'].config.systemStreamId,
+				v['home']
+			);
 			await v.listener.start();
 
 			const brokerNodeCount = 2;
@@ -51,7 +56,6 @@ describe('Report', () => {
 				current_key: currentKey,
 			} as any;
 			// Re-initate the Validator now that the listener has started.
-			await syncPoolConfig.call(v); // This will be called iteratively within the runNode() method of Kyve Protocol/Validator
 
 			const storeCache = v.listener.storeDb();
 			const queryRequestCache = v.listener.queryRequestDb();
@@ -76,28 +80,27 @@ describe('Report', () => {
 				PUBLISH_MESSAGE_COUNT * brokerNodeCount
 			);
 
-			const config = getConfig(v);
-			const managers = new Managers(config.sources[0]);
-			await managers.init();
-			const report = await produceReport(v, managers, currentKey);
+			const report = new Report(v, v['runtime'].config, currentKey);
+			await report.prepare();
+			const value = await report.generate();
 
-			console.log('Result Report', report);
+			console.log('Result Report', value);
 
-			expect(report.id).toBe(`report_${now}`);
-			expect(report.events?.queries.length).toBe(PUBLISH_MESSAGE_COUNT);
-			expect(report.events?.storage.length).toBe(PUBLISH_MESSAGE_COUNT);
-			expect(report.treasury).toBe(115000000000000);
-			expect(report.consumers).toEqual([
+			expect(value.id).toBe(`report_${now}`);
+			expect(value.events?.queries.length).toBe(PUBLISH_MESSAGE_COUNT);
+			expect(value.events?.storage.length).toBe(PUBLISH_MESSAGE_COUNT);
+			expect(value.treasury).toBe(115000000000000);
+			expect(value.consumers).toEqual([
 				{ id: '0x00000000000', capture: 230000000000000, bytes: 230 },
 			]);
-			expect(report.streams).toEqual([
+			expect(value.streams).toEqual([
 				{
 					id: '0x55B183b2936B57CB7aF86ae0707373fA1AEc7328/test',
 					capture: 0,
 					bytes: 230,
 				},
 			]);
-			expect(report.delegates[brokerNodeAddress][brokerNodeAddress]).toEqual(
+			expect(value.delegates[brokerNodeAddress][brokerNodeAddress]).toEqual(
 				115000000000000
 			);
 		},

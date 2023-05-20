@@ -44,7 +44,7 @@
 	"devDependencies": {
 		"@streamr/test-utils": "^8.0.2",
 		"@streamr/utils": "^8.1.0",
-		"@types/jest": "^29.5.0",
+		"@types/jest": "^29.5.1",
 		"@types/node": "^18.7.18",
 		"del-cli": "^5.0.0",
 		"dotenv": "^16.0.3",

@@ -1,13 +1,10 @@
 import { runCache } from '@kyvejs/protocol/src/methods';
 
-// import type { StreamrMessage } from '../src/types';
-import Validator, { syncPoolConfig } from '../src/validator';
+import Validator from '../src/validator';
 import { reportPrefix } from './../src/utils/constants';
-// import { TestListenerCacheProvider } from './mocks/cache.mock';
 import { genesis_pool } from './mocks/constants';
 import { cleanupTests, setupTests } from './utils/setup';
 
-// // const STAKE_AMOUNT = BigNumber.from('100000000000000000');
 const TIMEOUT = 900 * 1000;
 
 describe('Runtime', () => {
@@ -29,7 +26,6 @@ describe('Runtime', () => {
 				...genesis_pool,
 			} as any;
 			// ACT
-			await syncPoolConfig.call(v);
 			await runCache.call(v);
 			expect(v['cacheProvider'].put).toHaveBeenCalledTimes(3);
 			const maxBundleSize = parseInt(v.pool.data!.max_bundle_size, 10);
