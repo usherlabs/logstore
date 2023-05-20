@@ -21,7 +21,7 @@
 	],
 	"main": "./dist/src/index.js",
 	"bin": {
-		"logstore-validator": "./dist/bin/logstore-validate.js"
+		"logstore-validator": "./dist/bin/logstore-validator.js"
 	},
 	"dependencies": {
 		"@concertodao/logstore-client": "workspace:^0.0.1",
