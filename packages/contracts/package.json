@@ -4,12 +4,14 @@
 	"description": "Concerto Log Store Solidity Contracts",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",
-	"repository": "git@github.com:usherlabs/etl.git",
 	"private": false,
 	"types": "./dist/index.d.ts",
 	"main": "./dist/index.js",
 	"files": [
-		"./dist"
+		"./dist",
+		"./address.json",
+		"./artifacts",
+		"./src/**/*.sol"
 	],
 	"scripts": {
 		"build": "run-s compile types",
@@ -22,7 +24,7 @@
 		"deploy:streamr": "npx hardhat run scripts/0_deployNodeManager.ts --network streamr-dev",
 		"lint": "run-s lint:sol lint:ts",
 		"lint:sol": "solhint \"**/*.sol\"",
-		"lint:ts": "eslint \"{src,test,tasks}/**/*.ts\"",
+		"lint:ts": "eslint \"{scripts,src,test,tasks}/**/*.ts\"",
 		"test": "hardhat test",
 		"format": "prettier --write \"**/*.sol\""
 	},
