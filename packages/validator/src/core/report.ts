@@ -164,6 +164,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			start: fromKey,
 			end: toKey,
 		});
+		// TODO: We may need to create a special cache for streamIds that are complete dropped during a given item cycle.
 		for (const { key: cacheKey, value: cacheValue } of storeCachedItems) {
 			if (!cacheValue) continue;
 			for (let i = 0; i < cacheValue.length; i++) {
