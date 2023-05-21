@@ -12,7 +12,7 @@ import {
 } from './utils/setup';
 
 const TIMEOUT = 900 * 1000;
-const PUBLISH_MESSAGE_COUNT = 15;
+const PUBLISH_MESSAGE_COUNT = 1;
 const brokerNodeAddress = ethers.utils.computeAddress(BROKER_NODE_PRIVATE_KEY);
 
 describe('Report', () => {

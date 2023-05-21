@@ -155,6 +155,7 @@ export default class Listener {
 
 				this.logger.debug('ProofOfMessageStored', {
 					key,
+					typeofKey: typeof key,
 					value: { content, metadata },
 				});
 

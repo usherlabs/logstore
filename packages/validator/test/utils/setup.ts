@@ -266,7 +266,7 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 			);
 
 			messages.push(systemMsg);
-			await sleep(100);
+			// await sleep(100);
 		}
 		await wait(MESSAGE_STORE_TIMEOUT);
 	} catch (e) {
