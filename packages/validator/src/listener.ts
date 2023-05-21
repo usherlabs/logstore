@@ -138,7 +138,7 @@ export default class Listener {
 	): Promise<void> {
 		// Add to store
 		const parsedContent = SystemMessage.deserialize(content);
-		this.logger.debug('onMessage', parsedContent);
+		// this.logger.debug('onMessage', parsedContent);
 		switch (parsedContent.messageType) {
 			case SystemMessageType.ProofOfMessageStored: {
 				/**
@@ -152,27 +152,28 @@ export default class Listener {
 
 				this.logger.debug('ProofOfMessageStored', {
 					key,
-					typeofKey: typeof key,
 					value: { content, metadata },
 				});
 
 				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
-				const value = db.get(key) || [];
-				value.push({
-					content: proof,
-					metadata,
+				await db.transaction(() => {
+					const value = db.get(key) || [];
+					value.push({
+						content: proof,
+						metadata,
+					});
+					// Sort the values by their sequenceNumber to ensure they're deterministically ordered
+					value.sort((a, b) => {
+						if (a.content.sequenceNumber < b.content.sequenceNumber) {
+							return -1;
+						}
+						if (a.content.sequenceNumber > b.content.sequenceNumber) {
+							return 1;
+						}
+						return 0;
+					});
+					return db.put(key, value);
 				});
-				// Sort the values by their sequenceNumber to ensure they're deterministically ordered
-				value.sort((a, b) => {
-					if (a.content.sequenceNumber < b.content.sequenceNumber) {
-						return -1;
-					}
-					if (a.content.sequenceNumber > b.content.sequenceNumber) {
-						return 1;
-					}
-					return 0;
-				});
-				await db.put(key, value);
 
 				break;
 			}
@@ -186,34 +187,38 @@ export default class Listener {
 				});
 
 				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
-				const value = db.get(key) || [];
-				value.push({
-					content: parsedContent as QueryRequest,
-					metadata,
+				await db.transaction(() => {
+					const value = db.get(key) || [];
+					value.push({
+						content: parsedContent as QueryRequest,
+						metadata,
+					});
+					// Sort the values by their sequenceNumber to ensure they're deterministically ordered
+					value.sort((a, b) => {
+						if (a.metadata.sequenceNumber < b.metadata.sequenceNumber) {
+							return -1;
+						}
+						if (a.metadata.sequenceNumber > b.metadata.sequenceNumber) {
+							return 1;
+						}
+						return 0;
+					});
+					return db.put(key, value);
 				});
-				// Sort the values by their sequenceNumber to ensure they're deterministically ordered
-				value.sort((a, b) => {
-					if (a.metadata.sequenceNumber < b.metadata.sequenceNumber) {
-						return -1;
-					}
-					if (a.metadata.sequenceNumber > b.metadata.sequenceNumber) {
-						return 1;
-					}
-					return 0;
-				});
-				await db.put(key, value);
 				break;
 			}
 			case SystemMessageType.QueryResponse: {
 				const db = this.queryResponseDb();
 				// represent the items in the response DB as
 				// requestId => [{content1, metadata1}, {content2, metadata2}]
-				const responseContent = parsedContent as QueryResponse;
-				const key = responseContent.requestId;
-				const existingResponse = db.get(key) || [];
-				existingResponse.push({ content: responseContent, metadata });
-				// eslint-disable-next-line
-				await db.put(key, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
+				await db.transaction(() => {
+					const responseContent = parsedContent as QueryResponse;
+					const key = responseContent.requestId;
+					const existingResponse = db.get(key) || [];
+					existingResponse.push({ content: responseContent, metadata });
+					// eslint-disable-next-line
+					return db.put(key, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
+				});
 				break;
 			}
 			default: {

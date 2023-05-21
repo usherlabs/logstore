@@ -26,7 +26,6 @@ import { TestNormalStorageProvider } from '@kyvejs/protocol/test/mocks/storagePr
 import { fastPrivateKey } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
-import { range } from 'lodash';
 import path from 'path';
 import { register } from 'prom-client';
 import { ILogObject, Logger } from 'tslog';
@@ -227,7 +226,7 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 	const messages: ProofOfMessageStored[] = [];
 	try {
 		const sourceStreamId = systemStreamId.replace('/system', '/test');
-		for (const idx of range(numOfMessages)) {
+		for (let idx = 1; idx <= numOfMessages; idx++) {
 			const msg = { messageNo: idx };
 			const msgStr = JSON.stringify(msg);
 			const size = Buffer.byteLength(msgStr, 'utf8');
@@ -283,7 +282,7 @@ export const publishQueryMessages = async (
 ) => {
 	const { systemStreamId } = v['runtime'].config;
 	const sourceStreamId = systemStreamId.replace('/system', '/test');
-	for (const idx of range(numOfMessages)) {
+	for (let idx = 1; idx <= numOfMessages; idx++) {
 		const query = { from: { timestamp: 1 }, to: { timestamp: 2 } };
 		const consumer = '0x00000000000';
 		const msg = { messageNo: idx };
@@ -310,7 +309,7 @@ export const publishQueryMessages = async (
 		);
 		const serialisedRequest = requestSerializer.toArray(
 			new QueryRequest({
-				requestId: idx,
+				requestId: `${idx}`,
 				consumerId: content.consumer,
 				streamId: content.id,
 				partition: 0,
@@ -327,7 +326,7 @@ export const publishQueryMessages = async (
 		);
 
 		// publish multiple responses to imitate multiple broker nodes responsible
-		for (const jdx of range(brokerNodeCount)) {
+		for (let jdx = 1; jdx <= brokerNodeCount; jdx++) {
 			// add random wait to account for minor delay/latency
 			await sleep(jdx * 100);
 			console.log(`Publishing query response message:`, idx);
@@ -338,7 +337,7 @@ export const publishQueryMessages = async (
 			);
 			const serializedResponse = responseSerializer.toArray(
 				new QueryResponse({
-					requestId: idx,
+					requestId: `${idx}`,
 					size: content.size,
 					hash: content.hash,
 					signature: `test_sig_of_broker_${jdx}`,
