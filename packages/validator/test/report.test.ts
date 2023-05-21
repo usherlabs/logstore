@@ -38,9 +38,7 @@ describe('Report', () => {
 
 			// ACT
 			// const brokerNodeCount = 2;
-			const storageMessages = await publishStorageMessages(
-				PUBLISH_MESSAGE_COUNT
-			); // these messages are being fired after the current key...
+			await publishStorageMessages(PUBLISH_MESSAGE_COUNT); // these messages are being fired after the current key...
 			// await publishQueryMessages(PUBLISH_MESSAGE_COUNT, brokerNodeCount);
 
 			const now = Date.now();
@@ -55,15 +53,8 @@ describe('Report', () => {
 			// const queryRequestCache = v['runtime'].listener.queryRequestDb();
 			// const queryResponseCache = v['runtime'].listener.queryResponseDb();
 			let storeCacheCount = 0;
-			try {
-				for (const { key: _k, value: _v } of storeCache.getRange({
-					start: storageMessages[0].timestamp,
-					end: storageMessages[storageMessages.length - 1].timestamp,
-				})) {
-					storeCacheCount++;
-				}
-			} catch (e) {
-				console.log('getKeys error', e);
+			for (const _k of storeCache.getKeys()) {
+				storeCacheCount++;
 			}
 			// const requestIds = [];
 			// for (const { key: _k, value: _v } of queryRequestCache.getRange({})) {
