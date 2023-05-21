@@ -6,6 +6,7 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
+import fse from 'fs-extra';
 import { open, RootDatabase } from 'lmdb';
 import path from 'path';
 import StreamrClient, { CONFIG_TEST, MessageMetadata } from 'streamr-client';
@@ -35,9 +36,9 @@ type DB = {
 };
 
 export default class Listener {
-	private client: StreamrClient;
+	private _client: StreamrClient;
 	private _db!: DB;
-	private cachePath: string;
+	private _cachePath: string;
 	private _startTime: number;
 
 	constructor(
@@ -47,25 +48,11 @@ export default class Listener {
 	) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		// core.logger.debug('Streamr Config', streamrConfig);
-		this.client = new StreamrClient(streamrConfig);
+		this._client = new StreamrClient(streamrConfig);
 
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted
-		this.cachePath = path.join(homeDir, '.logstore-metadata');
-		this._db = {
-			[SystemMessageType.ProofOfMessageStored]: this.createDb(
-				'ProofOfMessageStored',
-				this.cachePath
-			),
-			[SystemMessageType.QueryRequest]: this.createDb(
-				'QueryRequest',
-				this.cachePath
-			),
-			[SystemMessageType.QueryResponse]: this.createDb(
-				'QueryResponse',
-				this.cachePath
-			),
-		} as DB;
+		this._cachePath = path.join(homeDir, '.logstore-metadata');
 	}
 
 	public get startTime() {
@@ -74,16 +61,26 @@ export default class Listener {
 
 	public async start(): Promise<void> {
 		try {
+			await fse.remove(this._cachePath);
+			this._db = {
+				[SystemMessageType.ProofOfMessageStored]: this.createDb(
+					'ProofOfMessageStored',
+					this._cachePath
+				),
+				[SystemMessageType.QueryRequest]: this.createDb(
+					'QueryRequest',
+					this._cachePath
+				),
+				[SystemMessageType.QueryResponse]: this.createDb(
+					'QueryResponse',
+					this._cachePath
+				),
+			} as DB;
+
 			// const systemSubscription =
 			this.logger.info('Starting listeners ...');
 			this.logger.debug(`System Stream Id: `, this.systemStreamId);
 			await this.subscribe(this.systemStreamId);
-
-			await Promise.all([
-				this.storeDb().drop(),
-				this.queryRequestDb().drop(),
-				this.queryResponseDb().drop(),
-			]);
 
 			// Store a timestamp for when the listener starts so that the Node must have a timestamp < bundle_start_key to pariticpate.
 			this._startTime = Date.now();
@@ -95,11 +92,11 @@ export default class Listener {
 	}
 
 	public async stop() {
-		await this.client.unsubscribe();
+		await this._client.unsubscribe();
 	}
 
 	public async subscribe(streamId: string) {
-		await this.client.subscribe(streamId, (content, metadata) => {
+		await this._client.subscribe(streamId, (content, metadata) => {
 			// eslint-disable-next-line
 			this.onMessage(content as any, metadata);
 		});
