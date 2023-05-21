@@ -195,9 +195,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 				}
 			}
 		}
-		core.logger.debug('Storage HashKeyMap: ', {
-			storeHashKeyMap,
-		});
+		core.logger.debug('Storage HashKeyMap: ', storeHashKeyMap);
 
 		// Apply valid storage events to report
 		const streamsMap: Record<
@@ -242,6 +240,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 				}
 			}
 		}
+
+		core.logger.debug('Storage Streams Map: ', streamsMap);
 
 		const streamsMapEntries = Object.entries(streamsMap);
 

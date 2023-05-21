@@ -325,7 +325,7 @@ export const publishQueryMessages = async (
 			serialisedRequest
 		);
 
-		// publish multiple responses to imitate multiple broker nodes responsible
+		// ? publish multiple responses from the same broker node -- to ensure that filter processes are in place.
 		for (let jdx = 1; jdx <= brokerNodeCount; jdx++) {
 			// add random wait to account for minor delay/latency
 			await sleep(jdx * 100);
