@@ -224,6 +224,7 @@ export async function cleanupTests() {
 
 export const publishStorageMessages = async (numOfMessages: number) => {
 	const { systemStreamId } = v['runtime'].config;
+	const messages: ProofOfMessageStored[] = [];
 	try {
 		const sourceStreamId = systemStreamId.replace('/system', '/test');
 		for (const idx of range(numOfMessages)) {
@@ -245,17 +246,16 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 				SystemMessageType.ProofOfMessageStored
 			);
 
-			const serialisedStorageMessage = serializer.toArray(
-				new ProofOfMessageStored({
-					version: VERSION,
-					streamId: content.id,
-					partition: 0,
-					timestamp: +new Date(),
-					sequenceNumber: 0,
-					size: content.size,
-					hash: content.hash,
-				})
-			);
+			const systemMsg = new ProofOfMessageStored({
+				version: VERSION,
+				streamId: content.id,
+				partition: 0,
+				timestamp: +new Date(),
+				sequenceNumber: 0,
+				size: content.size,
+				hash: content.hash,
+			});
+			const serialisedStorageMessage = serializer.toArray(systemMsg);
 
 			await publisherClient.publish(
 				{
@@ -264,6 +264,8 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 				},
 				serialisedStorageMessage
 			);
+
+			messages.push(systemMsg);
 			await sleep(100);
 		}
 		await wait(MESSAGE_STORE_TIMEOUT);
@@ -271,6 +273,8 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 		console.log(`Cannot publish message to storage stream`);
 		console.error(e);
 	}
+
+	return messages;
 };
 
 export const publishQueryMessages = async (
@@ -289,6 +293,7 @@ export const publishQueryMessages = async (
 		const hash = ethers.utils.keccak256(
 			fromString(sourceStreamId + queryStr + consumer + msgStr + size)
 		);
+		console.log(`Publishing query request message:`, msg, { hash, size });
 
 		// create one Query request, send it across the stream
 		const content = {
@@ -325,6 +330,7 @@ export const publishQueryMessages = async (
 		for (const jdx of range(brokerNodeCount)) {
 			// add random wait to account for minor delay/latency
 			await sleep(jdx * 100);
+			console.log(`Publishing query response message:`, idx);
 			// simulate and publish a response to this request
 			const responseSerializer = SystemMessage.getSerializer(
 				VERSION,

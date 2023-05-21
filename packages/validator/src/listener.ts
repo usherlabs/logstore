@@ -100,7 +100,8 @@ export default class Listener {
 
 	public async subscribe(streamId: string) {
 		await this.client.subscribe(streamId, (content, metadata) => {
-			return this.onMessage(content as any[], metadata);
+			// eslint-disable-next-line
+			this.onMessage(content as any, metadata);
 		});
 	}
 
@@ -134,9 +135,13 @@ export default class Listener {
 		});
 	}
 
-	private async onMessage(content: any[], metadata: MessageMetadata) {
+	private async onMessage(
+		content: any,
+		metadata: MessageMetadata
+	): Promise<void> {
 		// Add to store
 		const parsedContent = SystemMessage.deserialize(content);
+		this.logger.debug('onMessage', parsedContent);
 		switch (parsedContent.messageType) {
 			case SystemMessageType.ProofOfMessageStored: {
 				/**
@@ -209,6 +214,7 @@ export default class Listener {
 				const key = responseContent.requestId;
 				const existingResponse = db.get(key) || [];
 				existingResponse.push({ content: responseContent, metadata });
+				// eslint-disable-next-line
 				await db.put(key, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
 				break;
 			}
