@@ -1,8 +1,9 @@
-import StreamrClient, {
+import {
 	MessageListener,
 	MessageStream,
 	Stream,
 	StreamDefinition,
+	StreamrClient,
 } from '@concertodao/streamr-client';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';

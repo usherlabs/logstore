@@ -6,26 +6,26 @@
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "Apache-2.0",
 	"private": false,
-	"types": "./dist/types/src/exports.d.ts",
-	"main": "./dist/src/exports.js",
-	"browser": "./dist/browser/logstore-client.web.js",
+	"types": "./dist/types/src/index.d.ts",
+	"main": "./dist/src/exports-commonjs.js",
+	"browser": "./dist/logstore-client.web.js",
 	"exports": {
-		"browser": "./dist/browser/logstore-client.web.js",
-		"default": "./dist/src/exports.js"
+		"browser": "./dist/logstore-client.web.js",
+		"default": {
+			"import": "./dist/src/exports-esm.mjs",
+			"require": "./dist/src/exports-commonjs.js"
+		}
 	},
-	"files": [
-		"./dist"
-	],
 	"scripts": {
+		"postbuild": "bash copy-package.sh && bash fix-esm.sh",
 		"format": "prettier --write .",
 		"test": "dotenv -e .env jest --",
-		"build": "pnpm run clean; pnpm run build:node-production",
-		"build:full": "npm run clean; npm run build:node-production && npm run build:browser-production",
+    "build": "tsc --build ./tsconfig.node.json",
+    "build-production": "pnpm clean; NODE_ENV=production pnpm build && pnpm build-browser-production",
+		"build-browser-development": "NODE_ENV=development webpack --mode=development --progress",
+		"build-browser-production": "NODE_ENV=production webpack --mode=production --progress",
 		"clean": "jest --clearCache || true; rm -rf dist  *.tsbuildinfo node_modules/.cache || true",
-		"build:browser-development": "NODE_ENV=development webpack --mode=development --progress",
-		"build:browser-production": "NODE_ENV=production webpack --mode=production --progress",
-		"build:node-development": "NODE_ENV=development tsc",
-		"build:node-production": "NODE_ENV=production tsc"
+		"test-exports": "cd test/exports && npm run link && tsc --noEmit --project ./tsconfig.json && npm test"
 	},
 	"dependencies": {
 		"@babel/runtime": "^7.16.3",
