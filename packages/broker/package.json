@@ -16,7 +16,8 @@
 		"start": "node ./dist/bin/logstore-broker.js",
 		"start:fresh": "npm-run-all -s build start",
 		"ts": "tsc --noEmit",
-		"lint": "eslint ./src/**/*.ts ./test/**/*.ts"
+		"lint": "eslint ./src/**/*.ts ./test/**/*.ts",
+		"test": "dotenv -e .env jest --"
 	},
 	"dependencies": {
 		"@concertodao/logstore-client": "workspace:^",
@@ -37,10 +38,12 @@
 		"@streamr/utils": "^8.0.2",
 		"ajv": "^8.12.0",
 		"ajv-formats": "^2.1.1",
+		"axios": "^1.4.0",
 		"cassandra-driver": "^4.6.4",
 		"chalk": "^4.1.2",
 		"commander": "^10.0.0",
 		"cors": "^2.8.5",
+		"dotenv-cli": "7.2.1",
 		"ethers": "^5.4.7",
 		"eventemitter3": "^4.0.7",
 		"express": "^4.18.2",
@@ -57,7 +60,8 @@
 		"ts-toolbelt": "^9.6.0",
 		"tslog": "^4.8.2",
 		"tsyringe": "^4.7.0",
-		"uuid": "^9.0.0"
+		"uuid": "^9.0.0",
+		"zlib": "^1.0.5"
 	},
 	"devDependencies": {
 		"@streamr/test-utils": "^8.0.2",

@@ -17,6 +17,7 @@ import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
 import { Stream } from 'streamr-client';
 
+// import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { hashResponse } from './Consensus';
@@ -28,6 +29,7 @@ import {
 	startCassandraLogStore,
 } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
+import { ReportPoller } from './Report';
 
 const logger = new Logger(module);
 
@@ -157,6 +159,17 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 				}
 			}
 		);
+
+		// start the report polling process
+		const abortController = new AbortController();
+		const poller = new ReportPoller(
+			this.brokerConfig,
+			this.logStoreClient,
+			this.signer,
+			systemStream
+		);
+		poller.start(abortController.signal);
+		// poller.processNewReport(reportData);
 
 		const metricsContext = (
 			await this.logStoreClient!.getNode()

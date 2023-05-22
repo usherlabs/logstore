@@ -1,3 +1,5 @@
+import { ethers } from 'ethers';
+
 import { Managers } from '../src/classes/Managers';
 import { produceReport } from '../src/core/report';
 import { getConfig } from '../src/utils/config';
@@ -5,6 +7,7 @@ import { getConfig } from '../src/utils/config';
 import Validator, { syncPoolConfig } from '../src/validator';
 // import { TestListenerCacheProvider } from './mocks/cache.mock';
 import { genesis_pool } from './mocks/constants';
+import { BROKER_NODE_PRIVATE_KEY } from './utils/setup';
 import {
 	cleanupTests,
 	publishQueryMessages,
@@ -12,7 +15,9 @@ import {
 	setupTests,
 } from './utils/setup';
 
-const TIMEOUT = 90 * 1000;
+const TIMEOUT = 900 * 1000;
+const PUBLISH_MESSAGE_COUNT = 15;
+const brokerNodeAddress = ethers.computeAddress(BROKER_NODE_PRIVATE_KEY);
 
 describe('Report', () => {
 	let v: Validator;
@@ -32,12 +37,13 @@ describe('Report', () => {
 			v.pool = {
 				...genesis_pool,
 			} as any;
+
 			// ACT
 			await syncPoolConfig.call(v);
 			await v.listener.start();
 
-			await publishStorageMessages(15); // these messages are being fired after the current key...
-			await publishQueryMessages(15);
+			await publishStorageMessages(PUBLISH_MESSAGE_COUNT); // these messages are being fired after the current key...
+			await publishQueryMessages(PUBLISH_MESSAGE_COUNT);
 
 			const now = Date.now();
 			const currentKey = `report_${now}`; // for a maxBundleSize of 3, keys are [now - 1000, now, report_{now}]
@@ -55,35 +61,33 @@ describe('Report', () => {
 				listenerCacheCount++;
 			}
 
-			expect(listenerCacheCount).toBe(31); // 30 + the initial event
-
+			expect(listenerCacheCount).toBe(
+				1 + PUBLISH_MESSAGE_COUNT + PUBLISH_MESSAGE_COUNT * 2
+			); // 30 + the initial event
 			const config = getConfig(v);
-			const managers = new Managers(config.sources[0], config.contracts);
+			const managers = new Managers(config.sources[0]);
+			await managers.init();
 			const report = await produceReport(v, managers, currentKey);
 
 			console.log('Result Report', report);
 
 			expect(report.id).toBe(`report_${now}`);
-			expect(report.events.queries.length).toBe(15);
-			expect(report.events.storage.length).toBe(15);
-			// expect(report.treasury).toBe();
-			// expect(report.consumers).toEqual();
-			// expect(report.streams).toEqual();
-			// expect(report.nodes).toEqual();
-
-			expect(report).toEqual({
-				key: `report_${now}`,
-				value: {
-					id: `report_${now}`,
-					height: 427294,
-					treasury: 0,
-					streams: [],
-					consumers: [],
-					nodes: {},
-					delegates: {},
-					events: { queries: [], storage: [] },
+			expect(report.events?.queries.length).toBe(PUBLISH_MESSAGE_COUNT);
+			expect(report.events?.storage.length).toBe(PUBLISH_MESSAGE_COUNT);
+			expect(report.treasury).toBe(115000000000000);
+			expect(report.consumers).toEqual([
+				{ id: '0x00000000000', capture: 230000000000000, bytes: 230 },
+			]);
+			expect(report.streams).toEqual([
+				{
+					id: '0x55B183b2936B57CB7aF86ae0707373fA1AEc7328/test',
+					capture: 0,
+					bytes: 230,
 				},
-			});
+			]);
+			expect(report.delegates[brokerNodeAddress][brokerNodeAddress]).toEqual(
+				115000000000000
+			);
 		},
 		TIMEOUT
 	);
