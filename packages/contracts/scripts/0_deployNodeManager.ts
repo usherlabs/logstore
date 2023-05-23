@@ -9,6 +9,11 @@ import {
 	writeJSONToFileOutside,
 } from '../utils/functions';
 
+function createPK(index: number, prefix: string) {
+	const hexString = index.toString(16);
+	return '0x' + prefix + hexString.padStart(64 - prefix.length, '0');
+}
+
 async function main() {
 	// --------------------------- deploy the dev DATA token contract --------------------------- //
 	let devTokenAddress = '';
@@ -104,17 +109,24 @@ async function main() {
 		const devTokenArtifact = await hre.ethers.getContractFactory('DevToken');
 		const token = await devTokenArtifact.attach(devTokenAddress);
 
-		console.log('Minting DevToken to the test accounts...');
 		const wallets: string[] = [];
+		const ACCOUNT_PK_PREFIX = '';
+		const BROKER_PK_PREFIX = 'bb';
 		const NUM_ACCOUNTS = 1000;
+		const NUM_BROKERS = 10;
 		const NUM_ACCOUNTS_IN_BATCH = 250;
 
-		// Call mintMany with batches to speed up the process and not exceed the gas limit.
+		console.log(
+			`Minting DevToken to ${NUM_ACCOUNTS} test accounts with Primary Keys:`
+		);
+		console.log('from: ', createPK(1, ACCOUNT_PK_PREFIX));
+		console.log('to: ', createPK(NUM_ACCOUNTS, ACCOUNT_PK_PREFIX));
+		console.log(`Minting...`);
 		for (let accountIndex = 1; accountIndex <= NUM_ACCOUNTS; accountIndex++) {
-			const hexString = accountIndex.toString(16);
-			const privkey = '0x' + hexString.padStart(64, '0');
+			const privkey = createPK(accountIndex, ACCOUNT_PK_PREFIX);
 			wallets.push(new Wallet(privkey).address);
 
+			// Call mintMany with batches to speed up the process and not exceed the gas limit.
 			if (
 				accountIndex === NUM_ACCOUNTS ||
 				wallets.length === NUM_ACCOUNTS_IN_BATCH
@@ -122,6 +134,35 @@ async function main() {
 				await (await token.mintMany(wallets)).wait();
 				wallets.splice(0);
 				console.log(`Minted to ${accountIndex} account out of ${NUM_ACCOUNTS}`);
+			}
+		}
+
+		console.log(
+			`Minting native token and DevToken to ${NUM_BROKERS} broker accounts with Primary Keys:`
+		);
+		console.log('from: ', createPK(1, BROKER_PK_PREFIX));
+		console.log('to: ', createPK(NUM_BROKERS, BROKER_PK_PREFIX));
+		console.log(`Minting...`);
+		const [signer] = await hre.ethers.getSigners();
+		for (let accountIndex = 1; accountIndex <= NUM_BROKERS; accountIndex++) {
+			const privkey = createPK(accountIndex, BROKER_PK_PREFIX);
+			const address = new Wallet(privkey).address;
+			wallets.push(address);
+
+			const tx = {
+				to: address,
+				value: hre.ethers.utils.parseEther('1'),
+			};
+			await (await signer.sendTransaction(tx)).wait();
+
+			// Call mintMany with batches to speed up the process and not exceed the gas limit.
+			if (
+				accountIndex === NUM_BROKERS ||
+				wallets.length === NUM_ACCOUNTS_IN_BATCH
+			) {
+				await (await token.mintMany(wallets)).wait();
+				wallets.splice(0);
+				console.log(`Minted to ${accountIndex} account out of ${NUM_BROKERS}`);
 			}
 		}
 	}
