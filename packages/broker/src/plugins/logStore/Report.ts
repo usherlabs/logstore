@@ -11,7 +11,7 @@ import {
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
 import { ethers, Signer, Wallet } from 'ethers';
-import { Stream } from 'streamr-client';
+import { Stream, Subscription } from 'streamr-client';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
@@ -28,9 +28,10 @@ export class ReportPoller {
 	private readonly systemStream: Stream;
 	private readonly signer: Signer;
 
-	private reportTimeout: NodeJS.Timeout | null;
+	private reportTimeout: NodeJS.Timeout | undefined;
 	private latestBundle: number;
 	private reportsBuffer: Array<ProofOfReportRecieved>;
+	private subscription: Subscription | undefined;
 
 	// define contracts
 
@@ -46,7 +47,6 @@ export class ReportPoller {
 		this.signer = signer;
 		this.systemStream = systemStream;
 		this.reportsBuffer = [];
-		this.reportTimeout = null;
 	}
 
 	async start(abortSignal: AbortSignal): Promise<void> {
@@ -63,16 +63,21 @@ export class ReportPoller {
 	}
 
 	async poll(): Promise<void> {
+		// get the report manager contract
+		const reportManager = await getReportManagerContract(this.signer as Wallet);
 		const latestBundle = await this.fetchPoolLatestBundle();
-		// TODO Remove true condition after testing
-		if ((latestBundle > this.latestBundle && this.latestBundle > 0) || true) {
+
+		// ensure this poller has seen at least 1 bundles cycle before it can start processing
+		// so nodes who join halfway through the process, wait for the next round before starting
+		if (latestBundle > this.latestBundle && this.latestBundle > 0) {
 			// theres a new bundle that should be processed
 			const reportInformation = await this.fetchReportData(latestBundle);
-			// clear buffer and process the report information gotten
-			this.reportsBuffer = [];
-			clearTimeout(this.reportTimeout!);
-			this.logStoreClient.unsubscribe(this.systemStream);
-			// ? we process a dummy report for now until we can fetch the latest report from kyve
+			// do not process this report if it has been submitted
+			const latestReport = await reportManager.getLastReport();
+			if (latestReport.id === reportInformation.id) return;
+			// clear buffer/timeout/subscription and process the report information gotten
+			this.cleanUpPoller();
+			// process a new report
 			await this.processNewReport(reportInformation);
 		}
 		// set the latest bundle
@@ -86,6 +91,12 @@ export class ReportPoller {
 		} catch (err) {
 			logger.warn(`error when trying to poll report: ${err}`);
 		}
+	}
+
+	private async cleanUpPoller() {
+		clearTimeout(this.reportTimeout!);
+		this.reportsBuffer = [];
+		this.subscription?.unsubscribe();
 	}
 
 	// poll kyve url for information on how many bundles have been finalized by tthis pool
@@ -196,7 +207,7 @@ export class ReportPoller {
 								report
 							);
 							try {
-								const tx = await reportManagercontract.report(
+								const submitReportTx = await reportManagercontract.report(
 									formattedReport.id,
 									formattedReport.blockHeight,
 									formattedReport.streams,
@@ -214,11 +225,21 @@ export class ReportPoller {
 									formattedReport.addresses,
 									formattedReport.signatures
 								);
-								await tx.wait();
+								await submitReportTx.wait();
 								logger.info(
-									`Report submitted to the contract on tx:${tx.hash}`
+									`Report submitted to the contract on tx:${submitReportTx.hash}; about to process report`
 								);
-								resolve(tx);
+								// process the newly submitted transactions
+								// ? what happens if for any reason a report is submitted sucesfully
+								// ? but encounters an error when processed i.e if a consumer/storer is not staked to a stream
+								const processReportTx = await nodeManagerContract.processReport(
+									report.id
+								);
+								await processReportTx.wait();
+								logger.info(
+									`Report:${report.id} processed on tx:${submitReportTx.hash};`
+								);
+								resolve([submitReportTx, processReportTx]);
 							} catch (err) {
 								logger.error(err);
 								logger.warn(
@@ -247,7 +268,8 @@ export class ReportPoller {
 					};
 					waitTillTurnOrReport();
 				})
-				.then(async () => {
+				.then(async (subscription) => {
+					this.subscription = subscription;
 					await this.publishReport(report);
 				})
 				.catch((err) => {
@@ -256,7 +278,7 @@ export class ReportPoller {
 		});
 		// close up the subscriber event after this round of reports are over
 		// ? is there a need to unsubscribe, what happens if we subscribe to an already subscribed stream
-		this.logStoreClient.unsubscribe(this.systemStream);
+		this.subscription?.unsubscribe();
 		return response;
 	}
 

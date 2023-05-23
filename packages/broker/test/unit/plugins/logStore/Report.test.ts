@@ -6,7 +6,12 @@ import {
 import { LogStoreNodeManager } from '@concertodao/logstore-contracts';
 import {
 	getNodeManagerContract,
+	getQueryManagerContract,
+	getReportManagerContract,
+	getStoreManagerContract,
 	prepareStakeForNodeManager,
+	prepareStakeForQueryManager,
+	prepareStakeForStoreManager,
 } from '@concertodao/logstore-shared';
 import { Wallet } from '@ethersproject/wallet';
 import { Tracker } from '@streamr/network-tracker';
@@ -17,18 +22,17 @@ import StreamrClient, { StreamPermission } from 'streamr-client';
 
 import { StrictConfig } from '../../../../src/config/config';
 import { ReportPoller } from '../../../../src/plugins/logStore/Report';
-import reportData from '../../../unit/plugins/logStore/data/report.json';
 import {
 	createStreamrClient,
 	createTestStream,
 	startTestTracker,
 } from '../../../utils';
 
-jest.setTimeout(600000);
+jest.setTimeout(6000000);
 
 const TRACKER_PORT = 17711;
-const STAKE_AMOUNT = BigInt('1000000000000000000');
-const NUM_NODES = 4;
+const STAKE_AMOUNT = BigInt('2000000000000000000');
+const NUM_NODES = 3;
 
 describe(ReportPoller, () => {
 	let tracker: Tracker;
@@ -38,6 +42,7 @@ describe(ReportPoller, () => {
 	let provider: providers.JsonRpcProvider;
 	let logStoreBrokerWallets: Wallet[] = [];
 	let publisherClients: StreamrClient[] = [];
+	let localReport: any;
 	const nodeManagers: LogStoreNodeManager[] = [];
 
 	beforeEach(async () => {
@@ -72,6 +77,8 @@ describe(ReportPoller, () => {
 		for await (const [index, logstoreWallet] of Object.entries(
 			logStoreBrokerWallets
 		)) {
+			const queryManager = await getQueryManagerContract(logstoreWallet);
+			const storeManager = await getStoreManagerContract(logstoreWallet);
 			try {
 				await new Promise((r) => setTimeout(r, +index * 500));
 
@@ -89,6 +96,13 @@ describe(ReportPoller, () => {
 						JSON.stringify(nodeMetadata)
 					)
 				).wait();
+				// stake in query manager contract
+				await prepareStakeForQueryManager(logstoreWallet, STAKE_AMOUNT);
+				(await queryManager.stake(STAKE_AMOUNT)).wait();
+
+				// stake in store manager contract
+				await prepareStakeForStoreManager(logstoreWallet, STAKE_AMOUNT);
+				(await storeManager.stake(testStream.id, STAKE_AMOUNT)).wait();
 
 				await testStream.grantPermissions({
 					permissions: [StreamPermission.PUBLISH],
@@ -104,6 +118,32 @@ describe(ReportPoller, () => {
 				console.log(err.message);
 			}
 		}
+
+		localReport = {
+			id: `report_${+new Date()}`,
+			height: (await provider.getBlockNumber()) - 100,
+			treasury: 115000000000000,
+			streams: [
+				{
+					id: testStream.id,
+					capture: 0,
+					bytes: 230,
+				},
+			],
+			consumers: [
+				{
+					id: brokerWallet.address,
+					capture: 230000000000000,
+					bytes: 230,
+				},
+			],
+			nodes: { [brokerWallet.address]: 115000000000000 },
+			delegates: {
+				[brokerWallet.address]: {
+					[brokerWallet.address]: 115000000000000,
+				},
+			},
+		};
 	});
 
 	afterEach(async () => {
@@ -121,23 +161,32 @@ describe(ReportPoller, () => {
 	// 		brokerWallet,
 	// 		testStream
 	// 	);
-	// 	const localReport = { ...reportData };
-	// 	localReport['height'] = (await provider.getBlockNumber()) - 100;
-	// 	const response = (await reportPoller.processNewReport(
+	// 	// generate a report with the address of a broker node that has been staked in query and store manager contracts
+	// 	const [submitReportTX] = (await reportPoller.processNewReport(
 	// 		localReport
-	// 	)) as ethers.ContractTransaction;
-	// 	expect(response.chainId).toBe(
+	// 	)) as ethers.ContractTransaction[];
+	// 	const reportManager = await getReportManagerContract(
+	// 		logStoreBrokerWallets[0]
+	// 	);
+
+	// 	const latestReport = await reportManager.getLastReport();
+	// 	const latestReportId = latestReport.id;
+
+	// 	expect(submitReportTX.chainId).toBe(
 	// 		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
 	// 	);
+	// 	expect(latestReportId).toBe(localReport.id);
+
+	// 	const latestReportPostProcess = await reportManager.getLastReport();
+	// 	expect(latestReportPostProcess._processed).toBe(true);
 	// });
 
 	test('Report Can only be submitted when more than half the nodes submit one', async () => {
 		// check how many nodes are joined
-		const newBlockHeight = (await provider.getBlockNumber()) - 100;
-		const testReport = { ...reportData, height: newBlockHeight };
+		const testReport = { ...localReport };
 		const nodeManager = await getNodeManagerContract(logStoreBrokerWallets[0]);
 		const nodes = await nodeManager.nodeAddresses();
-		console.log({ nodes });
+		console.log({ activeNodes: nodes });
 		// start report listener
 		const reportPoller = new ReportPoller(
 			CONFIG_TEST as StrictConfig,
@@ -156,7 +205,22 @@ describe(ReportPoller, () => {
 			);
 			await poller.publishReport(testReport);
 		}
-		await reportPollerPromise;
+		const [submitReportTX] = (await reportPollerPromise) as [any, any];
 		// wait until report listener resolves with transactions
+		// veryfy success
+		const reportManager = await getReportManagerContract(
+			logStoreBrokerWallets[0]
+		);
+
+		const latestReport = await reportManager.getLastReport();
+		const latestReportId = latestReport.id;
+
+		expect(submitReportTX.chainId).toBe(
+			CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+		);
+		expect(latestReportId).toBe(localReport.id);
+
+		const latestReportPostProcess = await reportManager.getLastReport();
+		expect(latestReportPostProcess._processed).toBe(true);
 	});
 });
