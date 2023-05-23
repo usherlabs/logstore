@@ -9,6 +9,7 @@ import { PrivateKeyAuthConfig } from 'streamr-client';
 import { readConfigAndMigrateIfNeeded } from '../config/migration';
 import {
 	amountArgument,
+	assumeYesOption,
 	configOption,
 	metadataOption,
 	usdOption,
@@ -21,10 +22,11 @@ export const joinCommand = new Command('join')
 	.addOption(metadataOption)
 	.addOption(configOption)
 	.addOption(usdOption)
+	.addOption(assumeYesOption)
 	.action(
 		async (
 			amountStr: string,
-			cmdOptions: { usd?: boolean; metadata?: string }
+			cmdOptions: { usd?: boolean; metadata?: string; assumeYes: boolean }
 		) => {
 			try {
 				const amount = cmdOptions.usd
@@ -45,7 +47,7 @@ export const joinCommand = new Command('join')
 					signer,
 					amount,
 					cmdOptions.usd,
-					allowanceConfirm
+					!cmdOptions.assumeYes ? allowanceConfirm : undefined
 				);
 				const nodeManagerContract = await getNodeManagerContract(signer);
 				console.log(
