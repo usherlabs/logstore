@@ -113,7 +113,7 @@ async function main() {
 		const ACCOUNT_PK_PREFIX = '';
 		const BROKER_PK_PREFIX = 'bb';
 		const NUM_ACCOUNTS = 1000;
-		const NUM_BROKERS = 10;
+		const NUM_BROKERS = 3;
 		const NUM_ACCOUNTS_IN_BATCH = 250;
 
 		console.log(
@@ -133,7 +133,9 @@ async function main() {
 			) {
 				await (await token.mintMany(wallets)).wait();
 				wallets.splice(0);
-				console.log(`Minted to ${accountIndex} account out of ${NUM_ACCOUNTS}`);
+				console.log(
+					`Minted to ${accountIndex} accounts out of ${NUM_ACCOUNTS}`
+				);
 			}
 		}
 
@@ -162,7 +164,7 @@ async function main() {
 			) {
 				await (await token.mintMany(wallets)).wait();
 				wallets.splice(0);
-				console.log(`Minted to ${accountIndex} account out of ${NUM_BROKERS}`);
+				console.log(`Minted to ${accountIndex} accounts out of ${NUM_BROKERS}`);
 			}
 		}
 	}

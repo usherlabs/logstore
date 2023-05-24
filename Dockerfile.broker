@@ -1,0 +1,55 @@
+FROM node:16-buster
+
+RUN apt update
+RUN apt install -y libsecret-1-dev
+RUN mkdir /firstrun && chown node:node /firstrun
+RUN mkdir -p /home/node/app && chown -R node:node /home/node/app
+
+WORKDIR /home/node/app
+
+RUN npm i -g pnpm
+
+USER node
+
+COPY --chown=node:node ./package.json ./package.json
+COPY --chown=node:node ./pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --chown=node:node ./pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --chown=node:node ./packages/contracts/package.json ./packages/contracts/package.json
+COPY --chown=node:node ./packages/protocol/package.json ./packages/protocol/package.json
+COPY --chown=node:node ./packages/shared/package.json ./packages/shared/package.json
+COPY --chown=node:node ./packages/client/package.json ./packages/client/package.json
+COPY --chown=node:node ./packages/broker/package.json ./packages/broker/package.json
+
+RUN pnpm install
+
+WORKDIR /home/node/app/packages/contracts
+COPY --chown=node:node ./packages/contracts ./
+RUN cp .env.docker .env
+RUN pnpm build
+
+WORKDIR /home/node/app/packages/protocol
+COPY --chown=node:node ./packages/protocol ./
+RUN pnpm build
+
+WORKDIR /home/node/app/packages/shared
+COPY --chown=node:node ./packages/shared ./
+RUN pnpm build
+
+WORKDIR /home/node/app/packages/client
+COPY --chown=node:node ./packages/client ./
+RUN pnpm build:node-production
+
+WORKDIR /home/node/app/packages/broker
+COPY --chown=node:node ./packages/broker ./
+RUN pnpm build
+
+# install logstore-broker globally
+USER root
+RUN npm i -g ./
+
+RUN ln /home/node/app/packages/broker/start-in-docker.sh /usr/local/bin/start-in-docker
+
+USER node
+WORKDIR /home/node
+
+CMD [ "start-in-docker" ]

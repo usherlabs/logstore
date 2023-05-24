@@ -36,7 +36,7 @@ interface StreamrBrokerTestConfig {
 }
 
 interface LogStoreBrokerTestConfig {
-	trackerPort: number;
+	trackerPort?: number;
 	privateKey: string;
 	extraPlugins?: Record<string, unknown>;
 	keyspace?: string;
@@ -111,13 +111,15 @@ export const formLogStoreBrokerConfig = ({
 			},
 			network: {
 				id: toEthereumAddress(new Wallet(privateKey).address),
-				trackers: [
-					{
-						id: createEthereumAddress(trackerPort),
-						ws: `ws://127.0.0.1:${trackerPort}`,
-						http: `http://127.0.0.1:${trackerPort}`,
-					},
-				],
+				trackers: trackerPort
+					? [
+							{
+								id: createEthereumAddress(trackerPort),
+								ws: `ws://127.0.0.1:${trackerPort}`,
+								http: `http://127.0.0.1:${trackerPort}`,
+							},
+					  ]
+					: LOGSTORE_CONFIG_TEST.network?.trackers,
 				location: {
 					latitude: 60.19,
 					longitude: 24.95,
@@ -175,7 +177,9 @@ export const createStreamrClient = async (
 ): Promise<StreamrClient> => {
 	const networkOptions = {
 		...STREAMR_CONFIG_TEST?.network,
-		trackers: [tracker.getConfigRecord()],
+		trackers: tracker
+			? [tracker.getConfigRecord()]
+			: STREAMR_CONFIG_TEST?.network?.trackers,
 		...clientOptions?.network,
 	};
 
@@ -197,7 +201,9 @@ export const createLogStoreClient = async (
 ): Promise<LogStoreClient> => {
 	const networkOptions = {
 		...LOGSTORE_CONFIG_TEST?.network,
-		trackers: [tracker.getConfigRecord()],
+		trackers: tracker
+			? [tracker.getConfigRecord()]
+			: STREAMR_CONFIG_TEST.network?.trackers,
 		...clientOptions?.network,
 	};
 
