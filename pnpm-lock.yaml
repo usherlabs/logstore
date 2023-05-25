@@ -85,9 +85,6 @@ importers:
       '@concertodao/logstore-shared':
         specifier: workspace:^
         version: link:../shared
-      '@concertodao/streamr-client':
-        specifier: file:../../node_artifacts/concertodao-streamr-client-8.1.0.tgz
-        version: file:node_artifacts/concertodao-streamr-client-8.1.0.tgz(@ethersproject/hash@5.7.0)
       '@ethersproject/abstract-signer':
         specifier: ^5.7.0
         version: 5.7.0
@@ -853,9 +850,6 @@ importers:
       '@concertodao/logstore-shared':
         specifier: workspace:^
         version: link:../shared
-      '@concertodao/streamr-client':
-        specifier: file:../../node_artifacts/concertodao-streamr-client-8.1.0.tgz
-        version: file:node_artifacts/concertodao-streamr-client-8.1.0.tgz(@ethersproject/hash@5.7.0)
       '@ethersproject/bignumber':
         specifier: ^5.7.0
         version: 5.7.0
