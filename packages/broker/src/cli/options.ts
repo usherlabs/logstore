@@ -31,3 +31,8 @@ export const addressOption = new Option(
 	'-d, --delegate',
 	'Pass in the address of the node you want to delegate to'
 );
+
+export const assumeYesOption = new Option(
+	'-y, --assume-yes',
+	' Assume Yes to all queries and do not prompt'
+);

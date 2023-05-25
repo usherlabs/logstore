@@ -49,6 +49,78 @@ services:
               volume:
                   nocopy: false
 
+    logstore-broker-1:
+        container_name: logstore-broker-1
+        hostname: logstore-broker-1
+        image: logstore-broker
+        build:
+            context: ./
+            dockerfile: ./Dockerfile.broker
+        restart: always
+        ports:
+            - "7771:7771"
+        networks:
+            - streamr-network
+        volumes:
+            - type: bind
+              source: ./packages/broker/configs/docker-1.env.json
+              target: /home/node/.logstore/config/default.json
+        environment:
+            BROKER_METADATA: "{ \"http\": \"http://logstore-broker-1:7771\" }"
+        depends_on:
+            deploy-logstore-subgraph:
+                condition: service_completed_successfully
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+
+    logstore-broker-2:
+        container_name: logstore-broker-2
+        hostname: logstore-broker-2
+        image: logstore-broker
+        build:
+            context: ./
+            dockerfile: ./Dockerfile.broker
+        restart: always
+        ports:
+            - "7772:7772"
+        networks:
+            - streamr-network
+        volumes:
+            - type: bind
+              source: ./packages/broker/configs/docker-2.env.json
+              target: /home/node/.logstore/config/default.json
+        environment:
+            BROKER_METADATA: "{ \"http\": \"http://logstore-broker-2:7772\" }"
+        depends_on:
+            deploy-logstore-subgraph:
+                condition: service_completed_successfully
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+
+    logstore-broker-3:
+        container_name: logstore-broker-3
+        hostname: logstore-broker-3
+        image: logstore-broker
+        build:
+            context: ./
+            dockerfile: ./Dockerfile.broker
+        restart: always
+        ports:
+            - "7773:7773"
+        networks:
+            - streamr-network
+        volumes:
+            - type: bind
+              source: ./packages/broker/configs/docker-3.env.json
+              target: /home/node/.logstore/config/default.json
+        environment:
+            BROKER_METADATA: "{ \"http\": \"http://logstore-broker-3:7773\" }"
+        depends_on:
+            deploy-logstore-subgraph:
+                condition: service_completed_successfully
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+
 networks:
     streamr-network:
         name: streamr-docker-dev_streamr-network

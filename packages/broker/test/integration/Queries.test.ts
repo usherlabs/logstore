@@ -35,7 +35,12 @@ import {
 jest.setTimeout(60000);
 
 const STAKE_AMOUNT = BigInt('1000000000000000000');
-const TRACKER_PORT = 17772;
+
+// There are two options to run the test managed by a value of the TRACKER_PORT constant:
+// 1. TRACKER_PORT = undefined - run the test against the brokers running in dev-env and brokers run by the test script.
+// 2. TRACKER_PORT = 17771 - run the test against only brokers run by the test script.
+//    In this case dev-env doesn't run any brokers and there is no brokers joined the network (NodeManager.totalNodes == 0)
+const TRACKER_PORT = undefined;
 
 describe('Queries', () => {
 	const provider = new providers.JsonRpcProvider(
@@ -86,7 +91,9 @@ describe('Queries', () => {
 	});
 
 	beforeEach(async () => {
-		tracker = await startTestTracker(TRACKER_PORT);
+		if (TRACKER_PORT) {
+			tracker = await startTestTracker(TRACKER_PORT);
+		}
 		const nodeMetadata: NodeMetadata = {
 			http: 'http://127.0.0.1:7171',
 		};
