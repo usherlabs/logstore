@@ -128,6 +128,13 @@ export const getConfig = (privateKey: string): any => {
 		auth: {},
 	};
 
+	// TODO: Change the pool defaults to publicly known Log Store values
+	config.pool = {
+		id: '0',
+		url: 'https://api-eu-1.korellia.kyve.network',
+		pollInterval: 60 * 1000,
+	};
+
 	config.client.auth.privateKey = privateKey;
 
 	return config;

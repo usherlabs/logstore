@@ -13,6 +13,11 @@ export interface Config {
 		};
 	};
 	plugins?: Record<string, any>;
+	pool?: {
+		id: string;
+		url: string;
+		pollInterval: number;
+	};
 }
 
 // StrictConfig is a config object to which some default values have been applied
@@ -21,6 +26,7 @@ export type StrictConfig = Config & {
 	client: Exclude<Config['client'], undefined>;
 	plugins: Exclude<Config['plugins'], undefined>;
 	httpServer: Exclude<Config['httpServer'], undefined>;
+	pool: Exclude<Config['pool'], undefined>;
 };
 
 export interface ConfigFile extends Config {

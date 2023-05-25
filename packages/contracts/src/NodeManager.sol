@@ -20,7 +20,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     string public constant LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
     /* solhint-enable quotes */
 
-    event NodeUpdated(address indexed nodeAddress, string metadata, uint indexed isNew, uint lastSeen);
+    event NodeUpdated(address indexed nodeAddress, string metadata, bool indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
     event StakeDelegateUpdated(address indexed delegate, address indexed node, uint amount, uint totalStake, uint totalDelegated, bool delegated);
     event NodeWhitelistApproved(address indexed nodeAddress);
@@ -299,10 +299,10 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
     function _upsertNode(address nodeAddress, string calldata metadata_) internal {
         Node storage foundNode = nodes[nodeAddress];
-        uint isNew = 0;
+        bool isNew = false;
 
         if (foundNode.lastSeen == 0) {
-            isNew = 1;
+            isNew = true;
             if (headNode == address(0)) {
                 headNode = nodeAddress;
             } else {

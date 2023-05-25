@@ -49,6 +49,26 @@
 			"additionalProperties": true,
 			"default": {}
 		},
+		"pool": {
+			"type": "object",
+			"description": "Kyve Pool configuration",
+			"additionalProperties": true,
+			"default": {},
+			"properties": {
+				"id": {
+					"description": "The Id of the pool to poll for a new bundle",
+					"type": "string"
+				},
+				"url": {
+					"description": "The URL of the pool to poll for a new bundle",
+					"type": "string"
+				},
+				"pollInterval": {
+					"description": "The interval to which to poll the kyve network for newly validated bundles",
+					"type": "number"
+				}
+			}
+		},
 		"httpServer": {
 			"type": [
 				"object"

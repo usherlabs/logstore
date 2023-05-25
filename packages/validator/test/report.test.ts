@@ -40,7 +40,7 @@ describe('Report', () => {
 			await syncPoolConfig.call(v);
 			await v.listener.start();
 
-			const brokerNodeCount = 2;
+      const brokerNodeCount = 2;
 			await publishStorageMessages(PUBLISH_MESSAGE_COUNT); // these messages are being fired after the current key...
 			await publishQueryMessages(PUBLISH_MESSAGE_COUNT, brokerNodeCount);
 

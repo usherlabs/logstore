@@ -76,7 +76,7 @@ describe('NodeManager', function () {
 			expect(SAMPLE_WSS_URL)
 				.to.equal(event?.metadata)
 				.to.equal(record?.metadata);
-			expect(String(1)).to.equal(String(event?.isNew));
+			expect(true).to.equal(event?.isNew);
 			expect(String(NODE_MANAGER.INITIAL_NODES.length)).to.equal(
 				String(record?.index)
 			);
@@ -274,7 +274,7 @@ describe('NodeManager', function () {
 			expect(SAMPLE_WSS_URL)
 				.to.equal(event?.metadata)
 				.to.equal(record?.metadata);
-			expect(String(1)).to.equal(String(event?.isNew));
+			expect(true).to.equal(event?.isNew);
 			expect(String(NODE_MANAGER.INITIAL_NODES.length)).to.equal(
 				String(record?.index)
 			);
