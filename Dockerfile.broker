@@ -19,6 +19,8 @@ COPY --chown=node:node ./packages/protocol/package.json ./packages/protocol/pack
 COPY --chown=node:node ./packages/shared/package.json ./packages/shared/package.json
 COPY --chown=node:node ./packages/client/package.json ./packages/client/package.json
 COPY --chown=node:node ./packages/broker/package.json ./packages/broker/package.json
+COPY --chown=node:node ./node_artifacts/ ./node_artifacts/
+COPY --chown=node:node ./tsconfig.node.json ./tsconfig.node.json
 
 RUN pnpm install
 
@@ -37,7 +39,7 @@ RUN pnpm build
 
 WORKDIR /home/node/app/packages/client
 COPY --chown=node:node ./packages/client ./
-RUN pnpm build:node-production
+RUN pnpm build
 
 WORKDIR /home/node/app/packages/broker
 COPY --chown=node:node ./packages/broker ./
