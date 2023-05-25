@@ -20,16 +20,13 @@ interface IPrepared {
 export class Report extends AbstractDataItem<IPrepared> {
 	prepared: IPrepared;
 
-	override async load(source: string) {
+	override async load(managers: Managers, startBlockNumber: number) {
 		const { core, key } = this;
-		const managers = new Managers(source);
-		await managers.init();
-		// 1. Use Smart Contracts to determine last accepted report
-		// 2. Use last accepted report to determine range between last report and this report (using key timestamp) and query for messages
 
+		const startBlock = await managers.getBlock(startBlockNumber);
 		const lastReport = await managers.report.getLastReport();
-		// The start key will be the timestamp at which the Kyve Pool is created.
-		let fromKey = parseInt(core.pool.data.start_key, 10); // This defaults to be the Pool's start key
+		// The from key will default to the startBlockNumber
+		let fromKey = startBlock.timestamp;
 		if ((lastReport || {})?.id) {
 			core.logger.debug('Last Report Id: ', lastReport.id);
 			const rKey = lastReport.id.substring(

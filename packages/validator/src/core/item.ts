@@ -15,10 +15,8 @@ interface IPrepared {
 export class Item extends AbstractDataItem<IPrepared> {
 	prepared: IPrepared;
 
-	override async load(source: string) {
+	override async load(managers: Managers) {
 		const { core, key } = this;
-		const managers = new Managers(source);
-		await managers.init();
 
 		const toKey = parseInt(key, 10);
 		const block = await managers.getBlockByTime(toKey);

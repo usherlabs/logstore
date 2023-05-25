@@ -1,4 +1,5 @@
 import Listener from '../listener';
+import { Managers } from '../managers';
 import { IConfig } from '../types';
 import Validator from '../validator';
 
@@ -12,13 +13,27 @@ export abstract class AbstractDataItem<IPrepared> {
 		protected key: string
 	) {}
 
-	abstract load(source: string): Promise<IPrepared>;
+	abstract load(
+		managers: Managers,
+		startBlockNumber: number,
+		source: string
+	): Promise<IPrepared>;
 
 	public async prepare() {
 		const preparedOutcomes: IPrepared[] = [];
 		const { config } = this;
 		for (const source of config.sources) {
-			const outcome = await this.load(source);
+			const managers = new Managers(source);
+			await managers.init();
+
+			const startBlockNumber = await managers.node.getStartBlockNumber();
+			if (startBlockNumber === 0) {
+				throw new Error(
+					'No Brokers Nodes are available on the network to validate'
+				);
+			}
+
+			const outcome = await this.load(managers, startBlockNumber, source);
 			preparedOutcomes.push(outcome);
 		}
 

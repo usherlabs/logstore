@@ -123,4 +123,9 @@ export class NodeManager {
 
 		return stakeToken;
 	}
+
+	async getStartBlockNumber(): Promise<number> {
+		const startBlockNumber = await this.contract.startBlockNumber();
+		return startBlockNumber.toNumber();
+	}
 }

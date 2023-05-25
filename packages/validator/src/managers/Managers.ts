@@ -44,4 +44,10 @@ export class Managers {
 		}
 		return block;
 	}
+
+	public async getBlock(blockNumber: number) {
+		const { provider } = this;
+		const block = await provider.getBlock(blockNumber);
+		return block;
+	}
 }
