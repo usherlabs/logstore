@@ -4,7 +4,7 @@ import {
 	Subscription,
 } from '@concertodao/logstore-client';
 import {
-	ProofOfReportRecieved,
+	ProofOfReport,
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
@@ -33,7 +33,7 @@ export class ReportPoller {
 
 	private reportTimeout: NodeJS.Timeout | undefined;
 	private latestBundle: number;
-	private reportsBuffer: Array<ProofOfReportRecieved>;
+	private reportsBuffer: Array<ProofOfReport>;
 	private subscription: Subscription | undefined;
 
 	// define contracts
@@ -170,11 +170,9 @@ export class ReportPoller {
 					// do not process your message, but make an exception if theres only one node in the network
 					const rawContent = SystemMessage.deserialize(
 						content
-					) as ProofOfReportRecieved;
+					) as ProofOfReport;
 					// validate its only reports we want to process in this listener
-					if (
-						rawContent.messageType !== SystemMessageType.ProofOfReportRecieved
-					)
+					if (rawContent.messageType !== SystemMessageType.ProofOfReport)
 						return;
 					// for each gotten, cache
 					this.reportsBuffer.push(rawContent);
@@ -280,7 +278,6 @@ export class ReportPoller {
 				});
 		});
 		// close up the subscriber event after this round of reports are over
-		// ? is there a need to unsubscribe, what happens if we subscribe to an already subscribed stream
 		this.subscription?.unsubscribe();
 		return response;
 	}
@@ -302,10 +299,10 @@ export class ReportPoller {
 		// publish the report to the system stream
 		const serializer = SystemMessage.getSerializer(
 			VERSION,
-			SystemMessageType.ProofOfReportRecieved
+			SystemMessageType.ProofOfReport
 		);
 		const serialisedReportMessage = serializer.toArray(
-			new ProofOfReportRecieved({
+			new ProofOfReport({
 				version: VERSION,
 				address: brokerAddress,
 				signature,
@@ -330,7 +327,7 @@ export class ReportPoller {
 		);
 		const blockNumber = (await this.signer.provider?.getBlockNumber()) || 0;
 		logger.info(
-			`Blocknumber:${blockNumber}; ReportHeight: ${report.height}; NodeIndex:${nodeIndex}; blockBuffer:${blockBuffer}; reporters:${reportersList}`
+			`Blocknumber:${blockNumber}; ReportHeight: ${report.height}; NodeIndex:${nodeIndex}; blockBuffer:${blockBuffer}; reporters:${reportersList}; broker: ${brokerAddress}`
 		);
 		// use this condition to determine if a node is capable of submitting a report
 		// same logic smart contract uses to determine who can or cannot submit
