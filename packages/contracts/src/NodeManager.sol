@@ -59,6 +59,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     uint256 public stakeRequiredAmount;
     address public stakeTokenAddress;
     uint256 public totalNodes;
+		uint256 public startBlockNumber; // A block number for when the Log Store process starts
     mapping(address => Node) public nodes;
     mapping(address => WhitelistState) public whitelist;
     mapping(address => uint256) public balanceOf;
@@ -305,6 +306,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             isNew = true;
             if (headNode == address(0)) {
                 headNode = nodeAddress;
+								startBlockNumber = block.number;
             } else {
                 nodes[tailNode].next = nodeAddress;
                 foundNode.prev = tailNode;
@@ -350,6 +352,12 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             nodes[nextNodeAddress].index--;
             nextNodeAddress = nodes[nextNodeAddress].next;
         }
+
+				// Reset startBlockNumber if all nodes are removed.
+				if(headNode == address(0)){
+					startBlockNumber = 0;
+				}
+
         emit NodeRemoved(nodeAddress);
     }
 
