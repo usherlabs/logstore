@@ -1,4 +1,4 @@
-import { StreamrClientConfig } from 'streamr-client';
+import { StreamrClientConfig } from '@concertodao/streamr-client';
 
 export interface LogStoreClientConfig extends StreamrClientConfig {
 	contracts?: StreamrClientConfig['contracts'] & {

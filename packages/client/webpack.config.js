@@ -28,7 +28,7 @@ module.exports = (_, argv) => {
 		name: 'logstore-client',
 		mode: isProduction ? 'production' : 'development',
 		entry: {
-			'logstore-client': path.join(__dirname, 'src', 'LogStoreClient.ts'),
+			'logstore-client': path.join(__dirname, 'src', 'exports-browser.ts'),
 		},
 		devtool: 'source-map',
 		output: {
@@ -80,9 +80,9 @@ module.exports = (_, argv) => {
 	const clientConfig = merge({}, commonConfig, {
 		target: 'web',
 		output: {
-			filename: 'browser/[name].web.js',
+			filename: '[name].web.js',
 			libraryTarget: 'umd',
-			library: 'Logstore',
+			library: 'LogStoreClient',
 			globalObject: 'globalThis',
 		},
 		resolve: {
@@ -97,9 +97,6 @@ module.exports = (_, argv) => {
 				crypto: require.resolve('crypto-browserify'),
 				buffer: require.resolve('buffer/'),
 				'node-fetch': path.resolve('./src/shim/node-fetch.ts'),
-				// swap out ServerPersistence for BrowserPersistence becase of node fs dependencies
-				[path.resolve('./src/utils/persistence/ServerPersistence.ts')]:
-					path.resolve('./src/utils/persistence/BrowserPersistence.ts'),
 			},
 			fallback: {
 				module: false,
@@ -109,7 +106,6 @@ module.exports = (_, argv) => {
 				https: false,
 				express: false,
 				ws: false,
-				'@web3modal/standalone': false,
 			},
 		},
 		plugins: [
@@ -119,12 +115,12 @@ module.exports = (_, argv) => {
 			new LodashWebpackPlugin(),
 			...(analyze
 				? [
-						new BundleAnalyzerPlugin({
-							analyzerMode: 'static',
-							openAnalyzer: false,
-							generateStatsFile: true,
-						}),
-				  ]
+					new BundleAnalyzerPlugin({
+						analyzerMode: 'static',
+						openAnalyzer: false,
+						generateStatsFile: true,
+					}),
+				]
 				: []),
 		],
 	});
@@ -148,7 +144,7 @@ module.exports = (_, argv) => {
 				],
 			},
 			output: {
-				filename: 'browser/[name].web.min.js',
+				filename: '[name].web.min.js',
 			},
 		});
 	}

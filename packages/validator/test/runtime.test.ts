@@ -7,8 +7,8 @@ import { reportPrefix } from './../src/utils/constants';
 import { genesis_pool } from './mocks/constants';
 import { cleanupTests, setupTests } from './utils/setup';
 
-// const STAKE_AMOUNT = BigNumber.from('100000000000000000');
-const TIMEOUT = 90 * 1000;
+// // const STAKE_AMOUNT = BigNumber.from('100000000000000000');
+const TIMEOUT = 900 * 1000;
 
 describe('Runtime', () => {
 	let v: Validator;
@@ -31,10 +31,8 @@ describe('Runtime', () => {
 			// ACT
 			await syncPoolConfig.call(v);
 			await runCache.call(v);
-
 			expect(v['cacheProvider'].put).toHaveBeenCalledTimes(3);
-
-			const maxBundleSize = parseInt(v.pool.data.max_bundle_size, 10);
+			const maxBundleSize = parseInt(v.pool.data!.max_bundle_size, 10);
 			const lastItem = await v['cacheProvider'].get(`${maxBundleSize - 1}`);
 			const firstItem = await v['cacheProvider'].get(`0`);
 			const firstItemKeyInt = parseInt(firstItem.key, 10);

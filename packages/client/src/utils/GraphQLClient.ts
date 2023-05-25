@@ -1,3 +1,4 @@
+import { HttpFetcher, LoggerFactory } from '@concertodao/streamr-client';
 import { Logger } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
@@ -5,8 +6,6 @@ import {
 	LogStoreClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
 } from '../Config';
-import { HttpFetcher } from './HttpFetcher';
-import { LoggerFactory } from './LoggerFactory';
 
 export interface GraphQLQuery {
 	query: string;

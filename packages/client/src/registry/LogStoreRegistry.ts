@@ -5,23 +5,28 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertodao/logstore-shared';
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+	collect,
+	ContractFactory,
+	LoggerFactory,
+	queryAllReadonlyContracts,
+	Stream,
+	StreamIDBuilder,
+	waitForTx,
+} from '@concertodao/streamr-client';
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { min } from 'lodash';
-import { Stream } from 'streamr-client';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
-import {
-	Authentication,
-	AuthenticationInjectionToken,
-} from '../Authentication';
 import {
 	LogStoreClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
 } from '../Config';
-import { ContractFactory } from '../ContractFactory';
 import {
 	getStreamRegistryChainProviders,
 	getStreamRegistryOverrides,
@@ -32,10 +37,6 @@ import {
 	LogStoreClientEvents,
 } from '../events';
 import { LogStoreClient } from '../LogStoreClient';
-import { StreamIDBuilder } from '../StreamIDBuilder';
-import { queryAllReadonlyContracts, waitForTx } from '../utils/contract';
-import { collect } from '../utils/iterators';
-import { LoggerFactory } from '../utils/LoggerFactory';
 import { SynchronizedGraphQLClient } from '../utils/SynchronizedGraphQLClient';
 
 export interface LogStoreAssignmentEvent {

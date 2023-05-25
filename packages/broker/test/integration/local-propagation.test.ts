@@ -1,12 +1,16 @@
+import {
+	LogStoreClient,
+	Stream,
+	StreamPermission,
+} from '@concertodao/logstore-client';
 import { Wallet } from '@ethersproject/wallet';
 import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
-import StreamrClient, { Stream, StreamPermission } from 'streamr-client';
 
 import { Broker } from '../../src/broker';
 import {
-	createStreamrClient,
+	createLogStoreClient,
 	createTestStream,
 	startLogStoreBroker,
 	startTestTracker,
@@ -20,8 +24,8 @@ describe('local propagation', () => {
 	let tracker: Tracker;
 	let broker: Broker;
 	let privateKey: string;
-	let client1: StreamrClient;
-	let client2: StreamrClient;
+	let client1: LogStoreClient;
+	let client2: LogStoreClient;
 	let freshStream: Stream;
 	let freshStreamId: string;
 	let brokerWallet: Wallet;
@@ -36,8 +40,8 @@ describe('local propagation', () => {
 			trackerPort,
 		});
 
-		client1 = await createStreamrClient(tracker, privateKey);
-		client2 = await createStreamrClient(tracker, privateKey);
+		client1 = await createLogStoreClient(tracker, privateKey);
+		client2 = await createLogStoreClient(tracker, privateKey);
 	});
 
 	beforeEach(async () => {
@@ -60,7 +64,7 @@ describe('local propagation', () => {
 		]);
 	});
 
-	test('local propagation using StreamrClients', async () => {
+	test('local propagation using LogStoreClients', async () => {
 		const client1Messages: any[] = [];
 		const client2Messages: any[] = [];
 

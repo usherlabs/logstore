@@ -2,6 +2,7 @@ import {
 	LogStoreAssignmentEvent,
 	LogStoreClient,
 	LogStoreClientEvents,
+	Stream,
 } from '@concertodao/logstore-client';
 import {
 	StreamPartID,
@@ -12,7 +13,6 @@ import {
 import { toEthereumAddress, wait } from '@streamr/utils';
 import { BigNumber } from 'ethers';
 import { range } from 'lodash';
-import { Stream } from 'streamr-client';
 
 import { LogStoreConfig } from '../../../../src/plugins/logStore/LogStoreConfig';
 

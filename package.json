@@ -14,10 +14,11 @@
 	},
 	"devDependencies": {
 		"@trivago/prettier-plugin-sort-imports": "^4.1.1",
-		"@typescript-eslint/eslint-plugin": "^5.54.0",
-		"@typescript-eslint/parser": "^5.54.0",
+		"@tsconfig/node16": "^1.0.3",
+		"@typescript-eslint/eslint-plugin": "^5.57.0",
+		"@typescript-eslint/parser": "^5.57.0",
 		"del-cli": "^5.0.0",
-		"eslint": "^8.35.0",
+		"eslint": "^8.36.0",
 		"eslint-config-airbnb-base": "^15.0.0",
 		"eslint-config-airbnb-typescript": "^17.0.0",
 		"eslint-config-prettier": "^8.6.0",
@@ -33,6 +34,6 @@
 		"prettier": "^2.6.2",
 		"prettier-plugin-solidity": "^1.1.3",
 		"turbo": "^1.8.3",
-		"typescript": "^4"
+		"typescript": "^4.9.5"
 	}
 }

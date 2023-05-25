@@ -2,6 +2,7 @@ import { ProofOfMessageStored } from './ProofOfMessageStored';
 import {
 	QueryFromOptions,
 	QueryLastOptions,
+	QueryOptions,
 	QueryRangeOptions,
 	QueryRequest,
 	QueryType,
@@ -15,6 +16,7 @@ export {
 	QueryRequest,
 	QueryResponse,
 	QueryType,
+	QueryOptions,
 	SystemMessageType,
 	QueryLastOptions,
 	QueryRangeOptions,

@@ -1,16 +1,14 @@
-import { cloneDeep } from 'lodash';
-import 'reflect-metadata';
-import StreamrClient, {
+import {
 	MessageListener,
+	MessageStream,
 	Stream,
 	StreamDefinition,
-} from 'streamr-client';
+	StreamrClient,
+} from '@concertodao/streamr-client';
+import { cloneDeep } from 'lodash';
+import 'reflect-metadata';
 import { container as rootContainer } from 'tsyringe';
 
-import {
-	AuthenticationInjectionToken,
-	createAuthentication,
-} from './Authentication';
 import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
@@ -18,15 +16,12 @@ import {
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
-import { MessageStream } from './MessageStream';
 import { Queries, QueryOptions } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
-import { StreamIDBuilder } from './StreamIDBuilder';
 
 export class LogStoreClient extends StreamrClient {
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
-	private readonly logStoreStreamIdBuilder: StreamIDBuilder;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 
 	constructor(
@@ -41,10 +36,10 @@ export class LogStoreClient extends StreamrClient {
 		delete streamrClientConfig.contracts?.logStoreNodeManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
-		super(streamrClientConfig);
+
+		super(streamrClientConfig, container);
 
 		const strictConfig = createStrictConfig(config);
-		const authentication = createAuthentication(strictConfig);
 		redactConfig(strictConfig);
 
 		container.register(LogStoreClient, {
@@ -55,18 +50,12 @@ export class LogStoreClient extends StreamrClient {
 			useValue: strictConfig,
 		});
 
-		container.register(AuthenticationInjectionToken, {
-			useValue: authentication,
-		});
-
 		this.logStoreClientEventEmitter =
 			container.resolve<LogStoreClientEventEmitter>(LogStoreClientEventEmitter);
 
 		this.logStoreRegistry =
 			container.resolve<LogStoreRegistry>(LogStoreRegistry);
 
-		this.logStoreStreamIdBuilder =
-			container.resolve<StreamIDBuilder>(StreamIDBuilder);
 		this.logStoreQueries = container.resolve<Queries>(Queries);
 	}
 
@@ -97,7 +86,7 @@ export class LogStoreClient extends StreamrClient {
 		options: QueryOptions,
 		onMessage?: MessageListener
 	): Promise<MessageStream> {
-		const streamPartId = await this.logStoreStreamIdBuilder.toStreamPartID(
+		const streamPartId = await this.streamIdBuilder.toStreamPartID(
 			streamDefinition
 		);
 		const messageStream = await this.logStoreQueries.query(
