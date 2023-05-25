@@ -190,7 +190,6 @@ describe(ReportPoller, () => {
 		const nodes = await nodeManager.nodeAddresses();
 		const reporters = await reportManager.getReporters();
 		console.log({ activeNodes: nodes, reporters });
-		return;
 		// start report listener
 		const reportPoller = new ReportPoller(
 			CONFIG_TEST as StrictConfig,
