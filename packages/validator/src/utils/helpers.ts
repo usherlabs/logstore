@@ -62,7 +62,21 @@ export function fetchQueryResponseConsensus(arr: StreamrMessage[]) {
 	const result: Record<string, StreamrMessage[]> = {};
 	let maxHash = null;
 	let maxCount = -1;
+
+	// Filter to ensure that each publisher only produces a single query response
+	const filtered: StreamrMessage[] = [];
 	arr.forEach((obj) => {
+		if (
+			!filtered
+				.map((o) => o.metadata.publisherId)
+				.includes(obj.metadata.publisherId)
+		) {
+			filtered.push(obj);
+		}
+	});
+
+	// Produce a maxCount of a hash - and base the decision of consensus for a query response on this -- ie. the response that most nodes agreed to.
+	filtered.forEach((obj) => {
 		const hash = obj.content.hash;
 		if (!result[hash]) {
 			result[hash] = [obj];

@@ -6,8 +6,7 @@
 	"description": "Concerto Log Store Validator Node",
 	"private": false,
 	"scripts": {
-		"build:release": "del dist && tsc -p ./tsconfig.release.json",
-		"build": "del dist && tsc",
+		"build": "del dist && tsc -p ./tsconfig.release.json",
 		"start": "node ./dist/src/index.js",
 		"format": "prettier --write .",
 		"start:fresh": "npm-run-all -s build start",
@@ -21,7 +20,7 @@
 	],
 	"main": "./dist/src/index.js",
 	"bin": {
-		"logstore-validator": "./dist/bin/logstore-validate.js"
+		"logstore-validator": "./dist/bin/logstore-validator.js"
 	},
 	"dependencies": {
 		"@concertodao/logstore-client": "workspace:^",
@@ -36,7 +35,8 @@
 		"arweave": "^1.13.7",
 		"bigint-buffer": "^1.1.5",
 		"commander": "^10.0.0",
-		"ethers": "^6.2.3",
+		"ethers": "^5",
+		"fs-extra": "^11.1.1",
 		"lmdb": "^2.7.11",
 		"lodash": "^4.17.21",
 		"redstone-api": "^0.4.11"
@@ -46,13 +46,8 @@
 		"@kyvejs/sdk": "1.0.0-beta.10",
 		"@streamr/test-utils": "^8.1.0",
 		"@streamr/utils": "^8.1.0",
-		"@types/jest": "^29.5.0",
-		"@types/node": "^18.15.10",
-		"@types/node-fetch": "^2.6.2",
-		"@types/pino": "^7.0.5",
-		"@types/websocket": "^1.0.5",
-		"@types/ws": "^8.5.3",
-		"cross-env": "^7.0.3",
+		"@types/jest": "^29.5.1",
+		"@types/node": "^18.7.18",
 		"del-cli": "^5.0.0",
 		"dotenv": "^16.0.3",
 		"dotenv-cli": "^7.2.1",

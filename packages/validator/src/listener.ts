@@ -6,16 +6,17 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@concertodao/logstore-protocol';
+import fse from 'fs-extra';
+import { open, RootDatabase } from 'lmdb';
+import path from 'path';
 import StreamrClient, {
 	CONFIG_TEST,
 	MessageMetadata,
 } from '@concertodao/streamr-client';
-import { open, RootDatabase } from 'lmdb';
-import path from 'path';
+import type { Logger } from 'tslog';
 
 import { useStreamrTestConfig } from './env-config';
 import type { StreamrMessage } from './types';
-import type Validator from './validator';
 
 // -------------> usual storage of QueryRequest and POS in listener cache
 // timestamp(number)|requestId(string) => [{content, metadata},{content, metadata}]
@@ -38,37 +39,23 @@ type DB = {
 };
 
 export default class Listener {
-	private client: StreamrClient;
+	private _client: StreamrClient;
 	private _db!: DB;
-	private cachePath: string;
+	private _cachePath: string;
 	private _startTime: number;
 
 	constructor(
-		protected core: Validator,
 		protected systemStreamId: string,
-		homeDir: string
+		homeDir: string,
+		protected logger: Logger
 	) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		// core.logger.debug('Streamr Config', streamrConfig);
-		this.client = new StreamrClient(streamrConfig);
+		this._client = new StreamrClient(streamrConfig);
 
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted
-		this.cachePath = path.join(homeDir, '.logstore-metadata');
-		this._db = {
-			[SystemMessageType.ProofOfMessageStored]: this.createDb(
-				'ProofOfMessageStored',
-				this.cachePath
-			),
-			[SystemMessageType.QueryRequest]: this.createDb(
-				'QueryRequest',
-				this.cachePath
-			),
-			[SystemMessageType.QueryResponse]: this.createDb(
-				'QueryResponse',
-				this.cachePath
-			),
-		} as DB;
+		this._cachePath = path.join(homeDir, '.logstore-metadata');
 	}
 
 	public get startTime() {
@@ -77,32 +64,44 @@ export default class Listener {
 
 	public async start(): Promise<void> {
 		try {
-			// const systemSubscription =
-			this.core.logger.info('Starting listeners ...');
-			this.core.logger.debug(`System Stream Id: `, this.systemStreamId);
-			await this.subscribe(this.systemStreamId);
+			await fse.remove(this._cachePath);
+			this._db = {
+				[SystemMessageType.ProofOfMessageStored]: this.createDb(
+					'ProofOfMessageStored',
+					this._cachePath
+				),
+				[SystemMessageType.QueryRequest]: this.createDb(
+					'QueryRequest',
+					this._cachePath
+				),
+				[SystemMessageType.QueryResponse]: this.createDb(
+					'QueryResponse',
+					this._cachePath
+				),
+			} as DB;
 
-			const dbTypes = Object.values(SystemMessageType);
-			for (let i = 0; i < dbTypes.length; i++) {
-				await this.db(dbTypes[i] as SystemMessageType).drop();
-			}
+			// const systemSubscription =
+			this.logger.info('Starting listeners ...');
+			this.logger.debug(`System Stream Id: `, this.systemStreamId);
+			await this.subscribe(this.systemStreamId);
 
 			// Store a timestamp for when the listener starts so that the Node must have a timestamp < bundle_start_key to pariticpate.
 			this._startTime = Date.now();
 		} catch (e) {
-			this.core.logger.error(`Unexpected error starting listener...`);
-			this.core.logger.error(e);
+			this.logger.error(`Unexpected error starting listener...`);
+			this.logger.error(e);
 			throw e; // Fail if there's an issue with listening to data critical to performance of validator.
 		}
 	}
 
 	public async stop() {
-		await this.client.unsubscribe();
+		await this._client.unsubscribe();
 	}
 
 	public async subscribe(streamId: string) {
-		await this.client.subscribe(streamId, (content, metadata) => {
-			return this.onMessage(content as any[], metadata);
+		await this._client.subscribe(streamId, (content, metadata) => {
+			// eslint-disable-next-line
+			this.onMessage(content as any, metadata);
 		});
 	}
 
@@ -136,9 +135,13 @@ export default class Listener {
 		});
 	}
 
-	private async onMessage(content: any[], metadata: MessageMetadata) {
+	private async onMessage(
+		content: any,
+		metadata: MessageMetadata
+	): Promise<void> {
 		// Add to store
 		const parsedContent = SystemMessage.deserialize(content);
+		// this.logger.debug('onMessage', parsedContent);
 		switch (parsedContent.messageType) {
 			case SystemMessageType.ProofOfMessageStored: {
 				/**
@@ -150,28 +153,30 @@ export default class Listener {
 				const proof = parsedContent as ProofOfMessageStored;
 				const key = proof.timestamp;
 
-				this.core.logger.debug('ProofOfMessageStored', {
+				this.logger.debug('ProofOfMessageStored', {
 					key,
 					value: { content, metadata },
 				});
 
 				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
-				const value = db.get(key) || [];
-				value.push({
-					content: proof,
-					metadata,
+				await db.transaction(() => {
+					const value = db.get(key) || [];
+					value.push({
+						content: proof,
+						metadata,
+					});
+					// Sort the values by their sequenceNumber to ensure they're deterministically ordered
+					value.sort((a, b) => {
+						if (a.content.sequenceNumber < b.content.sequenceNumber) {
+							return -1;
+						}
+						if (a.content.sequenceNumber > b.content.sequenceNumber) {
+							return 1;
+						}
+						return 0;
+					});
+					return db.put(key, value);
 				});
-				// Sort the values by their sequenceNumber to ensure they're deterministically ordered
-				value.sort((a, b) => {
-					if (a.content.sequenceNumber < b.content.sequenceNumber) {
-						return -1;
-					}
-					if (a.content.sequenceNumber > b.content.sequenceNumber) {
-						return 1;
-					}
-					return 0;
-				});
-				await db.put(key, value);
 
 				break;
 			}
@@ -179,39 +184,44 @@ export default class Listener {
 				// Query requests can use point at which broker publishes message because only a single broker will ever emit a query request message
 				const db = this.queryRequestDb();
 				const key = metadata.timestamp;
-				this.core.logger.debug('QueryRequest', {
+				this.logger.debug('QueryRequest', {
 					key,
 					value: { content, metadata },
 				});
 
 				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
-				const value = db.get(key) || [];
-				value.push({
-					content: parsedContent as QueryRequest,
-					metadata,
+				await db.transaction(() => {
+					const value = db.get(key) || [];
+					value.push({
+						content: parsedContent as QueryRequest,
+						metadata,
+					});
+					// Sort the values by their sequenceNumber to ensure they're deterministically ordered
+					value.sort((a, b) => {
+						if (a.metadata.sequenceNumber < b.metadata.sequenceNumber) {
+							return -1;
+						}
+						if (a.metadata.sequenceNumber > b.metadata.sequenceNumber) {
+							return 1;
+						}
+						return 0;
+					});
+					return db.put(key, value);
 				});
-				// Sort the values by their sequenceNumber to ensure they're deterministically ordered
-				value.sort((a, b) => {
-					if (a.metadata.sequenceNumber < b.metadata.sequenceNumber) {
-						return -1;
-					}
-					if (a.metadata.sequenceNumber > b.metadata.sequenceNumber) {
-						return 1;
-					}
-					return 0;
-				});
-				await db.put(key, value);
 				break;
 			}
 			case SystemMessageType.QueryResponse: {
 				const db = this.queryResponseDb();
 				// represent the items in the response DB as
 				// requestId => [{content1, metadata1}, {content2, metadata2}]
-				const responseContent = parsedContent as QueryResponse;
-				const key = responseContent.requestId;
-				const existingResponse = db.get(key) || [];
-				existingResponse.push({ content: responseContent, metadata });
-				await db.put(key, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
+				await db.transaction(() => {
+					const responseContent = parsedContent as QueryResponse;
+					const key = responseContent.requestId;
+					const existingResponse = db.get(key) || [];
+					existingResponse.push({ content: responseContent, metadata });
+					// eslint-disable-next-line
+					return db.put(key, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
+				});
 				break;
 			}
 			default: {

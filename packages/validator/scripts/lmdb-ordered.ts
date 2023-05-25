@@ -6,8 +6,8 @@
 import { open, RootDatabase } from 'lmdb';
 import path from 'path';
 
-type DB = RootDatabase<string, number>;
-type ResponseDB = RootDatabase<string, number>;
+type DB = RootDatabase<any, number>;
+type ResponseDB = RootDatabase<any, number>;
 
 // const createDB = (p) => {
 // 	return open({
@@ -34,7 +34,9 @@ const createDB = (name, p) => {
 		name,
 		path: p,
 		compression: true,
-		encoding: 'json',
+		// encoding: 'json',
+		encoding: 'ordered-binary',
+		dupSort: true,
 	});
 };
 
@@ -52,10 +54,10 @@ const db2 = createDB('query-response', cachePath) as ResponseDB;
 // const db2 = createDB(path.join(__dirname, './cache/db2')) as ResponseDB;
 
 (async () => {
-	const values = [db1.get(100), db1.get(101), db2.get(100), db2.get(101)];
-
-	await db1.put(1, 'hello');
-	await db2.put(2, 'world');
+	await db1.put(1, JSON.stringify({ hello: true }));
+	await db1.put(1, JSON.stringify({ hello2: true }));
+	await db2.put(2, JSON.stringify({ world: true }));
+	await db2.put(2, JSON.stringify({ world2: true }));
 
 	const c = db1
 		.getRange
@@ -78,6 +80,4 @@ const db2 = createDB('query-response', cachePath) as ResponseDB;
 	for (const v of c2) {
 		console.log('db2:', v);
 	}
-
-	console.log('values', values);
 })();

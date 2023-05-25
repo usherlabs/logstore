@@ -1,5 +1,3 @@
-import addresses from '@concertodao/logstore-contracts/address.json';
-
 export const genesis_pool = {
 	id: '0',
 	data: {
@@ -8,8 +6,7 @@ export const genesis_pool = {
 		runtime: '@concertodao/logstore-validator',
 		logo: 'ar://9FJDam56yBbmvn8rlamEucATH5UcYqSBw468rlCXn8E',
 		config: `{
-			"sources": ["http://localhost:8546"],
-			"contracts": ${JSON.stringify(addresses[8997])}
+			"sources": ["http://localhost:8546"]
 		}`.replace(/\s/g, ''),
 		start_key: '1681200822557',
 		current_key: '',

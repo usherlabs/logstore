@@ -1,5 +1,14 @@
 import type { QueryOptions } from '@concertodao/logstore-protocol';
 import { MessageMetadata } from '@concertodao/streamr-client';
+import type { IRuntime } from '@kyvejs/protocol';
+
+import type Listener from '../listener';
+import type Validator from '../validator';
+
+export interface IRuntimeExtended extends IRuntime {
+	listener: Listener;
+	setupThreads?: (core: Validator, homeDir: string) => void;
+}
 
 export interface IConfig {
 	systemStreamId: string;

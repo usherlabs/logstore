@@ -1,15 +1,17 @@
 import ContractAddresses from '@concertodao/logstore-contracts/address.json';
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { DataItem, IRuntime, sha256 } from '@kyvejs/protocol';
+import { DataItem, sha256 } from '@kyvejs/protocol';
 
 import { Item } from './core/item';
 import { Report } from './core/report';
 import { appPackageName, appVersion } from './env-config';
+import Listener from './listener';
 import { IConfig } from './types';
+import { IRuntimeExtended } from './types';
 import { reportPrefix } from './utils/constants';
 import Validator from './validator';
 
-export default class Runtime implements IRuntime {
+export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
 	public version = appVersion;
 	public config: IConfig = {
@@ -22,6 +24,18 @@ export default class Runtime implements IRuntime {
 			read: 0.00000001, // value in USD
 		},
 	};
+	public listener: Listener;
+
+	setupThreads(core: Validator, homeDir: string) {
+		this.listener = new Listener(
+			this.config.systemStreamId,
+			homeDir,
+			core.logger
+		);
+
+		// eslint-disable-next-line
+		this.listener.start();
+	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {
 		const config: IConfig = JSON.parse(rawConfig);
@@ -47,19 +61,8 @@ export default class Runtime implements IRuntime {
 			throw new Error(`Config sources have invalid network chain identifier`);
 		}
 
-		if (!config.itemTimeRange) {
-			throw new Error(`Config itemTimeRange is invalid`);
-		}
-
-		if (
-			!config.fees.read ||
-			!config.fees.writeMultiplier ||
-			!config.fees.treasuryMultiplier
-		) {
-			throw new Error(`Config fee properties are invalid`);
-		}
-
 		this.config = {
+			...this.config,
 			...config,
 			systemStreamId: `${systemContracts.nodeManagerAddress}/system`,
 		};
@@ -72,7 +75,7 @@ export default class Runtime implements IRuntime {
 		// IF REPORT
 		if (key.startsWith(reportPrefix)) {
 			core.logger.info(`Create Report: ${key}`);
-			const report = new Report(core, this.config, key);
+			const report = new Report(core, this.listener, this.config, key);
 			await report.prepare();
 			const value = await report.generate();
 
@@ -83,7 +86,7 @@ export default class Runtime implements IRuntime {
 		}
 
 		// IF NO REPORT
-		const item = new Item(core, this.config, key);
+		const item = new Item(core, this.listener, this.config, key);
 		await item.prepare();
 		const value = await item.generate();
 
@@ -119,16 +122,13 @@ export default class Runtime implements IRuntime {
 		return proposedDataItemHash === validationDataItemHash;
 	}
 
-	async summarizeDataBundle(
-		core: Validator,
-		bundle: DataItem[]
-	): Promise<string> {
+	async summarizeDataBundle(_: Validator, bundle: DataItem[]): Promise<string> {
 		// First key in the listener cache is a timestamp.
 		// This key must be less than the key of the first item in the bundle.
 		// ie. this node may have produced an invalid report because it began listening after it had joined the processing of voting
 		const [item] = bundle; // first data item should always be the bundle
 		const itemKeyInt = parseInt(item.key, 10);
-		if (core.listener.startTime > itemKeyInt) {
+		if (this.listener.startTime > itemKeyInt) {
 			return null; // Will cause the validator to abstain from the vote
 		}
 

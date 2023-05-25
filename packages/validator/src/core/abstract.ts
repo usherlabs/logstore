@@ -1,3 +1,4 @@
+import Listener from '../listener';
 import { IConfig } from '../types';
 import Validator from '../validator';
 
@@ -6,6 +7,7 @@ export abstract class AbstractDataItem<IPrepared> {
 
 	constructor(
 		protected core: Validator,
+		protected listener: Listener,
 		protected config: IConfig,
 		protected key: string
 	) {}

@@ -13,14 +13,11 @@ import {
 } from '@concertodao/logstore-shared';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
-// import { createTestStream } from '@concertodao/logstore-client/dist/test/test-utils/utils';
-// import { BigNumber } from '@ethersproject/bignumber';
 import {
-	// ICacheProvider,
+	ICacheProvider,
 	ICompression,
 	IStorageProvider,
 } from '@kyvejs/protocol';
-import { setupMetrics } from '@kyvejs/protocol/src/methods';
 import { TestCacheProvider } from '@kyvejs/protocol/test/mocks/cache.mock';
 import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
@@ -29,14 +26,11 @@ import { TestNormalStorageProvider } from '@kyvejs/protocol/test/mocks/storagePr
 import { fastPrivateKey } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
-import { range } from 'lodash';
-// import { MemoryLevel } from 'memory-level';
 import path from 'path';
 import { register } from 'prom-client';
 import { ILogObject, Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
 
-import Listener from '../../src/listener';
 import Runtime from '../../src/runtime';
 import { Arweave } from '../../src/utils/arweave';
 import { StakeToken } from '../../src/utils/stake-token';
@@ -57,22 +51,27 @@ function sleep(ms: number) {
 
 let processExit: jest.Mock<never, never>;
 
-// let cacheProvider: ICacheProvider;
 let v: Validator;
 let storageProvider: IStorageProvider;
+let cacheProvider: ICacheProvider;
 let compression: ICompression;
 let publisherClient: LogStoreClient;
 
 const VERSION = 1;
 
-// const storageSerializer = new ProofOfMessageStoredSerializerV1();
 export async function setupTests() {
 	const evmPrivateKey = fastPrivateKey();
 	process.env.EVM_PRIVATE_KEY = evmPrivateKey;
 
 	v = new Validator(new Runtime());
 
-	v['cacheProvider'] = new TestCacheProvider();
+	// mock cache provider
+	cacheProvider = new TestCacheProvider();
+	jest
+		.spyOn(Validator, 'cacheProviderFactory')
+		.mockImplementation(() => cacheProvider);
+
+	v['cacheProvider'] = cacheProvider;
 
 	// mock storage provider
 	storageProvider = new TestNormalStorageProvider();
@@ -86,8 +85,8 @@ export async function setupTests() {
 		.spyOn(Validator, 'compressionFactory')
 		.mockImplementation(() => compression);
 
-	// mock archiveDebugBundle
-	v['archiveDebugBundle'] = jest.fn();
+	// // mock archiveDebugBundle
+	// v['archiveDebugBundle'] = jest.fn();
 
 	// mock process.exit
 	processExit = jest.fn<never, never>();
@@ -148,28 +147,44 @@ export async function setupTests() {
 	// Set home value
 	v['home'] = path.join(__dirname, '../cache');
 
-	// jest.spyOn(Listener.prototype, 'createDb').mockImplementation(
-	// 	() =>
-	// 		new MemoryLevel<string, StreamrMessage>({
-	// 			valueEncoding: 'json',
-	// 		})
-	// );
-	v.listener = new Listener(v, v['home']);
-
 	// Ensure that all prom calls are setup
-	setupMetrics.call(v);
+	await v['setupMetrics']();
 
 	const provider = new JsonRpcProvider(
 		`http://${STREAMR_DOCKER_DEV_HOST}:8546` // tunnel to remote server
 	);
+	await provider.ready;
 	const signer = new Wallet(BROKER_NODE_PRIVATE_KEY, provider);
 	const nodeManagerContract = await getNodeManagerContract(signer);
+	const nodeAddresses = await nodeManagerContract.nodeAddresses();
+	const nodeExists = nodeAddresses.includes(signer.address);
 	const isStaked = await nodeManagerContract.isStaked(signer.address);
+
+	console.log(`${signer.address} ${nodeExists ? 'exists' : 'DOES NOT exist'}!`);
+	console.log(`${signer.address} is ${isStaked ? 'already' : 'NOT'} staked!`);
+
 	if (!isStaked) {
-		const stakeAmount = await prepareStakeForNodeManager(signer, 10000, false);
-		await (
-			await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
-		).wait();
+		const stakeRequiredAmount = await nodeManagerContract.stakeRequiredAmount();
+		const stakeAmount = await prepareStakeForNodeManager(
+			signer,
+			stakeRequiredAmount.toBigInt(),
+			false
+		);
+		if (nodeExists) {
+			console.log(
+				`${
+					signer.address
+				} will stake and delegate with ${stakeAmount.toString()}`
+			);
+			await (
+				await nodeManagerContract.stakeAndDelegate(stakeAmount, signer.address)
+			).wait();
+		} else {
+			console.log(`${signer.address} will join with ${stakeAmount.toString()}`);
+			await (
+				await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
+			).wait();
+		}
 	}
 	console.log('Provider Latest Block: ', await provider.getBlockNumber());
 
@@ -182,12 +197,12 @@ export async function setupTests() {
 
 	// ? StreamrDevNet uses a Stake token that cannot be found in Redstone, so this will always yield stake token value of 0.01
 	// Mock getPrice in Arweave and StakeToken util classes
-	StakeToken.prototype.getPrice = () =>
-		jest.fn(() => {
-			return 0.01; // return a constant for dev tokens in test.
-		});
-	Arweave.getPrice = (byteSize: number) =>
-		jest.fn(() => {
+	jest.spyOn(StakeToken.prototype, 'getPrice').mockImplementation(async () => {
+		return 0.01; // return a constant for dev tokens in test.
+	});
+	jest
+		.spyOn(Arweave, 'getPrice')
+		.mockImplementation(async (byteSize: number) => {
 			// const avgWinstonPerByte = 189781180 / 100000 // as per 13th of May 2023 from https://arweave.net/price/100000
 			const constantWinstonPerByte = 2000; // where 200000000 is required for 100000 bytes
 			return byteSize * constantWinstonPerByte;
@@ -201,17 +216,23 @@ export async function cleanupTests() {
 	register.clear();
 
 	await publisherClient?.destroy();
-	await v.listener.stop();
+	if (v['runtime'].listener) {
+		await v['runtime'].listener.stop();
+	}
 }
 
 export const publishStorageMessages = async (numOfMessages: number) => {
+	const { systemStreamId } = v['runtime'].config;
+	const messages: ProofOfMessageStored[] = [];
 	try {
-		const sourceStreamId = v.systemStreamId.replace('/system', '/test');
-		for (const idx of range(numOfMessages)) {
+		const sourceStreamId = systemStreamId.replace('/system', '/test');
+		for (let idx = 1; idx <= numOfMessages; idx++) {
 			const msg = { messageNo: idx };
 			const msgStr = JSON.stringify(msg);
 			const size = Buffer.byteLength(msgStr, 'utf8');
-			const hash = ethers.keccak256(fromString(sourceStreamId + msgStr + size));
+			const hash = ethers.utils.keccak256(
+				fromString(sourceStreamId + msgStr + size)
+			);
 			console.log(`Publishing storage message:`, msg, { hash, size });
 
 			const content = {
@@ -224,49 +245,54 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 				SystemMessageType.ProofOfMessageStored
 			);
 
-			const serialisedStorageMessage = serializer.toArray(
-				new ProofOfMessageStored({
-					version: VERSION,
-					streamId: content.id,
-					partition: 0,
-					timestamp: +new Date(),
-					sequenceNumber: 0,
-					size: content.size,
-					hash: content.hash,
-				})
-			);
+			const systemMsg = new ProofOfMessageStored({
+				version: VERSION,
+				streamId: content.id,
+				partition: 0,
+				timestamp: +new Date(),
+				sequenceNumber: 0,
+				size: content.size,
+				hash: content.hash,
+			});
+			const serialisedStorageMessage = serializer.toArray(systemMsg);
 
 			await publisherClient.publish(
 				{
-					id: v.systemStreamId,
+					id: systemStreamId,
 					partition: 0,
 				},
 				serialisedStorageMessage
 			);
-			await sleep(100);
+
+			messages.push(systemMsg);
+			// await sleep(100);
 		}
 		await wait(MESSAGE_STORE_TIMEOUT);
 	} catch (e) {
 		console.log(`Cannot publish message to storage stream`);
 		console.error(e);
 	}
+
+	return messages;
 };
 
 export const publishQueryMessages = async (
 	numOfMessages: number,
 	brokerNodeCount: number
 ) => {
-	const sourceStreamId = v.systemStreamId.replace('/system', '/test');
-	for (const idx of range(numOfMessages)) {
+	const { systemStreamId } = v['runtime'].config;
+	const sourceStreamId = systemStreamId.replace('/system', '/test');
+	for (let idx = 1; idx <= numOfMessages; idx++) {
 		const query = { from: { timestamp: 1 }, to: { timestamp: 2 } };
 		const consumer = '0x00000000000';
 		const msg = { messageNo: idx };
 		const queryStr = JSON.stringify(query);
 		const msgStr = JSON.stringify(msg);
 		const size = Buffer.byteLength(msgStr, 'utf8');
-		const hash = ethers.keccak256(
+		const hash = ethers.utils.keccak256(
 			fromString(sourceStreamId + queryStr + consumer + msgStr + size)
 		);
+		console.log(`Publishing query request message:`, msg, { hash, size });
 
 		// create one Query request, send it across the stream
 		const content = {
@@ -283,7 +309,7 @@ export const publishQueryMessages = async (
 		);
 		const serialisedRequest = requestSerializer.toArray(
 			new QueryRequest({
-				requestId: idx,
+				requestId: `${idx}`,
 				consumerId: content.consumer,
 				streamId: content.id,
 				partition: 0,
@@ -293,16 +319,17 @@ export const publishQueryMessages = async (
 		);
 		await publisherClient.publish(
 			{
-				id: v.systemStreamId,
+				id: systemStreamId,
 				partition: 0,
 			},
 			serialisedRequest
 		);
 
-		// publish multiple responses to imitate multiple broker nodes responsible
-		for (const jdx of range(brokerNodeCount)) {
+		// ? publish multiple responses from the same broker node -- to ensure that filter processes are in place.
+		for (let jdx = 1; jdx <= brokerNodeCount; jdx++) {
 			// add random wait to account for minor delay/latency
 			await sleep(jdx * 100);
+			console.log(`Publishing query response message:`, idx);
 			// simulate and publish a response to this request
 			const responseSerializer = SystemMessage.getSerializer(
 				VERSION,
@@ -310,7 +337,7 @@ export const publishQueryMessages = async (
 			);
 			const serializedResponse = responseSerializer.toArray(
 				new QueryResponse({
-					requestId: idx,
+					requestId: `${idx}`,
 					size: content.size,
 					hash: content.hash,
 					signature: `test_sig_of_broker_${jdx}`,
@@ -319,7 +346,7 @@ export const publishQueryMessages = async (
 
 			await publisherClient.publish(
 				{
-					id: v.systemStreamId,
+					id: systemStreamId,
 					partition: 0,
 				},
 				serializedResponse

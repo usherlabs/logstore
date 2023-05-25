@@ -75,6 +75,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		const {
 			core,
+			listener,
 			key,
 			config: { fees },
 		} = this;
@@ -155,7 +156,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		// ------------ STORAGE ------------
 		// Use events in the listener cache to determine which events are valid.
-		const storeCache = core.listener.storeDb();
+		const storeCache = listener.storeDb();
 		// a mapping of "contentHash => [[timestamp, valueIndex], [timestamp, valueIndex]]"
 		// With this mapping, we can determine which events in the storeCache pertain to the ProofOfMessageStored hash - and therefore which publishers/brokers contributed.
 		const storeHashKeyMap: Record<string, [number, number][]> = {};
@@ -163,6 +164,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			start: fromKey,
 			end: toKey,
 		});
+		// TODO: We may need to create a special cache for streamIds that are complete dropped during a given item cycle.
 		for (const { key: cacheKey, value: cacheValue } of storeCachedItems) {
 			if (!cacheValue) continue;
 			for (let i = 0; i < cacheValue.length; i++) {
@@ -194,9 +196,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 				}
 			}
 		}
-		core.logger.debug('Storage HashKeyMap: ', {
-			storeHashKeyMap,
-		});
+		core.logger.debug('Storage HashKeyMap: ', storeHashKeyMap);
 
 		// Apply valid storage events to report
 		const streamsMap: Record<
@@ -242,6 +242,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 			}
 		}
 
+		core.logger.debug('Storage Streams Map: ', streamsMap);
+
 		const streamsMapEntries = Object.entries(streamsMap);
 
 		// Determine the Storage Fee per Byte
@@ -276,8 +278,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// -------------------------------------
 
 		// ------------ QUERIES ----------------
-		const queryRequestCache = core.listener.queryRequestDb();
-		const queryResponseCache = core.listener.queryResponseDb();
+		const queryRequestCache = listener.queryRequestDb();
+		const queryResponseCache = listener.queryResponseDb();
 		// Iterate over the query-request events between the range
 		const queryRequestCachedItems = queryRequestCache.getRange({
 			start: fromKey,
