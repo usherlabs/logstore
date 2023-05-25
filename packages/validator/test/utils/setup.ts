@@ -4,8 +4,6 @@ import {
 	QueryRequest,
 	QueryResponse,
 	QueryType,
-	SystemMessage,
-	SystemMessageType,
 } from '@concertodao/logstore-protocol';
 import {
 	getNodeManagerContract,
@@ -56,8 +54,6 @@ let storageProvider: IStorageProvider;
 let cacheProvider: ICacheProvider;
 let compression: ICompression;
 let publisherClient: LogStoreClient;
-
-const VERSION = 1;
 
 export async function setupTests() {
 	const evmPrivateKey = fastPrivateKey();
@@ -240,13 +236,8 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 				hash,
 				size,
 			};
-			const serializer = SystemMessage.getSerializer(
-				VERSION,
-				SystemMessageType.ProofOfMessageStored
-			);
 
-			const systemMsg = new ProofOfMessageStored({
-				version: VERSION,
+			const proofOfMessageStored = new ProofOfMessageStored({
 				streamId: content.id,
 				partition: 0,
 				timestamp: +new Date(),
@@ -254,17 +245,16 @@ export const publishStorageMessages = async (numOfMessages: number) => {
 				size: content.size,
 				hash: content.hash,
 			});
-			const serialisedStorageMessage = serializer.toArray(systemMsg);
 
 			await publisherClient.publish(
 				{
 					id: systemStreamId,
 					partition: 0,
 				},
-				serialisedStorageMessage
+				proofOfMessageStored.serialize()
 			);
 
-			messages.push(systemMsg);
+			messages.push(proofOfMessageStored);
 			// await sleep(100);
 		}
 		await wait(MESSAGE_STORE_TIMEOUT);
@@ -303,26 +293,21 @@ export const publishQueryMessages = async (
 			size,
 		};
 		// publish single request to stream
-		const requestSerializer = SystemMessage.getSerializer(
-			VERSION,
-			SystemMessageType.QueryRequest
-		);
-		const serialisedRequest = requestSerializer.toArray(
-			new QueryRequest({
-				requestId: `${idx}`,
-				consumerId: content.consumer,
-				streamId: content.id,
-				partition: 0,
-				queryType: QueryType.Range,
-				queryOptions: content.query,
-			})
-		);
+		const queryRequest = new QueryRequest({
+			requestId: `${idx}`,
+			consumerId: content.consumer,
+			streamId: content.id,
+			partition: 0,
+			queryType: QueryType.Range,
+			queryOptions: content.query,
+		});
+
 		await publisherClient.publish(
 			{
 				id: systemStreamId,
 				partition: 0,
 			},
-			serialisedRequest
+			queryRequest.serialize()
 		);
 
 		// ? publish multiple responses from the same broker node -- to ensure that filter processes are in place.
@@ -331,25 +316,19 @@ export const publishQueryMessages = async (
 			await sleep(jdx * 100);
 			console.log(`Publishing query response message:`, idx);
 			// simulate and publish a response to this request
-			const responseSerializer = SystemMessage.getSerializer(
-				VERSION,
-				SystemMessageType.QueryResponse
-			);
-			const serializedResponse = responseSerializer.toArray(
-				new QueryResponse({
-					requestId: `${idx}`,
-					size: content.size,
-					hash: content.hash,
-					signature: `test_sig_of_broker_${jdx}`,
-				})
-			);
+			const queryResponse = new QueryResponse({
+				requestId: `${idx}`,
+				size: content.size,
+				hash: content.hash,
+				signature: `test_sig_of_broker_${jdx}`,
+			});
 
 			await publisherClient.publish(
 				{
 					id: systemStreamId,
 					partition: 0,
 				},
-				serializedResponse
+				queryResponse.serialize()
 			);
 		}
 	}
