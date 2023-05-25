@@ -2,11 +2,11 @@ import {
 	LogStoreAssignmentEvent,
 	LogStoreClient,
 	LogStoreClientEvents,
+	Stream,
 } from '@concertodao/logstore-client';
 import { toStreamID } from '@streamr/protocol';
 import { wait } from '@streamr/utils';
 import { BigNumber } from 'ethers';
-import { Stream } from 'streamr-client';
 
 import { LogStoreEventListener } from '../../../../src/plugins/logStore/LogStoreEventListener';
 

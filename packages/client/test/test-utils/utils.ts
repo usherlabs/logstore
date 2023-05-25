@@ -1,12 +1,12 @@
-import { Logger } from '@streamr/utils';
+import {
+	LoggerFactory,
+	Stream,
+	StreamMetadata,
+} from '@concertodao/streamr-client';
 import crypto from 'crypto';
-import { Stream, StreamMetadata } from 'streamr-client';
 
 import { LogStoreClient } from '../../src/LogStoreClient';
-import { LoggerFactory } from '../../src/utils/LoggerFactory';
 import { counterId } from '../../src/utils/utils';
-
-const logger = new Logger(module);
 
 export function mockLoggerFactory(clientId?: string): LoggerFactory {
 	return new LoggerFactory({

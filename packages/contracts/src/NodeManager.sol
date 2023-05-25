@@ -22,7 +22,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
     event NodeUpdated(address indexed nodeAddress, string metadata, bool indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
-    event NodeStakeUpdated(address indexed nodeAddress, uint stake);
+    event StakeDelegateUpdated(address indexed delegate, address indexed node, uint amount, uint totalStake, uint totalDelegated, bool delegated);
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
@@ -261,7 +261,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
         _checkAndGrantAccess(node);
 
-        emit NodeStakeUpdated(node, nodes[node].stake);
+        emit StakeDelegateUpdated(msg.sender, node, amount, nodes[node].stake, delegatesOf[msg.sender][node], true);
     }
 
     function undelegate(uint amount, address node) public {
@@ -274,7 +274,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
         _checkAndGrantAccess(node);
 
-        emit NodeStakeUpdated(node, nodes[node].stake);
+        emit StakeDelegateUpdated(msg.sender, node, amount, nodes[node].stake, delegatesOf[msg.sender][node], false);
     }
 
     function stakeAndDelegate(uint amount, address node) public {
@@ -362,22 +362,22 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     }
 
     function nodeAddresses() public view returns (address[] memory resultAddresses) {
-        address[] memory result = new address[](totalNodes);
+        resultAddresses = new address[](totalNodes);
 
         if (headNode == address(0)) {
-            return result;
+            return resultAddresses;
         }
 
         address tailAddress = headNode;
         uint256 index = 0;
         do {
-            result[index] = tailAddress;
+            resultAddresses[index] = tailAddress;
 
             tailAddress = nodes[tailAddress].next;
             index++;
         } while (tailAddress != address(0));
 
-        return result;
+        return resultAddresses;
     }
 
     function nodeStake(address node) public view returns (uint256) {

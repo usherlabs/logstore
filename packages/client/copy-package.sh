@@ -1,3 +1,4 @@
 #!/bin/bash
-mkdir -p dist/src/encryption/migrations
-cp -f ./src/encryption/migrations/* dist/src/encryption/migrations
+mkdir -p dist/
+node copy-package.js
+cp -f README.md LICENSE dist

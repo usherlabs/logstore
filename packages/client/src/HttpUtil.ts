@@ -1,3 +1,9 @@
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+	LoggerFactory,
+	WebStreamToNodeStream,
+} from '@concertodao/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
@@ -7,11 +13,8 @@ import split2 from 'split2';
 import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
-import { Authentication, AuthenticationInjectionToken } from './Authentication';
 import { Consensus } from './Consensus';
-import { LoggerFactory } from './utils/LoggerFactory';
 import { getVersionString } from './utils/utils';
-import { WebStreamToNodeStream } from './utils/WebStreamToNodeStream';
 
 export enum ErrorCode {
 	NOT_FOUND = 'NOT_FOUND',

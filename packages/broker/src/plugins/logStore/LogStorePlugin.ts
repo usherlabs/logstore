@@ -1,4 +1,7 @@
-import { formLogStoreSystemStreamId } from '@concertodao/logstore-client';
+import {
+	formLogStoreSystemStreamId,
+	Stream,
+} from '@concertodao/logstore-client';
 import {
 	ProofOfMessageStored,
 	QueryFromOptions,
@@ -15,7 +18,6 @@ import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
-import { Stream } from 'streamr-client';
 
 // import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';

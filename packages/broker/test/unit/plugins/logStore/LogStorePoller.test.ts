@@ -1,6 +1,5 @@
-import { LogStoreClient } from '@concertodao/logstore-client';
+import { LogStoreClient, Stream } from '@concertodao/logstore-client';
 import { wait } from '@streamr/utils';
-import { Stream } from 'streamr-client';
 
 import { LogStorePoller } from '../../../../src/plugins/logStore/LogStorePoller';
 
