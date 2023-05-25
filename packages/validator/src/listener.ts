@@ -1,4 +1,8 @@
 // import chokidar from 'chokidar';
+import LogStoreClient, {
+	CONFIG_TEST,
+	MessageMetadata,
+} from '@concertodao/logstore-client';
 import {
 	ProofOfMessageStored,
 	QueryRequest,
@@ -9,10 +13,6 @@ import {
 import fse from 'fs-extra';
 import { open, RootDatabase } from 'lmdb';
 import path from 'path';
-import StreamrClient, {
-	CONFIG_TEST,
-	MessageMetadata,
-} from '@concertodao/streamr-client';
 import type { Logger } from 'tslog';
 
 import { useStreamrTestConfig } from './env-config';
@@ -39,7 +39,7 @@ type DB = {
 };
 
 export default class Listener {
-	private _client: StreamrClient;
+	private _client: LogStoreClient;
 	private _db!: DB;
 	private _cachePath: string;
 	private _startTime: number;
@@ -51,7 +51,7 @@ export default class Listener {
 	) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		// core.logger.debug('Streamr Config', streamrConfig);
-		this._client = new StreamrClient(streamrConfig);
+		this._client = new LogStoreClient(streamrConfig);
 
 		// Kyve cache dir would have already setup this directory
 		// On each new bundle, this cache will be deleted

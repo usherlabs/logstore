@@ -1,4 +1,8 @@
-import { LogStoreClient } from '@concertodao/logstore-client';
+import {
+	LogStoreClient,
+	Stream,
+	Subscription,
+} from '@concertodao/logstore-client';
 import {
 	ProofOfReportRecieved,
 	SystemMessage,
@@ -11,7 +15,6 @@ import {
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
 import { ethers, Signer, Wallet } from 'ethers';
-import { Stream, Subscription } from 'streamr-client';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';

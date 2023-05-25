@@ -1,7 +1,7 @@
-import {
+import LogStoreClient, {
 	CONFIG_TEST,
-	LogStoreClient,
 	NodeMetadata,
+	StreamPermission,
 } from '@concertodao/logstore-client';
 import { LogStoreNodeManager } from '@concertodao/logstore-contracts';
 import {
@@ -18,12 +18,11 @@ import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers } from 'ethers';
 import { range } from 'lodash';
-import StreamrClient, { StreamPermission } from 'streamr-client';
 
 import { StrictConfig } from '../../../../src/config/config';
 import { ReportPoller } from '../../../../src/plugins/logStore/Report';
 import {
-	createStreamrClient,
+	createLogStoreClient,
 	createTestStream,
 	startTestTracker,
 } from '../../../utils';
@@ -36,12 +35,12 @@ const NUM_NODES = 3;
 
 describe(ReportPoller, () => {
 	let tracker: Tracker;
-	let client1: StreamrClient;
+	let client1: LogStoreClient;
 	let brokerWallet: Wallet;
 	let testStream: any;
 	let provider: providers.JsonRpcProvider;
 	let logStoreBrokerWallets: Wallet[] = [];
-	let publisherClients: StreamrClient[] = [];
+	let publisherClients: LogStoreClient[] = [];
 	let localReport: any;
 	const nodeManagers: LogStoreNodeManager[] = [];
 
@@ -63,7 +62,7 @@ describe(ReportPoller, () => {
 		publisherClients = await Promise.all(
 			range(NUM_NODES).map(async (_, index) => {
 				const newPK = logStoreBrokerWallets[index].privateKey;
-				const client = await createStreamrClient(tracker, newPK);
+				const client = await createLogStoreClient(tracker, newPK);
 				return client;
 			})
 		);

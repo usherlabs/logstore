@@ -1,4 +1,4 @@
-import StreamrClient, { CONFIG_TEST } from '@concertodao/streamr-client';
+import LogStoreClient, { CONFIG_TEST } from '@concertodao/logstore-client';
 import 'dotenv/config';
 
 const BROKER_NODE_PRIVATE_KEY =
@@ -7,7 +7,7 @@ const systemStreamId =
 	'0x55B183b2936B57CB7aF86ae0707373fA1AEc7328/system' as const;
 // Should be deployed here http://localhost/core/streams/0x55B183b2936B57CB7aF86ae0707373fA1AEc7328%2Fsystem
 
-const client = new StreamrClient({
+const client = new LogStoreClient({
 	...CONFIG_TEST,
 	logLevel: 'trace',
 	auth: {

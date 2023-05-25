@@ -1,5 +1,5 @@
+import { MessageMetadata } from '@concertodao/logstore-client';
 import type { QueryOptions } from '@concertodao/logstore-protocol';
-import { MessageMetadata } from '@concertodao/streamr-client';
 import type { IRuntime } from '@kyvejs/protocol';
 
 import type Listener from '../listener';
