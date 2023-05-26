@@ -4,13 +4,13 @@ import {
 	SystemMessageType,
 } from './SystemMessage';
 
-interface ProofOfReportRecievedOptions extends SystemMessageOptions {
+interface ProofOfReportOptions extends SystemMessageOptions {
 	address: string;
 	hash: string;
 	signature: string;
 }
 
-export class ProofOfReportRecieved extends SystemMessage {
+export class ProofOfReport extends SystemMessage {
 	address: string;
 	hash: string;
 	signature: string;
@@ -20,8 +20,8 @@ export class ProofOfReportRecieved extends SystemMessage {
 		address,
 		hash,
 		signature,
-	}: ProofOfReportRecievedOptions) {
-		super(version, SystemMessageType.ProofOfReportRecieved);
+	}: ProofOfReportOptions) {
+		super(version, SystemMessageType.ProofOfReport);
 
 		this.address = address;
 		this.hash = hash;
