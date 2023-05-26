@@ -556,6 +556,9 @@ importers:
       git-revision-webpack-plugin:
         specifier: ^5.0.0
         version: 5.0.0(webpack@5.64.1)
+      inversify:
+        specifier: ^6.0.1
+        version: 6.0.1
       jest:
         specifier: ^29.4.3
         version: 29.4.3(@types/node@18.15.10)(ts-node@10.9.1)
@@ -13542,6 +13545,10 @@ packages:
     resolution: {integrity: sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA==}
     dependencies:
       loose-envify: 1.4.0
+    dev: true
+
+  /inversify@6.0.1:
+    resolution: {integrity: sha512-B3ex30927698TJENHR++8FfEaJGqoWOgI6ZY5Ht/nLUsFCwHn6akbwtnUAPCgUepAnTpe2qHxhDNjoKLyz6rgQ==}
     dev: true
 
   /invert-kv@1.0.0:

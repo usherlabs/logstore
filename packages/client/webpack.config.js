@@ -22,9 +22,9 @@ module.exports = (_, argv) => {
 	const analyze = !!process.env.BUNDLE_ANALYSIS;
 
 	const commonConfig = {
-		cache: {
-			type: 'filesystem',
-		},
+		// cache: {
+		// 	type: 'filesystem',
+		// },
 		name: 'logstore-client',
 		mode: isProduction ? 'production' : 'development',
 		entry: {
@@ -115,12 +115,12 @@ module.exports = (_, argv) => {
 			new LodashWebpackPlugin(),
 			...(analyze
 				? [
-					new BundleAnalyzerPlugin({
-						analyzerMode: 'static',
-						openAnalyzer: false,
-						generateStatsFile: true,
-					}),
-				]
+						new BundleAnalyzerPlugin({
+							analyzerMode: 'static',
+							openAnalyzer: false,
+							generateStatsFile: true,
+						}),
+				  ]
 				: []),
 		],
 	});
