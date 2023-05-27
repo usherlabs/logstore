@@ -15,22 +15,12 @@ import {
 } from '@streamr/utils';
 import { Wallet } from 'ethers';
 import _ from 'lodash';
-import {
-	createBroker as createStreamrBroker,
-	Broker as StreamrBroker,
-} from 'streamr-broker';
 
 import { Broker, createBroker as createLogStoreBroker } from '../src/broker';
 import { Config } from '../src/config/config';
 
 export const STREAMR_DOCKER_DEV_HOST =
 	process.env.STREAMR_DOCKER_DEV_HOST || '127.0.0.1';
-
-interface StreamrBrokerTestConfig {
-	trackerPort: number;
-	privateKey: string;
-	extraPlugins?: Record<string, unknown>;
-}
 
 interface LogStoreBrokerTestConfig {
 	trackerPort?: number;
@@ -41,41 +31,6 @@ interface LogStoreBrokerTestConfig {
 	httpServerPort?: number;
 }
 
-export const formStreamrBrokerConfig = ({
-	trackerPort,
-	privateKey,
-	extraPlugins = {},
-}: StreamrBrokerTestConfig): Config => {
-	const plugins: Record<string, any> = { ...extraPlugins };
-
-	return {
-		client: {
-			...STREAMR_CONFIG_TEST,
-			logLevel: 'trace',
-			auth: {
-				privateKey,
-			},
-			network: {
-				id: toEthereumAddress(new Wallet(privateKey).address),
-				trackers: [
-					{
-						id: createEthereumAddress(trackerPort),
-						ws: `ws://127.0.0.1:${trackerPort}`,
-						http: `http://127.0.0.1:${trackerPort}`,
-					},
-				],
-				location: {
-					latitude: 60.19,
-					longitude: 24.95,
-					country: 'Finland',
-					city: 'Helsinki',
-				},
-				webrtcDisallowPrivateAddresses: false,
-			},
-		},
-		plugins,
-	};
-};
 export const formLogStoreBrokerConfig = ({
 	trackerPort,
 	privateKey,
@@ -151,14 +106,6 @@ export const startLogStoreBroker = async (
 	const broker = await createLogStoreBroker(
 		formLogStoreBrokerConfig(testConfig)
 	);
-	await broker.start();
-	return broker;
-};
-
-export const startStreamrBroker = async (
-	testConfig: StreamrBrokerTestConfig
-): Promise<StreamrBroker> => {
-	const broker = await createStreamrBroker(formStreamrBrokerConfig(testConfig));
 	await broker.start();
 	return broker;
 };
