@@ -1,13 +1,13 @@
 /**
  * Config and utilities for interating with identity & Ethereum chain.
  */
-import { ChainConnectionInfo } from '@concertodao/streamr-client';
 import type { BigNumber } from '@ethersproject/bignumber';
 import type { Overrides } from '@ethersproject/contracts';
 import type { Provider } from '@ethersproject/providers';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 import type { ConnectionInfo } from '@ethersproject/web';
+import { ChainConnectionInfo } from '@streamr-client';
 
 import { StrictLogStoreClientConfig } from './Config';
 

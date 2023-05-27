@@ -6,14 +6,20 @@
 		"lib": ["es2021", "dom"],
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"paths": {
+			"@streamr-client": ["./modules/streamr-client/src/exports.ts"],
+			"@streamr-client/*": ["./modules/streamr-client/src/*"]
+		}
 	},
 	"include": [
 		"package.json",
 		"src/**/*",
 		"src/**/*.json",
 		"vendor/**/*",
-		"src/config.schema.json"
+		"src/config.schema.json",
+		"modules/**/*",
+		"modules/**/*.json"
 	],
-	"exclude": ["src/exports-esm.mjs"],
+	"exclude": ["src/exports-esm.mjs"]
 }

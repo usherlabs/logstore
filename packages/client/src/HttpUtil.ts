@@ -3,7 +3,7 @@ import {
 	AuthenticationInjectionToken,
 	LoggerFactory,
 	WebStreamToNodeStream,
-} from '@concertodao/streamr-client';
+} from '@streamr-client';
 import { StreamMessage } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';

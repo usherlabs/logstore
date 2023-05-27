@@ -10,16 +10,20 @@
 		"strictBindCallApply": true,
 		"baseUrl": ".",
 		"paths": {
+			"streamr-client": [
+				"./streamr-network/packages/client/src/exports-browser.ts"
+			],
+			"streamr-client/*": ["./streamr-network/packages/client/src/*"],
 			"stream": ["readable-stream"],
 			"util": ["util"],
-			"http": ["./src/shim/http-https.js"],
+			"http": ["streamr-client/src/shim/http-https.js"],
 			"@ethersproject/wordlists": [
 				"@ethersproject/wordlists/lib.esm/browser-wordlists.js"
 			],
-			"https": ["./src/shim/http-https.js"],
+			"https": ["streamr-client/src/shim/http-https.js"],
 			"crypto": ["crypto-browserify"],
 			"buffer": ["buffer/"],
-			"node-fetch": ["./src/shim/node-fetch.ts"],
+			"node-fetch": ["streamr-client/src/shim/node-fetch.ts"],
 			"@streamr/protocol/*": ["@streamr/protocol/src/*"],
 			"@streamr/protocol": ["@streamr/protocol/src/index.ts"],
 			"@streamr/network-node": ["@streamr/network-node/src/browser.ts"],

@@ -1,5 +1,5 @@
-import { PrivateKeyAuthConfig } from '@concertodao/streamr-client';
 import type { ConnectionInfo } from '@ethersproject/web';
+import { PrivateKeyAuthConfig } from '@streamr-client';
 import Ajv, { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import cloneDeep from 'lodash/cloneDeep';
