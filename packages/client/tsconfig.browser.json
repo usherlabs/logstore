@@ -11,7 +11,7 @@
 		"baseUrl": ".",
 		"paths": {
 			"@streamr-client": ["./modules/streamr/client/src/exports-browser.ts"],
-			"@streamr-client/*": ["./modules/streamr/client/src/*"],
+			"@streamr-client/*": ["./modules/streamr/client/*"],
 			"stream": ["readable-stream"],
 			"util": ["util"],
 			"http": ["./modules/streamr/client/src/shim/http-https.js"],

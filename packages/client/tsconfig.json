@@ -4,5 +4,12 @@
 		"allowJs": true
 	},
 	"exclude": ["dist"],
-	"include": ["package.json", "src/**/*", "test/**/*", "vendor/**/*"]
+	"include": [
+		"package.json",
+		"src/**/*",
+		"test/**/*",
+		"vendor/**/*",
+		"src/**/*.json",
+		"src/config.schema.json"
+	]
 }
