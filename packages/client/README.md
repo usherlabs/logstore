@@ -1,10 +1,10 @@
-Documentation for the Logstore Client :
+# Documentation for the Logstore Client:
 
 The Logstore Client is a Javascript library which serves to adds functionality for interacting with LogStore and has the following methods.
 
-### `c**onstructor(config?: LogStoreClientConfig)**`
+### `**constructor(config?: LogStoreClientConfig)**`
 
-This is the constructor for the `LogStoreClient` class. It takes an optional configuration object, `config` ****of type `LogStoreClientConfig`, which can be used to configure the client. .
+This is the constructor for the `LogStoreClient` class. It takes an optional configuration object, `config` \*\*\*\*of type `LogStoreClientConfig`, which can be used to configure the client. .
 
 ```
 import { StreamrClientConfig } from 'streamr-client';
@@ -20,7 +20,7 @@ export interface LogStoreClientConfig extends StreamrClientConfig {
 
 ### `**queryStake(amount: BigNumberish, options = { usd: false })**`
 
-Stakes the specified amount of funds in order to perform queries. **`amount`** is a **`BigNumberish`** type and **`options`** is an object with a single optional property, **`usd`**, which is a boolean indicating whether the amount is in USD. 
+Stakes the specified amount of funds in order to perform queries. **`amount`** is a **`BigNumberish`** type and **`options`** is an object with a single optional property, **`usd`**, which is a boolean indicating whether the amount is in USD.
 
 ### **`query(streamDefinition: StreamDefinition, options: QueryOptions, onMessage?: MessageListener)`**
 
@@ -36,7 +36,7 @@ Returns a Promise that resolves to a **`MessageStream`** object that provides an
 
 Creates a stream in LogStore and/or stake some funds to the provided stream.
 
-**`streamIdOrPath`** is the ID or path of the stream to be added. 
+**`streamIdOrPath`** is the ID or path of the stream to be added.
 
 **`amount`** is a **`BigNumberish`** type representing the amount to be staked on the stream.
 
@@ -44,17 +44,17 @@ Creates a stream in LogStore and/or stake some funds to the provided stream.
 
 Removes a stream from LogStore.
 
-**`streamIdOrPath`** is the ID or path of the stream to be removed. 
+**`streamIdOrPath`** is the ID or path of the stream to be removed.
 
 ### **`isLogStoreStream(streamIdOrPath: string)`**
 
-Checks if a stream is assigned to a storage node. 
+Checks if a stream is assigned to a storage node.
 
 **`streamIdOrPath`** is the ID or path of the stream to check.
 
 ### **`getLogStoreStreams()`**
 
-Gets all streams assigned to a storage node. 
+Gets all streams assigned to a storage node.
 
 Returns a Promise that resolves to an object with a **`blockNumber`** property indicating the current blockchain state and a **`Stream[]`** property representing the list of streams stored on LogStore nodes.
 
@@ -65,19 +65,34 @@ import { LogStoreClient } from '@concertodao/logstore-client';
 
 // Initialize the logstore client
 const logStoreClient = new LogStoreClient({
-			auth: {
-				privateKey: "0xabc123...",
-			},
-		});
+	auth: {
+		privateKey: '0xabc123...',
+	},
+});
 
 // Create a new stream
 const newStream = await logStoreClient.createStream({
-		id: "domain/streamId",
-	});
+	id: 'domain/streamId',
+});
 
 // Adding the stream to logstore and staking some tokens to it
 await logStoreClient.addStreamToLogStore(newStream.id, STAKE_AMOUNT);
 
 // Staking some funds for the purpose of making a query
-await logStoreClient.queryStake(STAKE_AMOUNT)
+await logStoreClient.queryStake(STAKE_AMOUNT);
 ```
+
+## Contributing
+
+### Installation
+
+`pnpm i`
+
+This will execute the `postinstall` NPM script which will produce the `modules` directory.
+`modules` contains the raw files of the `streamr-network` required to build the Log Store Client.
+
+### Building
+
+**For Node:** `pnpm build`
+
+**For Browser:** `pnpm build-browser-production`

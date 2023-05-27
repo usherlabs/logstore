@@ -11,6 +11,7 @@ const { merge } = require('webpack-merge');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const { GitRevisionPlugin } = require('git-revision-webpack-plugin');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 const pkg = require('./package.json');
 
@@ -71,6 +72,7 @@ module.exports = (_, argv) => {
 				GIT_COMMITHASH: gitRevisionPlugin.commithash(),
 				GIT_BRANCH: gitRevisionPlugin.branch(),
 			}),
+			new Dotenv(),
 		],
 		performance: {
 			hints: 'warning',
