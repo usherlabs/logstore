@@ -1,0 +1,7 @@
+FROM nginx
+
+RUN apt update -y && apt install zip -y
+
+COPY ./assets/kyve-nginx/kyve.conf /etc/nginx/conf.d/
+COPY ./assets/kyve-nginx/app.zip /tmp/
+RUN unzip -o /tmp/app.zip -d /usr/share/nginx/html/ && rm /tmp/app.zip
