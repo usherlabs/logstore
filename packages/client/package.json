@@ -17,25 +17,26 @@
 		}
 	},
 	"scripts": {
-		"postinstall": "bash ./create-modules.sh",
 		"postbuild": "bash copy-package.sh && bash fix-esm.sh",
 		"format": "prettier --write .",
 		"test": "dotenv -e .env jest --",
 		"build": "tsc --build ./tsconfig.node.json",
+		"build:modules": "tsc --build ./tsconfig.node.modules.json",
 		"build-production": "pnpm clean; NODE_ENV=production pnpm build && pnpm build-browser-production",
 		"build-browser-development": "NODE_ENV=development webpack --mode=development --progress",
 		"build-browser-production": "NODE_ENV=production webpack --mode=production --progress",
 		"clean": "jest --clearCache || true; rm -rf dist  *.tsbuildinfo node_modules/.cache || true",
 		"test-browser": "pnpm build-browser-production && concurrently -k --success=first 'node ./test/browser/server.js' 'sleep 5 && nightwatch --headless --verbose --timeout=30000 --config=nightwatch.conf.js ./test/browser/browser.js'",
 		"test-exports": "cd test/exports && npm run link && tsc --noEmit --project ./tsconfig.json && npm test",
-		"browser": "node ./test/browser/server.js"
+		"browser": "node ./test/browser/server.js",
+		"modules": "bash ./create-modules.sh"
 	},
 	"dependencies": {
 		"@babel/runtime": "^7.16.3",
 		"@babel/runtime-corejs3": "^7.16.3",
 		"@concertodao/logstore-contracts": "workspace:^",
 		"@concertodao/logstore-shared": "workspace:^",
-		"@concertodao/streamr-client": "file:../../node_artifacts/concertodao-streamr-client-8.1.0.tgz",
+		"@streamr-client": "file:../../node_artifacts/concertodao-streamr-client-8.1.0.tgz",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/bytes": "^5.7.0",

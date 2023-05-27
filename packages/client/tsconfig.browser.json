@@ -48,10 +48,5 @@
 		"vendor/**/*",
 		"src/config.schema.json"
 	],
-	"exclude": ["src/exports-esm.mjs"],
-	"references": [
-		{ "path": "../test-utils/tsconfig.node.json" },
-		{ "path": "../protocol/tsconfig.node.json" },
-		{ "path": "../network/tsconfig.node.json" }
-	]
+	"exclude": ["src/exports-esm.mjs"]
 }

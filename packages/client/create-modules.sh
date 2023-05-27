@@ -19,3 +19,4 @@ cp -R ./.streamr-network/packages/client/vendor ./modules/streamr/client/vendor
 cp -R ./.streamr-network/packages/network/src ./modules/streamr/network-node/src
 # cp -R ./.streamr-network/packages/protocol/tsconfig.node.json ./modules/streamr/protocol/tsconfig.node.json
 cp -R ./.streamr-network/packages/protocol/src ./modules/streamr/protocol/src
+rm -rf .streamr-network

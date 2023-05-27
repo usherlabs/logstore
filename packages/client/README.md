@@ -88,8 +88,25 @@ await logStoreClient.queryStake(STAKE_AMOUNT);
 
 `pnpm i`
 
-This will execute the `postinstall` NPM script which will produce the `modules` directory.
+This will execute the `modules` NPM script which will produce the `modules` directory.
 `modules` contains the raw files of the `streamr-network` required to build the Log Store Client.
+
+### Browser Compatibility - `modules`
+
+`pnpm modules` - used to install the source code as a dependency for browser compat.
+
+Babel powered browser bundle currently does not emit `tsyringe` `Typeinfo`, and therefore causes bugs when imported to be extended.
+By including Streamr classes in bundle, we enable Babel to transpile with source.
+
+### Node Compatibility
+
+`"@streamr-client": "file:../../node_artifacts/concertodao-streamr-client-8.1.0.tgz",` included in `package.json`.
+This way Node code can pick up forked `streamr-client` at `@streamr-client`.
+
+Typescript can compile the forked `streamr-client` included in `../../node_artifacts` for with Node.js.
+Also used for development speed as `modules` takes longer to setup.
+
+`pnpm build:modules` - is also available for Node.
 
 ### Building
 
