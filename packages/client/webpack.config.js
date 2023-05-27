@@ -88,53 +88,53 @@ module.exports = (_, argv) => {
 		resolve: {
 			alias: {
 				'@streamr-client': require.resolve(
-					'./modules/streamr-client/src/exports-browser.ts'
+					'./modules/streamr/client/src/exports-browser.ts'
 				),
 				stream: 'readable-stream',
 				util: 'util',
 				http: require.resolve(
-					'./modules/streamr-client/src/shim/http-https.ts'
+					'./modules/streamr/client/src/shim/http-https.ts'
 				),
 				'@ethersproject/wordlists': require.resolve(
 					'@ethersproject/wordlists/lib/browser-wordlists.js'
 				),
 				https: require.resolve(
-					'./modules/streamr-client/src/shim/http-https.ts'
+					'./modules/streamr/client/src/shim/http-https.ts'
 				),
 				crypto: require.resolve('crypto-browserify'),
 				buffer: require.resolve('buffer/'),
 				'node-fetch': require.resolve(
-					'./modules/streamr-client/src/shim/node-fetch.ts'
+					'./modules/streamr/client/src/shim/node-fetch.ts'
 				),
 				'@streamr/protocol': path.resolve(
-					'./modules/streamr-protocol/src/exports.ts'
+					'./modules/streamr/protocol/src/exports.ts'
 				),
 				'@streamr/network-node': path.resolve(
-					'./modules/streamr-network-node/src/exports-browser.ts'
+					'./modules/streamr/network-node/src/exports-browser.ts'
 				),
 				[path.join(
 					__dirname,
-					'./modules/streamr-network-node/src/connection/webrtc/NodeWebRtcConnection.ts$'
+					'./modules/streamr/network-node/src/connection/webrtc/NodeWebRtcConnection.ts$'
 				)]: path.resolve(
-					'./modules/streamr-network-node/src/connection/webrtc/BrowserWebRtcConnection.ts'
+					'./modules/streamr/network-node/src/connection/webrtc/BrowserWebRtcConnection.ts'
 				),
 				[path.join(
 					__dirname,
-					'./modules/streamr-network-node/src/connection/ws/NodeClientWsEndpoint.ts$'
+					'./modules/streamr/network-node/src/connection/ws/NodeClientWsEndpoint.ts$'
 				)]: path.resolve(
-					'./modules/streamr-network-node/src/connection/ws/BrowserClientWsEndpoint.ts'
+					'./modules/streamr/network-node/src/connection/ws/BrowserClientWsEndpoint.ts'
 				),
 				[path.join(
 					__dirname,
-					'./modules/streamr-network-node/src/connection/ws/NodeClientWsConnection.ts$'
+					'./modules/streamr/network-node/src/connection/ws/NodeClientWsConnection.ts$'
 				)]: path.resolve(
-					'./modules/streamr-network-node/src/connection/ws/BrowserClientWsConnection.ts'
+					'./modules/streamr/network-node/src/connection/ws/BrowserClientWsConnection.ts'
 				),
 				// swap out ServerPersistence for BrowserPersistence
 				[path.resolve(
-					'./modules/streamr-client/src/utils/persistence/ServerPersistence.ts'
+					'./modules/streamr/client/src/utils/persistence/ServerPersistence.ts'
 				)]: path.resolve(
-					'./modules/streamr-client/src/utils/persistence/BrowserPersistence.ts'
+					'./modules/streamr/client/src/utils/persistence/BrowserPersistence.ts'
 				),
 			},
 			fallback: {

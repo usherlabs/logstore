@@ -8,8 +8,8 @@
 		"emitDecoratorMetadata": true,
 		"resolveJsonModule": true,
 		"paths": {
-			"@streamr-client": ["./modules/streamr-client/src/exports.ts"],
-			"@streamr-client/*": ["./modules/streamr-client/src/*"]
+			"@streamr-client": ["./modules/streamr/client/src/exports.ts"],
+			"@streamr-client/*": ["./modules/streamr/client/src/*"]
 		}
 	},
 	"include": [
