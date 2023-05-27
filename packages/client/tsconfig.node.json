@@ -18,8 +18,11 @@
 		"src/**/*.json",
 		"vendor/**/*",
 		"src/config.schema.json",
-		"modules/**/*",
-		"modules/**/*.json"
+		"modules/streamr/client/**/*",
+		"modules/streamr/client/**/*.json"
 	],
-	"exclude": ["src/exports-esm.mjs", "modules/**/BrowserWebRtcConnection.ts"]
+	"exclude": [
+		"src/exports-esm.mjs",
+		"modules/streamr/client/**/BrowserWebRtcConnection.ts"
+	]
 }
