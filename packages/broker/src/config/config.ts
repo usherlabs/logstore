@@ -1,4 +1,4 @@
-import { LogStoreClientConfig } from '@concertodao/logstore-client';
+import { LogStoreClientConfig } from '@concertotech/logstore-client';
 import { camelCase, set } from 'lodash';
 import * as os from 'os';
 import path from 'path';

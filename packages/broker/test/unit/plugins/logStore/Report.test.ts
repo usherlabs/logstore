@@ -2,8 +2,8 @@ import LogStoreClient, {
 	CONFIG_TEST,
 	NodeMetadata,
 	StreamPermission,
-} from '@concertodao/logstore-client';
-import { LogStoreNodeManager } from '@concertodao/logstore-contracts';
+} from '@concertotech/logstore-client';
+import { LogStoreNodeManager } from '@concertotech/logstore-contracts';
 import {
 	getNodeManagerContract,
 	getQueryManagerContract,
@@ -12,7 +12,7 @@ import {
 	prepareStakeForNodeManager,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
-} from '@concertodao/logstore-shared';
+} from '@concertotech/logstore-shared';
 import { Wallet } from '@ethersproject/wallet';
 import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';

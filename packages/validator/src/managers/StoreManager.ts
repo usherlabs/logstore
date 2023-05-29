@@ -1,4 +1,4 @@
-import { LogStoreManager } from '@concertodao/logstore-contracts';
+import { LogStoreManager } from '@concertotech/logstore-contracts';
 
 export class StoreManager {
 	constructor(private _contract: LogStoreManager) {}

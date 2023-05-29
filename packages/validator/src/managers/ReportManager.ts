@@ -1,4 +1,4 @@
-import { LogStoreReportManager } from '@concertodao/logstore-contracts';
+import { LogStoreReportManager } from '@concertotech/logstore-contracts';
 
 import { IReport } from '../types';
 

@@ -1,4 +1,4 @@
-import { allowanceConfirmFn } from '@concertodao/logstore-shared';
+import { allowanceConfirmFn } from '@concertotech/logstore-shared';
 import inquirer from 'inquirer';
 import { Logger } from 'tslog';
 

@@ -1,4 +1,4 @@
-import { LogStoreClient, Stream } from '@concertodao/logstore-client';
+import { LogStoreClient, Stream } from '@concertotech/logstore-client';
 import { wait } from '@streamr/utils';
 
 import { LogStorePoller } from '../../../../src/plugins/logStore/LogStorePoller';

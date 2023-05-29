@@ -3,7 +3,7 @@ import {
 	getStoreManagerContract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
-} from '@concertodao/logstore-shared';
+} from '@concertotech/logstore-shared';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { ethers } from 'ethers';

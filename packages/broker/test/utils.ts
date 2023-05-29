@@ -5,7 +5,7 @@ import {
 	Stream,
 	StreamMetadata,
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
-} from '@concertodao/logstore-client';
+} from '@concertotech/logstore-client';
 import { TEST_CONFIG } from '@streamr/network-node';
 import { startTracker, Tracker } from '@streamr/network-tracker';
 import {

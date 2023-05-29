@@ -1,4 +1,4 @@
-import { ERC20__factory } from '@concertodao/logstore-contracts';
+import { ERC20__factory } from '@concertotech/logstore-contracts';
 import { Signer } from 'ethers';
 
 import { getManagerContract } from './getManager';

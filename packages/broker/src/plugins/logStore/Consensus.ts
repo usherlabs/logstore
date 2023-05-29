@@ -2,15 +2,15 @@ import type {
 	Stream,
 	StreamMessage,
 	Subscription,
-} from '@concertodao/logstore-client';
-import { LogStoreClient } from '@concertodao/logstore-client';
-import { LogStoreNodeManager } from '@concertodao/logstore-contracts';
+} from '@concertotech/logstore-client';
+import { LogStoreClient } from '@concertotech/logstore-client';
+import { LogStoreNodeManager } from '@concertotech/logstore-contracts';
 import {
 	QueryRequest,
 	QueryResponse,
 	SystemMessage,
 	SystemMessageType,
-} from '@concertodao/logstore-protocol';
+} from '@concertotech/logstore-protocol';
 import { Logger } from '@streamr/utils';
 import { Signer } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';

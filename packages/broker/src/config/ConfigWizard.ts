@@ -1,4 +1,4 @@
-import { CONFIG_TEST } from '@concertodao/logstore-client';
+import { CONFIG_TEST } from '@concertotech/logstore-client';
 import { toEthereumAddress } from '@streamr/utils';
 import chalk from 'chalk';
 import { Wallet } from 'ethers';

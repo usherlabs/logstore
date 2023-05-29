@@ -1,8 +1,8 @@
 // check ts esm works via tsc
-import DefaultExport, * as NamedExports from '@concertodao/logstore-client';
+import DefaultExport, * as NamedExports from '@concertotech/logstore-client';
 
 console.info(
-	"import DefaultExport, * as NamedExports from '@concertodao/logstore-client':",
+	"import DefaultExport, * as NamedExports from '@concertotech/logstore-client':",
 	{ DefaultExport, NamedExports }
 );
 
