@@ -1,8 +1,8 @@
-import { PrivateKeyAuthConfig } from '@concertodao/logstore-client';
+import { PrivateKeyAuthConfig } from '@concertotech/logstore-client';
 import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
-} from '@concertodao/logstore-shared';
+} from '@concertotech/logstore-shared';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
 

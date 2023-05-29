@@ -13,7 +13,7 @@ export enum SystemMessageType {
 	ProofOfMessageStored = 0,
 	QueryRequest = 1,
 	QueryResponse = 2,
-	ProofOfReportRecieved = 3,
+	ProofOfReport = 3,
 }
 
 export interface SystemMessageOptions {

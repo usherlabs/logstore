@@ -4,7 +4,7 @@ import {
 	Stream,
 	StreamDefinition,
 	StreamrClient,
-} from '@concertodao/streamr-client';
+} from '@concertotech/streamr-client';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import { container as rootContainer } from 'tsyringe';

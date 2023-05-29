@@ -1,5 +1,5 @@
 import { ProofOfMessageStored } from './ProofOfMessageStored';
-import { ProofOfReportRecieved } from './ProofOfReportRecieved';
+import { ProofOfReport } from './ProofOfReport';
 import {
 	QueryFromOptions,
 	QueryLastOptions,
@@ -22,5 +22,5 @@ export {
 	QueryLastOptions,
 	QueryRangeOptions,
 	QueryFromOptions,
-	ProofOfReportRecieved,
+	ProofOfReport,
 };

@@ -1,4 +1,4 @@
-import { Gate, LoggerFactory } from '@concertodao/streamr-client';
+import { Gate, LoggerFactory } from '@concertotech/streamr-client';
 import { Logger, TimeoutError, wait, withTimeout } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 

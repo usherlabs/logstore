@@ -1,4 +1,4 @@
-import { getNodeManagerContract } from '@concertodao/logstore-shared';
+import { getNodeManagerContract } from '@concertotech/logstore-shared';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 import 'dotenv/config';

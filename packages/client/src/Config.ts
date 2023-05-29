@@ -1,4 +1,4 @@
-import { PrivateKeyAuthConfig } from '@concertodao/streamr-client';
+import { PrivateKeyAuthConfig } from '@concertotech/streamr-client';
 import type { ConnectionInfo } from '@ethersproject/web';
 import Ajv, { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';

@@ -1,5 +1,5 @@
 {
-	"name": "@concertodao/logstore-shared",
+	"name": "@concertotech/logstore-shared",
 	"version": "0.0.1",
 	"description": "Concerto Log Store Shared Library",
 	"repository": "https://github.com/usherlabs/logstore.git",
@@ -17,7 +17,7 @@
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dependencies": {
-		"@concertodao/logstore-contracts": "workspace:^",
+		"@concertotech/logstore-contracts": "workspace:^",
 		"ethers": "^5.7.0",
 		"inquirer": "^8.1.1",
 		"redstone-api": "^0.4.11",

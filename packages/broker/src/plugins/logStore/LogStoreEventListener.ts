@@ -2,7 +2,7 @@ import {
 	LogStoreAssignmentEvent,
 	LogStoreClient,
 	Stream,
-} from '@concertodao/logstore-client';
+} from '@concertotech/logstore-client';
 import { Logger } from '@streamr/utils';
 
 const logger = new Logger(module);

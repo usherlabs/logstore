@@ -1,4 +1,4 @@
-export * from '@concertodao/streamr-client';
+export * from '@concertotech/streamr-client';
 export { validateConfig } from './Config';
 export { CONFIG_TEST } from './ConfigTest';
 export { LogStoreClientEvents } from './events';

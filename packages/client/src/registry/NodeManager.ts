@@ -1,10 +1,10 @@
-import { LogStoreNodeManager as LogStoreNodeManagerContract } from '@concertodao/logstore-contracts';
-import { abi as LogStoreNodeManagerAbi } from '@concertodao/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
+import { LogStoreNodeManager as LogStoreNodeManagerContract } from '@concertotech/logstore-contracts';
+import { abi as LogStoreNodeManagerAbi } from '@concertotech/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
 import {
 	ContractFactory,
 	LoggerFactory,
 	queryAllReadonlyContracts,
-} from '@concertodao/streamr-client';
+} from '@concertotech/streamr-client';
 import { Provider } from '@ethersproject/providers';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { shuffle } from 'lodash';

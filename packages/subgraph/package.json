@@ -1,5 +1,5 @@
 {
-	"name": "@concertodao/logstore-subgraph",
+	"name": "@concertotech/logstore-subgraph",
 	"license": "GPL-3.0",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"version": "0.0.1",

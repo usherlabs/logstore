@@ -83,36 +83,21 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         return reports[lastReportId];
     }
 
-		/**
-		 * This method will return the same array every time unless reputations are changed after a successfully accepted report.
-		 */
+    /**
+     * This method will return the same array every time unless reputations are changed after a successfully accepted report.
+     * use bubble sort to sort the node addresses
+     */
     function getReporters() public view returns (address[] memory reporters) {
-        address[] memory nodeAddresses = _nodeManager.nodeAddresses();
-        // Determine an array of addresses
-        address[] memory reporterAddresses = new address[](nodeAddresses.length);
-        uint256 ceilingReputation = 0;
-        for (uint256 i = 0; i < nodeAddresses.length; i++) {
-            address nextReporterAddress = address(0);
-            for (uint256 j = 0; j < nodeAddresses.length; j++) {
-                if (reputationOf[nodeAddresses[j]] >= ceilingReputation && ceilingReputation > 0) {
-									// Skip the reporter address that already been added to the reporters list
-									continue;
-                }
-                if (nextReporterAddress == address(0)) {
-									// Set next reporter if no next reporter has been set
-									nextReporterAddress = nodeAddresses[j];
-									continue;
-                }
-                if (reputationOf[nodeAddresses[j]] > reputationOf[nextReporterAddress]) {
-									// Set reporter with highest reputation, but less than the ceiling, as the next reporter.
-									nextReporterAddress = nodeAddresses[j];
+        reporters = _nodeManager.nodeAddresses();
+        uint256 reportersCount = reporters.length;
+
+        for (uint256 i = 0; i < reportersCount - 1; i++) {
+            for (uint256 j = 0; j < reportersCount - i - 1; j++) {
+                if (reputationOf[reporters[j + 1]] > reputationOf[reporters[j]]) {
+                    (reporters[j], reporters[j + 1]) = (reporters[j + 1], reporters[j]);
                 }
             }
-            ceilingReputation = reputationOf[nextReporterAddress];
-            reporterAddresses[i] = nextReporterAddress;
         }
-
-        return reporterAddresses;
     }
 
     function processReport(string calldata id) public onlyOwner {
@@ -146,10 +131,13 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         address[] memory orderedReportersList = getReporters();
         for (uint256 i = 0; i < orderedReportersList.length; i++) {
             if (orderedReportersList[i] == msg.sender) {
-							// Ensure that the current block number > report generation block height + reporter block buffer
-							// Give the leading reporter a head-start to hydrate the report from foreign sources
-							require(block.number > i * reportBlockBuffer + (i > 0 ? reportBlockBuffer : 0) + blockHeight, "error_invalidReporter");
-							break;
+                // Ensure that the current block number > report generation block height + reporter block buffer
+                // Give the leading reporter a head-start to hydrate the report from foreign sources
+                require(
+                    block.number > i * reportBlockBuffer + (i > 0 ? reportBlockBuffer : 0) + blockHeight,
+                    "error_invalidReporter"
+                );
+                break;
             }
         }
 
@@ -279,31 +267,33 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             }
         }
 
-				// Require that all signatures provided are verified
+        // Require that all signatures provided are verified
         require(accepted, "error_invalidReportSignatures");
 
         reports[currentReport.id] = currentReport;
         lastReportId = currentReport.id;
 
         // Adjust reputation of reporters
-				bool leadReporterAdjusted = false;
+        bool leadReporterAdjusted = false;
         for (uint256 i = 0; i < orderedReportersList.length; i++) {
             if (msg.sender == orderedReportersList[i]) {
                 reputationOf[msg.sender] += 10;
-								leadReporterAdjusted = true;
-						} else if(leadReporterAdjusted == false){
-							reputationOf[orderedReportersList[i]] -= reputationOf[orderedReportersList[i]] >= 5 ? 5 : reputationOf[orderedReportersList[i]];
-						} else {
-              reputationOf[orderedReportersList[i]] += 1;
+                leadReporterAdjusted = true;
+            } else if (leadReporterAdjusted == false) {
+                reputationOf[orderedReportersList[i]] -= reputationOf[orderedReportersList[i]] >= 5
+                    ? 5
+                    : reputationOf[orderedReportersList[i]];
+            } else {
+                reputationOf[orderedReportersList[i]] += 1;
             }
         }
 
         emit ReportAccepted(reportJson);
     }
 
-		/**
-		 * Check to ensure that the addresses signing off on the report are >= minimum required nodes - ie. >= 50% of nodes
-		 */
+    /**
+     * Check to ensure that the addresses signing off on the report are >= minimum required nodes - ie. >= 50% of nodes
+     */
     function quorumIsMet(address[] memory submittedNodes) public view returns (bool isMet) {
         uint256 count;
         address[] memory existingNodes = _nodeManager.nodeAddresses();

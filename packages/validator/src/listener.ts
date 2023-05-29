@@ -2,14 +2,14 @@
 import LogStoreClient, {
 	CONFIG_TEST,
 	MessageMetadata,
-} from '@concertodao/logstore-client';
+} from '@concertotech/logstore-client';
 import {
 	ProofOfMessageStored,
 	QueryRequest,
 	QueryResponse,
 	SystemMessage,
 	SystemMessageType,
-} from '@concertodao/logstore-protocol';
+} from '@concertotech/logstore-protocol';
 import fse from 'fs-extra';
 import { open, RootDatabase } from 'lmdb';
 import path from 'path';

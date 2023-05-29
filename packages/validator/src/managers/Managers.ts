@@ -2,7 +2,7 @@ import {
 	getNodeManagerContract,
 	getReportManagerContract,
 	getStoreManagerContract,
-} from '@concertodao/logstore-shared';
+} from '@concertotech/logstore-shared';
 import { JsonRpcProvider, Provider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 
