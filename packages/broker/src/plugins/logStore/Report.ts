@@ -1,10 +1,11 @@
 import {
 	LogStoreClient,
+	MessageMetadata,
 	Stream,
 	Subscription,
 } from '@concertotech/logstore-client';
 import {
-	ProofOfReportRecieved,
+	ProofOfReport,
 	SystemMessage,
 	SystemMessageType,
 } from '@concertotech/logstore-protocol';
@@ -33,7 +34,7 @@ export class ReportPoller {
 
 	private reportTimeout: NodeJS.Timeout | undefined;
 	private latestBundle: number;
-	private reportsBuffer: Array<ProofOfReportRecieved>;
+	private reportsBuffer: Array<ProofOfReport>;
 	private subscription: Subscription | undefined;
 
 	// define contracts
@@ -165,122 +166,124 @@ export class ReportPoller {
 		// wrap it in a promise to resolve the listne
 		const response = await new Promise((resolve, reject) => {
 			this.logStoreClient
-				.subscribe(this.systemStream, async (content: any, metadata) => {
-					logger.info(`message recieved from ${metadata.publisherId}`);
-					// do not process your message, but make an exception if theres only one node in the network
-					const rawContent = SystemMessage.deserialize(
-						content
-					) as ProofOfReportRecieved;
-					// validate its only reports we want to process in this listener
-					if (
-						rawContent.messageType !== SystemMessageType.ProofOfReportRecieved
-					)
-						return;
-					// for each gotten, cache
-					this.reportsBuffer.push(rawContent);
-					logger.info(
-						`Recieved ${this.reportsBuffer.length} of ${Math.ceil(
-							allActiveNodes.length * REPORT_TRESHOLD_MULTIPLIER
-						)} required submissions`
-					);
-
-					const waitTillTurnOrReport = async () => {
-						// check if this node can submit a report
-						const nodeCanReport = await this.nodeCanSubmitReport(
-							report,
-							orderedReporters,
-							blockBuffer
-						);
+				.subscribe(
+					this.systemStream,
+					async (content: any, metadata: MessageMetadata) => {
+						logger.info(`message recieved from ${metadata.publisherId}`);
+						// do not process your message, but make an exception if theres only one node in the network
+						const rawContent = SystemMessage.deserialize(
+							content
+						) as ProofOfReport;
+						// validate its only reports we want to process in this listener
+						if (rawContent.messageType !== SystemMessageType.ProofOfReport)
+							return;
+						// for each gotten, cache
+						this.reportsBuffer.push(rawContent);
 						logger.info(
-							`Node ${nodeCanReport ? 'can' : 'cannot'} submit report`
+							`Recieved ${this.reportsBuffer.length} of ${Math.ceil(
+								allActiveNodes.length * REPORT_TRESHOLD_MULTIPLIER
+							)} required submissions`
 						);
-						// everytime we get a new signature
-						// confirm if this node can submit a report
-						// and more than half the nodes have submitted
-						if (
-							nodeCanReport &&
-							!isProcessing &&
-							this.reportsBuffer.length >=
-								Math.ceil(allActiveNodes.length * REPORT_TRESHOLD_MULTIPLIER)
-						) {
-							isProcessing = true;
-							logger.info('Processing report to send as transaction');
-							// submit the actual report
-							const formattedReport = await this.formatReportForContract(
-								report
+
+						const waitTillTurnOrReport = async () => {
+							// check if this node can submit a report
+							const nodeCanReport = await this.nodeCanSubmitReport(
+								report,
+								orderedReporters,
+								blockBuffer
 							);
-							try {
-								const submitReportTx = await reportManagercontract.report(
-									formattedReport.id,
-									formattedReport.blockHeight,
-									formattedReport.streams,
-									formattedReport.writeCaptureAmounts,
-									formattedReport.writeBytes,
-									formattedReport.readConsumerAddresses,
-									formattedReport.readCaptureAmounts,
-									formattedReport.readBytes,
-									formattedReport.nodes,
-									formattedReport.nodeChanges,
-									formattedReport.delegates,
-									formattedReport.delegateNodes,
-									formattedReport.delegateNodeChanges,
-									formattedReport.treasurySupplyChange,
-									formattedReport.addresses,
-									formattedReport.signatures
+							logger.info(
+								`Node ${nodeCanReport ? 'can' : 'cannot'} submit report`
+							);
+							// everytime we get a new signature
+							// confirm if this node can submit a report
+							// and more than half the nodes have submitted
+							if (
+								nodeCanReport &&
+								!isProcessing &&
+								this.reportsBuffer.length >=
+									Math.ceil(allActiveNodes.length * REPORT_TRESHOLD_MULTIPLIER)
+							) {
+								isProcessing = true;
+								logger.info('Processing report to send as transaction');
+								// submit the actual report
+								const formattedReport = await this.formatReportForContract(
+									report
 								);
-								await submitReportTx.wait();
-								logger.info(
-									`Report submitted to the contract on tx:${submitReportTx.hash}; about to process report`
+								try {
+									const submitReportTx = await reportManagercontract.report(
+										formattedReport.id,
+										formattedReport.blockHeight,
+										formattedReport.streams,
+										formattedReport.writeCaptureAmounts,
+										formattedReport.writeBytes,
+										formattedReport.readConsumerAddresses,
+										formattedReport.readCaptureAmounts,
+										formattedReport.readBytes,
+										formattedReport.nodes,
+										formattedReport.nodeChanges,
+										formattedReport.delegates,
+										formattedReport.delegateNodes,
+										formattedReport.delegateNodeChanges,
+										formattedReport.treasurySupplyChange,
+										formattedReport.addresses,
+										formattedReport.signatures
+									);
+									await submitReportTx.wait();
+									logger.info(
+										`Report submitted to the contract on tx:${submitReportTx.hash}; about to process report`
+									);
+									// process the newly submitted transactions
+									// ? what happens if for any reason a report is submitted sucesfully
+									// ? but encounters an error when processed i.e if a consumer/storer is not staked to a stream
+									const processReportTx =
+										await nodeManagerContract.processReport(report.id);
+									await processReportTx.wait();
+									logger.info(
+										`Report:${report.id} processed on tx:${submitReportTx.hash};`
+									);
+									resolve([submitReportTx, processReportTx]);
+								} catch (err) {
+									logger.error(err);
+									logger.warn(
+										`There was an error submitting the report, trying again in ${WAIT_TIME}ms`
+									);
+									// ? to try again or stop on error in submitting
+									// this.reportTimeout = setTimeout(
+									// 	waitTillTurnOrReport,
+									// 	WAIT_TIME
+									// );
+									reject(err);
+								} finally {
+									isProcessing = false;
+								}
+							} else if (
+								!nodeCanReport &&
+								!isProcessing &&
+								this.reportsBuffer.length === allActiveNodes.length
+							) {
+								// if we have all the signatures then keep trying until node can submit or a new report is available and time timeout is cleared
+								// ? there should be no need for this timeout as this block is only called once per node per report, just to be safe?
+								// clearTimeout(this.reportTimeout!);
+								this.reportTimeout = setTimeout(
+									waitTillTurnOrReport,
+									WAIT_TIME
 								);
-								// process the newly submitted transactions
-								// ? what happens if for any reason a report is submitted sucesfully
-								// ? but encounters an error when processed i.e if a consumer/storer is not staked to a stream
-								const processReportTx = await nodeManagerContract.processReport(
-									report.id
-								);
-								await processReportTx.wait();
-								logger.info(
-									`Report:${report.id} processed on tx:${submitReportTx.hash};`
-								);
-								resolve([submitReportTx, processReportTx]);
-							} catch (err) {
-								logger.error(err);
-								logger.warn(
-									`There was an error submitting the report, trying again in ${WAIT_TIME}ms`
-								);
-								// ? to try again or stop on error in submitting
-								// this.reportTimeout = setTimeout(
-								// 	waitTillTurnOrReport,
-								// 	WAIT_TIME
-								// );
-								reject(err);
-							} finally {
-								isProcessing = false;
+								logger.info(`Waiting for ${WAIT_TIME}ms to try again`);
 							}
-						} else if (
-							!nodeCanReport &&
-							!isProcessing &&
-							this.reportsBuffer.length === allActiveNodes.length
-						) {
-							// if we have all the signatures then keep trying until node can submit or a new report is available and time timeout is cleared
-							// ? there should be no need for this timeout as this block is only called once per node per report, just to be safe?
-							// clearTimeout(this.reportTimeout!);
-							this.reportTimeout = setTimeout(waitTillTurnOrReport, WAIT_TIME);
-							logger.info(`Waiting for ${WAIT_TIME}ms to try again`);
-						}
-					};
-					waitTillTurnOrReport();
-				})
-				.then(async (subscription) => {
+						};
+						waitTillTurnOrReport();
+					}
+				)
+				.then(async (subscription: Subscription) => {
 					this.subscription = subscription;
 					await this.publishReport(report);
 				})
-				.catch((err) => {
+				.catch((err: Error) => {
 					reject(err);
 				});
 		});
 		// close up the subscriber event after this round of reports are over
-		// ? is there a need to unsubscribe, what happens if we subscribe to an already subscribed stream
 		this.subscription?.unsubscribe();
 		return response;
 	}
@@ -302,10 +305,10 @@ export class ReportPoller {
 		// publish the report to the system stream
 		const serializer = SystemMessage.getSerializer(
 			VERSION,
-			SystemMessageType.ProofOfReportRecieved
+			SystemMessageType.ProofOfReport
 		);
 		const serialisedReportMessage = serializer.toArray(
-			new ProofOfReportRecieved({
+			new ProofOfReport({
 				version: VERSION,
 				address: brokerAddress,
 				signature,
@@ -330,7 +333,7 @@ export class ReportPoller {
 		);
 		const blockNumber = (await this.signer.provider?.getBlockNumber()) || 0;
 		logger.info(
-			`Blocknumber:${blockNumber}; ReportHeight: ${report.height}; NodeIndex:${nodeIndex}; blockBuffer:${blockBuffer}; reporters:${reportersList}`
+			`Blocknumber:${blockNumber}; ReportHeight: ${report.height}; NodeIndex:${nodeIndex}; blockBuffer:${blockBuffer}; reporters:${reportersList}; broker: ${brokerAddress}`
 		);
 		// use this condition to determine if a node is capable of submitting a report
 		// same logic smart contract uses to determine who can or cannot submit

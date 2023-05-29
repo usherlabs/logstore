@@ -183,9 +183,13 @@ describe(ReportPoller, () => {
 	test('Report Can only be submitted when more than half the nodes submit one', async () => {
 		// check how many nodes are joined
 		const testReport = { ...localReport };
+		const reportManager = await getReportManagerContract(
+			logStoreBrokerWallets[0]
+		);
 		const nodeManager = await getNodeManagerContract(logStoreBrokerWallets[0]);
 		const nodes = await nodeManager.nodeAddresses();
-		console.log({ activeNodes: nodes });
+		const reporters = await reportManager.getReporters();
+		console.log({ activeNodes: nodes, reporters });
 		// start report listener
 		const reportPoller = new ReportPoller(
 			CONFIG_TEST as StrictConfig,
@@ -207,9 +211,6 @@ describe(ReportPoller, () => {
 		const [submitReportTX] = (await reportPollerPromise) as [any, any];
 		// wait until report listener resolves with transactions
 		// veryfy success
-		const reportManager = await getReportManagerContract(
-			logStoreBrokerWallets[0]
-		);
 
 		const latestReport = await reportManager.getLastReport();
 		const latestReportId = latestReport.id;
