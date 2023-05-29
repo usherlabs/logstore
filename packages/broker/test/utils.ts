@@ -1,10 +1,9 @@
 import {
-	CONFIG_TEST as LOGSTORE_CONFIG_TEST,
+	CONFIG_TEST,
 	LogStoreClient,
 	LogStoreClientConfig,
 	Stream,
 	StreamMetadata,
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
 } from '@concertodao/logstore-client';
 import { TEST_CONFIG } from '@streamr/network-node';
 import { startTracker, Tracker } from '@streamr/network-tracker';
@@ -56,7 +55,7 @@ export const formLogStoreBrokerConfig = ({
 
 	return {
 		client: {
-			...LOGSTORE_CONFIG_TEST,
+			...CONFIG_TEST,
 			logLevel: 'trace',
 			auth: {
 				privateKey,
@@ -71,7 +70,7 @@ export const formLogStoreBrokerConfig = ({
 								http: `http://127.0.0.1:${trackerPort}`,
 							},
 					  ]
-					: LOGSTORE_CONFIG_TEST.network?.trackers,
+					: CONFIG_TEST.network?.trackers,
 				location: {
 					latitude: 60.19,
 					longitude: 24.95,
@@ -120,15 +119,15 @@ export const createLogStoreClient = async (
 	clientOptions?: LogStoreClientConfig
 ): Promise<LogStoreClient> => {
 	const networkOptions = {
-		...LOGSTORE_CONFIG_TEST?.network,
+		...CONFIG_TEST?.network,
 		trackers: tracker
 			? [tracker.getConfigRecord()]
-			: STREAMR_CONFIG_TEST.network?.trackers,
+			: CONFIG_TEST.network?.trackers,
 		...clientOptions?.network,
 	};
 
 	return new LogStoreClient({
-		...LOGSTORE_CONFIG_TEST,
+		...CONFIG_TEST,
 		logLevel: 'trace',
 		auth: {
 			privateKey,
