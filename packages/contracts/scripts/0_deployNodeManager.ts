@@ -1,5 +1,5 @@
 import { Wallet } from 'ethers';
-import hre from 'hardhat';
+import hre, { ethers } from 'hardhat';
 
 import {
 	getNodeManagerInputParameters,
@@ -117,12 +117,7 @@ async function main() {
 		SAFE_ADDRESS,
 		nodeManagerAddress,
 	]);
-	// ?add some initial values to enable price information
-	const INITIAL_MATIC_PER_BYTE = 0.0000001 * 10e18;
-	const TOTAL_BYTES_STORES = 100;
-	await tokenManagerContract.setMaticPerByte(INITIAL_MATIC_PER_BYTE);
-	await tokenManagerContract.setTotalBytesStored(TOTAL_BYTES_STORES);
-	// ?add some initial values to enable price information
+	await tokenManagerContract.deployed();
 
 	const tokenManagerAddress = tokenManagerContract.address;
 	console.log(`tokenManagerAddress deployed to ${tokenManagerAddress}`, {
@@ -217,6 +212,19 @@ async function main() {
 			reportManagerAddress
 		);
 	await registerReportManagerTx.wait();
+	// ?add some initial values to enable price information
+	const INITIAL_MATIC_PER_BYTE = ethers.utils.parseEther('0.0000001');
+	const TOTAL_BYTES_STORED = 10;
+	const bytesMaticTx = await tokenManagerContract.functions.setMaticPerByte(
+		INITIAL_MATIC_PER_BYTE
+	);
+	await bytesMaticTx.wait();
+	const bytesStoredTx =
+		await tokenManagerContract.functions.setTotalBytesStored(
+			TOTAL_BYTES_STORED
+		);
+	await bytesStoredTx.wait();
+	// ?add some initial values to enable price information
 
 	const deployedContractAddresses = {
 		devTokenAddress,

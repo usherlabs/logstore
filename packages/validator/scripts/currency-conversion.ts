@@ -9,7 +9,7 @@ import { StakeToken } from '../src/utils/stake-token';
 	const defaultProvider = new JsonRpcProvider('http://localhost:8546');
 
 	const stakeToken = new StakeToken(
-		'0xb47A27D9B3E86BdB4905D40f434B6C00fAfD862c',
+		'0xdb41c030baf8C73FbDb8d1b5FC24953461fa5EAf',
 		'LSAN',
 		18,
 		0,

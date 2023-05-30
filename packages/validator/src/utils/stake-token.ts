@@ -7,17 +7,13 @@ import redstone from 'redstone-api';
 export class StakeToken {
 	public price: number;
 	public tokenContract: Contract;
-	public provider: Provider;
-
 	constructor(
 		public address: string,
 		public symbol: string,
 		public decimals: number,
 		public minRequirement: number,
-		provider: Provider
-	) {
-		this.provider = provider;
-	}
+		public provider: Provider
+	) {}
 
 	public async init() {
 		this.tokenContract = LSAN__factory.connect(this.address, this.provider);
@@ -35,8 +31,8 @@ export class StakeToken {
 			const { value: maticPrice } = await redstone.getPrice('MATIC', {
 				verifySignature: true,
 			});
-
-			return lsanPricePerMatic * maticPrice;
+			const response = +lsanPricePerMatic * maticPrice;
+			return response;
 		} else {
 			const resp = await redstone.getPrice(this.symbol, {
 				verifySignature: true,

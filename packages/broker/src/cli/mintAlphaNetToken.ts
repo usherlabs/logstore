@@ -35,13 +35,12 @@ export const mintAlphaNetToken = new Command('mint-lsan')
 					signer
 				);
 			}
-
 			const receipt = await (
-				await tokenManagerContract.mint({ value: amount })
+				await tokenManagerContract.mint({ value: BigInt(amount) })
 			).wait();
 
 			console.log(
-				`Successfully joined the network: Tx ${receipt.transactionHash}`
+				`Successfully minted tokens to network:Tx ${receipt.transactionHash}, Amount:Tx ${amount}`
 			);
 		} catch (err) {
 			console.error(err);

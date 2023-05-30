@@ -18,7 +18,6 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
     address public nodeManagerAddress;
     address payable public SAFE_ADDRESS;
     uint256 public DEPLOYED_TIME;
-    uint256 public treasury;
     mapping(address => bool) public transferToWhitelist;
     mapping(address => bool) public transferFromWhitelist;
 
@@ -70,6 +69,10 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         minimumDeposit = 0;
     }
 
+    function balance() public view returns (uint256) {
+        return address(this).balance;
+    }
+
     // ---------- Admin functions
     function mintTokens(address account, uint256 amount) public onlyOwner {
         _mint(account, amount);
@@ -103,7 +106,6 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 
     function withdraw(uint256 amount) public onlyOwner {
         require(address(this).balance >= amount, "Insufficient contract balance");
-        treasury = treasury - amount;
         SAFE_ADDRESS.transfer(amount);
     }
 
@@ -151,8 +153,8 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         require(totalBytesStored > 0, "totalBytesStored <= 0");
 
         uint lsanPrice = getTokenPrice();
+
         uint mintAmount = msg.value / lsanPrice;
-        treasury += msg.value;
 
         _mint(msg.sender, mintAmount);
     }

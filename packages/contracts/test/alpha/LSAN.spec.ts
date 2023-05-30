@@ -51,7 +51,7 @@ describe('LSAN Token', function () {
 			expect(await lsan.nodeManagerAddress()).to.equal(
 				FAKE_NODE_MANAGER_CONTRACT
 			);
-			expect(await lsan.treasury()).to.equal(hEthers.BigNumber.from(0));
+			expect(await lsan.balance()).to.equal(hEthers.BigNumber.from(0));
 		});
 	});
 
