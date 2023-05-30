@@ -104,6 +104,19 @@ async function main() {
 	});
 	// --------------------------- deploy the query manager contract --------------------------- //
 
+	// --------------------------- deploy the LSAN token
+	const tokenManager = await hre.ethers.getContractFactory('LSAN');
+	const WHITELISTED_ADDRESSES = [storeManagerAddress, reportManagerAddress];
+	const SAFE_ADDRESS = storeManagerAddress;
+	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
+		WHITELISTED_ADDRESSES,
+		SAFE_ADDRESS,
+		nodeManagerAddress,
+	]);
+	const tokenManagerAddress = tokenManagerContract.address;
+	// ?TODO set the important initialisers parameters here like bytes
+	// --------------------------- deploy the LSAN token
+
 	// --------------------------- mint dev token to the test accounts ------------------------- //
 	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
 		const devTokenArtifact = await hre.ethers.getContractFactory('DevToken');
@@ -196,6 +209,7 @@ async function main() {
 		storeManagerAddress,
 		queryManagerAddress,
 		reportManagerAddress,
+		tokenManagerAddress,
 	};
 	// write the file to json
 	await writeJSONToFileOutside(deployedContractAddresses, 'address.json');

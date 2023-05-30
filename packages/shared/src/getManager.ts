@@ -7,6 +7,8 @@ import {
 	LogStoreQueryManager__factory,
 	LogStoreReportManager,
 	LogStoreReportManager__factory,
+	LSAN,
+	LSAN__factory,
 } from '@concertotech/logstore-contracts';
 import ContractAddresses from '@concertotech/logstore-contracts/address.json';
 import { providers, Signer, Wallet } from 'ethers';
@@ -47,6 +49,10 @@ export async function getReportManagerContract(wallet: Wallet) {
 	)) as LogStoreReportManager;
 }
 
+export async function getTokenManagercontract(wallet: Wallet) {
+	return (await getManagerContract(wallet, Manager.TokenManager)) as LSAN;
+}
+
 export async function getManagerContract(
 	signerOrProvider: Signer | providers.Provider,
 	manager: Manager
@@ -80,6 +86,8 @@ export async function getManagerContract(
 				managerAddress,
 				signerOrProvider
 			);
+		case Manager.TokenManager:
+			return LSAN__factory.connect(managerAddress, signerOrProvider);
 		default:
 			throw new Error('Unexpected manager');
 	}
@@ -96,6 +104,8 @@ function getManagerAddress(chainId: number, manager: Manager) {
 			return ContractAddresses[network].storeManagerAddress;
 		case Manager.ReportManager:
 			return ContractAddresses[network].reportManagerAddress;
+		case Manager.TokenManager:
+			return ContractAddresses[network].tokenManagerAddress;
 		default:
 			throw new Error('Unexpected manager');
 	}

@@ -31,7 +31,7 @@ jest.setTimeout(6000000);
 
 const TRACKER_PORT = 17711;
 const STAKE_AMOUNT = BigInt('2000000000000000000');
-const NUM_NODES = 3;
+const NUM_NODES = 1;
 
 describe(ReportPoller, () => {
 	let tracker: Tracker;

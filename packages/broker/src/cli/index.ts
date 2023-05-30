@@ -7,3 +7,4 @@ export * from './delegateCommand';
 export * from './undelegateCommand';
 export * from './withdrawCommand';
 export * from './stakeCommand';
+export * from './mintAlphaNetToken';
