@@ -3,7 +3,7 @@ import {
 	NetworkNodeStub,
 	PrivateKeyAuthConfig,
 	validateConfig as validateClientConfig,
-} from '@concertodao/logstore-client';
+} from '@concertotech/logstore-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { Server as HttpServer } from 'http';

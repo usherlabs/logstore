@@ -3,17 +3,17 @@ import {
 	LogStoreClient,
 	NodeMetadata,
 	Stream,
-} from '@concertodao/logstore-client';
+} from '@concertotech/logstore-client';
 import {
 	LogStoreManager,
 	LogStoreNodeManager,
-} from '@concertodao/logstore-contracts';
+} from '@concertotech/logstore-contracts';
 import {
 	getNodeManagerContract,
 	getStoreManagerContract,
 	prepareStakeForNodeManager,
 	prepareStakeForStoreManager,
-} from '@concertodao/logstore-shared';
+} from '@concertotech/logstore-shared';
 import { Tracker } from '@streamr/network-tracker';
 import { StreamMessage } from '@streamr/protocol';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';

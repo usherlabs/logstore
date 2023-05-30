@@ -10,7 +10,7 @@ import {
 	StreamrClientError,
 	StreamRegistryCached,
 	StrictStreamrClientConfig,
-} from '@concertodao/streamr-client';
+} from '@concertotech/streamr-client';
 import { StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';

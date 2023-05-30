@@ -1,4 +1,4 @@
-import { LogStoreClient } from '@concertodao/logstore-client';
+import { LogStoreClient } from '@concertotech/logstore-client';
 import { omit } from 'lodash';
 
 import { getEvmPrivateKey } from '../env-config';

@@ -1,4 +1,4 @@
-import { SystemMessageType } from '@concertodao/logstore-protocol';
+import { SystemMessageType } from '@concertotech/logstore-protocol';
 import { sha256 } from '@kyvejs/protocol';
 
 import { Managers } from '../managers';

@@ -1,7 +1,7 @@
 import {
 	formLogStoreSystemStreamId,
 	Stream,
-} from '@concertodao/logstore-client';
+} from '@concertotech/logstore-client';
 import {
 	ProofOfMessageStored,
 	QueryFromOptions,
@@ -12,7 +12,7 @@ import {
 	QueryType,
 	SystemMessage,
 	SystemMessageType,
-} from '@concertodao/logstore-protocol';
+} from '@concertotech/logstore-protocol';
 import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';

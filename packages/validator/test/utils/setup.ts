@@ -1,14 +1,14 @@
-import { CONFIG_TEST, LogStoreClient } from '@concertodao/logstore-client';
+import { CONFIG_TEST, LogStoreClient } from '@concertotech/logstore-client';
 import {
 	ProofOfMessageStored,
 	QueryRequest,
 	QueryResponse,
 	QueryType,
-} from '@concertodao/logstore-protocol';
+} from '@concertotech/logstore-protocol';
 import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
-} from '@concertodao/logstore-shared';
+} from '@concertotech/logstore-shared';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 import {

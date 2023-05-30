@@ -3,7 +3,7 @@ import {
 	LogStoreClient,
 	LogStoreClientEvents,
 	Stream,
-} from '@concertodao/logstore-client';
+} from '@concertotech/logstore-client';
 import {
 	StreamPartID,
 	StreamPartIDUtils,

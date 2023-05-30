@@ -1,14 +1,14 @@
 import {
 	LogStoreManager,
 	LogStoreQueryManager,
-} from '@concertodao/logstore-contracts';
+} from '@concertotech/logstore-contracts';
 import {
 	getQueryManagerContract,
 	getStoreManagerContract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
-} from '@concertodao/logstore-shared';
-import { Stream, StreamPermission } from '@concertodao/streamr-client';
+} from '@concertotech/logstore-shared';
+import { Stream, StreamPermission } from '@concertotech/streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
 import { providers, Wallet } from 'ethers';

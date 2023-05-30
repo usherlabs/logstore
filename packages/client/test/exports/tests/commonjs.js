@@ -1,15 +1,18 @@
 // checks that require works
-const LogStoreClient = require('@concertodao/logstore-client')
+const LogStoreClient = require('@concertotech/logstore-client');
 
-console.info('const LogStoreClient = require(\'@concertodao/logstore-client\'):', { LogStoreClient })
+console.info(
+	"const LogStoreClient = require('@concertotech/logstore-client'):",
+	{ LogStoreClient }
+);
 
-const auth = LogStoreClient.generateEthereumAccount()
+const auth = LogStoreClient.generateEthereumAccount();
 const client = new LogStoreClient({
-    auth,
-})
+	auth,
+});
 
 client.connect().then(async () => {
-    console.info('success')
-    await client.destroy()
-    process.exit(0)
-})
+	console.info('success');
+	await client.destroy();
+	process.exit(0);
+});

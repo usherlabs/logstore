@@ -1,5 +1,5 @@
 {
-	"name": "@concertodao/logstore-protocol",
+	"name": "@concertotech/logstore-protocol",
 	"version": "0.0.1",
 	"description": "Concerto Log Store Protocol",
 	"repository": "https://github.com/usherlabs/logstore.git",

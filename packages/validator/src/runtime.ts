@@ -1,4 +1,4 @@
-import ContractAddresses from '@concertodao/logstore-contracts/address.json';
+import ContractAddresses from '@concertotech/logstore-contracts/address.json';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, sha256 } from '@kyvejs/protocol';
 

@@ -2,7 +2,7 @@ import {
 	LoggerFactory,
 	Stream,
 	StreamMetadata,
-} from '@concertodao/streamr-client';
+} from '@concertotech/streamr-client';
 import crypto from 'crypto';
 
 import { LogStoreClient } from '../../src/LogStoreClient';

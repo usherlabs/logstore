@@ -1,7 +1,7 @@
 /**
  * Config and utilities for interating with identity & Ethereum chain.
  */
-import { ChainConnectionInfo } from '@concertodao/streamr-client';
+import { ChainConnectionInfo } from '@concertotech/streamr-client';
 import type { BigNumber } from '@ethersproject/bignumber';
 import type { Overrides } from '@ethersproject/contracts';
 import type { Provider } from '@ethersproject/providers';

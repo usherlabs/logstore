@@ -3,7 +3,7 @@ export const genesis_pool = {
 	data: {
 		id: '0',
 		name: 'Log Store Network',
-		runtime: '@concertodao/logstore-validator',
+		runtime: '@concertotech/logstore-validator',
 		logo: 'ar://9FJDam56yBbmvn8rlamEucATH5UcYqSBw468rlCXn8E',
 		config: `{
 			"sources": ["http://localhost:8546"]

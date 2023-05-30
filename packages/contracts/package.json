@@ -1,5 +1,5 @@
 {
-	"name": "@concertodao/logstore-contracts",
+	"name": "@concertotech/logstore-contracts",
 	"version": "0.0.1",
 	"description": "Concerto Log Store Solidity Contracts",
 	"author": "Ryan Soury <ryan@usher.so>",

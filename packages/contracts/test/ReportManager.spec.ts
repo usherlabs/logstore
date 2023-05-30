@@ -43,6 +43,20 @@ describe('ReportManager', async function () {
 		token = await getERC20Token(adminSigner);
 	});
 
+	it('ReportManager ---- Nodes are ordered by reputation', async function () {
+		// get all reports
+		const [reporters] = await reportManagerContract.functions.getReporters();
+
+		// get all nodes
+		const [nodes] = await nodeManagerContract.functions.nodeAddresses();
+
+		// make sure they are uniquely of the same length
+		const uniqueReports = [...new Set(reporters)];
+		const uniqueNodes = [...new Set(nodes)];
+
+		expect(uniqueReports.length).to.be.equal(uniqueNodes.length);
+	});
+
 	it('ReportManager ---- Staked Node can submit report', async function () {
 		const sampleNode = activeNodes[0];
 		const blockNumber = await getLatestBlockNumber();
