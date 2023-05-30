@@ -2,9 +2,9 @@
 
 common_help() {
 echo "
-dev-network – Streamr Docker Developer Environment.
+dev-network – LogStore Docker Developer Environment.
 
-Usage: dev-network [<command> [options]
+Usage: dev-network [<command> [options]]
 
 Commands:
     help                show this screen
@@ -18,6 +18,7 @@ Examples:
     dev-network start
     dev-network stop
     dev-network deploy origin/develop
+    dev-network tunnel
 
 Show command-specific options:
 	dev-network help <command>
@@ -67,19 +68,17 @@ Examples:
 
 tunnel_help() {
 echo "
-Tunnels the required ports from the DevNetwork ot the local machine
+Tunnels the required ports from the DevNetwork to the local machine
 
 Usage: dev-network tunnel
 "
 }
 
-echo "HELP ROOT_DIR: $ROOT_DIR"
-
 case $1 in
 "" )
     common_help
     ;;
-"setup" )
+"config" )
     config_help
     ;;
 "start" )

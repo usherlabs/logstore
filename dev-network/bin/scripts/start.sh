@@ -16,5 +16,6 @@ then
   cd $DEV_NETWORK_DIR
   docker compose up -d
 else
-  ssh dev-network dev-network start -l
+  source $DEV_NETWORK_SCRIPTS_DIR/config_load.sh
+  $SSH dev-network start -l
 fi

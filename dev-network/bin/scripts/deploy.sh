@@ -29,5 +29,6 @@ then
   echo Starting the DevNetwork...
   "$DEV_NETWORK_SCRIPTS_DIR/start.sh" -l
 else
-  ssh dev-network dev-network deploy -l $@
+  source $DEV_NETWORK_SCRIPTS_DIR/config_load.sh
+  $SSH dev-network deploy -l $@
 fi

@@ -1,6 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 
-sudo ssh ubuntu@dev-network \
+source $DEV_NETWORK_SCRIPTS_DIR/config_load.sh
+
+echo "
+Tunelling the DevNetwork ports. Keep the script running.
+
+Hit [Ctrl+C] to abort
+"
+
+sudo $SSH \
   -N \
   -L 80:localhost:80 \
   -L 1317:localhost:1317 \
