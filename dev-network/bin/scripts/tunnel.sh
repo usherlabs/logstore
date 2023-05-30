@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ssh ubuntu@dev-network \
+sudo ssh ubuntu@dev-network \
   -N \
   -L 80:localhost:80 \
   -L 1317:localhost:1317 \
@@ -18,5 +18,4 @@ ssh ubuntu@dev-network \
   -L 26657:localhost:26657 \
   -L 30301:localhost:30301 \
   -L 30302:localhost:30302 \
-  -L 30303:localhost:30303 \
-  -L 45454:localhost:45454
+  -L 30303:localhost:30303
