@@ -19,25 +19,25 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
     address payable public SAFE_ADDRESS;
     uint256 public DEPLOYED_TIME;
     uint256 public treasury;
-    mapping(address => bool) public whitelistedSenders;
-    mapping(address => bool) public whitelistedRecipients;
+    mapping(address => bool) public transferToWhitelist;
+    mapping(address => bool) public transferFromWhitelist;
 
     modifier onlySafe() {
         require(msg.sender == SAFE_ADDRESS);
         _;
     }
 
-    modifier onlyWhitelistedSender(address destinationAddress) {
+    modifier onlyWhitelistedTo(address destinationAddress) {
         require(
-            destinationAddress != nodeManagerAddress || whitelistedSenders[msg.sender],
+            destinationAddress != nodeManagerAddress || transferToWhitelist[msg.sender],
             "User is not whitelisted to transfer to the address"
         );
         _;
     }
 
-    modifier onlyWhitelistedRecipient(address destinationAddress) {
+    modifier onlyWhitelistedFrom(address destinationAddress) {
         require(
-            destinationAddress != nodeManagerAddress || whitelistedRecipients[msg.sender],
+            destinationAddress != nodeManagerAddress || transferFromWhitelist[msg.sender],
             "User is not whitelisted to transferFrom this address"
         );
         _;
@@ -59,8 +59,8 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         // go through the initial whitelist and whitelist appropriately
         uint256 whitelistLength = initialWhitelist.length;
         for (uint256 i = 0; i < whitelistLength; i++) {
-            whitelistSender(initialWhitelist[i]);
-            whitelistRecipient(initialWhitelist[i]);
+            whitelistTransferTo(initialWhitelist[i]);
+            whitelistTransferFrom(initialWhitelist[i]);
         }
 
         SAFE_ADDRESS = payable(_safeAddress);
@@ -79,16 +79,26 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         _burn(account, amount);
     }
 
-    // Whitelist an address who can transfer this token to the node manager contract
-    function whitelistSender(address account) public onlyOwner {
-        require(!whitelistedSenders[account], "Address already whitelisted as sender");
-        whitelistedSenders[account] = true;
+    // Whitelist and unwhitelist an address who can transfer this token to the node manager contract
+    function whitelistTransferTo(address account) public onlyOwner {
+        require(!transferToWhitelist[account], "Address already whitelisted as sender");
+        transferToWhitelist[account] = true;
     }
 
-    // whitelist an address who can transfer this token to the node manager contract
-    function whitelistRecipient(address account) public onlyOwner {
-        require(!whitelistedRecipients[account], "Account already whitelisted as recipient");
-        whitelistedRecipients[account] = true;
+    function unWhitelistTransferTo(address account) public onlyOwner {
+        require(transferToWhitelist[account], "Address not whitelisted as sender");
+        transferToWhitelist[account] = false;
+    }
+
+    // whitelist and unwhitelist  address who can transfer this token to the node manager contract
+    function whitelistTransferFrom(address account) public onlyOwner {
+        require(!transferFromWhitelist[account], "Account already whitelisted as recipient");
+        transferFromWhitelist[account] = true;
+    }
+
+    function unWhitelistTransferFrom(address account) public onlyOwner {
+        require(transferFromWhitelist[account], "Account not whitelisted as recipient");
+        transferFromWhitelist[account] = false;
     }
 
     function withdraw(uint256 amount) public onlyOwner {
@@ -150,7 +160,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
     // ---------- Public methods
 
     // ---------- Override methods
-    function transfer(address _to, uint256 _amount) public override onlyWhitelistedSender(_to) returns (bool) {
+    function transfer(address _to, uint256 _amount) public override onlyWhitelistedTo(_to) returns (bool) {
         // and the recipient has been whitelisted
         address owner = msg.sender;
         _transfer(owner, _to, _amount);
@@ -162,7 +172,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         address _from,
         address _to,
         uint256 amount
-    ) public override onlyWhitelistedRecipient(_from) onlyWhitelistedSender(_to) returns (bool) {
+    ) public override onlyWhitelistedFrom(_from) onlyWhitelistedTo(_to) returns (bool) {
         address spender = msg.sender;
         _spendAllowance(_from, spender, amount);
         _transfer(_from, _to, amount);

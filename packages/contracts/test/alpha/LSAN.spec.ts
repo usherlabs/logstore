@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import { Contract, ethers, Signer } from 'ethers';
 import { ethers as hEthers, network, upgrades } from 'hardhat';
-import { LSAN } from 'types';
 
 const FAKE_NODE_MANAGER_CONTRACT = '0x325050796C56742c85D3E892e70EE7e4129Fb312';
 const SAFE_ADDRESS = '0x325050796C56742c85D3E892e70EE7e4129Fb312';
@@ -120,7 +119,7 @@ describe('LSAN Token', function () {
 		});
 
 		it('should not allow transfers from non-whitelisted senders', async function () {
-			// await lsan.whitelistSender(allAccounts[1]);
+			// await lsan.whitelistTransferTo(allAccounts[1]);
 
 			const amountToMint = ethers.utils.parseEther('10');
 			await lsan.mintTokens(allAccounts[1], amountToMint);
@@ -142,7 +141,7 @@ describe('LSAN Token', function () {
 
 		it('should allow transfers only from whitelisted senders', async function () {
 			const transferAmount = ethers.utils.parseEther('5');
-			await lsan.whitelistSender(allAccounts[1]);
+			await lsan.whitelistTransferTo(allAccounts[1]);
 
 			const amountToMint = ethers.utils.parseEther('10');
 			await lsan.mintTokens(allAccounts[1], amountToMint);
@@ -183,7 +182,7 @@ describe('LSAN Token', function () {
 		});
 
 		it('should allow transferFrom only whitelisted recipients', async function () {
-			await lsan.whitelistSender(allAccounts[3]);
+			await lsan.whitelistTransferTo(allAccounts[3]);
 
 			const amountToMint = ethers.utils.parseEther('10');
 			await lsan.mintTokens(adminAddress, amountToMint);
@@ -202,17 +201,17 @@ describe('LSAN Token', function () {
 
 	describe('Whitelisting', function () {
 		it('should whitelist senders correctly', async function () {
-			await lsan.whitelistSender(allAccounts[1]);
+			await lsan.whitelistTransferTo(allAccounts[1]);
 
-			expect(await lsan.whitelistedSenders(allAccounts[1])).to.be.true;
-			expect(await lsan.whitelistedSenders(allAccounts[2])).to.be.false;
+			expect(await lsan.transferToWhitelist(allAccounts[1])).to.be.true;
+			expect(await lsan.transferToWhitelist(allAccounts[2])).to.be.false;
 		});
 
 		it('should whitelist recipients correctly', async function () {
-			await lsan.whitelistRecipient(allAccounts[3]);
+			await lsan.whitelistTransferFrom(allAccounts[3]);
 
-			expect(await lsan.whitelistedRecipients(allAccounts[3])).to.be.true;
-			expect(await lsan.whitelistedRecipients(allAccounts[4])).to.be.false;
+			expect(await lsan.transferFromWhitelist(allAccounts[3])).to.be.true;
+			expect(await lsan.transferFromWhitelist(allAccounts[4])).to.be.false;
 		});
 	});
 

@@ -1,25 +1,48 @@
-import { ethers } from 'ethers';
+import { LSAN__factory } from '@concertotech/logstore-contracts';
+import ContractAddresses from '@concertotech/logstore-contracts/address.json';
+import { Provider } from '@ethersproject/providers';
+import { Contract, ethers } from 'ethers';
 import redstone from 'redstone-api';
 
 export class StakeToken {
 	public price: number;
+	public tokenContract: Contract;
+	public provider: Provider;
 
 	constructor(
 		public address: string,
 		public symbol: string,
 		public decimals: number,
-		public minRequirement: number
-	) {}
+		public minRequirement: number,
+		provider: Provider
+	) {
+		this.provider = provider;
+	}
 
 	public async init() {
+		this.tokenContract = LSAN__factory.connect(this.address, this.provider);
 		this.price = await this.getPrice();
 	}
 
 	public async getPrice() {
-		const resp = await redstone.getPrice(this.symbol, {
-			verifySignature: true,
-		});
-		return resp.value;
+		// check if the address is that of LSAN
+		const { chainId } = await this.provider.getNetwork();
+		const lsanTokenAddress = ContractAddresses[chainId].tokenManagerAddress;
+
+		if (this.address === lsanTokenAddress) {
+			const lsanPricePerMatic =
+				await this.tokenContract.functions.getTokenPrice();
+			const { value: maticPrice } = await redstone.getPrice('MATIC', {
+				verifySignature: true,
+			});
+
+			return lsanPricePerMatic * maticPrice;
+		} else {
+			const resp = await redstone.getPrice(this.symbol, {
+				verifySignature: true,
+			});
+			return resp.value;
+		}
 	}
 
 	public fromUSD(usdValue: number) {

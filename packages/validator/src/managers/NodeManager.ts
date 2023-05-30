@@ -116,7 +116,8 @@ export class NodeManager {
 			stakeTokenAddress,
 			stakeTokenSymbol,
 			stakeTokenDecimals,
-			+minStakeRequirement
+			+minStakeRequirement,
+			this.contract.provider
 		);
 
 		await stakeToken.init();

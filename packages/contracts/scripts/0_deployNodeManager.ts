@@ -106,15 +106,30 @@ async function main() {
 
 	// --------------------------- deploy the LSAN token
 	const tokenManager = await hre.ethers.getContractFactory('LSAN');
-	const WHITELISTED_ADDRESSES = [storeManagerAddress, reportManagerAddress];
+	const WHITELISTED_ADDRESSES = [
+		storeManagerAddress,
+		reportManagerAddress,
+		nodeManagerAddress,
+	];
 	const SAFE_ADDRESS = storeManagerAddress;
 	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
 		WHITELISTED_ADDRESSES,
 		SAFE_ADDRESS,
 		nodeManagerAddress,
 	]);
+	// ?add some initial values to enable price information
+	const INITIAL_MATIC_PER_BYTE = 0.0000001 * 10e18;
+	const TOTAL_BYTES_STORES = 100;
+	await tokenManagerContract.setMaticPerByte(INITIAL_MATIC_PER_BYTE);
+	await tokenManagerContract.setTotalBytesStored(TOTAL_BYTES_STORES);
+	// ?add some initial values to enable price information
+
 	const tokenManagerAddress = tokenManagerContract.address;
-	// ?TODO set the important initialisers parameters here like bytes
+	console.log(`tokenManagerAddress deployed to ${tokenManagerAddress}`, {
+		WHITELISTED_ADDRESSES,
+		SAFE_ADDRESS,
+		nodeManagerAddress,
+	});
 	// --------------------------- deploy the LSAN token
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //
