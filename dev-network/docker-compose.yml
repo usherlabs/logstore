@@ -48,6 +48,19 @@ services:
               target: /firstrun
               volume:
                   nocopy: false
+
+    logstore-arlocal:
+        container_name: logstore-arlocal
+        hostname: logstore-arlocal
+        image: logstore-arlocal
+        build:
+            dockerfile: ./Dockerfile.arlocal
+        restart: always
+        ports:
+            - "1984:1984"
+        networks:
+            - streamr-network
+
     logstore-kyve-chain:
         container_name: logstore-kyve-chain
         hostname: logstore-kyve-chain

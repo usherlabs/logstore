@@ -1,0 +1,23 @@
+FROM textury/arlocal
+
+RUN printf "\
+  while true; do \n\
+  wget -q -O /dev/null localhost:1984/mine \n\
+  sleep 10 \n\
+  done \n\
+  "\
+  > mine.sh
+
+RUN chmod +x mine.sh
+
+RUN printf "\
+  set -m \n\
+  node ./bin/index.js & \n\
+  sleep 5 && \n\
+  ./mine.sh \n\
+  "\
+  > start.sh
+
+RUN chmod +x start.sh
+
+CMD ["sh", "start.sh"]
