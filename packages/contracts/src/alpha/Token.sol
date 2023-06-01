@@ -51,7 +51,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         address _nodeManagerAddress
     ) public initializer {
         __Ownable_init();
-        __ERC20_init("Logstore Alpha Network Token", "LSAN");
+        __ERC20_init("Log Store Alpha Network Token", "LSAN");
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
 

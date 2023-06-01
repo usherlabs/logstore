@@ -14,7 +14,7 @@ function createPK(index: number, prefix: string) {
 	return '0x' + prefix + hexString.padStart(64 - prefix.length, '0');
 }
 
-let SAFE_ADDRESS: string;
+let SAFE_ADDRESS: string = '';
 
 async function main() {
 	// --------------------------- deploy the dev DATA token contract --------------------------- //
@@ -26,6 +26,8 @@ async function main() {
 		devTokenAddress = devTokenDeployTx.address;
 
 		console.log(`DevToken deployed to ${devTokenAddress}`);
+	} else if (hre.network.config.chainId === 137) {
+		SAFE_ADDRESS = '0x468e80b73192998C565cFF53B1Dc02a12d5685c4';
 	}
 
 	// --------------------------- deploy the node manager contract --------------------------- //
@@ -113,8 +115,6 @@ async function main() {
 		reportManagerAddress,
 		nodeManagerAddress,
 	];
-	// TODO change safe address to a global constant
-	// SAFE_ADDRESS = storeManagerAddress;
 	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
 		WHITELISTED_ADDRESSES,
 		SAFE_ADDRESS,
