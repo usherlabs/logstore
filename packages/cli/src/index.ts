@@ -92,8 +92,6 @@ program
 			})
 	);
 
-program.command("")
-
 program
 	.command('store')
 	.description('Manage your Log Stores')
