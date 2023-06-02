@@ -136,7 +136,10 @@ program
 						const storeManagerContract = await getStoreManagerContract(signer);
 						logger.info(`Staking ${stakeAmount}...`);
 						await (
-							await storeManagerContract.stake(streamId, stakeAmount)
+							await storeManagerContract.stake(streamId, stakeAmount, {
+								gas: 2100000,
+								gasPrice: 8000000000,
+							})
 						).wait();
 						logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
 					} catch (e) {
