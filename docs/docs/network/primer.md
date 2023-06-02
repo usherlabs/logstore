@@ -1,9 +1,17 @@
 ---
 sidebar_position: 2
-title: "Primer"
+title: 'Primer'
 ---
 
 # Primer
+
+On-chain computation has restricted bandwidth to data that occurs off-chain.
+Custom data is pulled on-chain via APIs that are typically centralised - requiring trust in data integrity.
+
+The Log Store Network is a technology to cryptographically secure the movement of data from any device to the Arweave blockchain network - enabling a pure data store for events indexed and query-able by time.
+
+Smart Contracts can now request custom off-chain event data through an Oracle Network with pure data integrity.
+Traditional systems can now cooperate on data without intermediaries.
 
 The technology leverages the Streamr Network for global transport of data, the Arweave Blockchain for permanent storage of data, the Kyve Network for consensus over data stored, and custom integration software embedded in Nodes and new Smart Contracts to deliver the solution in a decentralized and token-incentivized manner. The Log Store Network comprises two sub-networks bound by their own Blockchain systems, and interlinked via a Streamr stream that behaves as a communication mesh.
 
