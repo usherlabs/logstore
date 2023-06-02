@@ -9,7 +9,7 @@ This website is built using **[Docusaurus 2](https://docusaurus.io/)**, a static
 ## Installation
 
 ```sh
-$ pnpm install
+$ pnpm i
 
 ```
 
