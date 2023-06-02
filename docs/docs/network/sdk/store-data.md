@@ -1,5 +1,5 @@
 ---
-title: "Store Data"
+title: 'Store Data'
 sidebar_position: 3
 ---
 
@@ -8,8 +8,9 @@ sidebar_position: 3
 ## API
 
 ### `stakeOrCreateStore`
+
 ```ts
-function stakeOrCreateStore(streamIdOrPath: string, amount: BigNumberish)
+function stakeOrCreateStore(streamIdOrPath: string, amount: BigNumberish);
 ```
 
 Creates a stream in LogStore and/or stake some funds to the provided stream.
@@ -18,8 +19,9 @@ Creates a stream in LogStore and/or stake some funds to the provided stream.
 - `amount` is a `BigNumberish` type representing the amount to be staked on the stream.
 
 ### `isLogStoreStream`
+
 ```ts
-function isLogStoreStream(streamIdOrPath: string)
+function isLogStoreStream(streamIdOrPath: string);
 ```
 
 Checks if a stream is assigned to a storage node.
@@ -29,7 +31,7 @@ Checks if a stream is assigned to a storage node.
 ### `getLogStoreStreams`
 
 ```ts
-function getLogStoreStreams()
+function getLogStoreStreams();
 ```
 
 It gets all streams assigned to a storage node.
@@ -39,28 +41,25 @@ Returns a Promise that resolves to an object with a `blockNumber` property indic
 ## Example
 
 ```ts
-import LogStoreClient from "@concertodao/logstore-client";
+import LogStoreClient from '@logsnclient';
 
 const logStoreClient = new LogStoreClient({
-  auth: {
-    privateKey: 'your-private-key',
-  },
+	auth: {
+		privateKey: 'your-private-key',
+	},
 });
 
 // Create a new stream -- from StreamrClient
 const newStream = await logStoreClient.createStream({
-		id: "domain/streamId",
-	});
+	id: 'domain/streamId',
+});
 
 // Adding the stream to logstore and staking some tokens to it.
 // Tokens used to fund storage.
 await logStoreClient.stakeOrCreateStore(myStreamId, STAKE_AMOUNT);
 
 // Publish messages to this stream
-logStoreClient.publish(
-  myStreamId,
-  {
-    hello: 'world',
-  }
-);
+logStoreClient.publish(myStreamId, {
+	hello: 'world',
+});
 ```

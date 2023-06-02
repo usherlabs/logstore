@@ -1,9 +1,9 @@
 {
-	"name": "@concertotech/logstore",
+	"name": "@logsn/monorepo",
 	"version": "0.0.1",
 	"description": "Log Store Repository",
 	"repository": "git@github.com:usherlabs/logstore.git",
-	"homepage": "https://concerto.technology/logstore",
+	"homepage": "https://logstore.usher.so",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",
 	"private": true,

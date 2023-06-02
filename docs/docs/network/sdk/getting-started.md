@@ -8,17 +8,17 @@ sidebar_position: 1
 The Log Store Client can be installed using `npm`, `pnpm` or `yarn`.
 
 ```bash
-npm i @concertodao/logstore-client
+npm i @logsn/client
 ```
 
 Then,
 
 ```ts
-import LogStoreClient from '@concertodao/logstore-client';
+import LogStoreClient from '@logsn/client';
 
 // --- or ---
 
-const LogStoreClient = require('@concertodao/logstore-client');
+const LogStoreClient = require('@logsn/client');
 ```
 
 ## Environment

@@ -13,7 +13,7 @@
 		"test-esm": "node tests/esm.mjs",
 		"test-commonjs": "node tests/commonjs.js",
 		"webpack": "../../node_modules/.bin/webpack --progress",
-		"link": "mkdir -p node_modules/@concertotech && ln -fsr ../../dist/ node_modules/@logsn/client"
+		"link": "mkdir -p node_modules/@logsn && ln -fsr ../../dist/ node_modules/@logsn/client"
 	},
 	"author": "Tim Oxley <secoif@gmail.com>",
 	"license": "ISC",

@@ -1,13 +1,10 @@
-import {
-	LogStoreManager,
-	LogStoreQueryManager,
-} from '@concertotech/logstore-contracts';
+import { LogStoreManager, LogStoreQueryManager } from '@logsn/contracts';
 import {
 	getQueryManagerContract,
 	getStoreManagerContract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
-} from '@concertotech/logstore-shared';
+} from '@logsn/shared';
 import { Stream, StreamPermission } from '@streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';

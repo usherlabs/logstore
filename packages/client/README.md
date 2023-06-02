@@ -100,7 +100,7 @@ By including Streamr classes in bundle, we enable Babel to transpile with source
 
 ### Node Compatibility
 
-`"@streamr-client": "file:../../node_artifacts/concertodao-streamr-client-8.1.0.tgz",` included in `package.json`.
+`"@streamr-client": "file:../../node_artifacts/fork-streamr-client-8.1.0.tgz",` included in `package.json`.
 This way Node code can pick up forked `streamr-client` at `@streamr-client`.
 
 Typescript can compile the forked `streamr-client` included in `../../node_artifacts` for with Node.js.

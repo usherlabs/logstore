@@ -1,5 +1,5 @@
 ---
-title: "Getting Started"
+title: 'Getting Started'
 sidebar_position: 1
 ---
 
@@ -21,16 +21,16 @@ The following commands are available to be used:
 
 - `version`: Prints the runtime and protocol version information.
 - `query`: Manages Interaction with Log Store queries.
-    - `stake`: Stakes tokens into the Query Manager Contract to submit query requests to the Log Store Network.
+  - `stake`: Stakes tokens into the Query Manager Contract to submit query requests to the Log Store Network.
 - `store`: Manages Log Stores.
-    - `stake`: Stakes tokens into the Store Manager Contract to store data transported over a stream into the decentralised storage network.
+  - `stake`: Stakes tokens into the Store Manager Contract to store data transported over a stream into the decentralised storage network.
 
 ## Installing the CLI
 
 The Log Store Client can be installed using `npm`, `pnpm` or `yarn`.
 
 ```bash
-npm i -g @concertodao/logstore-cli
+npm i -g @logsn/cli
 ```
 
 Then,

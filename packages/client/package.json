@@ -1,7 +1,7 @@
 {
 	"name": "@logsn/client",
 	"version": "0.0.1",
-	"description": "Concerto Log Store Client",
+	"description": "The Log Store Network Client",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "Apache-2.0",
@@ -34,8 +34,8 @@
 	"dependencies": {
 		"@babel/runtime": "^7.16.3",
 		"@babel/runtime-corejs3": "^7.16.3",
-		"@concertotech/logstore-contracts": "workspace:^",
-		"@concertotech/logstore-shared": "workspace:^",
+		"@logsn/contracts": "workspace:^",
+		"@logsn/shared": "workspace:^",
 		"@streamr-client": "file:../../node_artifacts/fork-streamr-client-8.1.0.tgz",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",

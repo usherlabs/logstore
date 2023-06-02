@@ -1,18 +1,18 @@
 import {
-	ProofOfReport,
-	SystemMessage,
-	SystemMessageType,
-} from '@concertotech/logstore-protocol';
-import {
-	getNodeManagerContract,
-	getReportManagerContract,
-} from '@concertotech/logstore-shared';
-import {
 	LogStoreClient,
 	MessageMetadata,
 	Stream,
 	Subscription,
 } from '@logsn/client';
+import {
+	ProofOfReport,
+	SystemMessage,
+	SystemMessageType,
+} from '@logsn/protocol';
+import {
+	getNodeManagerContract,
+	getReportManagerContract,
+} from '@logsn/shared';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
 import { ethers, Signer, Wallet } from 'ethers';

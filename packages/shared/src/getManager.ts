@@ -7,8 +7,8 @@ import {
 	LogStoreQueryManager__factory,
 	LogStoreReportManager,
 	LogStoreReportManager__factory,
-} from '@concertotech/logstore-contracts';
-import ContractAddresses from '@concertotech/logstore-contracts/address.json';
+} from '@logsn/contracts';
+import ContractAddresses from '@logsn/contracts/address.json';
 import { providers, Signer, Wallet } from 'ethers';
 
 import { Manager, Network } from './types';

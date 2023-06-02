@@ -1,6 +1,6 @@
-import { LogStoreNodeManager as LogStoreNodeManagerContract } from '@concertotech/logstore-contracts';
-import { abi as LogStoreNodeManagerAbi } from '@concertotech/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
 import { Provider } from '@ethersproject/providers';
+import { LogStoreNodeManager as LogStoreNodeManagerContract } from '@logsn/contracts';
+import { abi as LogStoreNodeManagerAbi } from '@logsn/contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
 import {
 	ContractFactory,
 	LoggerFactory,

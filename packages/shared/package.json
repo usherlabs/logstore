@@ -1,7 +1,7 @@
 {
-	"name": "@concertotech/logstore-shared",
+	"name": "@logsn/shared",
 	"version": "0.0.1",
-	"description": "Concerto Log Store Shared Library",
+	"description": "The Log Store Network Shared Library",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "Apache-2.0",
@@ -17,7 +17,7 @@
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dependencies": {
-		"@concertotech/logstore-contracts": "workspace:^",
+		"@logsn/contracts": "workspace:^",
 		"ethers": "^5.7.0",
 		"inquirer": "^8.1.1",
 		"redstone-api": "^0.4.11",

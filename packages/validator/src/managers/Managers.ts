@@ -1,10 +1,10 @@
+import { JsonRpcProvider, Provider } from '@ethersproject/providers';
+import { Wallet } from '@ethersproject/wallet';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,
 	getStoreManagerContract,
-} from '@concertotech/logstore-shared';
-import { JsonRpcProvider, Provider } from '@ethersproject/providers';
-import { Wallet } from '@ethersproject/wallet';
+} from '@logsn/shared';
 
 import { getEvmPrivateKey } from '../env-config';
 import { getClosestBlockByTime } from '../utils/helpers';

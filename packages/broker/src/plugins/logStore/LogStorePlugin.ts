@@ -1,3 +1,4 @@
+import { formLogStoreSystemStreamId, Stream } from '@logsn/client';
 import {
 	ProofOfMessageStored,
 	QueryFromOptions,
@@ -8,8 +9,7 @@ import {
 	QueryType,
 	SystemMessage,
 	SystemMessageType,
-} from '@concertotech/logstore-protocol';
-import { formLogStoreSystemStreamId, Stream } from '@logsn/client';
+} from '@logsn/protocol';
 import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';

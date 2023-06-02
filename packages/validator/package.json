@@ -1,9 +1,9 @@
 {
-	"name": "@concertotech/logstore-validator",
+	"name": "@logsn/validator",
 	"version": "0.0.1",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",
-	"description": "Concerto Log Store Validator Node",
+	"description": "The Log Store Network Validator Node",
 	"private": false,
 	"scripts": {
 		"build": "del dist && tsc -p ./tsconfig.release.json",
@@ -24,9 +24,9 @@
 	},
 	"dependencies": {
 		"@logsn/client": "workspace:^",
-		"@concertotech/logstore-contracts": "workspace:^",
-		"@concertotech/logstore-protocol": "workspace:^",
-		"@concertotech/logstore-shared": "workspace:^",
+		"@logsn/contracts": "workspace:^",
+		"@logsn/protocol": "workspace:^",
+		"@logsn/shared": "workspace:^",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/providers": "^5.7.2",
 		"@ethersproject/wallet": "^5.7.0",

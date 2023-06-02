@@ -1,5 +1,5 @@
 ---
-title: "Query Data"
+title: 'Query Data'
 sidebar_position: 4
 ---
 
@@ -10,18 +10,22 @@ sidebar_position: 4
 ### `queryStake`
 
 ```ts
-function queryStake(amount: BigNumberish, options = { usd: false })
+function queryStake(amount: BigNumberish, options = { usd: false });
 ```
 
-Stakes the specified amount of funds in order to perform queries. 
+Stakes the specified amount of funds in order to perform queries.
 
 - `amount` is a `BigNumberish` type
 - `options` is an object with a single optional property, `usd`, which is a boolean indicating whether the amount is in USD.
 
 ### `query`
-    
+
 ```ts
-function query(streamDefinition: StreamDefinition, options: QueryOptions, onMessage?: MessageListener)
+function query(
+	streamDefinition: StreamDefinition,
+	options: QueryOptions,
+	onMessage?: MessageListener
+);
 ```
 
 Queries a stream for historical data.
@@ -35,23 +39,23 @@ Returns a Promise that resolves to a `MessageStream` object, providing an altern
 ## Example
 
 ```ts
-import LogStoreClient from "@concertodao/logstore-client";
+import LogStoreClient from '@logsn/client';
 
 const logStoreClient = new LogStoreClient({
-  auth: {
-    privateKey: 'your-private-key',
-  },
+	auth: {
+		privateKey: 'your-private-key',
+	},
 });
 
 // Staking some funds for the purpose of making a query
 await logStoreClient.queryStake(STAKE_AMOUNT);
 
-const queryResult = await logStoreClient.query(myStreamId, { 
+const queryResult = await logStoreClient.query(myStreamId, {
 	from: {
-		timestamp: 1685272949531
-	}, 
+		timestamp: 1685272949531,
+	},
 	to: {
-		timestamp: 1685272962273
-	} 
+		timestamp: 1685272962273,
+	},
 });
 ```
