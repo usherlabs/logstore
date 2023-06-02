@@ -1,5 +1,5 @@
 {
-	"name": "@concertotech/logstore-cli",
+	"name": "@logsn/cli",
 	"version": "0.0.1",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",

@@ -1,8 +1,4 @@
 // import chokidar from 'chokidar';
-import LogStoreClient, {
-	CONFIG_TEST,
-	MessageMetadata,
-} from '@concertotech/logstore-client';
 import {
 	ProofOfMessageStored,
 	QueryRequest,
@@ -10,6 +6,7 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@concertotech/logstore-protocol';
+import LogStoreClient, { CONFIG_TEST, MessageMetadata } from '@logsn/client';
 import fse from 'fs-extra';
 import { open, RootDatabase } from 'lmdb';
 import path from 'path';

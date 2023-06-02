@@ -1,11 +1,11 @@
 import { LogStoreNodeManager as LogStoreNodeManagerContract } from '@concertotech/logstore-contracts';
 import { abi as LogStoreNodeManagerAbi } from '@concertotech/logstore-contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
+import { Provider } from '@ethersproject/providers';
 import {
 	ContractFactory,
 	LoggerFactory,
 	queryAllReadonlyContracts,
-} from '@concertotech/streamr-client';
-import { Provider } from '@ethersproject/providers';
+} from '@streamr-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { shuffle } from 'lodash';
 import { inject, Lifecycle, scoped } from 'tsyringe';

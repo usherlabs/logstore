@@ -1,4 +1,3 @@
-import { CONFIG_TEST, LogStoreClient } from '@concertotech/logstore-client';
 import {
 	ProofOfMessageStored,
 	QueryRequest,
@@ -21,6 +20,7 @@ import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
 import { lcd } from '@kyvejs/protocol/test/mocks/lcd.mock';
 import { TestNormalStorageProvider } from '@kyvejs/protocol/test/mocks/storageProvider.mock';
+import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import { fastPrivateKey } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';

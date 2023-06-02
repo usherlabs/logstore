@@ -1,9 +1,3 @@
-import type {
-	Stream,
-	StreamMessage,
-	Subscription,
-} from '@concertotech/logstore-client';
-import { LogStoreClient } from '@concertotech/logstore-client';
 import { LogStoreNodeManager } from '@concertotech/logstore-contracts';
 import {
 	QueryRequest,
@@ -11,6 +5,8 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@concertotech/logstore-protocol';
+import type { Stream, StreamMessage, Subscription } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import { Logger } from '@streamr/utils';
 import { Signer } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';

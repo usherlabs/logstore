@@ -1,10 +1,10 @@
 // check ts esm works via tsc
-import DefaultExport, * as NamedExports from '@concertotech/logstore-client';
+import DefaultExport, * as NamedExports from '@logsn/client';
 
-console.info(
-	"import DefaultExport, * as NamedExports from '@concertotech/logstore-client':",
-	{ DefaultExport, NamedExports }
-);
+console.info("import DefaultExport, * as NamedExports from '@logsn/client':", {
+	DefaultExport,
+	NamedExports,
+});
 
 const LogStoreClient = DefaultExport;
 

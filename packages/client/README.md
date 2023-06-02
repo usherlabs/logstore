@@ -61,7 +61,7 @@ Returns a Promise that resolves to an object with a **`blockNumber`** property i
 ## Code Examples and Snippets
 
 ```jsx
-import { LogStoreClient } from '@concertotech/logstore-client';
+import { LogStoreClient } from '@logsn/client';
 
 // Initialize the logstore client
 const logStoreClient = new LogStoreClient({

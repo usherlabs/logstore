@@ -1,7 +1,7 @@
 {
-	"name": "docs-template",
-	"version": "0.0.0",
-	"private": true,
+	"name": "@logsn/docs",
+	"version": "0.0.1",
+	"private": false,
 	"scripts": {
 		"postinstall": "pnpm i .",
 		"docusaurus": "docusaurus",
@@ -33,7 +33,6 @@
 		"autoprefixer": "^10.4.14",
 		"chroma-js": "2.4.2",
 		"clsx": "^1.2.1",
-		"docs-template": "link:",
 		"docusaurus-plugin-sass": "^0.2.3",
 		"modern-normalize": "^1.1.0",
 		"postcss": "^8.4.23",

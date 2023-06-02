@@ -5,6 +5,8 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertotech/logstore-shared';
+import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
+import { Provider } from '@ethersproject/providers';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
@@ -15,9 +17,7 @@ import {
 	Stream,
 	StreamIDBuilder,
 	waitForTx,
-} from '@concertotech/streamr-client';
-import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
-import { Provider } from '@ethersproject/providers';
+} from '@streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { min } from 'lodash';

@@ -1,5 +1,5 @@
 {
-	"name": "@concertotech/logstore-broker",
+	"name": "@logsn/broker",
 	"version": "0.0.1",
 	"description": "Concerto Log Store Broker Node",
 	"repository": "https://github.com/usherlabs/logstore.git",
@@ -23,7 +23,7 @@
 		"test": "dotenv -e .env jest --"
 	},
 	"dependencies": {
-		"@concertotech/logstore-client": "workspace:^",
+		"@logsn/client": "workspace:^",
 		"@concertotech/logstore-contracts": "workspace:^",
 		"@concertotech/logstore-protocol": "workspace:^",
 		"@concertotech/logstore-shared": "workspace:^",

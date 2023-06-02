@@ -1,10 +1,4 @@
 import {
-	CONFIG_TEST,
-	LogStoreClient,
-	NodeMetadata,
-	Stream,
-} from '@concertotech/logstore-client';
-import {
 	LogStoreManager,
 	LogStoreNodeManager,
 } from '@concertotech/logstore-contracts';
@@ -14,6 +8,12 @@ import {
 	prepareStakeForNodeManager,
 	prepareStakeForStoreManager,
 } from '@concertotech/logstore-shared';
+import {
+	CONFIG_TEST,
+	LogStoreClient,
+	NodeMetadata,
+	Stream,
+} from '@logsn/client';
 import { Tracker } from '@streamr/network-tracker';
 import { StreamMessage } from '@streamr/protocol';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';

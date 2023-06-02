@@ -23,7 +23,7 @@
 		"logstore-validator": "./dist/bin/logstore-validator.js"
 	},
 	"dependencies": {
-		"@concertotech/logstore-client": "workspace:^",
+		"@logsn/client": "workspace:^",
 		"@concertotech/logstore-contracts": "workspace:^",
 		"@concertotech/logstore-protocol": "workspace:^",
 		"@concertotech/logstore-shared": "workspace:^",

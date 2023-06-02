@@ -1,4 +1,4 @@
-import { LogStoreClient, Stream } from '@concertotech/logstore-client';
+import { LogStoreClient, Stream } from '@logsn/client';
 import { StreamPartID } from '@streamr/protocol';
 import { keyToArrayIndex, Logger } from '@streamr/utils';
 

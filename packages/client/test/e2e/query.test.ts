@@ -8,7 +8,7 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertotech/logstore-shared';
-import { Stream, StreamPermission } from '@concertotech/streamr-client';
+import { Stream, StreamPermission } from '@streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
 import { providers, Wallet } from 'ethers';

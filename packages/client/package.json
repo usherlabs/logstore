@@ -1,5 +1,5 @@
 {
-	"name": "@concertotech/logstore-client",
+	"name": "@logsn/client",
 	"version": "0.0.1",
 	"description": "Concerto Log Store Client",
 	"repository": "https://github.com/usherlabs/logstore.git",
@@ -33,7 +33,7 @@
 		"@babel/runtime-corejs3": "^7.16.3",
 		"@concertotech/logstore-contracts": "workspace:^",
 		"@concertotech/logstore-shared": "workspace:^",
-		"@concertotech/streamr-client": "file:../../node_artifacts/concertotech-streamr-client-8.1.0.tgz",
+		"@streamr-client": "file:../../node_artifacts/fork-streamr-client-8.1.0.tgz",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/bytes": "^5.7.0",
