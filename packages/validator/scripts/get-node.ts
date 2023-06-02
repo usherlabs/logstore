@@ -1,6 +1,6 @@
-import { getNodeManagerContract } from '@concertotech/logstore-shared';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
+import { getNodeManagerContract } from '@logsn/shared';
 import 'dotenv/config';
 
 const BROKER_NODE_PRIVATE_KEY =

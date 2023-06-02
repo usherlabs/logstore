@@ -1,4 +1,4 @@
-import { HttpFetcher, LoggerFactory } from '@concertotech/streamr-client';
+import { HttpFetcher, LoggerFactory } from '@streamr-client';
 import { Logger } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 

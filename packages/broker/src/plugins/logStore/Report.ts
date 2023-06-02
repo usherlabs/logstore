@@ -3,16 +3,16 @@ import {
 	MessageMetadata,
 	Stream,
 	Subscription,
-} from '@concertotech/logstore-client';
+} from '@logsn/client';
 import {
 	ProofOfReport,
 	SystemMessage,
 	SystemMessageType,
-} from '@concertotech/logstore-protocol';
+} from '@logsn/protocol';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,
-} from '@concertotech/logstore-shared';
+} from '@logsn/shared';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
 import { ethers, Signer, Wallet } from 'ethers';

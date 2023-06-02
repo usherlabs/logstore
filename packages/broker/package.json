@@ -1,7 +1,7 @@
 {
-	"name": "@concertotech/logstore-broker",
+	"name": "@logsn/broker",
 	"version": "0.0.1",
-	"description": "Concerto Log Store Broker Node",
+	"description": "The Log Store Network Broker Node",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "SEE LICENSE IN ./LICENSE",
@@ -23,10 +23,10 @@
 		"test": "dotenv -e .env jest --"
 	},
 	"dependencies": {
-		"@concertotech/logstore-client": "workspace:^",
-		"@concertotech/logstore-contracts": "workspace:^",
-		"@concertotech/logstore-protocol": "workspace:^",
-		"@concertotech/logstore-shared": "workspace:^",
+		"@logsn/client": "workspace:^",
+		"@logsn/contracts": "workspace:^",
+		"@logsn/protocol": "workspace:^",
+		"@logsn/shared": "workspace:^",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/contracts": "^5.7.0",

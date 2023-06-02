@@ -1,7 +1,7 @@
 {
-	"name": "@concertotech/logstore-shared",
+	"name": "@logsn/shared",
 	"version": "0.0.1",
-	"description": "Concerto Log Store Shared Library",
+	"description": "The Log Store Network Shared Library",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "Apache-2.0",
@@ -12,12 +12,12 @@
 		"./dist"
 	],
 	"scripts": {
-		"build": "tsc",
+		"build": "del dist && tsc",
 		"format": "prettier --write .",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dependencies": {
-		"@concertotech/logstore-contracts": "workspace:^",
+		"@logsn/contracts": "workspace:^",
 		"ethers": "^5.7.0",
 		"inquirer": "^8.1.1",
 		"redstone-api": "^0.4.11",
@@ -28,6 +28,7 @@
 		"@types/jest": "^29.5.0",
 		"@typescript-eslint/eslint-plugin": "^5.57.0",
 		"@typescript-eslint/parser": "^5.57.0",
+		"del-cli": "^5.0.0",
 		"eslint": "^8.36.0",
 		"eslint-plugin-promise": "^6.1.1",
 		"jest": "^29.4.3",

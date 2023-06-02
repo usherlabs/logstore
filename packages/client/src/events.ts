@@ -1,4 +1,4 @@
-import { StreamrClientEvents } from '@concertotech/streamr-client';
+import { StreamrClientEvents } from '@streamr-client';
 import EventEmitter3 from 'eventemitter3';
 import { Lifecycle, scoped } from 'tsyringe';
 

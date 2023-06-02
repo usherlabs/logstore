@@ -4,7 +4,7 @@ import {
 	LogStoreClientConfig,
 	Stream,
 	StreamMetadata,
-} from '@concertotech/logstore-client';
+} from '@logsn/client';
 import { TEST_CONFIG } from '@streamr/network-node';
 import { startTracker, Tracker } from '@streamr/network-tracker';
 import {

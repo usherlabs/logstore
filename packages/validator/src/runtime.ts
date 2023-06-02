@@ -1,6 +1,6 @@
-import ContractAddresses from '@concertotech/logstore-contracts/address.json';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, sha256 } from '@kyvejs/protocol';
+import ContractAddresses from '@logsn/contracts/address.json';
 
 import { Item } from './core/item';
 import { Report } from './core/report';
