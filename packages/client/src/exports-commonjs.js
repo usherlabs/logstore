@@ -4,5 +4,5 @@ const LogStoreClientExports = require('./exports');
 
 Object.assign(LogStoreClientExports.LogStoreClient, LogStoreClientExports);
 
-// required to get require('streamr-client') instead of require('streamr-client').default
+// required to get require('@streamr-client') instead of require('@streamr-client').default
 module.exports = LogStoreClientExports.LogStoreClient;

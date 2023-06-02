@@ -1,2 +1,8 @@
 node_modules/**
 dist/**
+.streamr-network/**
+.streamr-network
+streamr-network/**
+streamr-network
+modules/**
+modules

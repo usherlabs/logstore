@@ -37,7 +37,7 @@ export class LogStoreClient extends StreamrClient {
 		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
 
-		super(streamrClientConfig, container);
+		super(streamrClientConfig, parentContainer);
 
 		const strictConfig = createStrictConfig(config);
 		redactConfig(strictConfig);
