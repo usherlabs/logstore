@@ -111,13 +111,12 @@ export class NodeManager {
 		);
 		const stakeTokenSymbol = await stakeTokenContract.symbol();
 		const stakeTokenDecimals = await stakeTokenContract.decimals();
-
 		const stakeToken = new StakeToken(
 			stakeTokenAddress,
 			stakeTokenSymbol,
 			stakeTokenDecimals,
 			+minStakeRequirement,
-			this.contract.provider
+			this.contract.signer
 		);
 
 		await stakeToken.init();
