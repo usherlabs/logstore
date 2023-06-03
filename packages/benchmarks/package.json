@@ -7,7 +7,8 @@
 	"private": false,
 	"scripts": {
 		"start": "best",
-		"build": "del __benchmarks__ && tsc --build ./tsconfig.json",
+		"build": "echo \"Use npm script `compile`\"",
+		"compile": "del __benchmarks__ && tsc --build ./tsconfig.json",
 		"format": "prettier --write .",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts",
 		"test": "dotenv -e .env jest --"
