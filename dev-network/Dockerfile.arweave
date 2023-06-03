@@ -1,0 +1,34 @@
+FROM textury/arlocal
+
+RUN printf "\
+  wget -q -O /dev/null localhost:1984/mint/Zcbf1xCblnJZRGhH-2XqJOzx1xbKNKS3ZVXfg5WaAGY/1000000000000000 \n\
+  wget -q -O /dev/null localhost:1984/mint/8X1er8Bngza6g9dbndOgkWBFO93KkK8LeK8MXLCA3vk/1000000000000000 \n\
+  wget -q -O /dev/null localhost:1984/mint/SByfG2malxPboIymaaBtwiv3wkV-YJsNuT71IiDdm6A/1000000000000000 \n\
+  "\
+  > mint.sh
+
+RUN chmod +x mint.sh
+
+RUN printf "\
+  while true; do \n\
+  wget -q -O /dev/null localhost:1984/mine \n\
+  sleep 10 \n\
+  done \n\
+  "\
+  > mine.sh
+
+RUN chmod +x mine.sh
+
+RUN printf "\
+  set -m \n\
+  node ./bin/index.js & \n\
+  sleep 5 && \n\
+  ./mint.sh \n\
+  sleep 5 && \n\
+  ./mine.sh \n\
+  "\
+  > start.sh
+
+RUN chmod +x start.sh
+
+CMD ["sh", "start.sh"]

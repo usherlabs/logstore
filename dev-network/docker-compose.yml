@@ -49,41 +49,41 @@ services:
               volume:
                   nocopy: false
 
-    logstore-arlocal:
-        container_name: logstore-arlocal
-        hostname: logstore-arlocal
-        image: logstore-arlocal
+    logstore-nginx:
+        container_name: logstore-nginx
+        hostname: logstore-nginx
+        image: logstore-nginx
         build:
-            dockerfile: ./Dockerfile.arlocal
+            dockerfile: ./Dockerfile.nginx
+        restart: always        
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8801:8801"
+            - "1317:1317"
+            - "26657:26657"
+        networks:
+            - streamr-network
+
+    logstore-arweave:
+        container_name: logstore-arweave
+        hostname: logstore-arweave
+        image: logstore-arweave
+        build:
+            dockerfile: ./Dockerfile.arweave
         restart: always
         ports:
             - "1984:1984"
         networks:
             - streamr-network
 
-    logstore-kyve-chain:
-        container_name: logstore-kyve-chain
-        hostname: logstore-kyve-chain
-        image: logstore-kyve-chain
+    logstore-kyve:
+        container_name: logstore-kyve
+        hostname: logstore-kyve
+        image: logstore-kyve
         build:
-            # context: ./dev-network/
-            dockerfile: ./Dockerfile.kyve-chain
+            dockerfile: ./Dockerfile.kyve
         restart: always
-        networks:
-            - streamr-network
-
-    logstore-kyve-nginx:
-        container_name: logstore-kyve-nginx
-        hostname: logstore-kyve-nginx
-        image: logstore-kyve-nginx
-        build:
-            # context: ./dev-network/
-            dockerfile: ./Dockerfile.kyve-nginx
-        restart: always
-        ports:
-            - "8801:80"
-            - "1317:1317"
-            - "26657:26657"
         networks:
             - streamr-network
 
@@ -93,7 +93,6 @@ services:
         image: logstore-broker
         build:
             context: ../
-            # dockerfile: ./Dockerfile.broker
             dockerfile: ./dev-network/Dockerfile.broker
         restart: always
         ports:
@@ -118,7 +117,6 @@ services:
         image: logstore-broker
         build:
             context: ../
-            # dockerfile: ./Dockerfile.broker
             dockerfile: ./dev-network/Dockerfile.broker
         restart: always
         ports:
@@ -143,7 +141,6 @@ services:
         image: logstore-broker
         build:
             context: ../
-            # dockerfile: ./Dockerfile.broker
             dockerfile: ./dev-network/Dockerfile.broker
         restart: always
         ports:
