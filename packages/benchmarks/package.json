@@ -7,7 +7,7 @@
 	"private": false,
 	"scripts": {
 		"start": "best",
-		"build": "echo \"Use npm script `compile`\"",
+		"build": "echo \"Use npm script 'compile'\"",
 		"compile": "del __benchmarks__ && tsc --build ./tsconfig.json",
 		"format": "prettier --write .",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts",
