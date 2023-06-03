@@ -6,7 +6,9 @@
 		"./packages/subgraph",
 		"./packages/cli",
 		"./packages/client",
-		"./packages/protocol"
+		"./packages/protocol",
+		"./packages/benchmarks",
+		"./docs"
 	],
 	"eslint.validate": [
 		"javascript",

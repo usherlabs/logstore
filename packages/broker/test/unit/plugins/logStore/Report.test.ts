@@ -1,9 +1,10 @@
+import { Wallet } from '@ethersproject/wallet';
 import LogStoreClient, {
 	CONFIG_TEST,
 	NodeMetadata,
 	StreamPermission,
-} from '@concertotech/logstore-client';
-import { LogStoreNodeManager } from '@concertotech/logstore-contracts';
+} from '@logsn/client';
+import { LogStoreNodeManager } from '@logsn/contracts';
 import {
 	getNodeManagerContract,
 	getQueryManagerContract,
@@ -12,8 +13,7 @@ import {
 	prepareStakeForNodeManager,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
-} from '@concertotech/logstore-shared';
-import { Wallet } from '@ethersproject/wallet';
+} from '@logsn/shared';
 import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers } from 'ethers';

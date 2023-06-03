@@ -1,14 +1,3 @@
-import { CONFIG_TEST, LogStoreClient } from '@concertotech/logstore-client';
-import {
-	ProofOfMessageStored,
-	QueryRequest,
-	QueryResponse,
-	QueryType,
-} from '@concertotech/logstore-protocol';
-import {
-	getNodeManagerContract,
-	prepareStakeForNodeManager,
-} from '@concertotech/logstore-shared';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 import {
@@ -21,6 +10,17 @@ import { client } from '@kyvejs/protocol/test/mocks/client.mock';
 import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.mock';
 import { lcd } from '@kyvejs/protocol/test/mocks/lcd.mock';
 import { TestNormalStorageProvider } from '@kyvejs/protocol/test/mocks/storageProvider.mock';
+import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
+import {
+	ProofOfMessageStored,
+	QueryRequest,
+	QueryResponse,
+	QueryType,
+} from '@logsn/protocol';
+import {
+	getNodeManagerContract,
+	prepareStakeForNodeManager,
+} from '@logsn/shared';
 import { fastPrivateKey } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';

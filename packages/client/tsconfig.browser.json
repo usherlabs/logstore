@@ -1,0 +1,52 @@
+{
+	"extends": "../../tsconfig.browser.json",
+	"compilerOptions": {
+		"composite": true,
+		"noEmit": true,
+		"declarationDir": "dist/types",
+		"outDir": "dist",
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"strictBindCallApply": true,
+		"baseUrl": ".",
+		"paths": {
+			"@streamr-client": ["./modules/streamr/client/src/exports-browser.ts"],
+			"@streamr-client/*": ["./modules/streamr/client/*"],
+			"stream": ["readable-stream"],
+			"util": ["util"],
+			"http": ["./modules/streamr/client/src/shim/http-https.js"],
+			"@ethersproject/wordlists": [
+				"@ethersproject/wordlists/lib.esm/browser-wordlists.js"
+			],
+			"https": ["./modules/streamr/client/src/shim/http-https.js"],
+			"crypto": ["crypto-browserify"],
+			"buffer": ["buffer/"],
+			"node-fetch": ["./modules/streamr/client/src/shim/node-fetch.ts"],
+			"@streamr/protocol/*": ["./modules/streamr/protocol/src/*"],
+			"@streamr/protocol": ["./modules/streamr/protocol/src/index.ts"],
+			"@streamr/network-node": [
+				"./modules/streamr/network-node/src/browser.ts"
+			],
+			"@streamr/network-node/src/connection/NodeWebRtcConnection.ts": [
+				"./modules/streamr/network-node/src/connection/BrowserWebRtcConnection.ts"
+			],
+			"@streamr/network-node/src/connection/ws/NodeClientWsEndpoint.ts": [
+				"./modules/streamr/network-node/src/connection/ws/BrowserClientWsEndpoint.ts"
+			],
+			"@streamr/network-node/src/connection/ws/NodeClientWsConnection.ts": [
+				"./modules/streamr/network-node/src/connection/ws/BrowserClientWsConnection.ts"
+			],
+			"@streamr/network-node/src/helpers/logger/LoggerNode.ts": [
+				"./modules/streamr/network-node/src/helpers/logger/LoggerBrowser.ts"
+			]
+		}
+	},
+	"include": [
+		"package.json",
+		"src/**/*",
+		"src/**/*.json",
+		"vendor/**/*",
+		"src/config.schema.json"
+	],
+	"exclude": ["src/exports-esm.mjs"]
+}

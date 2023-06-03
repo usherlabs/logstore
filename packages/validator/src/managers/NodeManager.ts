@@ -1,8 +1,5 @@
-import {
-	ERC20__factory,
-	LogStoreNodeManager,
-} from '@concertotech/logstore-contracts';
 import { BigNumber } from '@ethersproject/bignumber';
+import { ERC20__factory, LogStoreNodeManager } from '@logsn/contracts';
 
 import { IBrokerNode } from '../types';
 import { StakeToken } from '../utils/stake-token';

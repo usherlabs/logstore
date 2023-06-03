@@ -1,10 +1,9 @@
 // checks that require works
-const LogStoreClient = require('@concertotech/logstore-client');
+const LogStoreClient = require('@logsn/client');
 
-console.info(
-	"const LogStoreClient = require('@concertotech/logstore-client'):",
-	{ LogStoreClient }
-);
+console.info("const LogStoreClient = require('@logsn/client'):", {
+	LogStoreClient,
+});
 
 const auth = LogStoreClient.generateEthereumAccount();
 const client = new LogStoreClient({

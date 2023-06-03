@@ -1,4 +1,4 @@
-import { LogStoreClient, Stream } from '@concertotech/logstore-client';
+import { LogStoreClient, Stream } from '@logsn/client';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 
 const logger = new Logger(module);

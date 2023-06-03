@@ -1,7 +1,7 @@
 {
-	"name": "@concertotech/logstore-contracts",
+	"name": "@logsn/contracts",
 	"version": "0.0.1",
-	"description": "Concerto Log Store Solidity Contracts",
+	"description": "The Log Store Network Solidity Contracts",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",
 	"private": false,

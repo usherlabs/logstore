@@ -1,7 +1,7 @@
 {
-	"name": "@concertotech/logstore-protocol",
+	"name": "@logsn/protocol",
 	"version": "0.0.1",
-	"description": "Concerto Log Store Protocol",
+	"description": "The Log Store Network Protocol",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "SEE LICENSE IN ./LICENSE",

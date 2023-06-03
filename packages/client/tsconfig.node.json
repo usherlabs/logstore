@@ -15,5 +15,5 @@
 		"vendor/**/*",
 		"src/config.schema.json"
 	],
-	"exclude": ["src/exports-esm.mjs"],
+	"exclude": ["src/exports-esm.mjs"]
 }

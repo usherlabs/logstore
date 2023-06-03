@@ -1,5 +1,5 @@
-import { SystemMessageType } from '@concertotech/logstore-protocol';
 import { sha256 } from '@kyvejs/protocol';
+import { SystemMessageType } from '@logsn/protocol';
 
 import { Managers } from '../managers';
 import { IBrokerNode, IReport } from '../types';

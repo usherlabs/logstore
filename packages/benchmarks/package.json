@@ -1,5 +1,5 @@
 {
-	"name": "@concertotech/logstore-benchmarks",
+	"name": "@logsn/benchmarks",
 	"version": "0.0.1",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",
@@ -20,10 +20,10 @@
 		"logstore-validator": "./dist/bin/logstore-validator.js"
 	},
 	"dependencies": {
-		"@concertotech/logstore-client": "workspace:^",
-		"@concertotech/logstore-contracts": "workspace:^",
-		"@concertotech/logstore-protocol": "workspace:^",
-		"@concertotech/logstore-shared": "workspace:^",
+		"@logsn/client": "workspace:^",
+		"@logsn/contracts": "workspace:^",
+		"@logsn/protocol": "workspace:^",
+		"@logsn/shared": "workspace:^",
 		"@streamr/test-utils": "^8.1.0",
 		"@streamr/utils": "^8.1.0",
 		"ethers": "^5",

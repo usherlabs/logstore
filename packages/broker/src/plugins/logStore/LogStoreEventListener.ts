@@ -1,8 +1,4 @@
-import {
-	LogStoreAssignmentEvent,
-	LogStoreClient,
-	Stream,
-} from '@concertotech/logstore-client';
+import { LogStoreAssignmentEvent, LogStoreClient, Stream } from '@logsn/client';
 import { Logger } from '@streamr/utils';
 
 const logger = new Logger(module);
