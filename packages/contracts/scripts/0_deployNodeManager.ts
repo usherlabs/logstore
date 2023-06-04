@@ -1,5 +1,5 @@
 import { Wallet } from 'ethers';
-import hre from 'hardhat';
+import hre, { ethers } from 'hardhat';
 
 import {
 	getNodeManagerInputParameters,
@@ -14,6 +14,8 @@ function createPK(index: number, prefix: string) {
 	return '0x' + prefix + hexString.padStart(64 - prefix.length, '0');
 }
 
+let SAFE_ADDRESS: string = '';
+
 async function main() {
 	// --------------------------- deploy the dev DATA token contract --------------------------- //
 	let devTokenAddress = '';
@@ -24,6 +26,8 @@ async function main() {
 		devTokenAddress = devTokenDeployTx.address;
 
 		console.log(`DevToken deployed to ${devTokenAddress}`);
+	} else if (hre.network.config.chainId === 137) {
+		SAFE_ADDRESS = '0x468e80b73192998C565cFF53B1Dc02a12d5685c4';
 	}
 
 	// --------------------------- deploy the node manager contract --------------------------- //
@@ -103,6 +107,28 @@ async function main() {
 		reportBlockBuffer,
 	});
 	// --------------------------- deploy the query manager contract --------------------------- //
+
+	// --------------------------- deploy the LSAN token
+	const tokenManager = await hre.ethers.getContractFactory('LSAN');
+	const WHITELISTED_ADDRESSES = [
+		storeManagerAddress,
+		reportManagerAddress,
+		nodeManagerAddress,
+	];
+	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
+		WHITELISTED_ADDRESSES,
+		SAFE_ADDRESS,
+		nodeManagerAddress,
+	]);
+	await tokenManagerContract.deployed();
+
+	const tokenManagerAddress = tokenManagerContract.address;
+	console.log(`tokenManagerAddress deployed to ${tokenManagerAddress}`, {
+		WHITELISTED_ADDRESSES,
+		SAFE_ADDRESS,
+		nodeManagerAddress,
+	});
+	// --------------------------- deploy the LSAN token
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //
 	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
@@ -189,6 +215,19 @@ async function main() {
 			reportManagerAddress
 		);
 	await registerReportManagerTx.wait();
+	// ?add some initial values to enable price information
+	const INITIAL_MATIC_PER_BYTE = ethers.utils.parseEther('0.0000001');
+	const TOTAL_BYTES_STORED = 10;
+	const bytesMaticTx = await tokenManagerContract.functions.setMaticPerByte(
+		INITIAL_MATIC_PER_BYTE
+	);
+	await bytesMaticTx.wait();
+	const bytesStoredTx =
+		await tokenManagerContract.functions.setTotalBytesStored(
+			TOTAL_BYTES_STORED
+		);
+	await bytesStoredTx.wait();
+	// ?add some initial values to enable price information
 
 	const deployedContractAddresses = {
 		devTokenAddress,
@@ -196,6 +235,7 @@ async function main() {
 		storeManagerAddress,
 		queryManagerAddress,
 		reportManagerAddress,
+		tokenManagerAddress,
 	};
 	// write the file to json
 	await writeJSONToFileOutside(deployedContractAddresses, 'address.json');

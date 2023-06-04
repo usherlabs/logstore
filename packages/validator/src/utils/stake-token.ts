@@ -1,25 +1,26 @@
-import { ethers } from 'ethers';
-import redstone from 'redstone-api';
+import { LSAN__factory } from '@concertotech/logstore-contracts';
+import { getTokenPrice } from '@concertotech/logstore-shared';
+import { Contract, ethers, Signer } from 'ethers';
 
 export class StakeToken {
 	public price: number;
-
+	public tokenContract: Contract;
 	constructor(
 		public address: string,
 		public symbol: string,
 		public decimals: number,
-		public minRequirement: number
+		public minRequirement: number,
+		public signer: Signer
 	) {}
 
 	public async init() {
+		this.tokenContract = LSAN__factory.connect(this.address, this.signer);
 		this.price = await this.getPrice();
 	}
 
 	public async getPrice() {
-		const resp = await redstone.getPrice(this.symbol, {
-			verifySignature: true,
-		});
-		return resp.value;
+		const tokenPrice = getTokenPrice(this.address, this.signer);
+		return tokenPrice;
 	}
 
 	public fromUSD(usdValue: number) {

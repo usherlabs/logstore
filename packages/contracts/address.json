@@ -3,25 +3,29 @@
 		"nodeManagerAddress": "0xB2501Ff9B1e4abac3Ae18a29ECcc24AAA600a695",
 		"storeManagerAddress": "0x044f7Ad23BE4f1d402a67078fF9012Db8b8706a6",
 		"queryManagerAddress": "0x5cA22cB7aC8AcCB8633b480b1b56c0d8E915C939",
-		"reportManagerAddress": "0x4cB44cc060256F98D2b3E62c5EE2C31256F4c6A4"
+		"reportManagerAddress": "0x4cB44cc060256F98D2b3E62c5EE2C31256F4c6A4",
+		"tokenManagerAddress": "0xdb41c030baf8C73FbDb8d1b5FC24953461fa5EAf"
 	},
 	"137": {
 		"nodeManagerAddress": "0x0000000000000000000000000000000000000000",
 		"storeManagerAddress": "0x0000000000000000000000000000000000000000",
 		"queryManagerAddress": "0x0000000000000000000000000000000000000000",
-		"reportManagerAddress": "0x0000000000000000000000000000000000000000"
+		"reportManagerAddress": "0x0000000000000000000000000000000000000000",
+		"tokenManagerAddress": "0xdb41c030baf8C73FbDb8d1b5FC24953461fa5EAf"
 	},
 	"8997": {
 		"devTokenAddress": "0xb41ec514687C1bb5DB802417F48c1B3355Fbe30d",
 		"nodeManagerAddress": "0x55B183b2936B57CB7aF86ae0707373fA1AEc7328",
 		"storeManagerAddress": "0x73A4bB647CdD4b45717A255960B865d6Ad5b8c38",
 		"queryManagerAddress": "0x813cb73aaEcBE7df1879B454fDa23Ef3d979D22a",
-		"reportManagerAddress": "0xd04B3Fe70bB81f3890Ce2019100dDf9c461619A2"
+		"reportManagerAddress": "0xd04B3Fe70bB81f3890Ce2019100dDf9c461619A2",
+		"tokenManagerAddress": "0xdb41c030baf8C73FbDb8d1b5FC24953461fa5EAf"
 	},
 	"80001": {
 		"nodeManagerAddress": "0x98df193804F3fE221E419D93641B4Edb605F9de2",
 		"storeManagerAddress": "0x6572DD45b56F72D4dEB4AAbbEcDEe00Dd9BACab3",
 		"queryManagerAddress": "0x4E6380393223F68a0B0bd6dbc7e308F5ea38F3bf",
-		"reportManagerAddress": "0x30E7820a6BAB5C6F831372530BBf7219cCfe446B"
+		"reportManagerAddress": "0x30E7820a6BAB5C6F831372530BBf7219cCfe446B",
+		"tokenManagerAddress": "0xdb41c030baf8C73FbDb8d1b5FC24953461fa5EAf"
 	}
 }
