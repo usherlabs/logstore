@@ -5,7 +5,7 @@ import { ethers as hEthers, network, upgrades } from 'hardhat';
 const FAKE_NODE_MANAGER_CONTRACT = '0x325050796C56742c85D3E892e70EE7e4129Fb312';
 const SAFE_ADDRESS = '0x325050796C56742c85D3E892e70EE7e4129Fb312';
 const INITIAL_WHITELIST = [
-	'0x325050796C56742c85D3E892e70EE7e4129Fb312',
+	FAKE_NODE_MANAGER_CONTRACT,
 	'0x02b24AC2239b344FbC4577801f7000901E7a3944',
 ];
 
@@ -23,12 +23,11 @@ describe('LSAN Token', function () {
 			adminSigner
 		);
 		adminAddress = await adminSigner.getAddress();
-		lsan = await upgrades.deployProxy(tokenContractFactory, [
-			INITIAL_WHITELIST,
-			SAFE_ADDRESS,
-			FAKE_NODE_MANAGER_CONTRACT,
-		]);
 		allAccounts = await Promise.all(allSigners.map((a) => a.getAddress()));
+		lsan = await upgrades.deployProxy(tokenContractFactory, [
+			SAFE_ADDRESS,
+			[...INITIAL_WHITELIST, allAccounts[1], allAccounts[2]],
+		]);
 
 		// Wait for n blocks to be mined
 		const nBlocks = 20; // Number of blocks to wait
@@ -48,9 +47,6 @@ describe('LSAN Token', function () {
 			expect(await lsan.totalBytesStored()).to.equal(hEthers.BigNumber.from(0));
 			expect(await lsan.multiplier()).to.equal(hEthers.BigNumber.from(1));
 			expect(await lsan.minimumDeposit()).to.equal(hEthers.BigNumber.from(0));
-			expect(await lsan.nodeManagerAddress()).to.equal(
-				FAKE_NODE_MANAGER_CONTRACT
-			);
 			expect(await lsan.balance()).to.equal(hEthers.BigNumber.from(0));
 		});
 	});
@@ -122,26 +118,24 @@ describe('LSAN Token', function () {
 			// await lsan.whitelistTransferTo(allAccounts[1]);
 
 			const amountToMint = ethers.utils.parseEther('10');
-			await lsan.mintTokens(allAccounts[1], amountToMint);
+			await lsan.mintTokens(allAccounts[3], amountToMint);
 
 			await expect(
 				lsan
-					.connect(allSigners[1])
-					.transfer(FAKE_NODE_MANAGER_CONTRACT, ethers.utils.parseEther('5'))
-			).to.be.revertedWith(
-				'User is not whitelisted to transfer to the address'
-			);
+					.connect(allSigners[3])
+					.transfer(allAccounts[1], ethers.utils.parseEther('5'))
+			).to.be.revertedWith('User is not whitelisted to transfer tokens');
 
 			const balance1 = await lsan.balanceOf(allAccounts[1]);
 			const balance2 = await lsan.balanceOf(allAccounts[3]);
 
-			expect(balance1).to.equal(amountToMint);
-			expect(balance2).to.equal(ethers.BigNumber.from(0));
+			expect(balance1).to.equal(ethers.BigNumber.from(0));
+			expect(balance2).to.equal(amountToMint);
 		});
 
 		it('should allow transfers only from whitelisted senders', async function () {
 			const transferAmount = ethers.utils.parseEther('5');
-			await lsan.whitelistTransferTo(allAccounts[1]);
+			// await lsan.whitelistTransferTo(allAccounts[1]);
 
 			const amountToMint = ethers.utils.parseEther('10');
 			await lsan.mintTokens(allAccounts[1], amountToMint);
@@ -160,19 +154,17 @@ describe('LSAN Token', function () {
 		it('should not allow transferFrom only unwhitelisted recipients', async function () {
 			const amountToMint = ethers.utils.parseEther('10');
 			await lsan.mintTokens(allAccounts[1], amountToMint);
-			await lsan.approve(allAccounts[3], amountToMint);
+			await lsan.approve(allAccounts[4], amountToMint);
 
 			await expect(
 				lsan
-					.connect(allSigners[3])
+					.connect(allSigners[4])
 					.transferFrom(
-						allAccounts[3],
+						allAccounts[4],
 						FAKE_NODE_MANAGER_CONTRACT,
 						amountToMint
 					)
-			).to.be.revertedWith(
-				'User is not whitelisted to transfer to the address'
-			);
+			).to.be.revertedWith('User is not whitelisted to transfer tokens');
 
 			const balance1 = await lsan.balanceOf(allAccounts[1]);
 			const balance2 = await lsan.balanceOf(allAccounts[3]);
@@ -182,7 +174,7 @@ describe('LSAN Token', function () {
 		});
 
 		it('should allow transferFrom only whitelisted recipients', async function () {
-			await lsan.whitelistTransferTo(allAccounts[3]);
+			await lsan.whitelistTransferFrom(adminAddress);
 
 			const amountToMint = ethers.utils.parseEther('10');
 			await lsan.mintTokens(adminAddress, amountToMint);
@@ -201,17 +193,19 @@ describe('LSAN Token', function () {
 
 	describe('Whitelisting', function () {
 		it('should whitelist senders correctly', async function () {
-			await lsan.whitelistTransferTo(allAccounts[1]);
+			await lsan.whitelistTransferTo(allAccounts[5]);
 
 			expect(await lsan.transferToWhitelist(allAccounts[1])).to.be.true;
-			expect(await lsan.transferToWhitelist(allAccounts[2])).to.be.false;
+			expect(await lsan.transferToWhitelist(allAccounts[5])).to.be.true;
+			expect(await lsan.transferToWhitelist(allAccounts[7])).to.be.false;
 		});
 
 		it('should whitelist recipients correctly', async function () {
-			await lsan.whitelistTransferFrom(allAccounts[3]);
+			await lsan.whitelistTransferFrom(allAccounts[6]);
 
-			expect(await lsan.transferFromWhitelist(allAccounts[3])).to.be.true;
-			expect(await lsan.transferFromWhitelist(allAccounts[4])).to.be.false;
+			expect(await lsan.transferFromWhitelist(allAccounts[1])).to.be.true;
+			expect(await lsan.transferFromWhitelist(allAccounts[6])).to.be.true;
+			expect(await lsan.transferFromWhitelist(allAccounts[7])).to.be.false;
 		});
 	});
 

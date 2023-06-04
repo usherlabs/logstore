@@ -14,7 +14,8 @@ function createPK(index: number, prefix: string) {
 	return '0x' + prefix + hexString.padStart(64 - prefix.length, '0');
 }
 
-let SAFE_ADDRESS: string = '';
+const SAFE_ADDRESS: string =
+	'0x468e80b73192998C565cFF53B1Dc02a12d5685c4' as const; // for MATIC Only
 const forceLSANToken = process.env.FORCE_LSAN_TOKEN === 'true';
 
 async function main() {
@@ -32,20 +33,17 @@ async function main() {
 		console.log(`DevToken deployed to ${devTokenAddress}`);
 	}
 
-	if (hre.network.config.chainId === 137) {
-		SAFE_ADDRESS = '0x468e80b73192998C565cFF53B1Dc02a12d5685c4';
-	}
-
 	// --------------------------- deploy the LSAN token
+	const safeAddress = hre.network.config.chainId === 137 ? SAFE_ADDRESS : '';
 	const tokenManager = await hre.ethers.getContractFactory('LSAN');
 	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
-		SAFE_ADDRESS,
+		safeAddress,
 		[],
 	]);
 	await tokenManagerContract.deployed();
 	const tokenManagerAddress = tokenManagerContract.address;
 	console.log(`tokenManagerAddress deployed to ${tokenManagerAddress}`, {
-		SAFE_ADDRESS,
+		safeAddress,
 	});
 	// --------------------------- deploy the LSAN token
 

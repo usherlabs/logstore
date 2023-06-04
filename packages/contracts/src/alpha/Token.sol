@@ -25,18 +25,18 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         _;
     }
 
-    modifier onlyWhitelistedTo(address destinationAddress) {
+    modifier onlyWhitelistedTo(address _to) {
         require(
-            transferToWhitelist[destinationAddress],
-            "User is not whitelisted to transfer to the address"
+            transferToWhitelist[_to],
+            "User is not whitelisted to receive tokens"
         );
         _;
     }
 
-    modifier onlyWhitelistedFrom(address destinationAddress) {
+    modifier onlyWhitelistedFrom(address _from) {
         require(
-            transferFromWhitelist[destinationAddress],
-            "User is not whitelisted to transferFrom this address"
+            transferFromWhitelist[_from],
+            "User is not whitelisted to transfer tokens"
         );
         _;
     }
@@ -174,7 +174,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 
     // ---------- Safe functions
     function destroy() public onlySafe {
-        selfdestruct(SAFE_ADDRESS);
+        // selfdestruct(SAFE_ADDRESS);
     }
 
     // ---------- Safe functions
@@ -196,17 +196,15 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 
         uint mintAmount = msg.value / lsanPrice;
 
-        _mint(msg.sender, mintAmount);
+        _mint(_msgSender(), mintAmount);
     }
 
     // ---------- Public methods
 
     // ---------- Override methods
-    function transfer(address _to, uint256 _amount) public override onlyWhitelistedTo(_to) returns (bool) {
-        // and the recipient has been whitelisted
-        address owner = msg.sender;
+    function transfer(address _to, uint256 _amount) public override onlyWhitelistedFrom(_msgSender()) onlyWhitelistedTo(_to) returns (bool) {
+        address owner = _msgSender();
         _transfer(owner, _to, _amount);
-
         return true;
     }
 
@@ -215,7 +213,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         address _to,
         uint256 amount
     ) public override onlyWhitelistedFrom(_from) onlyWhitelistedTo(_to) returns (bool) {
-        address spender = msg.sender;
+        address spender = _msgSender();
         _spendAllowance(_from, spender, amount);
         _transfer(_from, _to, amount);
         return true;
