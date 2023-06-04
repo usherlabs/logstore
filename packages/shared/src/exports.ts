@@ -11,4 +11,7 @@ export {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from './prepareStake';
+export {
+	getTokenPrice
+} from './getTokenPrice';
 export { convertFromUsd } from './convertFromUsd';

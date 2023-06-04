@@ -1,6 +1,8 @@
 import {
+	convertFromUsd,
 	getQueryManagerContract,
 	getStoreManagerContract,
+	getTokenManagercontract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@concertotech/logstore-shared';
@@ -52,6 +54,54 @@ program
 		console.log(`Platform: ${os.platform()}`);
 		console.log(`Arch: ${os.arch()}`);
 	});
+
+program
+	.command('mint')
+	.description('Manage minting tokens for the Log Store Network')
+	.addCommand(
+		new Command()
+			.name('lsan')
+			.description('Mint LSAN tokens for the Log Store Network.')
+			.argument(
+				'<amount>',
+				'Amount in Wei to stake into the Query Manager Contract. Ensure funds are available for queries to the Log Store Network.'
+			)
+			.option(
+				'-u, --usd',
+				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
+			)
+			.action(async (amt: string, cmdOptions: { usd: boolean }) => {
+				const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
+				logger.debug('Command Params: ', { amount, ...options, ...cmdOptions });
+
+				try {
+					const provider = new ethers.providers.JsonRpcProvider(options.host);
+					const signer = new ethers.Wallet(options.wallet, provider);
+
+					const tokenManagerContract = await getTokenManagercontract(signer);
+
+					let amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
+
+					if (cmdOptions.usd) {
+						amount = await convertFromUsd(
+							tokenManagerContract.address,
+							Number(amount),
+							signer
+						);
+					}
+					const receipt = await (
+						await tokenManagerContract.mint({ value: BigInt(amount) })
+					).wait();
+
+					console.log(
+						`Successfully minted tokens to network:Tx ${receipt.transactionHash}, Amount:Tx ${amount}`
+					);
+				} catch (e) {
+					logger.info(chalk.red('mint failed'));
+					logger.error(e);
+				}
+			})
+	);
 
 program
 	.command('query')

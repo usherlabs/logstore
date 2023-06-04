@@ -7,7 +7,6 @@ import {
 	initCommand,
 	joinCommand,
 	leaveCommand,
-	mintAlphaNetToken,
 	stakeCommand,
 	startCommand,
 	testCommand,
@@ -28,5 +27,4 @@ program
 	.addCommand(delegateCommand)
 	.addCommand(undelegateCommand)
 	.addCommand(withdrawCommand)
-	.addCommand(mintAlphaNetToken)
 	.parse(process.argv);

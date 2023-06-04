@@ -3,6 +3,8 @@ import { ethers, Signer } from 'ethers';
 import redstone from 'redstone-api';
 import { Logger } from 'tslog';
 
+import { getTokenPrice } from './getTokenPrice';
+
 const logger = new Logger();
 
 export const convertFromUsd = async (
@@ -19,8 +21,7 @@ export const convertFromUsd = async (
 
 	let price = 0.01;
 	try {
-		const rsResp = await redstone.getPrice(stakeTokenSymbol);
-		price = rsResp.value;
+		price = await getTokenPrice(stakeTokenAddress, signer);
 	} catch (e) {
 		logger.warn(`Cannot get price of ${stakeTokenSymbol} from RedStone`);
 	}
