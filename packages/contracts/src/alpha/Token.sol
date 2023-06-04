@@ -15,7 +15,6 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
     uint256 public totalBytesStored;
     uint256 public multiplier;
     uint256 public minimumDeposit;
-    address public nodeManagerAddress;
     address payable public SAFE_ADDRESS;
     uint256 public DEPLOYED_TIME;
     mapping(address => bool) public transferToWhitelist;
@@ -28,7 +27,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 
     modifier onlyWhitelistedTo(address destinationAddress) {
         require(
-            destinationAddress != nodeManagerAddress || transferToWhitelist[msg.sender],
+            transferToWhitelist[destinationAddress],
             "User is not whitelisted to transfer to the address"
         );
         _;
@@ -36,7 +35,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 
     modifier onlyWhitelistedFrom(address destinationAddress) {
         require(
-            destinationAddress != nodeManagerAddress || transferFromWhitelist[msg.sender],
+            transferFromWhitelist[destinationAddress],
             "User is not whitelisted to transferFrom this address"
         );
         _;
@@ -46,9 +45,8 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
     function initialize(
-        address[] memory initialWhitelist,
         address _safeAddress,
-        address _nodeManagerAddress
+        address[] memory initialWhitelist
     ) public initializer {
         __Ownable_init();
         __ERC20_init("Log Store Alpha Network Token", "LSAN");
@@ -64,7 +62,6 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 
         SAFE_ADDRESS = payable(_safeAddress);
         DEPLOYED_TIME = block.timestamp;
-        nodeManagerAddress = _nodeManagerAddress;
         multiplier = 1;
         minimumDeposit = 0;
     }
@@ -104,6 +101,54 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         transferFromWhitelist[account] = false;
     }
 
+		/**
+		 * Mass add or remove addresses from whitelists
+		 *
+		 * @param accounts - list of addresses to conduct whitelist with
+		 * @param option -
+		 * 	1 = add all both whitelists
+		 * 	2 = remove all from whitelists
+		 * 	3 = add all to transferTo whitelist
+		 * 	4 = add all to transferFrom whitelist
+		 * 	5 = remove all from transferTo whitelist
+		 * 	6 = remove all from transferFrom whitelist
+		 */
+		function massWhitelistUpdate(address[] calldata accounts, uint256 option) public onlyOwner {
+			require(option >= 1 && option <= 6, "Invalid option");
+			if(option == 1){
+				for(uint256 i = 0; i < accounts.length; i ++){
+					whitelistTransferTo(accounts[i]);
+					whitelistTransferFrom(accounts[i]);
+				}
+			}
+			if(option == 2){
+				for(uint256 i = 0; i < accounts.length; i ++){
+					unWhitelistTransferTo(accounts[i]);
+					unWhitelistTransferFrom(accounts[i]);
+				}
+			}
+			if(option == 3){
+				for(uint256 i = 0; i < accounts.length; i ++){
+					whitelistTransferTo(accounts[i]);
+				}
+			}
+			if(option == 4){
+				for(uint256 i = 0; i < accounts.length; i ++){
+					whitelistTransferFrom(accounts[i]);
+				}
+			}
+			if(option == 5){
+				for(uint256 i = 0; i < accounts.length; i ++){
+					unWhitelistTransferTo(accounts[i]);
+				}
+			}
+			if(option == 6){
+				for(uint256 i = 0; i < accounts.length; i ++){
+					unWhitelistTransferFrom(accounts[i]);
+				}
+			}
+		}
+
     function withdraw(uint256 amount) public onlyOwner {
         require(address(this).balance >= amount, "Insufficient contract balance");
         SAFE_ADDRESS.transfer(amount);
@@ -121,10 +166,6 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         multiplier = _multiplier;
     }
 
-    function setNodeManagerAddress(address _nodeManagerAddress) public onlyOwner {
-        nodeManagerAddress = _nodeManagerAddress;
-    }
-
     function setMinimumDeposit(uint _minimumDeposit) public onlyOwner {
         minimumDeposit = _minimumDeposit;
     }
@@ -133,8 +174,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 
     // ---------- Safe functions
     function destroy() public onlySafe {
-        // ? self desctruct is getting deprecated so find alternative
-        // selfdestruct(SAFE_ADDRESS);
+        selfdestruct(SAFE_ADDRESS);
     }
 
     // ---------- Safe functions

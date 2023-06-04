@@ -15,24 +15,50 @@ function createPK(index: number, prefix: string) {
 }
 
 let SAFE_ADDRESS: string = '';
+const forceLSANToken = process.env.FORCE_LSAN_TOKEN === 'true';
 
 async function main() {
 	// --------------------------- deploy the dev DATA token contract --------------------------- //
+	const isDevOrLocalNetwork = [5, 8997].includes(
+		hre.network.config.chainId || 0
+	);
 	let devTokenAddress = '';
-	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
+	if (isDevOrLocalNetwork) {
 		const devTokenArtifact = await hre.ethers.getContractFactory('DevToken');
 		const devTokenDeployTx = await devTokenArtifact.deploy();
 		await devTokenDeployTx.deployed();
 		devTokenAddress = devTokenDeployTx.address;
 
 		console.log(`DevToken deployed to ${devTokenAddress}`);
-	} else if (hre.network.config.chainId === 137) {
+	}
+
+	if (hre.network.config.chainId === 137) {
 		SAFE_ADDRESS = '0x468e80b73192998C565cFF53B1Dc02a12d5685c4';
 	}
 
+	// --------------------------- deploy the LSAN token
+	const tokenManager = await hre.ethers.getContractFactory('LSAN');
+	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
+		SAFE_ADDRESS,
+		[],
+	]);
+	await tokenManagerContract.deployed();
+	const tokenManagerAddress = tokenManagerContract.address;
+	console.log(`tokenManagerAddress deployed to ${tokenManagerAddress}`, {
+		SAFE_ADDRESS,
+	});
+	// --------------------------- deploy the LSAN token
+
 	// --------------------------- deploy the node manager contract --------------------------- //
+	let stakeTokenAddress = devTokenAddress;
+	if (forceLSANToken || !isDevOrLocalNetwork) {
+		console.log('Using LSAN TOKEN token as Stake Token...');
+		stakeTokenAddress = tokenManagerAddress;
+	} else {
+		console.log('Using DEV TOKEN token as Stake Token...');
+	}
 	const nodeManagerContractParams = await getNodeManagerInputParameters(
-		devTokenAddress
+		stakeTokenAddress
 	);
 	const nodeManagerArtifact = await hre.ethers.getContractFactory(
 		'LogStoreNodeManager'
@@ -107,28 +133,6 @@ async function main() {
 		reportBlockBuffer,
 	});
 	// --------------------------- deploy the query manager contract --------------------------- //
-
-	// --------------------------- deploy the LSAN token
-	const tokenManager = await hre.ethers.getContractFactory('LSAN');
-	const WHITELISTED_ADDRESSES = [
-		storeManagerAddress,
-		reportManagerAddress,
-		nodeManagerAddress,
-	];
-	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
-		WHITELISTED_ADDRESSES,
-		SAFE_ADDRESS,
-		nodeManagerAddress,
-	]);
-	await tokenManagerContract.deployed();
-
-	const tokenManagerAddress = tokenManagerContract.address;
-	console.log(`tokenManagerAddress deployed to ${tokenManagerAddress}`, {
-		WHITELISTED_ADDRESSES,
-		SAFE_ADDRESS,
-		nodeManagerAddress,
-	});
-	// --------------------------- deploy the LSAN token
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //
 	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
@@ -215,7 +219,8 @@ async function main() {
 			reportManagerAddress
 		);
 	await registerReportManagerTx.wait();
-	// ?add some initial values to enable price information
+
+	// adjust initial values within AlphaNet TokenManager
 	const INITIAL_MATIC_PER_BYTE = ethers.utils.parseEther('0.0000001');
 	const TOTAL_BYTES_STORED = 10;
 	const bytesMaticTx = await tokenManagerContract.functions.setMaticPerByte(
@@ -227,7 +232,19 @@ async function main() {
 			TOTAL_BYTES_STORED
 		);
 	await bytesStoredTx.wait();
-	// ?add some initial values to enable price information
+	const WHITELISTED_ADDRESSES = [
+		storeManagerAddress,
+		reportManagerAddress,
+		nodeManagerAddress,
+	];
+	const whitelistTx = await tokenManagerContract.functions.massWhitelistUpdate(
+		WHITELISTED_ADDRESSES,
+		1
+	);
+	await whitelistTx.wait();
+	console.log(`tokenManagerAddress updated to whitelist addresses`, {
+		tx: whitelistTx.id,
+	});
 
 	const deployedContractAddresses = {
 		devTokenAddress,
