@@ -4,12 +4,12 @@ import {
 	NodeMetadata,
 	Stream,
 	StreamPermission,
-} from '@concertotech/logstore-client';
+} from '@logsn/client';
 import {
 	LogStoreManager,
 	LogStoreNodeManager,
 	LogStoreQueryManager,
-} from '@concertotech/logstore-contracts';
+} from '@logsn/contracts';
 import {
 	getNodeManagerContract,
 	getQueryManagerContract,
@@ -17,7 +17,7 @@ import {
 	prepareStakeForNodeManager,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
-} from '@concertotech/logstore-shared';
+} from '@logsn/shared';
 import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { waitForCondition } from '@streamr/utils';

@@ -1,10 +1,10 @@
 // check esm works, as native and via webpack + babel. Also see typescript.ts
-import DefaultExport, * as NamedExports from '@concertotech/logstore-client';
+import DefaultExport, * as NamedExports from '@logsn/client';
 
-console.info(
-	"import DefaultExport, * as NamedExports from '@concertotech/logstore-client':",
-	{ DefaultExport, NamedExports }
-);
+console.info("import DefaultExport, * as NamedExports from '@logsn/client':", {
+	DefaultExport,
+	NamedExports,
+});
 
 const LogStoreClient = DefaultExport;
 

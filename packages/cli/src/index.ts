@@ -5,7 +5,7 @@ import {
 	getTokenManagercontract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
-} from '@concertotech/logstore-shared';
+} from '@logsn/shared';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import { ethers } from 'ethers';

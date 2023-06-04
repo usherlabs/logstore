@@ -4,7 +4,7 @@ import {
 	Stream,
 	StreamDefinition,
 	StreamrClient,
-} from '@concertotech/streamr-client';
+} from '@streamr-client';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import { container as rootContainer } from 'tsyringe';
@@ -37,7 +37,7 @@ export class LogStoreClient extends StreamrClient {
 		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
 
-		super(streamrClientConfig, container);
+		super(streamrClientConfig, parentContainer);
 
 		const strictConfig = createStrictConfig(config);
 		redactConfig(strictConfig);

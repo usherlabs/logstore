@@ -11,6 +11,7 @@ const { merge } = require('webpack-merge');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const { GitRevisionPlugin } = require('git-revision-webpack-plugin');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 const pkg = require('./package.json');
 
@@ -22,9 +23,9 @@ module.exports = (_, argv) => {
 	const analyze = !!process.env.BUNDLE_ANALYSIS;
 
 	const commonConfig = {
-		cache: {
-			type: 'filesystem',
-		},
+		// cache: {
+		// 	type: 'filesystem',
+		// },
 		name: 'logstore-client',
 		mode: isProduction ? 'production' : 'development',
 		entry: {
@@ -71,6 +72,7 @@ module.exports = (_, argv) => {
 				GIT_COMMITHASH: gitRevisionPlugin.commithash(),
 				GIT_BRANCH: gitRevisionPlugin.branch(),
 			}),
+			new Dotenv(),
 		],
 		performance: {
 			hints: 'warning',
@@ -87,16 +89,55 @@ module.exports = (_, argv) => {
 		},
 		resolve: {
 			alias: {
+				'@streamr-client': require.resolve(
+					'./modules/streamr/client/src/exports-browser.ts'
+				),
 				stream: 'readable-stream',
 				util: 'util',
-				http: path.resolve('./src/shim/http-https.ts'),
+				http: require.resolve(
+					'./modules/streamr/client/src/shim/http-https.ts'
+				),
 				'@ethersproject/wordlists': require.resolve(
 					'@ethersproject/wordlists/lib/browser-wordlists.js'
 				),
-				https: path.resolve('./src/shim/http-https.ts'),
+				https: require.resolve(
+					'./modules/streamr/client/src/shim/http-https.ts'
+				),
 				crypto: require.resolve('crypto-browserify'),
 				buffer: require.resolve('buffer/'),
-				'node-fetch': path.resolve('./src/shim/node-fetch.ts'),
+				'node-fetch': require.resolve(
+					'./modules/streamr/client/src/shim/node-fetch.ts'
+				),
+				'@streamr/protocol': path.resolve(
+					'./modules/streamr/protocol/src/exports.ts'
+				),
+				'@streamr/network-node': path.resolve(
+					'./modules/streamr/network-node/src/exports-browser.ts'
+				),
+				[path.join(
+					__dirname,
+					'./modules/streamr/network-node/src/connection/webrtc/NodeWebRtcConnection.ts$'
+				)]: path.resolve(
+					'./modules/streamr/network-node/src/connection/webrtc/BrowserWebRtcConnection.ts'
+				),
+				[path.join(
+					__dirname,
+					'./modules/streamr/network-node/src/connection/ws/NodeClientWsEndpoint.ts$'
+				)]: path.resolve(
+					'./modules/streamr/network-node/src/connection/ws/BrowserClientWsEndpoint.ts'
+				),
+				[path.join(
+					__dirname,
+					'./modules/streamr/network-node/src/connection/ws/NodeClientWsConnection.ts$'
+				)]: path.resolve(
+					'./modules/streamr/network-node/src/connection/ws/BrowserClientWsConnection.ts'
+				),
+				// swap out ServerPersistence for BrowserPersistence
+				[path.resolve(
+					'./modules/streamr/client/src/utils/persistence/ServerPersistence.ts'
+				)]: path.resolve(
+					'./modules/streamr/client/src/utils/persistence/BrowserPersistence.ts'
+				),
 			},
 			fallback: {
 				module: false,
@@ -115,12 +156,12 @@ module.exports = (_, argv) => {
 			new LodashWebpackPlugin(),
 			...(analyze
 				? [
-					new BundleAnalyzerPlugin({
-						analyzerMode: 'static',
-						openAnalyzer: false,
-						generateStatsFile: true,
-					}),
-				]
+						new BundleAnalyzerPlugin({
+							analyzerMode: 'static',
+							openAnalyzer: false,
+							generateStatsFile: true,
+						}),
+				  ]
 				: []),
 		],
 	});

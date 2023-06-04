@@ -1,4 +1,4 @@
-import { ERC20__factory } from '@concertotech/logstore-contracts';
+import { ERC20__factory } from '@logsn/contracts';
 import { ethers, Signer } from 'ethers';
 import redstone from 'redstone-api';
 import { Logger } from 'tslog';

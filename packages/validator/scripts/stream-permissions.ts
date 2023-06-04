@@ -1,4 +1,4 @@
-import LogStoreClient, { CONFIG_TEST } from '@concertotech/logstore-client';
+import LogStoreClient, { CONFIG_TEST } from '@logsn/client';
 import 'dotenv/config';
 
 const BROKER_NODE_PRIVATE_KEY =

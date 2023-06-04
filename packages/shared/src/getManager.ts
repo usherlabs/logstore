@@ -8,9 +8,9 @@ import {
 	LogStoreReportManager,
 	LogStoreReportManager__factory,
 	LSAN,
-	LSAN__factory,
-} from '@concertotech/logstore-contracts';
-import ContractAddresses from '@concertotech/logstore-contracts/address.json';
+  LSAN__factory
+} from '@logsn/contracts';
+import ContractAddresses from '@logsn/contracts/address.json';
 import { providers, Signer, Wallet } from 'ethers';
 
 import { Manager, Network } from './types';

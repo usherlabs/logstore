@@ -1,5 +1,5 @@
 /**
- * Concerto Log Store Contracts Hardhat!
+ * The Log Store Network Contracts Hardhat!
  */
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomiclabs/hardhat-ethers';

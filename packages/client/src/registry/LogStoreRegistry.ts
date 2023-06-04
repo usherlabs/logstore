@@ -1,10 +1,12 @@
-import type { LogStoreManager as LogStoreManagerContract } from '@concertotech/logstore-contracts';
-import { abi as LogStoreManagerAbi } from '@concertotech/logstore-contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
+import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
+import { Provider } from '@ethersproject/providers';
+import type { LogStoreManager as LogStoreManagerContract } from '@logsn/contracts';
+import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import {
 	getQueryManagerContract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
-} from '@concertotech/logstore-shared';
+} from '@logsn/shared';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
@@ -15,9 +17,7 @@ import {
 	Stream,
 	StreamIDBuilder,
 	waitForTx,
-} from '@concertotech/streamr-client';
-import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
-import { Provider } from '@ethersproject/providers';
+} from '@streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { min } from 'lodash';

@@ -1,13 +1,10 @@
 /**
  * Endpoints for RESTful data requests
  */
-import { LogStoreClient, Stream } from '@concertotech/logstore-client';
-import { LogStoreNodeManager } from '@concertotech/logstore-contracts';
-import { QueryRequest, QueryType } from '@concertotech/logstore-protocol';
-import {
-	getNodeManagerContract,
-	getQueryManagerContract,
-} from '@concertotech/logstore-shared';
+import { LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreNodeManager } from '@logsn/contracts';
+import { QueryRequest, QueryType } from '@logsn/protocol';
+import { getNodeManagerContract, getQueryManagerContract } from '@logsn/shared';
 import { StreamMessage } from '@streamr/protocol';
 import {
 	Logger,

@@ -1,6 +1,6 @@
-import { MessageMetadata } from '@concertotech/logstore-client';
-import type { QueryOptions } from '@concertotech/logstore-protocol';
 import type { IRuntime } from '@kyvejs/protocol';
+import { MessageMetadata } from '@logsn/client';
+import type { QueryOptions } from '@logsn/protocol';
 
 import type Listener from '../listener';
 import type Validator from '../validator';
