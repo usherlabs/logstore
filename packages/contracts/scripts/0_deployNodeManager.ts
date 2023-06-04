@@ -26,6 +26,9 @@ async function main() {
 		devTokenAddress = devTokenDeployTx.address;
 
 		console.log(`DevToken deployed to ${devTokenAddress}`);
+		// TODO: If SAFE_ADDRESS is empty then deploy the LSAN token to the DevNetwork fails.
+		//			 As a workaround SAFE_ADDRESS set to the same address as for ChainId 137.
+		SAFE_ADDRESS = '0x468e80b73192998C565cFF53B1Dc02a12d5685c4';
 	} else if (hre.network.config.chainId === 137) {
 		SAFE_ADDRESS = '0x468e80b73192998C565cFF53B1Dc02a12d5685c4';
 	}
