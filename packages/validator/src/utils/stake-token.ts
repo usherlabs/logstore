@@ -1,5 +1,5 @@
-import { LSAN__factory } from '@concertotech/logstore-contracts';
-import { getTokenPrice } from '@concertotech/logstore-shared';
+import { LSAN__factory } from '@logsn/contracts';
+import { getTokenPrice } from '@logsn/shared';
 import { Contract, ethers, Signer } from 'ethers';
 
 export class StakeToken {

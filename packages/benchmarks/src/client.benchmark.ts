@@ -1,17 +1,17 @@
 // import LogStoreClient, {
 // 	Stream,
 // 	StreamPermission,
-// } from '@concertotech/logstore-client';
+// } from '@logsn/client';
 // import {
 // 	LogStoreManager,
 // 	LogStoreQueryManager,
-// } from '@concertotech/logstore-contracts';
+// } from '@logsn/contracts';
 // import {
 // 	getQueryManagerContract,
 // 	getStoreManagerContract,
 // 	prepareStakeForQueryManager,
 // 	prepareStakeForStoreManager,
-// } from '@concertotech/logstore-shared';
+// } from '@logsn/shared';
 // import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 // import { wait, waitForCondition } from '@streamr/utils';
 // import { providers, Wallet } from 'ethers';

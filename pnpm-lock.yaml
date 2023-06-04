@@ -785,7 +785,7 @@ importers:
         version: 3.4.0
       solhint-plugin-prettier:
         specifier: ^0.0.5
-        version: 0.0.5(prettier-plugin-solidity@1.1.3)(prettier@2.6.2)
+        version: 0.0.5(prettier-plugin-solidity@1.1.3)(prettier@2.8.8)
       solidity-coverage:
         specifier: ^0.8.2
         version: 0.8.2(hardhat@2.12.6)
@@ -849,6 +849,9 @@ importers:
 
   packages/shared:
     dependencies:
+      '@ethersproject/providers':
+        specifier: ^5
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@logsn/contracts':
         specifier: workspace:^
         version: link:../contracts
@@ -906,7 +909,7 @@ importers:
     dependencies:
       '@graphprotocol/graph-cli':
         specifier: ^0.46.1
-        version: 0.46.1(@types/node@18.15.10)(node-fetch@2.6.6)(typescript@4.9.5)
+        version: 0.46.1(@types/node@18.15.10)(node-fetch@2.6.11)(typescript@4.9.5)
       '@graphprotocol/graph-ts':
         specifier: ^0.29.3
         version: 0.29.3
@@ -2916,12 +2919,13 @@ packages:
       '@types/node-fetch': 2.6.2
       ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       mkdirp: 0.5.6
-      node-fetch: 2.6.6
+      node-fetch: 2.6.11
       solc: 0.6.12
       ts-generator: 0.1.1
       typechain: 3.0.0(typescript@4.9.5)
     transitivePeerDependencies:
       - bufferutil
+      - encoding
       - supports-color
       - typescript
       - utf-8-validate
@@ -3294,7 +3298,7 @@ packages:
     resolution: {integrity: sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==}
     optional: true
 
-  /@graphprotocol/graph-cli@0.46.1(@types/node@18.15.10)(node-fetch@2.6.6)(typescript@4.9.5):
+  /@graphprotocol/graph-cli@0.46.1(@types/node@18.15.10)(node-fetch@2.6.11)(typescript@4.9.5):
     resolution: {integrity: sha512-594BiH2m9gThP1xdvxguVzvVlOb1KzJyVdh2F4dV78NPfMRFY2fe1nakmadKcewc72VVLXNgfdBu/J4IPfo0eg==}
     engines: {node: '>=14'}
     hasBin: true
@@ -3314,7 +3318,7 @@ packages:
       gluegun: github.com/edgeandnode/gluegun/b34b9003d7bf556836da41b57ef36eb21570620a(debug@4.3.4)
       graphql: 15.5.0
       immutable: 4.2.1
-      ipfs-http-client: 55.0.0(node-fetch@2.6.6)
+      ipfs-http-client: 55.0.0(node-fetch@2.6.11)
       jayson: 4.0.0
       js-yaml: 3.14.1
       prettier: 1.19.1
@@ -4181,7 +4185,7 @@ packages:
       jszip: 3.10.1
       lit-connect-modal: 0.1.11
       lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
-      node-fetch: 2.6.6
+      node-fetch: 2.6.11
       tslib: 2.5.0
       tweetnacl: 1.0.3
       tweetnacl-util: 0.15.1
@@ -4944,7 +4948,7 @@ packages:
       natural-orderby: 2.0.3
       object-treeify: 1.1.33
       password-prompt: 1.1.2
-      semver: 7.3.8
+      semver: 7.5.1
       string-width: 4.2.3
       strip-ansi: 6.0.1
       supports-color: 8.1.1
@@ -5549,7 +5553,7 @@ packages:
   /@solana/web3.js@1.77.3:
     resolution: {integrity: sha512-PHaO0BdoiQRPpieC1p31wJsBaxwIOWLh8j2ocXNKX8boCQVldt26Jqm2tZE4KlrvnCIV78owPLv1pEUgqhxZ3w==}
     dependencies:
-      '@babel/runtime': 7.16.3
+      '@babel/runtime': 7.22.3
       '@noble/curves': 1.0.0
       '@noble/hashes': 1.3.0
       '@solana/buffer-layout': 4.0.1
@@ -10600,8 +10604,6 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       mimic-response: 3.1.0
-    dev: true
-    optional: true
 
   /dedent@0.7.0:
     resolution: {integrity: sha512-Q6fKUPqnAHAyhiUgFU7BUzLiv0kd8saH9al7tnu5Q/okj6dnupxyTgFIBjVzJATdfIAm9NAsvXNzjaKa+bxVyA==}
@@ -10634,7 +10636,6 @@ packages:
   /deep-extend@0.6.0:
     resolution: {integrity: sha512-LOHxIOaPYdHlJRtCQfDIVZtfw/ufM8+rVj649RIHzcm/vGwQRXFt6OPqIFWsm2XEMrNIEtWR64sY1LEKD2vAOA==}
     engines: {node: '>=4.0.0'}
-    dev: true
 
   /deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
@@ -10913,6 +10914,17 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       path-type: 4.0.0
+
+  /dns-over-http-resolver@1.2.3(node-fetch@2.6.11):
+    resolution: {integrity: sha512-miDiVSI6KSNbi4SVifzO/reD8rMnxgrlnkrlkugOLQpWQTe2qMdHsZp5DmfKjxNE+/T3VAAYLQUZMv9SMr6+AA==}
+    dependencies:
+      debug: 4.3.4(supports-color@8.1.1)
+      native-fetch: 3.0.0(node-fetch@2.6.11)
+      receptacle: 1.3.2
+    transitivePeerDependencies:
+      - node-fetch
+      - supports-color
+    dev: false
 
   /dns-over-http-resolver@1.2.3(node-fetch@2.6.6):
     resolution: {integrity: sha512-miDiVSI6KSNbi4SVifzO/reD8rMnxgrlnkrlkugOLQpWQTe2qMdHsZp5DmfKjxNE+/T3VAAYLQUZMv9SMr6+AA==}
@@ -11805,7 +11817,7 @@ packages:
   /eth-json-rpc-middleware@1.6.0:
     resolution: {integrity: sha512-tDVCTlrUvdqHKqivYMjtFZsdD7TtpNLBCfKAcOpaVs7orBMS/A8HWro6dIzNtTZIR05FAbJ3bioFOnZpuCew9Q==}
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       eth-query: 2.1.2
       eth-tx-summary: 3.2.4
       ethereumjs-block: 1.7.1
@@ -11877,7 +11889,7 @@ packages:
   /eth-tx-summary@3.2.4:
     resolution: {integrity: sha512-NtlDnaVZah146Rm8HMRUNMgIwG/ED4jiqk0TME9zFheMl1jOp6jL1m0NKGjJwehXQ6ZKCPr16MTr+qspKpEXNg==}
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       clone: 2.1.2
       concat-stream: 1.6.2
       end-of-stream: 1.4.4
@@ -11893,7 +11905,7 @@ packages:
     resolution: {integrity: sha512-/MSbf/r2/Ld8o0l15AymjOTlPqpN8Cr4ByUEA9GtR4x0yAh3TdtDzEg29zMjXCNPI7u6E5fOQdj/Cf9Tc7oVNw==}
     deprecated: 'New package name format for new versions: @ethereumjs/ethash. Please update.'
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       buffer-xor: 2.0.2
       ethereumjs-util: 7.1.5
       miller-rabin: 4.0.1
@@ -11993,7 +12005,7 @@ packages:
     resolution: {integrity: sha512-B+sSdtqm78fmKkBq78/QLKJbu/4Ts4P2KFISdgcuZUPDm9x+N7qgBPIIFUGbaakQh8bzuquiRVbdmvPKqbILRg==}
     deprecated: 'New package name format for new versions: @ethereumjs/block. Please update.'
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       ethereum-common: 0.2.0
       ethereumjs-tx: 1.3.7
       ethereumjs-util: 5.2.1
@@ -12004,7 +12016,7 @@ packages:
     resolution: {integrity: sha512-2p49ifhek3h2zeg/+da6XpdFR3GlqY3BIEiqxGF8j9aSRIgkb7M1Ky+yULBKJOu8PAZxfhsYA+HxUk2aCQp3vg==}
     deprecated: 'New package name format for new versions: @ethereumjs/block. Please update.'
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       ethereumjs-common: 1.5.0
       ethereumjs-tx: 2.1.2
       ethereumjs-util: 5.2.1
@@ -12015,7 +12027,7 @@ packages:
     resolution: {integrity: sha512-zCxaRMUOzzjvX78DTGiKjA+4h2/sF0OYL1QuPux0DHpyq8XiNoF5GYHtb++GUxVlMsMfZV7AVyzbtgcRdIcEPQ==}
     deprecated: 'New package name format for new versions: @ethereumjs/blockchain. Please update.'
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       ethashjs: 0.0.8
       ethereumjs-block: 2.2.2
       ethereumjs-common: 1.5.0
@@ -12096,7 +12108,7 @@ packages:
     resolution: {integrity: sha512-r/XIUik/ynGbxS3y+mvGnbOKnuLo40V5Mj1J25+HEO63aWYREIqvWeRO/hnROlMBE5WoniQmPmhiaN0ctiHaXw==}
     deprecated: 'New package name format for new versions: @ethereumjs/vm. Please update.'
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       async-eventemitter: 0.2.4
       ethereumjs-account: 2.0.5
       ethereumjs-block: 2.2.2
@@ -12113,7 +12125,7 @@ packages:
     resolution: {integrity: sha512-X6qqZbsY33p5FTuZqCnQ4+lo957iUJMM6Mpa6bL4UW0dxM6WmDSHuI4j/zOp1E2TDKImBGCJA9QPfc08PaNubA==}
     deprecated: 'New package name format for new versions: @ethereumjs/vm. Please update.'
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       async-eventemitter: 0.2.4
       core-js-pure: 3.30.2
       ethereumjs-account: 3.0.0
@@ -12347,7 +12359,6 @@ packages:
   /expand-template@2.0.3:
     resolution: {integrity: sha512-XYfuKMvj4O35f/pOXLObndIRvyQ+/+6AhODh+OKWj9S9498pHHn/IMszH+gt0fBCRWMNfk1ZSp5x3AifmnI2vg==}
     engines: {node: '>=6'}
-    dev: true
 
   /expand-tilde@2.0.2:
     resolution: {integrity: sha512-A5EmesHW6rfnZ9ysHQjPdJRni0SRar0tjtG5MNtm9n5TUvsYU8oozprtRD4AqHxcZWWlVuAmQo2nWKfN9oyjTw==}
@@ -13204,7 +13215,6 @@ packages:
 
   /github-from-package@0.0.0:
     resolution: {integrity: sha512-SyHy3T1v2NUXn29OsWdxmK6RwHD+vkj3v8en8AOBZ1wBQ/hCAQ5bAQTD02kW4W9tUp/3Qh6J8r9EvntiyCmOOw==}
-    dev: true
 
   /glob-parent@3.1.0:
     resolution: {integrity: sha512-E8Ak/2+dZY6fnzlR7+ueWvhsH1SjHr4jjss4YS/h4py44jY9MhK/VFdaZJAWDz6BbL21KeteKxFSFpq8OS5gVA==}
@@ -13261,7 +13271,7 @@ packages:
       fs.realpath: 1.0.0
       inflight: 1.0.6
       inherits: 2.0.4
-      minimatch: 3.0.5
+      minimatch: 3.1.2
       once: 1.4.0
       path-is-absolute: 1.0.1
 
@@ -14078,7 +14088,6 @@ packages:
 
   /ini@1.3.8:
     resolution: {integrity: sha512-JV/yugV2uzW5iMRSiZAyDtQd+nxtUnjeLt0acNdw98kKLrvuRVyB80tsREOE7yvGVgalhZ6RNXCmEHkUKBKxew==}
-    dev: true
 
   /inquirer@8.1.1:
     resolution: {integrity: sha512-hUDjc3vBkh/uk1gPfMAD/7Z188Q8cvTGl0nxwaCdwSbzFh6ZKkZh+s2ozVxbE5G9ZNRyeY0+lgbAIOUFsFf98w==}
@@ -14218,19 +14227,19 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-core-types@0.9.0(node-fetch@2.6.6):
+  /ipfs-core-types@0.9.0(node-fetch@2.6.11):
     resolution: {integrity: sha512-VJ8vJSHvI1Zm7/SxsZo03T+zzpsg8pkgiIi5hfwSJlsrJ1E2v68QPlnLshGHUSYw89Oxq0IbETYl2pGTFHTWfg==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
       interface-datastore: 6.1.1
-      multiaddr: 10.0.1(node-fetch@2.6.6)
+      multiaddr: 10.0.1(node-fetch@2.6.11)
       multiformats: 9.9.0
     transitivePeerDependencies:
       - node-fetch
       - supports-color
     dev: false
 
-  /ipfs-core-utils@0.13.0(node-fetch@2.6.6):
+  /ipfs-core-utils@0.13.0(node-fetch@2.6.11):
     resolution: {integrity: sha512-HP5EafxU4/dLW3U13CFsgqVO5Ika8N4sRSIb/dTg16NjLOozMH31TXV0Grtu2ZWo1T10ahTzMvrfT5f4mhioXw==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
@@ -14239,7 +14248,7 @@ packages:
       browser-readablestream-to-it: 1.0.3
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0(node-fetch@2.6.6)
+      ipfs-core-types: 0.9.0(node-fetch@2.6.11)
       ipfs-unixfs: 6.0.9
       ipfs-utils: 9.0.14
       it-all: 1.0.6
@@ -14247,8 +14256,8 @@ packages:
       it-peekable: 1.0.3
       it-to-stream: 1.0.0
       merge-options: 3.0.4
-      multiaddr: 10.0.1(node-fetch@2.6.6)
-      multiaddr-to-uri: 8.0.0(node-fetch@2.6.6)
+      multiaddr: 10.0.1(node-fetch@2.6.11)
+      multiaddr-to-uri: 8.0.0(node-fetch@2.6.11)
       multiformats: 9.9.0
       nanoid: 3.3.6
       parse-duration: 1.0.3
@@ -14290,7 +14299,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-http-client@55.0.0(node-fetch@2.6.6):
+  /ipfs-http-client@55.0.0(node-fetch@2.6.11):
     resolution: {integrity: sha512-GpvEs7C7WL9M6fN/kZbjeh4Y8YN7rY8b18tVWZnKxRsVwM25cIFrRI8CwNt3Ugin9yShieI3i9sPyzYGMrLNnQ==}
     engines: {node: '>=14.0.0', npm: '>=3.0.0'}
     dependencies:
@@ -14301,13 +14310,13 @@ packages:
       any-signal: 2.1.2
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0(node-fetch@2.6.6)
-      ipfs-core-utils: 0.13.0(node-fetch@2.6.6)
+      ipfs-core-types: 0.9.0(node-fetch@2.6.11)
+      ipfs-core-utils: 0.13.0(node-fetch@2.6.11)
       ipfs-utils: 9.0.14
       it-first: 1.0.7
       it-last: 1.0.6
       merge-options: 3.0.4
-      multiaddr: 10.0.1(node-fetch@2.6.6)
+      multiaddr: 10.0.1(node-fetch@2.6.11)
       multiformats: 9.9.0
       native-abort-controller: 1.0.4(abort-controller@3.0.0)
       parse-duration: 1.0.3
@@ -15560,7 +15569,7 @@ packages:
   /json-rpc-engine@3.8.0:
     resolution: {integrity: sha512-6QNcvm2gFuuK4TKU1uwfH0Qd/cOSb9c1lls0gbnIhciktIUQJwz6NQNAW4B1KiGPenv7IKu97V222Yo1bNhGuA==}
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       babel-preset-env: 1.7.0
       babelify: 7.3.0
       json-rpc-error: 2.0.0
@@ -15858,7 +15867,7 @@ packages:
   /level-post@1.0.7:
     resolution: {integrity: sha512-PWYqG4Q00asOrLhX7BejSajByB4EmG2GaKHfj3h5UmmZ2duciXLPGYWIjBzLECFWUGOZWlm5B20h/n3Gs3HKew==}
     dependencies:
-      ltgt: 2.1.3
+      ltgt: 2.2.1
     dev: true
 
   /level-sublevel@6.6.4:
@@ -16659,7 +16668,7 @@ packages:
   /merkle-patricia-tree@3.0.0:
     resolution: {integrity: sha512-soRaMuNf/ILmw3KWbybaCjhx86EYeBbD8ph0edQCTed0JN/rxDt1EBN52Ajre3VyGo+91f8+/rfPIRQnnGMqmQ==}
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       ethereumjs-util: 5.2.1
       level-mem: 3.0.1
       level-ws: 1.0.0
@@ -16759,8 +16768,6 @@ packages:
   /mimic-response@3.1.0:
     resolution: {integrity: sha512-z0yWI+4FDrrweS8Zmt4Ej5HdJmky15+L2e6Wgn3+iK5fWzb6T3fhNFq2+MeTRb064c6Wr4N/wv0DzQTjNzHNGQ==}
     engines: {node: '>=10'}
-    dev: true
-    optional: true
 
   /min-document@2.19.0:
     resolution: {integrity: sha512-9Wy1B3m3f66bPPmU5hdA4DR4PB2OfDU/+GS3yAB7IQozE3tqXaVv2zOjgla7MEGSRv95+ILmOuvhLkOK6wJtCQ==}
@@ -16928,7 +16935,6 @@ packages:
 
   /mkdirp-classic@0.5.3:
     resolution: {integrity: sha512-gKLcREMhtuZRwRAfqP3RFW+TK4JqApVBtOIftVgjuABpAtpxhPGaDcfvbhNvD0B8iD1oUr/txX35NjcaY6Ns/A==}
-    dev: true
 
   /mkdirp-promise@5.0.1:
     resolution: {integrity: sha512-Hepn5kb1lJPtVW84RFT40YG1OddBNTOVUZR2bzQUHc+Z03en8/3uX0+060JDhcEzyO08HmipsN9DcnFMxhIL9w==}
@@ -17164,11 +17170,36 @@ packages:
       msgpackr-extract: 3.0.2
     dev: false
 
+  /multiaddr-to-uri@8.0.0(node-fetch@2.6.11):
+    resolution: {integrity: sha512-dq4p/vsOOUdVEd1J1gl+R2GFrXJQH8yjLtz4hodqdVbieg39LvBOdMQRdQnfbg5LSM/q1BYNVf5CBbwZFFqBgA==}
+    deprecated: This module is deprecated, please upgrade to @multiformats/multiaddr-to-uri
+    dependencies:
+      multiaddr: 10.0.1(node-fetch@2.6.11)
+    transitivePeerDependencies:
+      - node-fetch
+      - supports-color
+    dev: false
+
   /multiaddr-to-uri@8.0.0(node-fetch@2.6.6):
     resolution: {integrity: sha512-dq4p/vsOOUdVEd1J1gl+R2GFrXJQH8yjLtz4hodqdVbieg39LvBOdMQRdQnfbg5LSM/q1BYNVf5CBbwZFFqBgA==}
     deprecated: This module is deprecated, please upgrade to @multiformats/multiaddr-to-uri
     dependencies:
       multiaddr: 10.0.1(node-fetch@2.6.6)
+    transitivePeerDependencies:
+      - node-fetch
+      - supports-color
+    dev: false
+
+  /multiaddr@10.0.1(node-fetch@2.6.11):
+    resolution: {integrity: sha512-G5upNcGzEGuTHkzxezPrrD6CaIHR9uo+7MwqhNVcXTs33IInon4y7nMiGxl2CY5hG7chvYQUQhz5V52/Qe3cbg==}
+    deprecated: This module is deprecated, please upgrade to @multiformats/multiaddr
+    dependencies:
+      dns-over-http-resolver: 1.2.3(node-fetch@2.6.11)
+      err-code: 3.0.1
+      is-ip: 3.1.0
+      multiformats: 9.9.0
+      uint8arrays: 3.0.0
+      varint: 6.0.0
     transitivePeerDependencies:
       - node-fetch
       - supports-color
@@ -17304,7 +17335,6 @@ packages:
 
   /napi-build-utils@1.0.2:
     resolution: {integrity: sha512-ONmRUqK7zj7DWX0D9ADe03wbwOBZxNAfF20PlGfCWQcD3+/MakShIHrMqx9YwPTfxDdF1zLeL+RGZiR9kGMLdg==}
-    dev: true
 
   /napi-macros@2.2.2:
     resolution: {integrity: sha512-hmEVtAGYzVQpCKdbQea4skABsdXW4RUh5t5mJ2zzqowJS2OyXZTU1KhDVFhx+NlWZ4ap9mqR9TcDO3LTTttd+g==}
@@ -17368,9 +17398,11 @@ packages:
       http-errors: 1.8.1
       js-sha256: 0.9.0
       mustache: 4.2.0
-      node-fetch: 2.6.6
+      node-fetch: 2.6.11
       text-encoding-utf-8: 1.0.2
       tweetnacl: 1.0.3
+    transitivePeerDependencies:
+      - encoding
     dev: false
 
   /near-hd-key@1.2.1:
@@ -17482,6 +17514,12 @@ packages:
       semver: 5.7.1
     dev: true
 
+  /node-abi@3.43.0:
+    resolution: {integrity: sha512-QB0MMv+tn9Ur2DtJrc8y09n0n6sw88CyDniWSX2cHW10goQXYPK9ZpFJOktDS4ron501edPX6h9i7Pg+RnH5nQ==}
+    engines: {node: '>=10'}
+    dependencies:
+      semver: 7.5.1
+
   /node-addon-api@2.0.2:
     resolution: {integrity: sha512-Ntyt4AIXyaLIuMHF6IOoTakB3K+RWxwtsHNRxllEoA6vPwP9o4866g6YWDLUdnucilZhmkxiHwHr11gAENw+QA==}
 
@@ -17498,6 +17536,8 @@ packages:
   /node-datachannel@0.4.2:
     resolution: {integrity: sha512-UZZl2LnSbGFRKpHhtObgpFfbVMa+LsuAruZRmqFBY75kSqJKOvQeaNBo0nXQbyeKx7ZL3zMlvwh7/531oS/CfQ==}
     requiresBuild: true
+    dependencies:
+      prebuild-install: 7.1.1
     bundledDependencies:
       - prebuild-install
 
@@ -18805,6 +18845,24 @@ packages:
       tunnel-agent: 0.6.0
     dev: true
 
+  /prebuild-install@7.1.1:
+    resolution: {integrity: sha512-jAXscXWMcCK8GgCoHOfIr0ODh5ai8mj63L2nWrjuAgXE6tDyYGnx4/8o/rCgU+B4JSyZBKbeZqzhtwtC3ovxjw==}
+    engines: {node: '>=10'}
+    hasBin: true
+    dependencies:
+      detect-libc: 2.0.1
+      expand-template: 2.0.3
+      github-from-package: 0.0.0
+      minimist: 1.2.8
+      mkdirp-classic: 0.5.3
+      napi-build-utils: 1.0.2
+      node-abi: 3.43.0
+      pump: 3.0.0
+      rc: 1.2.8
+      simple-get: 4.0.1
+      tar-fs: 2.1.1
+      tunnel-agent: 0.6.0
+
   /precond@0.2.3:
     resolution: {integrity: sha512-QCYG84SgGyGzqJ/vlMsxeXd/pgL/I94ixdNFyh1PusWmTCyVfPJjZ1K1jvHtsbfnXQs2TSkEP2fR7QiMZAnKFQ==}
     engines: {node: '>= 0.6'}
@@ -18845,6 +18903,18 @@ packages:
       solidity-comments-extractor: 0.0.7
     dev: true
 
+  /prettier-plugin-solidity@1.1.3(prettier@2.8.8):
+    resolution: {integrity: sha512-fQ9yucPi2sBbA2U2Xjh6m4isUTJ7S7QLc/XDDsktqqxYfTwdYKJ0EnnywXHwCGAaYbQNK+HIYPL1OemxuMsgeg==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      prettier: '>=2.3.0 || >=3.0.0-alpha.0'
+    dependencies:
+      '@solidity-parser/parser': 0.16.0
+      prettier: 2.8.8
+      semver: 7.5.1
+      solidity-comments-extractor: 0.0.7
+    dev: true
+
   /prettier@1.19.1:
     resolution: {integrity: sha512-s7PoyDv/II1ObgQunCbB9PdLmUcBZcnWOcxDh7O0N/UwDEsHyqkW+Qh28jW+mVuCdx7gLB0BotYI1Y6uI9iyew==}
     engines: {node: '>=4'}
@@ -18863,7 +18933,6 @@ packages:
     hasBin: true
     requiresBuild: true
     dev: true
-    optional: true
 
   /pretty-format@29.5.0:
     resolution: {integrity: sha512-V2mGkI31qdttvTFX7Mt4efOqHXqJWMu4/r66Xh3Z3BwZaPfPJgp6/gbwoujRpPUtfEF6AUUWx3Jim3GCw5g/Qw==}
@@ -19278,7 +19347,6 @@ packages:
       ini: 1.3.8
       minimist: 1.2.8
       strip-json-comments: 2.0.1
-    dev: true
 
   /react-is@18.2.0:
     resolution: {integrity: sha512-xWGDIW6x921xtzPkhiULtthJHoJvBbF3q26fzloPCK0hsvxtPVelvftw3zjbHWSkR2km9Z+4uxbDDK/6Zw9B8w==}
@@ -19496,7 +19564,7 @@ packages:
   /regenerator-transform@0.15.1:
     resolution: {integrity: sha512-knzmNAcuyxV+gQCufkYcvOqX/qIIfHLv0u5x79kRxuGojfYVky1f15TzZEu2Avte8QGepvUNTnLskf8E6X6Vyg==}
     dependencies:
-      '@babel/runtime': 7.16.3
+      '@babel/runtime': 7.22.3
     dev: true
 
   /regex-not@1.0.2:
@@ -20218,7 +20286,6 @@ packages:
 
   /simple-concat@1.0.1:
     resolution: {integrity: sha512-cSFtAPtRhljv69IK0hTVZQ+OfE9nePi/rtJmw5UjHeVyVroEqJXP1sFztKUy1qU+xvz3u/sfYJLa947b7nAN2Q==}
-    dev: true
 
   /simple-get@2.8.2:
     resolution: {integrity: sha512-Ijd/rV5o+mSBBs4F/x9oDPtTx9Zb6X9brmnXvMW4J7IR15ngi9q5xxqWBKU744jTZiaXtxaPL7uHG6vtN8kUkw==}
@@ -20236,6 +20303,13 @@ packages:
       once: 1.4.0
       simple-concat: 1.0.1
     dev: true
+
+  /simple-get@4.0.1:
+    resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
+    dependencies:
+      decompress-response: 6.0.0
+      once: 1.4.0
+      simple-concat: 1.0.1
 
   /simple-git@3.16.1:
     resolution: {integrity: sha512-xzRxMKiy1zEYeHGXgAzvuXffDS0xgsq07Oi4LWEEcVH29vLpcZ2tyQRWyK0NLLlCVaKysZeem5tC1qHEOxsKwA==}
@@ -20426,15 +20500,15 @@ packages:
       - debug
     dev: true
 
-  /solhint-plugin-prettier@0.0.5(prettier-plugin-solidity@1.1.3)(prettier@2.6.2):
+  /solhint-plugin-prettier@0.0.5(prettier-plugin-solidity@1.1.3)(prettier@2.8.8):
     resolution: {integrity: sha512-7jmWcnVshIrO2FFinIvDQmhQpfpS2rRRn3RejiYgnjIE68xO2bvrYvjqVNfrio4xH9ghOqn83tKuTzLjEbmGIA==}
     peerDependencies:
       prettier: ^1.15.0 || ^2.0.0
       prettier-plugin-solidity: ^1.0.0-alpha.14
     dependencies:
-      prettier: 2.6.2
+      prettier: 2.8.8
       prettier-linter-helpers: 1.0.0
-      prettier-plugin-solidity: 1.1.3(prettier@2.6.2)
+      prettier-plugin-solidity: 1.1.3(prettier@2.8.8)
     dev: true
 
   /solhint@3.4.0:
@@ -21095,7 +21169,6 @@ packages:
   /strip-json-comments@2.0.1:
     resolution: {integrity: sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==}
     engines: {node: '>=0.10.0'}
-    dev: true
 
   /strip-json-comments@3.1.1:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
@@ -21312,7 +21385,6 @@ packages:
       mkdirp-classic: 0.5.3
       pump: 3.0.0
       tar-stream: 2.2.0
-    dev: true
 
   /tar-stream@1.6.2:
     resolution: {integrity: sha512-rzS0heiNf8Xn7/mpdSVVSMAWAoy9bfb1WOTYC78Z0UQKeKa/CWS8FOq0lKGNa8DWKAn9gxjCvMLYc5PGXYlK2A==}
@@ -22733,7 +22805,7 @@ packages:
   /web3-provider-engine@14.2.1:
     resolution: {integrity: sha512-iSv31h2qXkr9vrL6UZDm4leZMc32SjWJFGOp/D92JXfcEboCqraZyuExDkpxKw8ziTufXieNM7LSXNHzszYdJw==}
     dependencies:
-      async: 2.6.2
+      async: 2.6.4
       backoff: 2.5.0
       clone: 2.1.2
       cross-fetch: 2.2.6
@@ -22786,7 +22858,7 @@ packages:
       eventemitter3: 4.0.4
       underscore: 1.9.1
       web3-core-helpers: 1.2.11
-      websocket: 1.0.32
+      websocket: 1.0.34
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -23581,7 +23653,7 @@ packages:
     name: '@concertotech/streamr-client'
     version: 8.1.0
     dependencies:
-      '@babel/runtime': 7.16.3
+      '@babel/runtime': 7.22.3
       '@babel/runtime-corejs3': 7.16.3
       '@ethersproject/abi': 5.7.0
       '@ethersproject/abstract-signer': 5.7.0
@@ -23608,7 +23680,7 @@ packages:
       lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
       lodash: 4.17.21
       mem: 8.1.1
-      node-fetch: 2.6.6
+      node-fetch: 2.6.11
       p-limit: 3.1.0
       p-memoize: 4.0.3
       p-throttle: 4.0.0
@@ -23680,7 +23752,7 @@ packages:
       ora: 4.1.1
       pluralize: 8.0.0
       ramdasauce: 2.1.3
-      semver: 7.3.8
+      semver: 7.5.1
       which: 2.0.2
       yargs-parser: 16.1.0
     transitivePeerDependencies:

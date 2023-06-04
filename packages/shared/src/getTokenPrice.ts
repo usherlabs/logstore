@@ -1,5 +1,5 @@
-import { LSAN__factory } from '@concertotech/logstore-contracts';
-import ContractAddresses from '@concertotech/logstore-contracts/address.json';
+import { LSAN__factory } from '@logsn/contracts';
+import ContractAddresses from '@logsn/contracts/address.json';
 import { Provider } from '@ethersproject/providers';
 import { Contract, ethers, Signer } from 'ethers';
 import redstone from 'redstone-api';
