@@ -1,15 +1,15 @@
 FROM textury/arlocal
 
-RUN printf "\
-  wget -q -O /dev/null localhost:1984/mint/Zcbf1xCblnJZRGhH-2XqJOzx1xbKNKS3ZVXfg5WaAGY/1000000000000000 \n\
+RUN printf "#!/bin/sh\n\
   wget -q -O /dev/null localhost:1984/mint/8X1er8Bngza6g9dbndOgkWBFO93KkK8LeK8MXLCA3vk/1000000000000000 \n\
   wget -q -O /dev/null localhost:1984/mint/SByfG2malxPboIymaaBtwiv3wkV-YJsNuT71IiDdm6A/1000000000000000 \n\
+  wget -q -O /dev/null localhost:1984/mint/Zcbf1xCblnJZRGhH-2XqJOzx1xbKNKS3ZVXfg5WaAGY/1000000000000000 \n\
   "\
   > mint.sh
 
 RUN chmod +x mint.sh
 
-RUN printf "\
+RUN printf "#!/bin/sh\n\
   while true; do \n\
   wget -q -O /dev/null localhost:1984/mine \n\
   sleep 10 \n\
@@ -19,7 +19,7 @@ RUN printf "\
 
 RUN chmod +x mine.sh
 
-RUN printf "\
+RUN printf "#!/bin/sh\n\
   set -m \n\
   node ./bin/index.js & \n\
   sleep 5 && \n\

@@ -172,7 +172,7 @@ genesis:
     pool:
       pool_count: "1"
       pool_list:
-        - config: "{\"sources\":[\"http://parity-sidechain-node0:8546\"]}"
+        - config: "{\"sources\":[\"http://sidechain:8546\"]}"
           current_compression_id: "1"
           current_index: "0"
           current_key: ""

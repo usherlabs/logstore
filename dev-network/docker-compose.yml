@@ -63,7 +63,10 @@ services:
             - "1317:1317"
             - "26657:26657"
         networks:
-            - streamr-network
+            streamr-network:
+                aliases:
+                    - arweave.net
+                    - sidechain
 
     logstore-arweave:
         container_name: logstore-arweave
@@ -158,6 +161,60 @@ services:
                 condition: service_completed_successfully
             deploy-logstore-contracts:
                 condition: service_completed_successfully
+
+    logstore-validator-1:
+        container_name: logstore-validator-1
+        hostname: logstore-validator-1
+        image: logstore-validator
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.validator
+        restart: always
+        networks:
+            - streamr-network
+        env_file:
+            - ./env/validator-1.env
+        depends_on:
+            - logstore-kyve
+            - logstore-broker-1
+            - logstore-broker-2
+            - logstore-broker-3
+
+    logstore-validator-2:
+        container_name: logstore-validator-2
+        hostname: logstore-validator-2
+        image: logstore-validator
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.validator
+        restart: always
+        networks:
+            - streamr-network
+        env_file:
+            - ./env/validator-2.env
+        depends_on:
+            - logstore-kyve
+            - logstore-broker-1
+            - logstore-broker-2
+            - logstore-broker-3
+
+    logstore-validator-3:
+        container_name: logstore-validator-3
+        hostname: logstore-validator-3
+        image: logstore-validator
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.validator
+        restart: always
+        networks:
+            - streamr-network
+        env_file:
+            - ./env/validator-2.env
+        depends_on:
+            - logstore-kyve
+            - logstore-broker-1
+            - logstore-broker-2
+            - logstore-broker-3
 
 networks:
     streamr-network:
