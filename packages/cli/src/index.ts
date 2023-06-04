@@ -10,7 +10,7 @@ import { ethers } from 'ethers';
 import os from 'os';
 
 import { appPackageName, appVersion } from './env-config';
-import { allowanceConfirm, logger } from './utils';
+import { allowanceConfirm, getLogStoreClient, logger } from './utils';
 
 // define main program
 const program = new Command();
@@ -146,6 +146,23 @@ program
 				}
 			)
 	);
+
+program
+	.command('create-stream')
+	.description(
+		'Create Streamr stream to start storing data transported over the stream.'
+	)
+	.argument('<name>', 'Streamr stream name - ie. your_id/stream_name.')
+	.action(async (name: string) => {
+		// const provider = new ethers.providers.JsonRpcProvider(options.host);
+		// const signer = new ethers.Wallet(options.wallet, provider);
+		const client = getLogStoreClient(options.wallet);
+		const stream = await client.createStream({
+			// id: name.charAt(0) === '/' ? name : `/${name}`,
+			id: name,
+		});
+		logger.info(stream);
+	});
 
 program.configureHelp({
 	showGlobalOptions: true,

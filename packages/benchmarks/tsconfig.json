@@ -25,7 +25,7 @@
 		"baseUrl": "."
 	},
 	"exclude": ["node_modules", "build", "dist"],
-	"include": ["**/*.ts", "./index.d.ts"],
+	"include": ["**/*.ts"],
 	"ts-node": {
 		"require": ["tsconfig-paths/register"]
 	},
