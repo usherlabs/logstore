@@ -13,7 +13,7 @@ import { StakeToken } from '../src/utils/stake-token';
 	const signer = wallet.connect(jsonProvider);
 
 	const stakeToken = new StakeToken(
-		'0xdb41c030baf8C73FbDb8d1b5FC24953461fa5EAf',
+		'0x62c82404c1937E27C92E24901979A4d9b1b9858e',
 		'LSAN',
 		18,
 		0,
