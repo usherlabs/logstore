@@ -31,6 +31,7 @@ describe('ReportManager', async function () {
 	let reportManagerContract: Contract;
 	let nodeManagerContract: Contract;
 	let token: Contract;
+	let blockHeight: number;
 
 	beforeEach(async () => {
 		[adminSigner, ...otherSigners] = await ethers.getSigners();
@@ -41,6 +42,8 @@ describe('ReportManager', async function () {
 			nodeManagerContract
 		);
 		token = await getERC20Token(adminSigner);
+		const blockNumber = await getLatestBlockNumber();
+		blockHeight = +blockNumber - 500;
 	});
 
 	it('ReportManager ---- Nodes are ordered by reputation', async function () {
@@ -59,8 +62,6 @@ describe('ReportManager', async function () {
 
 	it('ReportManager ---- Staked Node can submit report', async function () {
 		const sampleNode = activeNodes[0];
-		const blockNumber = await getLatestBlockNumber();
-		const blockHeight = +blockNumber - 500;
 		const reportData = await generateReportData({
 			bundleId: '75',
 			blockheight: blockHeight,
@@ -84,10 +85,9 @@ describe('ReportManager', async function () {
 		// use the 15th because node 0-10 have been staked and we need an unstaked node
 		const sampleNode = otherSigners[15];
 
-		const blockNumber = await getLatestBlockNumber();
 		const reportData = await generateReportData({
 			bundleId: '75',
-			blockheight: +blockNumber - 10,
+			blockheight: blockHeight,
 			signer: sampleNode,
 		});
 
@@ -102,10 +102,9 @@ describe('ReportManager', async function () {
 
 	it('ReportManager ---- Staked Node can only submit report when quorum is met', async function () {
 		const sampleNode = activeNodes[0];
-		const blockNumber = await getLatestBlockNumber();
 		const reportData = await generateReportData({
 			bundleId: '75',
-			blockheight: +blockNumber - 10,
+			blockheight: blockHeight,
 			signer: sampleNode,
 		});
 
@@ -141,15 +140,14 @@ describe('ReportManager', async function () {
 		const consumerSigner = otherSigners[otherSigners.length - 2];
 		const stakeAmount = getDecimalBN(70);
 		// ------ submit a report
-		const blockNumber = await getLatestBlockNumber();
 		const reportData = await generateReportData({
 			bundleId: '75',
-			blockheight: +blockNumber - 10,
+			blockheight: blockHeight,
 			signer: currentNode,
 		});
 		const { data: reportJson } = await generateReportHash({
 			signer: currentNode,
-			blockheight: +blockNumber - 10,
+			blockheight: blockHeight,
 		});
 
 		// ---------------------------------------------- submit a report
