@@ -1,6 +1,5 @@
-import { ERC20__factory } from '@logsn/contracts';
+import { LSAN__factory } from '@logsn/contracts';
 import { ethers, Signer } from 'ethers';
-import redstone from 'redstone-api';
 import { Logger } from 'tslog';
 
 import { getTokenPrice } from './getTokenPrice';
@@ -12,7 +11,7 @@ export const convertFromUsd = async (
 	amount: number,
 	signer: Signer
 ) => {
-	const stakeTokenContract = ERC20__factory.connect(stakeTokenAddress, signer);
+	const stakeTokenContract = LSAN__factory.connect(stakeTokenAddress, signer);
 	const stakeTokenSymbol = await stakeTokenContract.symbol();
 	const stakeTokenDecimals = await stakeTokenContract.decimals();
 

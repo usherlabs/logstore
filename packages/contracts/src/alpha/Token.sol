@@ -72,7 +72,17 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 
     // ---------- Admin functions
     function mintTokens(address account, uint256 amount) public onlyOwner {
+        whitelistTransferFrom(account);
+        whitelistTransferTo(account);
         _mint(account, amount);
+    }
+
+    function mintManyTokens(address[] memory _addresses, uint256 amount) public onlyOwner {
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            whitelistTransferFrom(_addresses[i]);
+            whitelistTransferTo(_addresses[i]);
+            _mint(_addresses[i], amount);
+        }
     }
 
     function burn(address account, uint256 amount) public onlyOwner {

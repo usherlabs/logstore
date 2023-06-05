@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ERC20__factory, LogStoreNodeManager } from '@logsn/contracts';
+import { LogStoreNodeManager, LSAN__factory } from '@logsn/contracts';
 
 import { IBrokerNode } from '../types';
 import { StakeToken } from '../utils/stake-token';
@@ -102,7 +102,7 @@ export class NodeManager {
 			blockTag: blockNumber,
 		});
 		// Get decimal count for the stake token
-		const stakeTokenContract = ERC20__factory.connect(
+		const stakeTokenContract = LSAN__factory.connect(
 			stakeTokenAddress,
 			this.contract.provider
 		);
