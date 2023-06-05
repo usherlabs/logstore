@@ -104,6 +104,9 @@ services:
             - streamr-network
         volumes:
             - type: bind
+              source: ./assets/broker/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
+            - type: bind
               source: ../packages/broker/configs/docker-1.env.json
               target: /home/node/.logstore/config/default.json
         environment:
@@ -127,6 +130,9 @@ services:
         networks:
             - streamr-network
         volumes:
+            - type: bind
+              source: ./assets/broker/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
             - type: bind
               source: ../packages/broker/configs/docker-2.env.json
               target: /home/node/.logstore/config/default.json
@@ -152,6 +158,9 @@ services:
             - streamr-network
         volumes:
             - type: bind
+              source: ./assets/broker/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
+            - type: bind
               source: ../packages/broker/configs/docker-3.env.json
               target: /home/node/.logstore/config/default.json
         environment:
@@ -172,6 +181,10 @@ services:
         restart: always
         networks:
             - streamr-network
+        volumes:
+            - type: bind
+              source: ./assets/validator/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
         env_file:
             - ./env/validator-1.env
         depends_on:
@@ -190,6 +203,10 @@ services:
         restart: always
         networks:
             - streamr-network
+        volumes:
+            - type: bind
+              source: ./assets/validator/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
         env_file:
             - ./env/validator-2.env
         depends_on:
@@ -208,6 +225,10 @@ services:
         restart: always
         networks:
             - streamr-network
+        volumes:
+            - type: bind
+              source: ./assets/validator/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
         env_file:
             - ./env/validator-2.env
         depends_on:

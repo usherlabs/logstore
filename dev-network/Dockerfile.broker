@@ -49,8 +49,6 @@ RUN pnpm build
 USER root
 RUN npm i -g ./
 
-RUN ln /home/node/app/packages/broker/start-in-docker.sh /usr/local/bin/start-in-docker
-
 USER node
 WORKDIR /home/node
 

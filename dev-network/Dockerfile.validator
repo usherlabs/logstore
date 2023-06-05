@@ -18,6 +18,7 @@ COPY --chown=node:node ./packages/contracts/package.json ./packages/contracts/pa
 COPY --chown=node:node ./packages/protocol/package.json ./packages/protocol/package.json
 COPY --chown=node:node ./packages/shared/package.json ./packages/shared/package.json
 COPY --chown=node:node ./packages/client/package.json ./packages/client/package.json
+COPY --chown=node:node ./packages/cli/package.json ./packages/cli/package.json
 COPY --chown=node:node ./packages/validator/package.json ./packages/validator/package.json
 COPY --chown=node:node ./node_artifacts/ ./node_artifacts/
 COPY --chown=node:node ./tsconfig.node.json ./tsconfig.node.json
@@ -41,29 +42,20 @@ WORKDIR /home/node/app/packages/client
 COPY --chown=node:node ./packages/client ./
 RUN pnpm build
 
+WORKDIR /home/node/app/packages/cli
+COPY --chown=node:node ./packages/cli ./
+RUN pnpm build
+
 WORKDIR /home/node/app/packages/validator
 COPY --chown=node:node ./packages/validator ./
 RUN pnpm build
 
 # install logstore-validator globally
 USER root
-RUN npm i -g ./
+RUN npm i -g /home/node/app/packages/cli
+RUN npm i -g /home/node/app/packages/validator
 
 USER node
 WORKDIR /home/node
 
-CMD [ "logstore-validator",\
-  "start", \
-  "--pool", \
-  "0", \
-  "--valaccount", \
-  "VALACCOUNT",\
-  "--storage-priv", \
-  "STORAGE_PRIV", \
-  "--chain-id", \
-  "kyve-local", \
-  "--rpc", \
-  "http://logstore-kyve:26657", \
-  "--rest", \
-  "http://logstore-kyve:1317" \
-  ]
+CMD [ "start-in-docker" ]
