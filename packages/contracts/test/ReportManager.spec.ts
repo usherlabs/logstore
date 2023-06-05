@@ -70,7 +70,7 @@ describe('ReportManager', async function () {
 			.connect(sampleNode)
 			.functions.report(...Object.values(reportData));
 
-		// validate the stirng emmitted by the contract is correct
+		// validate the string emmitted by the contract is correct
 		const { data: contractReportData } = await generateReportHash({
 			signer: sampleNode,
 			blockheight: +blockNumber - 10,

@@ -37,7 +37,9 @@ export class LogStoreClient extends StreamrClient {
 		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
 
-		super(streamrClientConfig, parentContainer);
+		super(streamrClientConfig, container);
+		// TODO: Using parentContainer breaks authentication in the Broker's tests
+		// super(streamrClientConfig, parentContainer);
 
 		const strictConfig = createStrictConfig(config);
 		redactConfig(strictConfig);
