@@ -60,9 +60,10 @@ describe('ReportManager', async function () {
 	it('ReportManager ---- Staked Node can submit report', async function () {
 		const sampleNode = activeNodes[0];
 		const blockNumber = await getLatestBlockNumber();
+		const blockHeight = +blockNumber - 500;
 		const reportData = await generateReportData({
 			bundleId: '75',
-			blockheight: +blockNumber - 10,
+			blockheight: blockHeight,
 			signer: sampleNode,
 		});
 
@@ -73,7 +74,7 @@ describe('ReportManager', async function () {
 		// validate the string emmitted by the contract is correct
 		const { data: contractReportData } = await generateReportHash({
 			signer: sampleNode,
-			blockheight: +blockNumber - 10,
+			blockheight: blockHeight,
 		});
 		const event = await fetchEventArgsFromTx(responseTx, 'ReportAccepted');
 		expect(event?.raw).to.be.equal(JSON.stringify(contractReportData));
