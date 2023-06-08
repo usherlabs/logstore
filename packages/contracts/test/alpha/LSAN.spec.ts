@@ -189,10 +189,12 @@ describe('LSAN Token', function () {
 	});
 
 	describe('Whitelisting', function () {
-		it('should whitelist senders correctly', async function () {
+		it('should whitelist correctly', async function () {
 			const [recipient] = INITIAL_WHITELIST;
 			await lsan.addWhitelist(allAccounts[5], recipient);
 
+			expect(await lsan.isWhitelisted(recipient, FAKE_NODE_MANAGER_CONTRACT)).to
+				.be.true;
 			expect(
 				await lsan.isWhitelisted(allAccounts[5], FAKE_NODE_MANAGER_CONTRACT)
 			).to.be.false;
