@@ -28,7 +28,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
     modifier onlyWhitelistedTo(address _to) {
         require(
             transferToWhitelist[_to],
-            "User is not whitelisted to receive tokens"
+            "LSAN: User is not whitelisted to receive tokens"
         );
         _;
     }
@@ -36,7 +36,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
     modifier onlyWhitelistedFrom(address _from) {
         require(
             transferFromWhitelist[_from],
-            "User is not whitelisted to transfer tokens"
+            "LSAN: User is not whitelisted to transfer tokens"
         );
         _;
     }
@@ -59,6 +59,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
             whitelistTransferTo(initialWhitelist[i]);
             whitelistTransferFrom(initialWhitelist[i]);
         }
+				whitelistTransferTo(_safeAddress);
 
         SAFE_ADDRESS = payable(_safeAddress);
         DEPLOYED_TIME = block.timestamp;
@@ -66,15 +67,19 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
         minimumDeposit = 0;
     }
 
+		// Only whitelist the account to be able to send tokens to the Manager Contracts
+		function _mintTokens(address account, uint256 amount) internal {
+			whitelistTransferFrom(account);
+			_mint(account, amount);
+		}
+
     function balance() public view returns (uint256) {
         return address(this).balance;
     }
 
     // ---------- Admin functions
     function mintTokens(address account, uint256 amount) public onlyOwner {
-        whitelistTransferFrom(account);
-        whitelistTransferTo(account);
-        _mint(account, amount);
+        _mintTokens(account, amount);
     }
 
     function mintManyTokens(address[] memory _addresses, uint256 amount) public onlyOwner {
@@ -91,23 +96,19 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 
     // Whitelist and unwhitelist an address who can transfer this token to the node manager contract
     function whitelistTransferTo(address account) public onlyOwner {
-        require(!transferToWhitelist[account], "Address already whitelisted as sender");
         transferToWhitelist[account] = true;
     }
 
     function unWhitelistTransferTo(address account) public onlyOwner {
-        require(transferToWhitelist[account], "Address not whitelisted as sender");
         transferToWhitelist[account] = false;
     }
 
     // whitelist and unwhitelist  address who can transfer this token to the node manager contract
     function whitelistTransferFrom(address account) public onlyOwner {
-        require(!transferFromWhitelist[account], "Account already whitelisted as recipient");
         transferFromWhitelist[account] = true;
     }
 
     function unWhitelistTransferFrom(address account) public onlyOwner {
-        require(transferFromWhitelist[account], "Account not whitelisted as recipient");
         transferFromWhitelist[account] = false;
     }
 
@@ -124,7 +125,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 		 * 	6 = remove all from transferFrom whitelist
 		 */
 		function massWhitelistUpdate(address[] calldata accounts, uint256 option) public onlyOwner {
-			require(option >= 1 && option <= 6, "Invalid option");
+			require(option >= 1 && option <= 6, "LSAN: Invalid option");
 			if(option == 1){
 				for(uint256 i = 0; i < accounts.length; i ++){
 					whitelistTransferTo(accounts[i]);
@@ -160,7 +161,7 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 		}
 
     function withdraw(uint256 amount) public onlyOwner {
-        require(address(this).balance >= amount, "Insufficient contract balance");
+        require(address(this).balance >= amount, "LSAN: Insufficient contract balance");
         SAFE_ADDRESS.transfer(amount);
     }
 
@@ -198,15 +199,13 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
     }
 
     function mint() public payable nonReentrant {
-        require(msg.value > minimumDeposit, "sent amount less than minimum amount");
-        require(maticPerByte > 0, "maticPerByte <= 0");
-        require(totalBytesStored > 0, "totalBytesStored <= 0");
+        require(msg.value >= minimumDeposit, "LSAN: Amount less than minimum deposit amount");
 
         uint lsanPrice = getTokenPrice();
 
         uint mintAmount = msg.value / lsanPrice;
 
-        _mint(_msgSender(), mintAmount);
+        _mintTokens(_msgSender(), mintAmount);
     }
 
     // ---------- Public methods
