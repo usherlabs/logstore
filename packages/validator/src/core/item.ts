@@ -1,15 +1,15 @@
 import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
-import { LogStoreClient } from '@logsn/client';
+import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
 
-import { getEvmPrivateKey } from '../env-config';
+import { getEvmPrivateKey, useStreamrTestConfig } from '../env-config';
 import { Managers } from '../managers';
 import { AbstractDataItem } from './abstract';
 
 interface IPrepared {
 	stores: {
 		id: string;
-		amount: number;
+		amount: BigNumber;
 	}[];
 }
 
