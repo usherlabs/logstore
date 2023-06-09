@@ -1,3 +1,4 @@
+import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import { LogStoreClient } from '@logsn/client';
 import { omit } from 'lodash';
 
@@ -42,8 +43,10 @@ export class Item extends AbstractDataItem<IPrepared> {
 		// Range will be from last key (timestamp) to this key
 		const toKey = parseInt(key, 10);
 		const fromKey = toKey - config.itemTimeRange; // First iteration over the cache, will use the first nextKey -- ie. 1000
+		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 
 		const logstore = new LogStoreClient({
+			...streamrConfig,
 			auth: {
 				privateKey: getEvmPrivateKey(), // The Validator needs to stake in QueryManager
 			},
