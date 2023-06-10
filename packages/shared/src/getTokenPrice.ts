@@ -1,7 +1,6 @@
 import { LSAN__factory } from '@logsn/contracts';
 import ContractAddresses from '@logsn/contracts/address.json';
-import { Provider } from '@ethersproject/providers';
-import { Contract, ethers, Signer } from 'ethers';
+import { ethers, Signer } from 'ethers';
 import redstone from 'redstone-api';
 
 export const getTokenPrice = async (tokenAddress: string, signer: Signer) => {
@@ -19,25 +18,23 @@ export const getTokenPrice = async (tokenAddress: string, signer: Signer) => {
 	// initiaite a token contract
 	const tokenContract = LSAN__factory.connect(tokenAddress, signer);
 
-	// if we are dealing with the dev token,
+	// if we are dealing with the alpha token,
 	// we can t get price information directly so we calculate ours
 	if (tokenAddress === lsanTokenAddress) {
-		const lsanPricePerMatic = await tokenContract.functions.getTokenPrice();
+		const weiPerByte = await tokenContract.functions.price();
+		const lsanPricePerMatic = ethers.utils.formatEther(+weiPerByte);
 		const { value: maticPrice } = await redstone.getPrice('MATIC', {
 			verifySignature: true,
 		});
-		// incase we get a zero back from the contract, default it to 1
-		const lsanPricePerMaticFloored =
-			+lsanPricePerMatic === 0 ? 1 : lsanPricePerMatic;
-		const response = +lsanPricePerMaticFloored * maticPrice;
+		const response = +lsanPricePerMatic * maticPrice;
 		return response;
-	} else {
-		// otherwise get the pricing information from redstone
-		const tokenSymbol = await tokenContract.symbol();
-		const resp = await redstone.getPrice(tokenSymbol, {
-			verifySignature: true,
-		});
-
-		return resp.value;
 	}
+
+	// otherwise get the pricing information from redstone
+	const tokenSymbol = await tokenContract.symbol();
+	const resp = await redstone.getPrice(tokenSymbol, {
+		verifySignature: true,
+	});
+
+	return resp.value;
 };

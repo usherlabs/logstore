@@ -693,6 +693,9 @@ importers:
       '@ethersproject/providers':
         specifier: ^5.7.2
         version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@logsn/shared':
+        specifier: workspace:^
+        version: link:../shared
       '@nomicfoundation/hardhat-chai-matchers':
         specifier: ^1.0.5
         version: 1.0.5(@nomiclabs/hardhat-ethers@2.2.2)(chai@4.3.7)(ethers@5.7.2)(hardhat@2.12.6)
@@ -738,6 +741,9 @@ importers:
       '@types/node':
         specifier: ^18.15.10
         version: 18.15.10
+      arweave:
+        specifier: ^1.13.7
+        version: 1.13.7
       chai:
         specifier: ^4.3.7
         version: 4.3.7
@@ -780,6 +786,9 @@ importers:
       npm-run-all:
         specifier: ^4.1.5
         version: 4.1.5
+      redstone-api:
+        specifier: ^0.4.11
+        version: 0.4.11
       solhint:
         specifier: ^3.4.0
         version: 3.4.0
@@ -7823,7 +7832,6 @@ packages:
       axios: 0.21.4(debug@4.3.4)
     transitivePeerDependencies:
       - debug
-    dev: false
 
   /arbundles@0.6.22(@solana/web3.js@1.77.3):
     resolution: {integrity: sha512-QlSavBHk59mNqgQ6ScxlqaBJlDbSmSrK/uTcF3HojLAZ/4aufTkVTBjl1hSfZ/ZN45oIPgJC05R8SmVARF+8VA==}
@@ -7856,7 +7864,6 @@ packages:
     resolution: {integrity: sha512-Jkpd4QL3TVqnd3U683gzXmZUVqBUy17DdJDuL/3D9rkysLgX6ymJ2e+sR+xyZF5Rh42CBqDXWNMmCjBXeP7Gbw==}
     dependencies:
       arweave: 1.13.7
-    dev: false
 
   /are-we-there-yet@1.1.7:
     resolution: {integrity: sha512-nxwy40TuMiUGqMyRHgCSWZ9FM4VAoRP4xUYSTv5ImRog+h9yISPbVH7H8fASCIzYn9wlEv4zvFL7uKDMCFQm3g==}
@@ -8024,7 +8031,6 @@ packages:
       axios: 0.21.4(debug@4.3.4)
     transitivePeerDependencies:
       - debug
-    dev: false
 
   /arweave-stream-tx@1.2.2(arweave@1.13.7):
     resolution: {integrity: sha512-bNt9rj0hbAEzoUZEF2s6WJbIz8nasZlZpxIw03Xm8fzb9gRiiZlZGW3lxQLjfc9Z0VRUWDzwtqoYeEoB/JDToQ==}
@@ -8043,7 +8049,6 @@ packages:
       asn1.js: 5.4.1
       base64-js: 1.5.1
       bignumber.js: 9.1.1
-    dev: false
 
   /asap@2.0.6:
     resolution: {integrity: sha512-BSHWgDSAiKs50o2Re8ppvp3seVHXSRM44cdSsT9FfNEUUZLOGWVCsiWaRPWM1Znn+mqZ1OfVZ3z3DWEzSp7hRA==}
@@ -9145,7 +9150,7 @@ packages:
   /borsh@0.6.0:
     resolution: {integrity: sha512-sl5k89ViqsThXQpYa9XDtz1sBl3l1lI313cFUY1HKr+wvMILnb+58xpkqTNrYbelh99dY7K8usxoCusQmqix9Q==}
     dependencies:
-      bn.js: 5.2.0
+      bn.js: 5.2.1
       bs58: 4.0.1
       text-encoding-utf-8: 1.0.2
     dev: false
@@ -10645,7 +10650,6 @@ packages:
     resolution: {integrity: sha512-Ko2XVMhRhz5Mxyb+QhLX13SHgcK1vuxc6XEfOyTMlbRbv7bhSmMqUw4ywqRwKgV25W+FDIaZjPWQrdblHCTwdA==}
     dependencies:
       is-plain-object: 2.0.4
-    dev: false
 
   /deepmerge@4.3.1:
     resolution: {integrity: sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==}
@@ -18302,7 +18306,6 @@ packages:
 
   /pako@2.1.0:
     resolution: {integrity: sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==}
-    dev: false
 
   /parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
@@ -19525,7 +19528,6 @@ packages:
       pako: 2.1.0
     transitivePeerDependencies:
       - debug
-    dev: false
 
   /reduce-flatten@2.0.0:
     resolution: {integrity: sha512-EJ4UNY/U1t2P/2k6oqotuX2Cc3T6nxJwsM0N0asT7dhrtH1ltUxDn4NalSYmPE2rCkVpcf/X6R0wDwcFpzhd4w==}

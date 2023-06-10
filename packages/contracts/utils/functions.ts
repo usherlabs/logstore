@@ -1,7 +1,9 @@
+import ArweaveClient from 'arweave';
 import { BigNumber } from 'ethers';
 import fs from 'fs';
 import hre from 'hardhat';
 import path from 'path';
+import redstone from 'redstone-api';
 
 import { STAKE_TOKEN_CONTRACTS, STREAMR_REGISTRY_ADDRESS } from './addresses';
 
@@ -139,4 +141,22 @@ export const getReportBlockBuffer = async () => {
 	const blockTime = await getBlockTime();
 	const reportBlockBuffer = Math.ceil(30000 / blockTime); // The number of blocks to wait between each reporter starting from the height of the report.
 	return reportBlockBuffer;
+};
+
+export const getMaticPerByte = async () => {
+	const mb = 1000000;
+	const arweave = new ArweaveClient({
+		host: 'arweave.net',
+		protocol: 'https',
+	});
+	// Get price from Arweave
+	const atomicPriceInWinston = await arweave.transactions.getPrice(mb);
+	const priceInAr = arweave.ar.winstonToAr(atomicPriceInWinston);
+	// Get AR and Matic price
+	const arPrice = await redstone.getPrice('AR');
+	const maticPrice = await redstone.getPrice('MATIC');
+	// Get AR / Matic
+	const priceOfArInMatic = arPrice.value / maticPrice.value;
+	// Return Matic per Byte
+	return (priceOfArInMatic * +priceInAr) / mb;
 };
