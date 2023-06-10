@@ -239,7 +239,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             rDelegates[i] = Delegate({id: delegates[i], nodes: rDelegateNodes});
         }
 
-        reportJson = string.concat(reportJson, "}}}");
+        reportJson = string.concat(reportJson, "}}");
         /* solhint-enable quotes */
 
         // Consume report data
