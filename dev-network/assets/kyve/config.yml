@@ -181,10 +181,10 @@ genesis:
           funders: []
           id: "0"
           logo: "ar://Zr96jN2unOxV9AwlbSl_Bq68alMzbh7ePPBz8NXynTc"
-          max_bundle_size: "100"
+          max_bundle_size: "200"
           min_delegation: "10000"
           name: "Log Store Network"
-          operating_cost: "2500000000"
+          operating_cost: "1000000"
           disabled: false
           runtime: '@logsn/validator'
           start_key: "0"
