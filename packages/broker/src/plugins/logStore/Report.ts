@@ -21,7 +21,6 @@ import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
 
 const logger = new Logger(module);
-const VERSION = 1;
 const WAIT_TIME = 10 * 1000;
 const REPORT_TRESHOLD_MULTIPLIER = 0.5;
 
@@ -295,26 +294,18 @@ export class ReportPoller {
 			ethers.utils.arrayify(reportHash)
 		);
 		logger.info(`signed report:${signature}`);
-		// serialize and publish the [address,signature,hash] to the system stream
 
 		// publish the report to the system stream
-		const serializer = SystemMessage.getSerializer(
-			VERSION,
-			SystemMessageType.ProofOfReport
-		);
-		const serialisedReportMessage = serializer.toArray(
-			new ProofOfReport({
-				version: VERSION,
-				address: brokerAddress,
-				signature,
-				hash: reportHash,
-			})
-		);
+		const proofOfReport = new ProofOfReport({
+			address: brokerAddress,
+			signature,
+			hash: reportHash,
+		});
 		await this.logStoreClient.publish(
 			this.systemStream,
-			serialisedReportMessage
+			proofOfReport.serialize()
 		);
-		logger.info(`${serialisedReportMessage} published to system stream`);
+		logger.info(`${proofOfReport} published to system stream`);
 	}
 
 	async nodeCanSubmitReport(
