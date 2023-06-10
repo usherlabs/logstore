@@ -1,4 +1,5 @@
 import ArweaveClient from 'arweave';
+import axios from 'axios';
 import { ethers } from 'ethers';
 import fs from 'fs';
 import hre from 'hardhat';
@@ -143,15 +144,24 @@ export const getReportBlockBuffer = async () => {
 	return reportBlockBuffer;
 };
 
+// const winstonToAr = (
+// 	winstonString: string,
+// 	{ formatted = false, decimals = 12, trim = true } = {}
+// ) => {
+// 	const number =  this.stringToBigNum(winstonString, decimals).shiftedBy(-12);
+
+// 	return formatted ? number.toFormat(decimals) : number.toFixed(decimals);
+// }
+
 export const getWeiPerByte = async () => {
 	const mb = 1000000;
+	const { data: winston } = await axios.get(`https://arweave.net/price/1000`);
 	const arweave = new ArweaveClient({
 		host: 'arweave.net',
 		protocol: 'https',
 	});
 	// Get price from Arweave
-	const atomicPriceInWinston = await arweave.transactions.getPrice(mb);
-	const priceInAr = arweave.ar.winstonToAr(atomicPriceInWinston);
+	const priceInAr = arweave.ar.winstonToAr(winston);
 	// Get AR and Matic price
 	const arPrice = await redstone.getPrice('AR');
 	const maticPrice = await redstone.getPrice('MATIC');

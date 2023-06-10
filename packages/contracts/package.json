@@ -63,6 +63,7 @@
 		"@types/mocha": "^10.0.1",
 		"@types/node": "^18.15.10",
 		"arweave": "^1.13.7",
+		"axios": "^1.4.0",
 		"chai": "^4.3.7",
 		"cross-env": "^7.0.3",
 		"del-cli": "^5.0.0",
