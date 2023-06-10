@@ -24,7 +24,7 @@ export async function getClosestBlockByTime(
 	let maxBlockNumber = await provider.getBlockNumber();
 	let minBlockNumber = 0;
 	const maxBlock = await provider.getBlock(maxBlockNumber);
-	const maxBlockTs = maxBlock.timestamp * 1000;
+	const maxBlockTs = maxBlock.timestamp;
 	if (timestamp >= maxBlockTs) {
 		return maxBlock;
 	} else {
@@ -39,7 +39,7 @@ export async function getClosestBlockByTime(
 
 	while (minBlockNumber <= maxBlockNumber) {
 		console.log(`checking blockNumber=${closestBlockNumber}...`);
-		const closestBlockTs = closestBlock.timestamp * 1000;
+		const closestBlockTs = closestBlock.timestamp;
 		if (closestBlockTs === timestamp) {
 			// foundExactBlock = true;
 			break;

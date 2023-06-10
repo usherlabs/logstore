@@ -6,9 +6,8 @@ import { Item } from './core/item';
 import { Report } from './core/report';
 import { appPackageName, appVersion } from './env-config';
 import Listener from './listener';
-import { IConfig } from './types';
-import { IRuntimeExtended } from './types';
-import { reportPrefix } from './utils/constants';
+import { Managers } from './managers';
+import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
 export default class Runtime implements IRuntimeExtended {
@@ -17,7 +16,6 @@ export default class Runtime implements IRuntimeExtended {
 	public config: IConfig = {
 		systemStreamId: '',
 		sources: [],
-		itemTimeRange: 1000,
 		fees: {
 			writeMultiplier: 1,
 			treasuryMultiplier: 0.5, // Consumed from the Brokers by treasury for re-allocation to finance Validators
@@ -25,8 +23,9 @@ export default class Runtime implements IRuntimeExtended {
 		},
 	};
 	public listener: Listener;
+	private managers: Managers;
 
-	setupThreads(core: Validator, homeDir: string) {
+	async setupThreads(core: Validator, homeDir: string) {
 		this.listener = new Listener(
 			this.config.systemStreamId,
 			homeDir,
@@ -61,6 +60,9 @@ export default class Runtime implements IRuntimeExtended {
 			throw new Error(`Config sources have invalid network chain identifier`);
 		}
 
+		this.managers = new Managers(config.sources[0]);
+		await this.managers.init();
+
 		this.config = {
 			...this.config,
 			...config,
@@ -70,35 +72,25 @@ export default class Runtime implements IRuntimeExtended {
 
 	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
-		core.logger.debug(`getDataItem`, key);
+		const keyInt = parseInt(key, 10);
 
-		// IF REPORT
-		if (key.startsWith(reportPrefix)) {
-			core.logger.info(`Create Report: ${key}`);
-			const report = new Report(core, this.listener, this.config, key);
-			await report.prepare();
-			const value = await report.generate();
-
-			return {
-				key,
-				value,
-			};
+		if (keyInt > (await this.managers.getBlockTime())) {
+			return null;
 		}
 
-		// IF NO REPORT
 		const item = new Item(core, this.listener, this.config, key);
 		await item.prepare();
-		const value = await item.generate();
+		const messages = await item.generate();
 
 		return {
 			key,
-			value,
+			value: { messages },
 		};
 	}
 
 	// https://github.com/KYVENetwork/kyvejs/tree/main/common/protocol/src/methods/helpers/saveGetTransformDataItem.ts#L33
 	async prevalidateDataItem(_: Validator, item: DataItem): Promise<boolean> {
-		return !!item.value;
+		return item && !!item.value;
 	}
 
 	// https://github.com/KYVENetwork/kyvejs/tree/main/common/protocol/src/methods/helpers/saveGetTransformDataItem.ts#L44
@@ -113,60 +105,42 @@ export default class Runtime implements IRuntimeExtended {
 		validationDataItem: DataItem
 	): Promise<boolean> {
 		const proposedDataItemHash = sha256(
-			Buffer.from(JSON.stringify(proposedDataItem))
+			Buffer.from(JSON.stringify(proposedDataItem.value.messages))
 		);
 		const validationDataItemHash = sha256(
-			Buffer.from(JSON.stringify(validationDataItem))
+			Buffer.from(JSON.stringify(validationDataItem.value.messages))
 		);
 
 		return proposedDataItemHash === validationDataItemHash;
 	}
 
-	async summarizeDataBundle(_: Validator, bundle: DataItem[]): Promise<string> {
-		// First key in the listener cache is a timestamp.
-		// This key must be less than the key of the first item in the bundle.
-		// ie. this node may have produced an invalid report because it began listening after it had joined the processing of voting
-		const [item] = bundle; // first data item should always be the bundle
-		const itemKeyInt = parseInt(item.key, 10);
-		if (this.listener.startTime > itemKeyInt) {
-			return null; // Will cause the validator to abstain from the vote
-		}
+	async summarizeDataBundle(
+		core: Validator,
+		bundle: DataItem[]
+	): Promise<string> {
+		const lastItem = bundle.at(-1);
+		core.logger.info(`Create Report: ${lastItem.key}`);
+		const report = new Report(core, this.listener, this.config, lastItem.key);
+		await report.prepare();
+		lastItem.value.report = await report.generate();
 
-		// Get second last item's key
-		return `${bundle.at(-2).key || ``}`;
+		return lastItem.key;
 	}
 
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
 	// https://github.com/KYVENetwork/kyvejs/blob/main/common/protocol/src/methods/main/runCache.ts#L147
-	async nextKey(core: Validator, key: string): Promise<string> {
-		const { itemTimeRange } = this.config;
+	async nextKey(_: Validator, key: string): Promise<string> {
+		let keyInt = parseInt(key, 10);
 
-		if (key.startsWith(reportPrefix)) {
-			key = key.substring(reportPrefix.length, key.length);
+		if (!keyInt) {
+			return (
+				await this.managers.getBlock(
+					await this.managers.node.getStartBlockNumber()
+				)
+			).timestamp.toString();
 		}
 
-		const keyInt = parseInt(key, 10);
-
-		const currentKey = parseInt(
-			core.pool.data.current_key || core.pool.data.start_key,
-			10
-		); // The key at which the bundle is starting
-		const maxBundleSize = parseInt(core.pool.data.max_bundle_size, 10);
-		const lastBundleKey = (maxBundleSize - 1) * itemTimeRange + currentKey;
-
-		// core.logger.debug('nextKey:', {
-		// 	keyInt,
-		// 	lastBundleKey,
-		// 	maxBundleSize,
-		// 	currentKey,
-		// });
-
-		// If the key to be produced is the lastBundleKey
-		const nextKey = keyInt + itemTimeRange;
-		if (nextKey === lastBundleKey) {
-			return `${reportPrefix}${key}`;
-		}
-
-		return nextKey.toString(); // The larger the data item, the less items required in a bundle, otherwise increase interval.
+		keyInt++;
+		return keyInt.toString();
 	}
 }

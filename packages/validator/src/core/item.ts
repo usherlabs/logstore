@@ -22,8 +22,8 @@ export class Item extends AbstractDataItem<IPrepared> {
 		const toKey = parseInt(key, 10);
 		const block = await managers.getBlockByTime(toKey);
 		core.logger.debug('produceItem:', {
-			isMaxBlock: toKey >= block.timestamp * 1000,
-			blockTs: block.timestamp * 1000,
+			isMaxBlock: toKey >= block.timestamp,
+			blockTs: block.timestamp,
 			ts: toKey,
 		});
 
@@ -37,12 +37,12 @@ export class Item extends AbstractDataItem<IPrepared> {
 
 	// eslint-disable-next-line
 	public async generate(): Promise<any[]> {
-		const { key, config } = this;
+		const { key } = this;
 		const { stores } = this.prepared;
 
 		// Range will be from last key (timestamp) to this key
-		const toKey = parseInt(key, 10);
-		const fromKey = toKey - config.itemTimeRange; // First iteration over the cache, will use the first nextKey -- ie. 1000
+		const toTimestamp = parseInt(key, 10) * 1000;
+		const fromTimestamp = toTimestamp - 1000;
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 
 		const logstore = new LogStoreClient({
@@ -61,10 +61,10 @@ export class Item extends AbstractDataItem<IPrepared> {
 				},
 				{
 					from: {
-						timestamp: fromKey,
+						timestamp: fromTimestamp,
 					},
 					to: {
-						timestamp: toKey,
+						timestamp: toTimestamp,
 					},
 				}
 			);

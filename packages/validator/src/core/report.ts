@@ -4,7 +4,6 @@ import { SystemMessageType } from '@logsn/protocol';
 import { Managers } from '../managers';
 import { IBrokerNode, IReport } from '../types';
 import { Arweave } from '../utils/arweave';
-import { reportPrefix } from '../utils/constants';
 import { fetchQueryResponseConsensus } from '../utils/helpers';
 import { StakeToken } from '../utils/stake-token';
 import { AbstractDataItem } from './abstract';
@@ -28,14 +27,9 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// The from key will default to the startBlockNumber
 		let fromKey = startBlock.timestamp;
 		if ((lastReport || {})?.id) {
-			core.logger.debug('Last Report Id: ', lastReport.id);
-			const rKey = lastReport.id.substring(
-				reportPrefix.length,
-				lastReport.id.length
-			);
-			fromKey = parseInt(rKey, 10);
+			fromKey = parseInt(lastReport.id, 10);
 		}
-		const toKey = parseInt(key.substring(reportPrefix.length, key.length), 10);
+		const toKey = parseInt(key, 10);
 		core.logger.debug('Report Range: ', { fromKey, toKey });
 
 		// Get all state from Smart Contract up to the current key (where key = block at a timestamp)
