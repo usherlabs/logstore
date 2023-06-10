@@ -1,12 +1,12 @@
 import { Wallet } from 'ethers';
-import hre, { ethers } from 'hardhat';
+import hre from 'hardhat';
 
 import {
-	getMaticPerByte,
 	getNodeManagerInputParameters,
 	getQueryManagerInputParameters,
 	getReportBlockBuffer,
 	getStoreManagerInputParameters,
+	getWeiPerByte,
 	writeJSONToFileOutside,
 } from '../utils/functions';
 
@@ -26,10 +26,12 @@ async function main() {
 	const safeAddress =
 		hre.network.config.chainId === 137 ? SAFE_ADDRESS : signer.address;
 	const tokenManager = await hre.ethers.getContractFactory('LSAN');
-	const maticPerByte = await getMaticPerByte();
+	const weiPerByte = await getWeiPerByte();
+	console.log('Wei Per Byte:', weiPerByte.toNumber());
+	console.log('MATIC Per Byte:', hre.ethers.utils.formatEther(weiPerByte));
 	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
 		safeAddress,
-		maticPerByte,
+		weiPerByte,
 		[],
 		[],
 	]);
@@ -224,7 +226,7 @@ async function main() {
 	await registerReportManagerTx.wait();
 
 	// adjust initial values within AlphaNet TokenManager
-	const blacklistTx = await tokenManagerContract.functions.blacklist(
+	const blacklistTx = await tokenManagerContract.functions.addBlacklist(
 		nodeManagerAddress
 	);
 	await blacklistTx.wait();
@@ -233,8 +235,9 @@ async function main() {
 		[nodeManagerAddress, nodeManagerAddress]
 	);
 	await whitelistTx.wait();
-	console.log(`tokenManagerAddress updated to whitelist addresses`, {
-		tx: whitelistTx.id,
+	console.log(`tokenManagerAddress blacklist/whitelist updated`, {
+		blacklistTx: blacklistTx.hash,
+		whitelistTx: whitelistTx.hash,
 	});
 
 	const deployedContractAddresses = {

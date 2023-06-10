@@ -1,5 +1,5 @@
 import ArweaveClient from 'arweave';
-import { BigNumber } from 'ethers';
+import { ethers } from 'ethers';
 import fs from 'fs';
 import hre from 'hardhat';
 import path from 'path';
@@ -16,7 +16,7 @@ export const getAccounts = async () => hre.ethers.getSigners();
 
 export const toBigDecimal = (amount: number, exponent = 18) => {
 	if (amount < 0) throw 'amount < 0';
-	return BigNumber.from(`${amount}${'0'.repeat(exponent)}`);
+	return ethers.BigNumber.from(`${amount}${'0'.repeat(exponent)}`);
 };
 
 export async function getNodeManagerInputParameters(
@@ -143,7 +143,7 @@ export const getReportBlockBuffer = async () => {
 	return reportBlockBuffer;
 };
 
-export const getMaticPerByte = async () => {
+export const getWeiPerByte = async () => {
 	const mb = 1000000;
 	const arweave = new ArweaveClient({
 		host: 'arweave.net',
@@ -157,6 +157,6 @@ export const getMaticPerByte = async () => {
 	const maticPrice = await redstone.getPrice('MATIC');
 	// Get AR / Matic
 	const priceOfArInMatic = arPrice.value / maticPrice.value;
-	// Return Matic per Byte
-	return (priceOfArInMatic * +priceInAr) / mb;
+	const maticPerByte = (priceOfArInMatic * +priceInAr) / mb;
+	return ethers.utils.parseUnits(maticPerByte.toFixed(18));
 };
