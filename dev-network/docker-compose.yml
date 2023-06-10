@@ -186,7 +186,7 @@ services:
               source: ./assets/validator/start-in-docker.sh
               target: /usr/local/bin/start-in-docker
         env_file:
-            - ./env/validator-1.env
+            - ./assets/validator/.env.validator-1
         depends_on:
             logstore-kyve:
                 condition: service_started
@@ -210,7 +210,7 @@ services:
               source: ./assets/validator/start-in-docker.sh
               target: /usr/local/bin/start-in-docker
         env_file:
-            - ./env/validator-2.env
+            - ./assets/validator/.env.validator-2
         depends_on:
             logstore-kyve:
                 condition: service_started
@@ -234,7 +234,7 @@ services:
               source: ./assets/validator/start-in-docker.sh
               target: /usr/local/bin/start-in-docker
         env_file:
-            - ./env/validator-3.env
+            - ./assets/validator/.env.validator-3
         depends_on:
             logstore-kyve:
                 condition: service_started
