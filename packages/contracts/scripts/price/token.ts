@@ -1,13 +1,29 @@
-import { getTokenPrice } from '@logsn/shared';
+// ! import { getTokenPrice } from '@logsn/shared'; Causes a cyclic dependency.... We have to re-implement this here.
+import { ethers, Signer } from 'ethers';
 import hre from 'hardhat';
+import redstone from 'redstone-api';
 
+import { LSAN__factory } from '../..';
 import ContractAddresses from '../../address.json';
+
+const getTokenPrice = async (tokenAddress: string, signer: Signer) => {
+	const tokenContract = LSAN__factory.connect(tokenAddress, signer);
+	const weiPerByte = await tokenContract.functions.price();
+	const lsanPricePerMatic = ethers.utils.formatEther(+weiPerByte);
+	const { value: maticPrice } = await redstone.getPrice('MATIC', {
+		verifySignature: true,
+	});
+	const response = +lsanPricePerMatic * maticPrice;
+	return response;
+};
 
 async function main() {
 	console.log('Prints price of token used by Log Store\n');
 
 	const chainIdIndex =
 		`${hre.network.config.chainId}` as keyof typeof ContractAddresses;
+
+	console.log('Chain ID:', chainIdIndex);
 
 	const { tokenManagerAddress: lsanTokenAddress } = ContractAddresses[
 		chainIdIndex
