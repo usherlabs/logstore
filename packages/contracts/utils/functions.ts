@@ -155,6 +155,7 @@ export const getReportBlockBuffer = async () => {
 
 export const getWeiPerByte = async () => {
 	const mb = 1000000;
+	// ? Arweave's fetch is experimental and causes a bug when used inside of DevNetwork
 	const { data: winston } = await axios.get(`https://arweave.net/price/1000`);
 	const arweave = new ArweaveClient({
 		host: 'arweave.net',
