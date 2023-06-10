@@ -188,10 +188,12 @@ services:
         env_file:
             - ./env/validator-1.env
         depends_on:
-            - logstore-kyve
-            - logstore-broker-1
-            - logstore-broker-2
-            - logstore-broker-3
+            logstore-kyve:
+                condition: service_started
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+            logstore-broker-1:
+                condition: service_started
 
     logstore-validator-2:
         container_name: logstore-validator-2
@@ -210,10 +212,12 @@ services:
         env_file:
             - ./env/validator-2.env
         depends_on:
-            - logstore-kyve
-            - logstore-broker-1
-            - logstore-broker-2
-            - logstore-broker-3
+            logstore-kyve:
+                condition: service_started
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+            logstore-broker-2:
+                condition: service_started
 
     logstore-validator-3:
         container_name: logstore-validator-3
@@ -230,12 +234,14 @@ services:
               source: ./assets/validator/start-in-docker.sh
               target: /usr/local/bin/start-in-docker
         env_file:
-            - ./env/validator-2.env
+            - ./env/validator-3.env
         depends_on:
-            - logstore-kyve
-            - logstore-broker-1
-            - logstore-broker-2
-            - logstore-broker-3
+            logstore-kyve:
+                condition: service_started
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+            logstore-broker-3:
+                condition: service_started
 
 networks:
     streamr-network:
