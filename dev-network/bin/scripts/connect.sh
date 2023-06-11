@@ -2,15 +2,20 @@
 
 source $DEV_NETWORK_SCRIPTS_DIR/config_load.sh
 
-echo "
-Tunelling the DevNetwork ports. Keep the script running.
+printf "
+Connecting to the DevNetwork...
 
-Hit [Ctrl+C] to abort
+\thttp://localhost:80\tStreamr APP
+\thttp://localhost:8801\tKYVE APP
+
+Keep the script running.
+Hit [Ctrl+C] to abort.
 "
 
-sudo $SSH \
+$SSH \
   -N \
   -L 80:localhost:80 \
+  -L 443:localhost:443 \
   -L 1317:localhost:1317 \
   -L 3000:localhost:3000 \
   -L 5432:localhost:5432 \

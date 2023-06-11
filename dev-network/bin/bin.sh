@@ -31,8 +31,8 @@ restart )
 deploy )
     source "$DEV_NETWORK_SCRIPTS_DIR/deploy.sh"
     ;;
-tunnel )
-    source "$DEV_NETWORK_SCRIPTS_DIR/tunnel.sh"
+connect )
+    source "$DEV_NETWORK_SCRIPTS_DIR/connect.sh"
     ;;
 * )
     source "$DEV_NETWORK_SCRIPTS_DIR/help.sh"
