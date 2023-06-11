@@ -22,7 +22,7 @@ RUN chmod +x mine.sh
 RUN printf "#!/bin/sh\n\
   set -m \n\
   node ./bin/index.js & \n\
-  sleep 5 && \n\
+  sleep 15 && \n\
   ./mint.sh \n\
   sleep 5 && \n\
   ./mine.sh \n\
