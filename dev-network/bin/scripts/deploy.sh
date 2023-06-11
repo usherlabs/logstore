@@ -21,10 +21,10 @@ then
   cd "$DEV_NETWORK_DIR/.."
   git fetch
   git checkout $BRANCH
+  git pull
 
   echo Building docker images...
   cd "$DEV_NETWORK_DIR"
-  docker compose build
 
   echo Starting the DevNetwork...
   "$DEV_NETWORK_SCRIPTS_DIR/start.sh" -l
