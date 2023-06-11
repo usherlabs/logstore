@@ -3,6 +3,8 @@ FROM node:18-buster
 RUN apt update
 RUN apt install -y libsecret-1-dev
 RUN mkdir /firstrun && chown node:node /firstrun
+RUN mkdir -p /home/node/cli && chown -R node:node /home/node/cli
+RUN mkdir -p /home/node/app && chown -R node:node /home/node/app
 
 RUN npm i -g pnpm
 
@@ -10,7 +12,6 @@ USER node
 
 # Validator CLI
 
-RUN mkdir -p /home/node/cli && chown -R node:node /home/node/cli
 WORKDIR /home/node/cli
 
 COPY --chown=node:node ./dev-network/assets/validator/cli/* ./
@@ -18,7 +19,6 @@ RUN npm install
 
 # KYVE Validator
 
-RUN mkdir -p /home/node/app && chown -R node:node /home/node/app
 WORKDIR /home/node/app
 
 COPY --chown=node:node ./package.json ./package.json
@@ -38,7 +38,8 @@ RUN pnpm install
 WORKDIR /home/node/app/packages/contracts
 COPY --chown=node:node ./packages/contracts ./
 RUN cp .env.docker .env
-RUN pnpm build
+RUN npx hardhat compile
+RUN pnpm types
 
 WORKDIR /home/node/app/packages/protocol
 COPY --chown=node:node ./packages/protocol ./
