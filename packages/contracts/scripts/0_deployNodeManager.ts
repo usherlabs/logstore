@@ -1,11 +1,12 @@
 import { Wallet } from 'ethers';
-import hre, { ethers } from 'hardhat';
+import hre from 'hardhat';
 
 import {
 	getNodeManagerInputParameters,
 	getQueryManagerInputParameters,
 	getReportBlockBuffer,
 	getStoreManagerInputParameters,
+	getWeiPerByte,
 	writeJSONToFileOutside,
 } from '../utils/functions';
 
@@ -25,8 +26,13 @@ async function main() {
 	const safeAddress =
 		hre.network.config.chainId === 137 ? SAFE_ADDRESS : signer.address;
 	const tokenManager = await hre.ethers.getContractFactory('LSAN');
+	const weiPerByte = await getWeiPerByte();
+	console.log('Wei Per Byte:', weiPerByte.toNumber());
+	console.log('MATIC Per Byte:', hre.ethers.utils.formatEther(weiPerByte));
 	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
 		safeAddress,
+		weiPerByte,
+		[],
 		[],
 	]);
 	await tokenManagerContract.deployed();
@@ -220,30 +226,18 @@ async function main() {
 	await registerReportManagerTx.wait();
 
 	// adjust initial values within AlphaNet TokenManager
-	const INITIAL_MATIC_PER_BYTE = ethers.utils.parseEther('0.0000001');
-	const TOTAL_BYTES_STORED = 10;
-	const bytesMaticTx = await tokenManagerContract.functions.setMaticPerByte(
-		INITIAL_MATIC_PER_BYTE
+	const blacklistTx = await tokenManagerContract.functions.addBlacklist(
+		nodeManagerAddress
 	);
-	await bytesMaticTx.wait();
-	const bytesStoredTx =
-		await tokenManagerContract.functions.setTotalBytesStored(
-			TOTAL_BYTES_STORED
-		);
-	await bytesStoredTx.wait();
-	const WHITELISTED_ADDRESSES = [
-		storeManagerAddress,
-		reportManagerAddress,
-		nodeManagerAddress,
-		queryManagerAddress,
-	];
-	const whitelistTx = await tokenManagerContract.functions.massWhitelistUpdate(
-		WHITELISTED_ADDRESSES,
-		1
+	await blacklistTx.wait();
+	const whitelistTx = await tokenManagerContract.functions.massAddWhitelist(
+		[storeManagerAddress, queryManagerAddress],
+		[nodeManagerAddress, nodeManagerAddress]
 	);
 	await whitelistTx.wait();
-	console.log(`tokenManagerAddress updated to whitelist addresses`, {
-		tx: whitelistTx.id,
+	console.log(`tokenManagerAddress blacklist/whitelist updated`, {
+		blacklistTx: blacklistTx.hash,
+		whitelistTx: whitelistTx.hash,
 	});
 
 	const deployedContractAddresses = {

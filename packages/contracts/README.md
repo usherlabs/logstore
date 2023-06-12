@@ -1,4 +1,4 @@
-The log store network has a number of contracts which  enable seamless participation in the network or withdrawal from the network, storage and retrieval of data across the network, and the fair distribution of incentives to nodes that exhibit exemplary behaviour on the network.
+The log store network has a number of contracts which enable seamless participation in the network or withdrawal from the network, storage and retrieval of data across the network, and the fair distribution of incentives to nodes that exhibit exemplary behaviour on the network.
 
 The contracts and their properties are as follows:
 
@@ -240,7 +240,6 @@ This function allows users to stake tokens. It requires that the `amount` is gre
 ## Conclusion
 
 The `LogStoreQueryManager` contract is a crucial part of the LogStore system. It allows users to stake tokens and enables capturing funds for a given query. It is designed to work with the Open Zeppelin libraries for controlling upgradability and access, making it secure and upgradable in the future.
-
 
 # LogStoreReportManager
 
@@ -498,3 +497,11 @@ Parameters:
 - `store`: the ID of the Streamr data stream
 - `fees`: the amount of stake tokens being captured
 - `bytesStored`: the number of bytes stored for the captured data
+
+# LSAN
+
+## Price Management
+
+Get MATIC & WEI per Byte - `pnpm price:byte`
+
+Get Token Price for Network - `pnpm price:token --network streamr-dev`
