@@ -11,11 +11,11 @@ It is built using Node.js and allows users to interact with the network via a se
 
 The CLI supports the following command-line options:
 
-- `h, --host <string>`: The RPC endpoint of the Polygon/EVM node to connect to (compulsory parameter).
-- `w, --wallet <string>`: The private key of the wallet to use for signing transactions (compulsory parameter).
-- `n, --network <string>`: The network to interact with (default: 'Dev').
-- `d, --debug`: Enables debug logging.
-- `u --usd`: Declares that the amount provided should be denominated in usd.
+- `-h, --host <string>`: The RPC endpoint of the Polygon/EVM node to connect to (compulsory parameter).
+- `-w, --wallet <string>`: The private key of the wallet to use for signing transactions (compulsory parameter).
+- `-n, --network <string>`: The network to interact with (default: 'Dev').
+- `-d, --debug`: Enables debug logging.
+- `-u --usd`: Declares that the amount provided should be denominated in usd.
 
 The following commands are available to be used:
 
