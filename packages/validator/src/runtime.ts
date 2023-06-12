@@ -19,7 +19,7 @@ export default class Runtime implements IRuntimeExtended {
 		fees: {
 			writeMultiplier: 1,
 			treasuryMultiplier: 0.5, // Consumed from the Brokers by treasury for re-allocation to finance Validators
-			readMultiplier: 0.1, // 10% of the write
+			readMultiplier: 0.05, // 5% of the write. AWS Serverless DynamoDB read fees are 20% of the write fees, prorated to the nearest 4kb
 		},
 	};
 	public listener: Listener;
