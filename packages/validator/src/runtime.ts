@@ -19,7 +19,7 @@ export default class Runtime implements IRuntimeExtended {
 		fees: {
 			writeMultiplier: 1,
 			treasuryMultiplier: 0.5, // Consumed from the Brokers by treasury for re-allocation to finance Validators
-			read: 0.00000001, // value in USD
+			readMultiplier: 0.1, // 10% of the write
 		},
 	};
 	public listener: Listener;

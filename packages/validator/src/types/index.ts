@@ -16,7 +16,7 @@ export interface IConfig {
 	fees: {
 		writeMultiplier: number;
 		treasuryMultiplier: number;
-		read: number; // Amount in USD cents
+		readMultiplier: number;
 	};
 }
 
