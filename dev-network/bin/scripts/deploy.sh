@@ -23,9 +23,6 @@ then
   git checkout $BRANCH
   git pull
 
-  echo Building docker images...
-  cd "$DEV_NETWORK_DIR"
-
   echo Starting the DevNetwork...
   "$DEV_NETWORK_SCRIPTS_DIR/start.sh" -l
 else

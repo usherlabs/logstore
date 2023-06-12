@@ -24,7 +24,7 @@ COPY --chown=node:node ./packages/contracts ./packages/contracts
 WORKDIR /home/node/app/packages/contracts
 RUN pnpm install
 
-RUN cp .env.docker .env
+RUN cp .env.dev-network .env
 
 RUN chmod +x start.sh
 ENTRYPOINT [ "sh", "./start.sh" ]

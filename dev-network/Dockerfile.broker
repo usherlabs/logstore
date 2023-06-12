@@ -26,7 +26,7 @@ RUN pnpm install
 
 WORKDIR /home/node/app/packages/contracts
 COPY --chown=node:node ./packages/contracts ./
-RUN cp .env.docker .env
+RUN cp .env.dev-network .env
 RUN pnpm build
 
 WORKDIR /home/node/app/packages/protocol
