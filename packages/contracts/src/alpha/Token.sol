@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -11,223 +11,157 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC20Upgradeable {
-    uint256 public maticPerByte;
-    uint256 public totalBytesStored;
-    uint256 public multiplier;
-    uint256 public minimumDeposit;
-    address payable public SAFE_ADDRESS;
-    uint256 public DEPLOYED_TIME;
-    mapping(address => bool) public transferToWhitelist;
-    mapping(address => bool) public transferFromWhitelist;
+	uint256 public weiPerByte; // In 18 decimal format -- ie. Wei
+	uint256 public multiplier;
+	uint256 public minimumDeposit;
+	address payable public SAFE_ADDRESS;
+	uint256 public DEPLOYED_TIME;
+	mapping(address => bool) blacklist;
+	mapping(address => mapping(address => bool)) whitelist;
 
-    modifier onlySafe() {
-        require(msg.sender == SAFE_ADDRESS);
-        _;
-    }
+	modifier onlyPermitted(address _from, address _to) {
+		require(
+			isPermitted(_from, _to),
+			"LSAN: Transfer between addresses is not permitted"
+		);
+		_;
+	}
 
-    modifier onlyWhitelistedTo(address _to) {
-        require(
-            transferToWhitelist[_to],
-            "User is not whitelisted to receive tokens"
-        );
-        _;
-    }
+	/// @dev required by the OZ UUPS module
+	function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    modifier onlyWhitelistedFrom(address _from) {
-        require(
-            transferFromWhitelist[_from],
-            "User is not whitelisted to transfer tokens"
-        );
-        _;
-    }
+	function initialize(
+			address _safeAddress,
+			uint256 _weiPerByte,
+			address[] memory _blacklist,
+			address[][] memory _whitelist
+	) public initializer {
+		require(_blacklist.length == _whitelist.length, "LSAN: Initial whitelist configuration invalid");
 
-    /// @dev required by the OZ UUPS module
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+		__Ownable_init();
+		__ERC20_init("Log Store Alpha Network Token", "LSAN");
+		__UUPSUpgradeable_init();
+		__ReentrancyGuard_init();
 
-    function initialize(
-        address _safeAddress,
-        address[] memory initialWhitelist
-    ) public initializer {
-        __Ownable_init();
-        __ERC20_init("Log Store Alpha Network Token", "LSAN");
-        __UUPSUpgradeable_init();
-        __ReentrancyGuard_init();
-
-        // go through the initial whitelist and whitelist appropriately
-        uint256 whitelistLength = initialWhitelist.length;
-        for (uint256 i = 0; i < whitelistLength; i++) {
-            whitelistTransferTo(initialWhitelist[i]);
-            whitelistTransferFrom(initialWhitelist[i]);
-        }
-
-        SAFE_ADDRESS = payable(_safeAddress);
-        DEPLOYED_TIME = block.timestamp;
-        multiplier = 1;
-        minimumDeposit = 0;
-    }
-
-    function balance() public view returns (uint256) {
-        return address(this).balance;
-    }
-
-    // ---------- Admin functions
-    function mintTokens(address account, uint256 amount) public onlyOwner {
-        whitelistTransferFrom(account);
-        whitelistTransferTo(account);
-        _mint(account, amount);
-    }
-
-    function mintManyTokens(address[] memory _addresses, uint256 amount) public onlyOwner {
-        for (uint256 i = 0; i < _addresses.length; i++) {
-            whitelistTransferFrom(_addresses[i]);
-            whitelistTransferTo(_addresses[i]);
-            _mint(_addresses[i], amount);
-        }
-    }
-
-    function burn(address account, uint256 amount) public onlyOwner {
-        _burn(account, amount);
-    }
-
-    // Whitelist and unwhitelist an address who can transfer this token to the node manager contract
-    function whitelistTransferTo(address account) public onlyOwner {
-        require(!transferToWhitelist[account], "Address already whitelisted as sender");
-        transferToWhitelist[account] = true;
-    }
-
-    function unWhitelistTransferTo(address account) public onlyOwner {
-        require(transferToWhitelist[account], "Address not whitelisted as sender");
-        transferToWhitelist[account] = false;
-    }
-
-    // whitelist and unwhitelist  address who can transfer this token to the node manager contract
-    function whitelistTransferFrom(address account) public onlyOwner {
-        require(!transferFromWhitelist[account], "Account already whitelisted as recipient");
-        transferFromWhitelist[account] = true;
-    }
-
-    function unWhitelistTransferFrom(address account) public onlyOwner {
-        require(transferFromWhitelist[account], "Account not whitelisted as recipient");
-        transferFromWhitelist[account] = false;
-    }
-
-		/**
-		 * Mass add or remove addresses from whitelists
-		 *
-		 * @param accounts - list of addresses to conduct whitelist with
-		 * @param option -
-		 * 	1 = add all both whitelists
-		 * 	2 = remove all from whitelists
-		 * 	3 = add all to transferTo whitelist
-		 * 	4 = add all to transferFrom whitelist
-		 * 	5 = remove all from transferTo whitelist
-		 * 	6 = remove all from transferFrom whitelist
-		 */
-		function massWhitelistUpdate(address[] calldata accounts, uint256 option) public onlyOwner {
-			require(option >= 1 && option <= 6, "Invalid option");
-			if(option == 1){
-				for(uint256 i = 0; i < accounts.length; i ++){
-					whitelistTransferTo(accounts[i]);
-					whitelistTransferFrom(accounts[i]);
-				}
-			}
-			if(option == 2){
-				for(uint256 i = 0; i < accounts.length; i ++){
-					unWhitelistTransferTo(accounts[i]);
-					unWhitelistTransferFrom(accounts[i]);
-				}
-			}
-			if(option == 3){
-				for(uint256 i = 0; i < accounts.length; i ++){
-					whitelistTransferTo(accounts[i]);
-				}
-			}
-			if(option == 4){
-				for(uint256 i = 0; i < accounts.length; i ++){
-					whitelistTransferFrom(accounts[i]);
-				}
-			}
-			if(option == 5){
-				for(uint256 i = 0; i < accounts.length; i ++){
-					unWhitelistTransferTo(accounts[i]);
-				}
-			}
-			if(option == 6){
-				for(uint256 i = 0; i < accounts.length; i ++){
-					unWhitelistTransferFrom(accounts[i]);
-				}
+		// initiate the blacklist/whitelist
+		for (uint256 i = 0; i < _blacklist.length; i++) {
+			addBlacklist(_blacklist[i]);
+			for (uint256 j = 0; j < _whitelist[i].length; j++) {
+				addWhitelist(_whitelist[i][j], _blacklist[i]);
 			}
 		}
 
-    function withdraw(uint256 amount) public onlyOwner {
-        require(address(this).balance >= amount, "Insufficient contract balance");
-        SAFE_ADDRESS.transfer(amount);
-    }
+		SAFE_ADDRESS = payable(_safeAddress);
+		DEPLOYED_TIME = block.timestamp;
+		multiplier = 1;
+		minimumDeposit = 0;
+		weiPerByte = _weiPerByte;
+	}
 
-    function setMaticPerByte(uint256 _maticPerByte) public onlyOwner {
-        maticPerByte = _maticPerByte;
-    }
+	// ---------- Admin functions
+	function mintTokens(address account, uint256 amount) public onlyOwner {
+		_mint(account, amount);
+	}
 
-    function setTotalBytesStored(uint256 _totalBytesStored) public onlyOwner {
-        totalBytesStored = _totalBytesStored;
-    }
+	function mintManyTokens(address[] memory _addresses, uint256 amount) public onlyOwner {
+		for (uint256 i = 0; i < _addresses.length; i++) {
+			_mint(_addresses[i], amount);
+		}
+	}
 
-    function setMultipler(uint256 _multiplier) public onlyOwner {
-        multiplier = _multiplier;
-    }
+	function burn(address account, uint256 amount) public onlyOwner {
+		_burn(account, amount);
+	}
 
-    function setMinimumDeposit(uint _minimumDeposit) public onlyOwner {
-        minimumDeposit = _minimumDeposit;
-    }
+	function addBlacklist(address _address) public onlyOwner {
+		blacklist[_address] = true;
+	}
 
-    // ---------- Admin functions
+	function removeBlacklist(address _address) public onlyOwner {
+		blacklist[_address] = false;
+	}
 
-    // ---------- Safe functions
-    function destroy() public onlySafe {
-        // selfdestruct(SAFE_ADDRESS);
-    }
+	function addWhitelist(address _from, address _to) public onlyOwner {
+		whitelist[_from][_to] = true;
+	}
 
-    // ---------- Safe functions
+	function removeWhitelist(address _from, address _to) public onlyOwner {
+		whitelist[_from][_to] = false;
+	}
 
-    // ---------- Public methods
-    function getTokenPrice() public view returns (uint256 lsanPrice) {
-        uint totalExpense = maticPerByte * totalBytesStored;
-        uint timeSinceStart = block.timestamp - DEPLOYED_TIME;
-        uint totalExpensePerDay = (totalExpense / (timeSinceStart * 24 * 60 * 60 * 1000));
-        lsanPrice = totalExpensePerDay * multiplier;
-    }
+	function massAddWhitelist(address[] memory _fromAddresses, address[] memory _toAddresses) public onlyOwner {
+		require(_fromAddresses.length == _toAddresses.length, "LSAN: Invalid parameters for mass update");
+		for(uint256 i = 0; i < _fromAddresses.length; i ++){
+			addWhitelist(_fromAddresses[i], _toAddresses[i]);
+		}
+	}
 
-    function mint() public payable nonReentrant {
-        require(msg.value > minimumDeposit, "sent amount less than minimum amount");
-        require(maticPerByte > 0, "maticPerByte <= 0");
-        require(totalBytesStored > 0, "totalBytesStored <= 0");
+	function massRemoveWhitelist(address[] memory _fromAddresses, address[] memory _toAddresses) public onlyOwner {
+		require(_fromAddresses.length == _toAddresses.length, "LSAN: Invalid parameters for mass update");
+		for(uint256 i = 0; i < _fromAddresses.length; i ++){
+			removeWhitelist(_fromAddresses[i], _toAddresses[i]);
+		}
+	}
 
-        uint lsanPrice = getTokenPrice();
+	function withdraw(uint256 amount) public onlyOwner {
+		require(address(this).balance >= amount, "LSAN: Insufficient contract balance");
+		SAFE_ADDRESS.transfer(amount);
+	}
 
-        uint mintAmount = msg.value / lsanPrice;
+	function setWeiPerByte(uint256 _weiPerByte) public onlyOwner {
+		weiPerByte = _weiPerByte;
+	}
 
-        _mint(_msgSender(), mintAmount);
-    }
+	function setMultipler(uint256 _multiplier) public onlyOwner {
+		multiplier = _multiplier;
+	}
 
-    // ---------- Public methods
+	function setMinimumDeposit(uint _minimumDeposit) public onlyOwner {
+		minimumDeposit = _minimumDeposit;
+	}
 
-    // ---------- Override methods
-    function transfer(address _to, uint256 _amount) public override onlyWhitelistedFrom(_msgSender()) onlyWhitelistedTo(_to) returns (bool) {
-        address owner = _msgSender();
-        _transfer(owner, _to, _amount);
-        return true;
-    }
+	// ---------- Public methods
+	function price() public view returns (uint256) {
+		return weiPerByte * multiplier;
+	}
 
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 amount
-    ) public override onlyWhitelistedFrom(_from) onlyWhitelistedTo(_to) returns (bool) {
-        address spender = _msgSender();
-        _spendAllowance(_from, spender, amount);
-        _transfer(_from, _to, amount);
-        return true;
-    }
+	function mint() public payable nonReentrant {
+		require(msg.value >= weiPerByte, "LSAN: Amount less than a single byte");
+		require(msg.value >= minimumDeposit, "LSAN: Amount less than minimum deposit amount");
 
-    // ---------- Override methods
+		uint lsanPrice = price();
+
+		uint mintAmount = msg.value / lsanPrice;
+
+		_mint(_msgSender(), mintAmount);
+	}
+
+	function balance() public view returns (uint256) {
+		return address(this).balance;
+	}
+
+	function isPermitted(address _from, address _to) public view returns (bool) {
+		if(blacklist[_to]){
+			return whitelist[_from][_to];
+		}
+		return true;
+	}
+
+	// ---------- Override methods
+	function transfer(address _to, uint256 _amount) public override onlyPermitted(_msgSender(), _to) returns (bool) {
+		address owner = _msgSender();
+		_transfer(owner, _to, _amount);
+		return true;
+	}
+
+	function transferFrom(
+		address _from,
+		address _to,
+		uint256 amount
+	) public override onlyPermitted(_from, _to) returns (bool) {
+		address spender = _msgSender();
+		_spendAllowance(_from, spender, amount);
+		_transfer(_from, _to, amount);
+		return true;
+	}
 }
