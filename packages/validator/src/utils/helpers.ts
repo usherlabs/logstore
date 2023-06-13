@@ -19,41 +19,72 @@ export const parseStruct = (struct: [] | Record<string, unknown>) => {
 // Inspired by: https://medium.com/@hanyi.lol/how-to-get-a-block-number-by-timestamp-fefde4c69162
 export async function getClosestBlockByTime(
 	timestamp: number,
-	provider: Provider
+	provider: Provider,
+	startBlockNumber: number
 ) {
-	let maxBlockNumber = await provider.getBlockNumber();
-	let minBlockNumber = 0;
-	const maxBlock = await provider.getBlock(maxBlockNumber);
-	const maxBlockTs = maxBlock.timestamp;
-	if (timestamp >= maxBlockTs) {
-		return maxBlock;
-	} else {
-		minBlockNumber = Math.floor(
-			maxBlockNumber - ((maxBlockTs - timestamp) / maxBlockTs) * maxBlockNumber
-		);
+	// A special case when KYVE runtime generates the very first bundle with the key starting form 0.
+	if (timestamp === 0) {
+		return await provider.getBlock(0);
 	}
 
-	let closestBlockNumber = Math.floor((maxBlockNumber + minBlockNumber) / 2);
-	let closestBlock = await provider.getBlock(closestBlockNumber);
-	// let foundExactBlock = false;
+	// Maximum block variables
+	let maxBlockNumber = await provider.getBlockNumber();
+	let maxBlock = await provider.getBlock(maxBlockNumber);
+	let maxBlockTs = maxBlock.timestamp;
+	if (timestamp >= maxBlockTs) {
+		return maxBlock;
+	}
 
-	while (minBlockNumber <= maxBlockNumber) {
-		console.log(`checking blockNumber=${closestBlockNumber}...`);
-		const closestBlockTs = closestBlock.timestamp;
+	// Minimum block variables
+	let minBlockNumber = startBlockNumber;
+	let minBlock = await provider.getBlock(minBlockNumber);
+	let minBlockTs = minBlock.timestamp;
+
+	// Current block variables
+	let curBlockNumber;
+	let curBlock;
+
+	// Guessing function
+	const guess = async () => {
+		curBlockNumber =
+			minBlockNumber +
+			Math.floor(
+				(maxBlockNumber - minBlockNumber) *
+					((timestamp - minBlockTs) / (maxBlockTs - minBlockTs))
+			);
+
+		if (curBlockNumber < minBlockNumber) {
+			curBlockNumber = minBlockNumber;
+		}
+		if (curBlockNumber > maxBlockNumber) {
+			curBlockNumber = maxBlockNumber;
+		}
+
+		curBlock = await provider.getBlock(curBlockNumber);
+	};
+
+	// Main loop
+	await guess();
+	while (minBlockTs < timestamp && maxBlockTs > timestamp) {
+		console.log(`checking blockNumber=${curBlockNumber}...`);
+		const closestBlockTs = curBlock.timestamp;
 		if (closestBlockTs === timestamp) {
 			// foundExactBlock = true;
 			break;
 		} else if (closestBlockTs > timestamp) {
-			maxBlockNumber = closestBlockNumber - 1;
+			maxBlockNumber = curBlockNumber - 1;
+			maxBlock = await provider.getBlock(maxBlockNumber);
+			maxBlockTs = maxBlock.timestamp;
 		} else {
-			minBlockNumber = closestBlockNumber + 1;
+			minBlockNumber = curBlockNumber + 1;
+			minBlock = await provider.getBlock(minBlockNumber);
+			minBlockTs = minBlock.timestamp;
 		}
 
-		closestBlockNumber = Math.floor((maxBlockNumber + minBlockNumber) / 2);
-		closestBlock = await provider.getBlock(closestBlockNumber);
+		await guess();
 	}
 
-	return closestBlock;
+	return curBlock;
 }
 
 // go through all the responses recieved and verify using the content.hash property

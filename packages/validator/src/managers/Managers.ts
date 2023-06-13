@@ -14,6 +14,7 @@ import { StoreManager } from './StoreManager';
 
 export class Managers {
 	private provider: Provider;
+	private startBlockNumber: number;
 
 	public store: StoreManager;
 	public node: NodeManager;
@@ -34,6 +35,8 @@ export class Managers {
 		this.node = new NodeManager(cNode);
 		this.store = new StoreManager(cStore);
 		this.report = new ReportManager(cReport);
+
+		this.startBlockNumber = await this.node.getStartBlockNumber();
 	}
 
 	public async getBlockTime() {
@@ -43,8 +46,8 @@ export class Managers {
 	}
 
 	public async getBlockByTime(ts: number) {
-		const { provider } = this;
-		let block = await getClosestBlockByTime(ts, provider);
+		const { provider, startBlockNumber } = this;
+		let block = await getClosestBlockByTime(ts, provider, startBlockNumber);
 		if (ts !== block.timestamp) {
 			block = await provider.getBlock(block.number - 1);
 		}
