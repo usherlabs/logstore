@@ -80,7 +80,7 @@ const sendSuccess = (
 	streamId: string,
 	res: Response
 ) => {
-	data.once('data', () => {
+	data.once('readable', () => {
 		res.writeHead(200, {
 			'Content-Type': format.contentType,
 			Consensus: JSON.stringify(consensus),

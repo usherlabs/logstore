@@ -21,8 +21,6 @@ import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
 
 const logger = new Logger(module);
-const reportPrefix = 'report_'; // todo import directly from validator package?
-const VERSION = 1;
 const WAIT_TIME = 10 * 1000;
 const REPORT_TRESHOLD_MULTIPLIER = 0.5;
 
@@ -134,14 +132,10 @@ export class ReportPoller {
 		const unzippedJsonStringified = await decompressData(gzippedData);
 		const unzippedJson = JSON.parse(unzippedJsonStringified as string);
 
-		// filter all through and find the report, based on which key contains the report prefix
-		const reportJson = unzippedJson.find(({ key }: { key: string }) =>
-			key.includes(reportPrefix)
-		);
-
-		if (!reportJson) throw Error('Report not found in bundle');
-
-		return reportJson;
+		// get a report from the last item in the bundle
+		const reportJson = unzippedJson.at(-1);
+		if (!reportJson.value.report) throw Error('Report not found in bundle');
+		return reportJson.value.report;
 	}
 
 	// process the new report json provided
@@ -300,26 +294,18 @@ export class ReportPoller {
 			ethers.utils.arrayify(reportHash)
 		);
 		logger.info(`signed report:${signature}`);
-		// serialize and publish the [address,signature,hash] to the system stream
 
 		// publish the report to the system stream
-		const serializer = SystemMessage.getSerializer(
-			VERSION,
-			SystemMessageType.ProofOfReport
-		);
-		const serialisedReportMessage = serializer.toArray(
-			new ProofOfReport({
-				version: VERSION,
-				address: brokerAddress,
-				signature,
-				hash: reportHash,
-			})
-		);
+		const proofOfReport = new ProofOfReport({
+			address: brokerAddress,
+			signature,
+			hash: reportHash,
+		});
 		await this.logStoreClient.publish(
 			this.systemStream,
-			serialisedReportMessage
+			proofOfReport.serialize()
 		);
-		logger.info(`${serialisedReportMessage} published to system stream`);
+		logger.info(`${proofOfReport} published to system stream`);
 	}
 
 	async nodeCanSubmitReport(

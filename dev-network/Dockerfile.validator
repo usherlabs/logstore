@@ -1,0 +1,72 @@
+FROM node:18-buster
+
+RUN apt update
+RUN apt install -y libsecret-1-dev
+RUN mkdir /firstrun && chown node:node /firstrun
+RUN mkdir -p /home/node/cli && chown -R node:node /home/node/cli
+RUN mkdir -p /home/node/app && chown -R node:node /home/node/app
+
+RUN npm i -g pnpm
+
+USER node
+
+# Validator CLI
+
+WORKDIR /home/node/cli
+
+COPY --chown=node:node ./dev-network/assets/validator/cli/* ./
+RUN npm install
+
+# KYVE Validator
+
+WORKDIR /home/node/app
+
+COPY --chown=node:node ./package.json ./package.json
+COPY --chown=node:node ./pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --chown=node:node ./pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --chown=node:node ./packages/contracts/package.json ./packages/contracts/package.json
+COPY --chown=node:node ./packages/protocol/package.json ./packages/protocol/package.json
+COPY --chown=node:node ./packages/shared/package.json ./packages/shared/package.json
+COPY --chown=node:node ./packages/client/package.json ./packages/client/package.json
+COPY --chown=node:node ./packages/cli/package.json ./packages/cli/package.json
+COPY --chown=node:node ./packages/validator/package.json ./packages/validator/package.json
+COPY --chown=node:node ./node_artifacts/ ./node_artifacts/
+COPY --chown=node:node ./tsconfig.node.json ./tsconfig.node.json
+
+RUN pnpm install
+
+WORKDIR /home/node/app/packages/contracts
+COPY --chown=node:node ./packages/contracts ./
+RUN cp .env.dev-network .env
+RUN npx hardhat compile
+RUN pnpm types
+
+WORKDIR /home/node/app/packages/protocol
+COPY --chown=node:node ./packages/protocol ./
+RUN pnpm build
+
+WORKDIR /home/node/app/packages/shared
+COPY --chown=node:node ./packages/shared ./
+RUN pnpm build
+
+WORKDIR /home/node/app/packages/client
+COPY --chown=node:node ./packages/client ./
+RUN pnpm build
+
+WORKDIR /home/node/app/packages/cli
+COPY --chown=node:node ./packages/cli ./
+RUN pnpm build
+
+WORKDIR /home/node/app/packages/validator
+COPY --chown=node:node ./packages/validator ./
+RUN pnpm build
+
+# install logstore-validator globally
+USER root
+RUN npm i -g /home/node/app/packages/cli
+RUN npm i -g /home/node/app/packages/validator
+
+USER node
+WORKDIR /home/node
+
+CMD [ "start-in-docker" ]

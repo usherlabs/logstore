@@ -118,28 +118,38 @@ program
 				'-u, --usd',
 				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
 			)
-			.action(async (amt: string, cmdOptions: { usd: boolean }) => {
-				const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
-				logger.debug('Command Params: ', { amount, ...options, ...cmdOptions });
-
-				try {
-					const provider = new ethers.providers.JsonRpcProvider(options.host);
-					const signer = new ethers.Wallet(options.wallet, provider);
-					const stakeAmount = await prepareStakeForQueryManager(
-						signer,
+			.option('-y, --assume-yes', 'Assume Yes to all queries and do not prompt')
+			.action(
+				async (
+					amt: string,
+					cmdOptions: { usd: boolean; assumeYes: boolean }
+				) => {
+					const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
+					logger.debug('Command Params: ', {
 						amount,
-						cmdOptions.usd,
-						allowanceConfirm
-					);
-					const queryManagerContract = await getQueryManagerContract(signer);
-					logger.info(`Staking ${stakeAmount}...`);
-					await (await queryManagerContract.stake(stakeAmount)).wait();
-					logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
-				} catch (e) {
-					logger.info(chalk.red('Stake failed'));
-					logger.error(e);
+						...options,
+						...cmdOptions,
+					});
+
+					try {
+						const provider = new ethers.providers.JsonRpcProvider(options.host);
+						const signer = new ethers.Wallet(options.wallet, provider);
+						const stakeAmount = await prepareStakeForQueryManager(
+							signer,
+							amount,
+							cmdOptions.usd,
+							!cmdOptions.assumeYes ? allowanceConfirm : undefined
+						);
+						const queryManagerContract = await getQueryManagerContract(signer);
+						logger.info(`Staking ${stakeAmount}...`);
+						await (await queryManagerContract.stake(stakeAmount)).wait();
+						logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
+					} catch (e) {
+						logger.info(chalk.red('Stake failed'));
+						logger.error(e);
+					}
 				}
-			})
+			)
 	);
 
 program
@@ -160,8 +170,13 @@ program
 				'-u, --usd',
 				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
 			)
+			.option('-y, --assume-yes', 'Assume Yes to all queries and do not prompt')
 			.action(
-				async (streamId: string, amt: string, cmdOptions: { usd: boolean }) => {
+				async (
+					streamId: string,
+					amt: string,
+					cmdOptions: { usd: boolean; assumeYes: boolean }
+				) => {
 					const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
 					if (!streamId) {
 						throw new Error('Stream ID is invalid');
@@ -181,7 +196,7 @@ program
 							signer,
 							amount,
 							cmdOptions.usd,
-							allowanceConfirm
+							!cmdOptions.assumeYes ? allowanceConfirm : undefined
 						);
 						const storeManagerContract = await getStoreManagerContract(signer);
 						logger.info(`Staking ${stakeAmount}...`);

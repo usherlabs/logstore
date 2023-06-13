@@ -36,6 +36,12 @@ export class Managers {
 		this.report = new ReportManager(cReport);
 	}
 
+	public async getBlockTime() {
+		const blockNumber = await this.provider.getBlockNumber();
+		const block = await this.provider.getBlock(blockNumber);
+		return block.timestamp;
+	}
+
 	public async getBlockByTime(ts: number) {
 		const { provider } = this;
 		let block = await getClosestBlockByTime(ts, provider);

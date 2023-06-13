@@ -1,0 +1,254 @@
+---
+version: "3.8"
+services:
+    init-keyspace-logstore:
+        container_name: logstore-dev-init-keyspace
+        image: cassandra:3.11.5
+        init: true
+        networks:
+            - streamr-network
+        command: bash -c "sleep 5 && cqlsh cassandra -f /init_scripts/keyspace.cql && echo keyspace initialized"
+        restart: on-failure # exits on success
+        volumes:
+            - type: bind
+              source: ./assets/cassandra
+              target: /init_scripts
+              read_only: true
+              bind:
+                  propagation: rprivate
+
+    deploy-logstore-contracts:
+        container_name: logstore-dev-deploy-logstore-contracts
+        image: deploy-logstore-contracts
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.contracts
+        restart: on-failure # exits on success
+        networks:
+            - streamr-network
+        volumes:
+            - type: volume
+              source: data-deploy-logstore-contracts
+              target: /firstrun
+              volume:
+                  nocopy: false
+
+    deploy-logstore-subgraph:
+        container_name: logstore-dev-deploy-logstore-subgraph
+        image: deploy-logstore-subgraph
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.subgraph
+        restart: on-failure # exits on success
+        networks:
+            - streamr-network
+        volumes:
+            - type: volume
+              source: data-deploy-logstore-subgraph
+              target: /firstrun
+              volume:
+                  nocopy: false
+
+    logstore-nginx:
+        container_name: logstore-nginx
+        hostname: logstore-nginx
+        image: logstore-nginx
+        build:
+            dockerfile: ./Dockerfile.nginx
+        restart: always        
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8801:8801"
+            - "1317:1317"
+            - "26657:26657"
+        networks:
+            streamr-network:
+                aliases:
+                    - arweave.net
+                    - sidechain
+
+    logstore-arweave:
+        container_name: logstore-arweave
+        hostname: logstore-arweave
+        image: logstore-arweave
+        build:
+            dockerfile: ./Dockerfile.arweave
+        restart: always
+        ports:
+            - "1984:1984"
+        networks:
+            - streamr-network
+
+    logstore-kyve:
+        container_name: logstore-kyve
+        hostname: logstore-kyve
+        image: logstore-kyve
+        build:
+            dockerfile: ./Dockerfile.kyve
+        restart: always
+        networks:
+            - streamr-network
+
+    logstore-broker-1:
+        container_name: logstore-broker-1
+        hostname: logstore-broker-1
+        image: logstore-broker
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.broker
+        restart: always
+        ports:
+            - "7771:7771"
+        networks:
+            - streamr-network
+        volumes:
+            - type: bind
+              source: ./assets/broker/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
+            - type: bind
+              source: ../packages/broker/configs/docker-1.env.json
+              target: /home/node/.logstore/config/default.json
+        environment:
+            BROKER_METADATA: "{ \"http\": \"http://logstore-broker-1:7771\" }"
+        depends_on:
+            deploy-logstore-subgraph:
+                condition: service_completed_successfully
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+
+    logstore-broker-2:
+        container_name: logstore-broker-2
+        hostname: logstore-broker-2
+        image: logstore-broker
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.broker
+        restart: always
+        ports:
+            - "7772:7772"
+        networks:
+            - streamr-network
+        volumes:
+            - type: bind
+              source: ./assets/broker/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
+            - type: bind
+              source: ../packages/broker/configs/docker-2.env.json
+              target: /home/node/.logstore/config/default.json
+        environment:
+            BROKER_METADATA: "{ \"http\": \"http://logstore-broker-2:7772\" }"
+        depends_on:
+            deploy-logstore-subgraph:
+                condition: service_completed_successfully
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+
+    logstore-broker-3:
+        container_name: logstore-broker-3
+        hostname: logstore-broker-3
+        image: logstore-broker
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.broker
+        restart: always
+        ports:
+            - "7773:7773"
+        networks:
+            - streamr-network
+        volumes:
+            - type: bind
+              source: ./assets/broker/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
+            - type: bind
+              source: ../packages/broker/configs/docker-3.env.json
+              target: /home/node/.logstore/config/default.json
+        environment:
+            BROKER_METADATA: "{ \"http\": \"http://logstore-broker-3:7773\" }"
+        depends_on:
+            deploy-logstore-subgraph:
+                condition: service_completed_successfully
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+
+    logstore-validator-1:
+        container_name: logstore-validator-1
+        hostname: logstore-validator-1
+        image: logstore-validator
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.validator
+        restart: always
+        networks:
+            - streamr-network
+        volumes:
+            - type: bind
+              source: ./assets/validator/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
+        env_file:
+            - ./assets/validator/.env.validator-1
+        depends_on:
+            logstore-kyve:
+                condition: service_started
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+            logstore-broker-1:
+                condition: service_started
+
+    logstore-validator-2:
+        container_name: logstore-validator-2
+        hostname: logstore-validator-2
+        image: logstore-validator
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.validator
+        restart: always
+        networks:
+            - streamr-network
+        volumes:
+            - type: bind
+              source: ./assets/validator/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
+        env_file:
+            - ./assets/validator/.env.validator-2
+        depends_on:
+            logstore-kyve:
+                condition: service_started
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+            logstore-broker-2:
+                condition: service_started
+
+    logstore-validator-3:
+        container_name: logstore-validator-3
+        hostname: logstore-validator-3
+        image: logstore-validator
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.validator
+        restart: always
+        networks:
+            - streamr-network
+        volumes:
+            - type: bind
+              source: ./assets/validator/start-in-docker.sh
+              target: /usr/local/bin/start-in-docker
+        env_file:
+            - ./assets/validator/.env.validator-3
+        depends_on:
+            logstore-kyve:
+                condition: service_started
+            deploy-logstore-contracts:
+                condition: service_completed_successfully
+            logstore-broker-3:
+                condition: service_started
+
+networks:
+    streamr-network:
+        name: streamr-docker-dev_streamr-network
+        external: true
+
+volumes:
+    cassandra_init_scripts:
+    data-deploy-logstore-contracts:
+    data-deploy-logstore-subgraph:

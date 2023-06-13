@@ -131,10 +131,13 @@ async function main() {
 		const MINT_AMOUNT = '1000000000000000000000000';
 		const ACCOUNT_PK_PREFIX = '';
 		const BROKER_PK_PREFIX = 'bb';
+		const VALIDATOR_PK_PREFIX = 'cc';
 		const NUM_ACCOUNTS = 100;
 		const NUM_BROKERS = 3;
+		const NUM_VALIDATORS = 3;
 		const NUM_ACCOUNTS_IN_BATCH = 100;
 
+		console.log();
 		console.log(`Minting LSAN to 10 Streamr developer accounts`);
 		console.log(`Minting...`);
 		wallets.push(
@@ -152,6 +155,7 @@ async function main() {
 		await (await token.mintManyTokens(wallets, MINT_AMOUNT)).wait();
 		wallets.splice(0);
 
+		console.log();
 		console.log(
 			`Minting LSAN to ${NUM_ACCOUNTS} test accounts with Primary Keys:`
 		);
@@ -175,6 +179,9 @@ async function main() {
 			}
 		}
 
+		const [signer] = await hre.ethers.getSigners();
+
+		console.log();
 		console.log(
 			`Minting native token and LSAN to ${NUM_BROKERS} broker accounts with Primary Keys:`
 		);
@@ -197,9 +204,56 @@ async function main() {
 				accountIndex === NUM_BROKERS ||
 				wallets.length === NUM_ACCOUNTS_IN_BATCH
 			) {
+				const mintTx = await token.mintManyTokens(wallets, MINT_AMOUNT);
+				await mintTx.wait();
+				console.log(
+					`Minted to ${accountIndex} accounts out of ${NUM_BROKERS}`,
+					{ tx: mintTx.hash }
+				);
+
+				const whitelistTx =
+					await tokenManagerContract.functions.massAddWhitelist(
+						wallets,
+						wallets.map((_) => nodeManagerAddress)
+					);
+				await whitelistTx.wait();
+				console.log(
+					`Whitelisted ${accountIndex} accounts out of ${NUM_BROKERS}`,
+					{ tx: whitelistTx.hash }
+				);
+
+				wallets.splice(0);
+			}
+		}
+
+		console.log();
+		console.log(
+			`Minting native token and LSAN to ${NUM_VALIDATORS} validator accounts with Primary Keys:`
+		);
+		console.log('from: ', createPK(1, VALIDATOR_PK_PREFIX));
+		console.log('to: ', createPK(NUM_VALIDATORS, VALIDATOR_PK_PREFIX));
+		console.log(`Minting...`);
+		for (let accountIndex = 1; accountIndex <= NUM_VALIDATORS; accountIndex++) {
+			const privkey = createPK(accountIndex, VALIDATOR_PK_PREFIX);
+			const address = new Wallet(privkey).address;
+			wallets.push(address);
+
+			const tx = {
+				to: address,
+				value: hre.ethers.utils.parseEther('1'),
+			};
+			await (await signer.sendTransaction(tx)).wait();
+
+			// Call mintManyTokens with batches to speed up the process and not exceed the gas limit.
+			if (
+				accountIndex === NUM_VALIDATORS ||
+				wallets.length === NUM_ACCOUNTS_IN_BATCH
+			) {
 				await (await token.mintManyTokens(wallets, MINT_AMOUNT)).wait();
 				wallets.splice(0);
-				console.log(`Minted to ${accountIndex} accounts out of ${NUM_BROKERS}`);
+				console.log(
+					`Minted to ${accountIndex} accounts out of ${NUM_VALIDATORS}`
+				);
 			}
 		}
 	}
@@ -235,6 +289,8 @@ async function main() {
 		[nodeManagerAddress, nodeManagerAddress]
 	);
 	await whitelistTx.wait();
+
+	console.log();
 	console.log(`tokenManagerAddress blacklist/whitelist updated`, {
 		blacklistTx: blacklistTx.hash,
 		whitelistTx: whitelistTx.hash,

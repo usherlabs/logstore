@@ -13,7 +13,6 @@ export interface IRuntimeExtended extends IRuntime {
 export interface IConfig {
 	systemStreamId: string;
 	sources: string[];
-	itemTimeRange: number; // Some range in unix time between each data item
 	fees: {
 		writeMultiplier: number;
 		treasuryMultiplier: number;
