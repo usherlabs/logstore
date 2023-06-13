@@ -122,9 +122,11 @@ export default class Runtime implements IRuntimeExtended {
 		core.logger.info(`Create Report: ${lastItem.key}`);
 		const report = new Report(core, this.listener, this.config, lastItem.key);
 		await report.prepare();
-		lastItem.value.report = await report.generate();
+		const report_data = await report.generate();
+		const report_hash = sha256(Buffer.from(JSON.stringify(report_data)));
 
-		return lastItem.key;
+		lastItem.value.report = report_data;
+		return lastItem.key + '_' + report_hash;
 	}
 
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
