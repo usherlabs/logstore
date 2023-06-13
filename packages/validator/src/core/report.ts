@@ -244,7 +244,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			return totalBytes;
 		}, 0);
 		const expensePerByteStored = await Arweave.getPrice(totalBytesStored);
-		const writeFee = (fees.writeMultiplier + 1) * expensePerByteStored;
+		const writeFee = fees.writeMultiplier * expensePerByteStored;
 		const writeTreasuryFee =
 			fees.treasuryMultiplier * (writeFee - expensePerByteStored); // multiplier on the margin
 		const writeNodeFee = writeFee - writeTreasuryFee;
@@ -278,7 +278,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		});
 
 		// Determine read fees
-		const { read: readFee } = fees;
+		const readFee = fees.readMultiplier * (writeFee / totalBytesStored);
 		const readTreasuryFee = readFee * fees.treasuryMultiplier;
 		const readNodeFee = readFee - readTreasuryFee;
 
