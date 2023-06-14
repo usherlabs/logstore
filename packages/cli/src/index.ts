@@ -2,7 +2,7 @@ import {
 	convertFromUsd,
 	getQueryManagerContract,
 	getStoreManagerContract,
-	getTokenManagercontract,
+	getTokenManagerContract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
@@ -78,7 +78,7 @@ program
 					const provider = new ethers.providers.JsonRpcProvider(options.host);
 					const signer = new ethers.Wallet(options.wallet, provider);
 
-					const tokenManagerContract = await getTokenManagercontract(signer);
+					const tokenManagerContract = await getTokenManagerContract(signer);
 
 					let amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
 

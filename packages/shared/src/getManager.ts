@@ -8,7 +8,7 @@ import {
 	LogStoreReportManager,
 	LogStoreReportManager__factory,
 	LSAN,
-  LSAN__factory
+	LSAN__factory,
 } from '@logsn/contracts';
 import ContractAddresses from '@logsn/contracts/address.json';
 import { providers, Signer, Wallet } from 'ethers';
@@ -49,7 +49,7 @@ export async function getReportManagerContract(wallet: Wallet) {
 	)) as LogStoreReportManager;
 }
 
-export async function getTokenManagercontract(wallet: Wallet) {
+export async function getTokenManagerContract(wallet: Wallet) {
 	return (await getManagerContract(wallet, Manager.TokenManager)) as LSAN;
 }
 

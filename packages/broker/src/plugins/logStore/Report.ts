@@ -134,8 +134,8 @@ export class ReportPoller {
 
 		// get a report from the last item in the bundle
 		const reportJson = unzippedJson.at(-1);
-		if (!reportJson.value.report) throw Error('Report not found in bundle');
-		return reportJson.value.report;
+		if (!reportJson.value.r) throw Error('Report not found in bundle');
+		return reportJson.value.r;
 	}
 
 	// process the new report json provided

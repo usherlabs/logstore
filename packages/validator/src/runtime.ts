@@ -84,7 +84,7 @@ export default class Runtime implements IRuntimeExtended {
 
 		return {
 			key,
-			value: { messages },
+			value: { m: messages },
 		};
 	}
 
@@ -105,10 +105,10 @@ export default class Runtime implements IRuntimeExtended {
 		validationDataItem: DataItem
 	): Promise<boolean> {
 		const proposedDataItemHash = sha256(
-			Buffer.from(JSON.stringify(proposedDataItem.value.messages))
+			Buffer.from(JSON.stringify(proposedDataItem.value.m))
 		);
 		const validationDataItemHash = sha256(
-			Buffer.from(JSON.stringify(validationDataItem.value.messages))
+			Buffer.from(JSON.stringify(validationDataItem.value.m))
 		);
 
 		return proposedDataItemHash === validationDataItemHash;
@@ -125,7 +125,7 @@ export default class Runtime implements IRuntimeExtended {
 		const report_data = await report.generate();
 		const report_hash = sha256(Buffer.from(JSON.stringify(report_data)));
 
-		lastItem.value.report = report_data;
+		lastItem.value.r = report_data;
 		return lastItem.key + '_' + report_hash;
 	}
 
