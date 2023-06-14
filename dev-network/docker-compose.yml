@@ -1,8 +1,9 @@
 ---
 version: "3.8"
 services:
-    init-keyspace-logstore:
-        container_name: logstore-dev-init-keyspace
+
+    logstore-init-keyspace:
+        container_name: logstore-init-keyspace
         image: cassandra:3.11.5
         init: true
         networks:
@@ -16,57 +17,6 @@ services:
               read_only: true
               bind:
                   propagation: rprivate
-
-    deploy-logstore-contracts:
-        container_name: logstore-dev-deploy-logstore-contracts
-        image: deploy-logstore-contracts
-        build:
-            context: ../
-            dockerfile: ./dev-network/Dockerfile.contracts
-        restart: on-failure # exits on success
-        networks:
-            - streamr-network
-        volumes:
-            - type: volume
-              source: data-deploy-logstore-contracts
-              target: /firstrun
-              volume:
-                  nocopy: false
-
-    deploy-logstore-subgraph:
-        container_name: logstore-dev-deploy-logstore-subgraph
-        image: deploy-logstore-subgraph
-        build:
-            context: ../
-            dockerfile: ./dev-network/Dockerfile.subgraph
-        restart: on-failure # exits on success
-        networks:
-            - streamr-network
-        volumes:
-            - type: volume
-              source: data-deploy-logstore-subgraph
-              target: /firstrun
-              volume:
-                  nocopy: false
-
-    logstore-nginx:
-        container_name: logstore-nginx
-        hostname: logstore-nginx
-        image: logstore-nginx
-        build:
-            dockerfile: ./Dockerfile.nginx
-        restart: always        
-        ports:
-            - "80:80"
-            - "443:443"
-            - "8801:8801"
-            - "1317:1317"
-            - "26657:26657"
-        networks:
-            streamr-network:
-                aliases:
-                    - arweave.net
-                    - sidechain
 
     logstore-arweave:
         container_name: logstore-arweave
@@ -90,6 +40,72 @@ services:
         networks:
             - streamr-network
 
+    logstore-nginx:
+        container_name: logstore-nginx
+        hostname: logstore-nginx
+        image: logstore-nginx
+        build:
+            dockerfile: ./Dockerfile.nginx
+        restart: always        
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8801:8801"
+            - "1317:1317"
+            - "26657:26657"
+        networks:
+            streamr-network:
+                aliases:
+                    - arweave.net
+                    - sidechain
+        depends_on:
+            - logstore-arweave
+            - logstore-kyve
+
+    logstore-base:
+        container_name: logstore-base
+        image: logstore-base
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.base
+
+    logstore-deploy-contracts:
+        container_name: logstore-deploy-contracts
+        image: logstore-deploy-contracts
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.contracts
+        restart: on-failure # exits on success
+        networks:
+            - streamr-network
+        volumes:
+            - type: volume
+              source: data-logstore-deploy-contracts
+              target: /firstrun
+              volume:
+                  nocopy: false
+        depends_on:
+            - logstore-base
+            - logstore-nginx
+
+    logstore-deploy-subgraph:
+        container_name: logstore-deploy-subgraph
+        image: logstore-deploy-subgraph
+        build:
+            context: ../
+            dockerfile: ./dev-network/Dockerfile.subgraph
+        restart: on-failure # exits on success
+        networks:
+            - streamr-network
+        volumes:
+            - type: volume
+              source: data-logstore-deploy-subgraph
+              target: /firstrun
+              volume:
+                  nocopy: false
+        depends_on:
+            - logstore-base
+
     logstore-broker-1:
         container_name: logstore-broker-1
         hostname: logstore-broker-1
@@ -112,9 +128,11 @@ services:
         environment:
             BROKER_METADATA: "{ \"http\": \"http://logstore-broker-1:7771\" }"
         depends_on:
-            deploy-logstore-subgraph:
+            logstore-base:
                 condition: service_completed_successfully
-            deploy-logstore-contracts:
+            logstore-deploy-subgraph:
+                condition: service_completed_successfully
+            logstore-deploy-contracts:
                 condition: service_completed_successfully
 
     logstore-broker-2:
@@ -139,9 +157,11 @@ services:
         environment:
             BROKER_METADATA: "{ \"http\": \"http://logstore-broker-2:7772\" }"
         depends_on:
-            deploy-logstore-subgraph:
+            logstore-base:
                 condition: service_completed_successfully
-            deploy-logstore-contracts:
+            logstore-deploy-subgraph:
+                condition: service_completed_successfully
+            logstore-deploy-contracts:
                 condition: service_completed_successfully
 
     logstore-broker-3:
@@ -166,9 +186,11 @@ services:
         environment:
             BROKER_METADATA: "{ \"http\": \"http://logstore-broker-3:7773\" }"
         depends_on:
-            deploy-logstore-subgraph:
+            logstore-base:
                 condition: service_completed_successfully
-            deploy-logstore-contracts:
+            logstore-deploy-subgraph:
+                condition: service_completed_successfully
+            logstore-deploy-contracts:
                 condition: service_completed_successfully
 
     logstore-validator-1:
@@ -188,9 +210,11 @@ services:
         env_file:
             - ./assets/validator/.env.validator-1
         depends_on:
+            logstore-base:
+                condition: service_completed_successfully
             logstore-kyve:
                 condition: service_started
-            deploy-logstore-contracts:
+            logstore-deploy-contracts:
                 condition: service_completed_successfully
             logstore-broker-1:
                 condition: service_started
@@ -212,9 +236,11 @@ services:
         env_file:
             - ./assets/validator/.env.validator-2
         depends_on:
+            logstore-base:
+                condition: service_completed_successfully
             logstore-kyve:
                 condition: service_started
-            deploy-logstore-contracts:
+            logstore-deploy-contracts:
                 condition: service_completed_successfully
             logstore-broker-2:
                 condition: service_started
@@ -236,9 +262,11 @@ services:
         env_file:
             - ./assets/validator/.env.validator-3
         depends_on:
+            logstore-base:
+                condition: service_completed_successfully
             logstore-kyve:
                 condition: service_started
-            deploy-logstore-contracts:
+            logstore-deploy-contracts:
                 condition: service_completed_successfully
             logstore-broker-3:
                 condition: service_started
@@ -250,5 +278,5 @@ networks:
 
 volumes:
     cassandra_init_scripts:
-    data-deploy-logstore-contracts:
-    data-deploy-logstore-subgraph:
+    data-logstore-deploy-contracts:
+    data-logstore-deploy-subgraph:
