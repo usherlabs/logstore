@@ -5,8 +5,9 @@ source $DEV_NETWORK_SCRIPTS_DIR/config_load.sh
 printf "
 Connecting to the DevNetwork...
 
-\thttp://localhost:80\tStreamr APP
-\thttp://localhost:8801\tKYVE APP
+\thttp://localhost:80\t\t\tStreamr APP
+\thttp://localhost:8801/#/pools/0/\tKYVE APP - Log Store pull
+\thttp://localhost:8802\t\t\tEVM Explorer
 
 Keep the script running.
 Hit [Ctrl+C] to abort.
@@ -24,6 +25,7 @@ $SSH \
   -L 7773:localhost:7773 \
   -L 8000:localhost:8000 \
   -L 8081:localhost:8081 \
+  -L 8082:localhost:8081 \
   -L 8545:localhost:8545 \
   -L 8546:localhost:8546 \
   -L 8801:localhost:8801 \

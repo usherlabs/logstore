@@ -62,6 +62,19 @@ services:
             - logstore-arweave
             - logstore-kyve
 
+    logstore-evm-explorer:
+        image: appliedblockchain/b-explorer
+        container_name: logstore-evm-explorer
+        ports:
+            - 8802:3000
+        environment:
+            - ETHEREUM_JSONRPC_ENDPOINT=http://sidechain:8546/
+            - CONFIG_FILE_PATH=/home/explorer/app/config.json
+        networks:
+            - streamr-network
+        volumes:
+            - ./assets/evm-explorer/config.json:/home/explorer/app/config.json:ro
+
     logstore-base:
         container_name: logstore-base
         image: logstore-base
