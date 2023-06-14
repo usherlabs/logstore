@@ -4,14 +4,12 @@ export {
 	getQueryManagerContract,
 	getStoreManagerContract,
 	getReportManagerContract,
-	getTokenManagercontract,
+	getTokenManagerContract,
 } from './getManager';
 export {
 	prepareStakeForNodeManager,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from './prepareStake';
-export {
-	getTokenPrice
-} from './getTokenPrice';
+export { getTokenPrice } from './getTokenPrice';
 export { convertFromUsd } from './convertFromUsd';
