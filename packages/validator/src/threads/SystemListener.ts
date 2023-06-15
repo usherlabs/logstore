@@ -43,8 +43,8 @@ export class SystemListener {
 	private _startTime: number;
 
 	constructor(
-		protected systemStreamId: string,
 		homeDir: string,
+		protected systemStreamId: string,
 		protected logger: Logger
 	) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};

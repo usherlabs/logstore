@@ -18,7 +18,7 @@ export class Item extends AbstractDataItem<IPrepared> {
 		const { core, key } = this;
 
 		const toKey = parseInt(key, 10);
-		const block = await managers.getBlockByTime(toKey);
+		const block = await this.runtime.time.find(toKey);
 		core.logger.debug('produceItem:', {
 			isMaxBlock: toKey >= block.timestamp,
 			blockTs: block.timestamp,
@@ -45,7 +45,7 @@ export class Item extends AbstractDataItem<IPrepared> {
 		const messages = [];
 		for (let i = 0; i < stores.length; i++) {
 			const store = stores[i];
-			const resp = await this.listener.client.query(
+			const resp = await this.runtime.listener.client.query(
 				{
 					id: store.id,
 				},

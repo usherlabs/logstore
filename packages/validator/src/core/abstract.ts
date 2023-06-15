@@ -1,6 +1,5 @@
 import { Managers } from '../managers';
-import type { SystemListener } from '../threads';
-import type { IConfig } from '../types';
+import type { IConfig, IRuntimeExtended } from '../types';
 import type Validator from '../validator';
 
 export abstract class AbstractDataItem<IPrepared> {
@@ -8,7 +7,7 @@ export abstract class AbstractDataItem<IPrepared> {
 
 	constructor(
 		protected core: Validator,
-		protected listener: SystemListener,
+		protected runtime: IRuntimeExtended,
 		protected config: IConfig,
 		protected key: string
 	) {}

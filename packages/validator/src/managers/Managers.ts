@@ -7,15 +7,12 @@ import {
 } from '@logsn/shared';
 
 import { getEvmPrivateKey } from '../env-config';
-import { IConfig } from '../types';
-import { getClosestBlockByTime } from '../utils/helpers';
 import { NodeManager } from './NodeManager';
 import { ReportManager } from './ReportManager';
 import { StoreManager } from './StoreManager';
 
 export class Managers {
 	private _provider: Provider;
-	private startBlockNumber: number;
 
 	public store: StoreManager;
 	public node: NodeManager;
@@ -40,23 +37,6 @@ export class Managers {
 		this.node = new NodeManager(cNode);
 		this.store = new StoreManager(cStore);
 		this.report = new ReportManager(cReport);
-
-		this.startBlockNumber = await this.node.getStartBlockNumber();
-	}
-
-	public async getBlockTime() {
-		const blockNumber = await this.provider.getBlockNumber();
-		const block = await this.provider.getBlock(blockNumber);
-		return block.timestamp;
-	}
-
-	public async getBlockByTime(ts: number) {
-		const { provider, startBlockNumber } = this;
-		let block = await getClosestBlockByTime(ts, provider, startBlockNumber);
-		if (ts !== block.timestamp) {
-			block = await provider.getBlock(block.number - 1);
-		}
-		return block;
 	}
 
 	public async getBlock(blockNumber: number) {

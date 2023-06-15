@@ -6,11 +6,9 @@ import { Item } from './core/item';
 import { Report } from './core/report';
 import { appPackageName, appVersion } from './env-config';
 import { Managers } from './managers';
-import { SystemListener } from './threads';
+import { SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
-
-const VALIDATOR_DELAY = 10 * 60; // There should be an arbitrary delay between the Validators and the Broker Network // TODO: This should be the latest indexed block instead
 
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
@@ -25,16 +23,20 @@ export default class Runtime implements IRuntimeExtended {
 		},
 	};
 	public listener: SystemListener;
+	public time: TimeIndexer;
 
 	async setupThreads(core: Validator, homeDir: string) {
+		this.time = new TimeIndexer(homeDir, this.config, core.logger);
 		this.listener = new SystemListener(
-			this.config.systemStreamId,
 			homeDir,
+			this.config.systemStreamId,
 			core.logger
 		);
 
-		// eslint-disable-next-line
+		/* eslint-disable */
 		this.listener.start();
+		this.time.start();
+		/* eslint-enable */
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {
@@ -70,19 +72,16 @@ export default class Runtime implements IRuntimeExtended {
 
 	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
+		// Ensure that the Time Index is ready
+		await this.time.ready();
+
 		const keyInt = parseInt(key, 10);
 
-		const blockTime = await Managers.withSources<number>(
-			this.config.sources,
-			(managers) => {
-				return managers.getBlockTime();
-			}
-		);
-		if (keyInt > blockTime * VALIDATOR_DELAY) {
+		if (keyInt > this.time.latestTimestamp) {
 			return null;
 		}
 
-		const item = new Item(core, this.listener, this.config, key);
+		const item = new Item(core, this, this.config, key);
 		await item.prepare();
 		const messages = await item.generate();
 
@@ -124,7 +123,7 @@ export default class Runtime implements IRuntimeExtended {
 	): Promise<string> {
 		const lastItem = bundle.at(-1);
 		core.logger.info(`Create Report: ${lastItem.key}`);
-		const report = new Report(core, this.listener, this.config, lastItem.key);
+		const report = new Report(core, this, this.config, lastItem.key);
 		await report.prepare();
 		const reportData = await report.generate();
 		const reportHash = sha256(Buffer.from(JSON.stringify(reportData)));

@@ -36,7 +36,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// We do this by using the key (timestamp) to determine the most relevant block
 		// ? We need to get the closest block because it may not be the most recent block...
 		core.logger.debug('getBlockByTime...');
-		const block = await managers.getBlockByTime(toKey);
+		const block = await this.runtime.time.find(toKey);
 		const blockNumber = block.number;
 		core.logger.debug('Block Number: ', {
 			blockNumber,
@@ -66,7 +66,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		const {
 			core,
-			listener,
+			runtime: { listener },
 			key,
 			config: { fees },
 		} = this;
