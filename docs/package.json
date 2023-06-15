@@ -4,7 +4,6 @@
 	"private": false,
 	"scripts": {
 		"install": "pnpm i .",
-		"docusaurus": "docusaurus",
 		"start": "docusaurus start",
 		"build": "docusaurus build",
 		"swizzle": "docusaurus swizzle",
