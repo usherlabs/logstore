@@ -11,7 +11,7 @@ AlphaNet is an integral part of the LogStore ecosystem, deployed on the Polygon 
 
 To interact with AlphaNet, you will need to follow a simple set of instructions. First, you must acquire LSAN tokens — a custom token developed exclusively for the LogStore AlphaNet. These tokens facilitate transactions within the network and can be obtained by depositing MATIC into the LogStore AlphaNet Smart Contract.
 
-[Learn how to mint LSAN with our CLI  →](../cli/getting-started)
+[Learn how to mint LSAN with our CLI  →](../cli/getting-started.md)
 
 
 ### Roadmap to BetaNet & MainNet

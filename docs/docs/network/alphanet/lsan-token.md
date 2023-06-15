@@ -11,7 +11,7 @@ The LSAN token, an ERC20 token exclusively developed for the LogStore AlphaNet, 
 
 Participants can acquire LSAN tokens by depositing MATIC into the LogStore AlphaNet Smart Contract. The number of LSAN tokens credited is not directly translated but is calculated automatically based on the network's storage costs. This dynamic pricing model ensures that the participants compensate the network accurately for the data services utilized. In essence, this process is the "minting" of LSAN tokens.
 
-[Learn how to mint LSAN with our CLI  →](../cli/getting-started)
+[Learn how to mint LSAN with our CLI  →](../cli/getting-started.md)
 
 
 ## Transacting with LSAN Tokens
