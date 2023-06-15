@@ -14,7 +14,7 @@ paths:
         /streams/{id}/data/partitions/{partition}/{queryType}
         ```
 
-        The **Retrieve Data** endpoint fetches data from a specific stream partition using three types of queries: **`last`**, **`from`**, **`range`**. The exact data returned can be customized using query parameters:
+        The **Retrieve Data** endpoint fetches data from a specific stream partition using three types of queries: **`last`**, **`from`**, **`range`**. The endpoint returns a stream of data, which can be processed in real-time or piece-by-piece, rather than all at once.
 
         - **`format`** to specify response data format, which can be **`protocol`**, **`object`**, or **`raw`**.
         - **`version`** to define the version of the data to retrieve.
@@ -92,24 +92,25 @@ paths:
           description: The ID of the message chain (only for 'range' query type when `publisherId` is given).
       responses:
         '200':
-          description: A successful operation will return the requested data. The structure of the response will depend on the specified format and query parameters.
+          description: A successful operation will return a stream of the requested data. The structure of each item in the stream will depend on the specified format and query parameters.
           content:
             application/json:
-              examples:
-                successfulObjectOperation:
-                  value:
-                    streamId: "stream123"
-                    streamPartition: 0
-                    timestamp: 1633095662
-                    sequenceNumber: 12345
-                    publisherId: "pub123"
-                    msgChainId: "msg123"
-                    messageType: "TYPE_A"
-                    contentType: "text/plain"
-                    encryptionType: "NONE"
-                    groupKeyId: "group123"
-                    content: "Hello, world!"
-                    signature: "SIG123"
+              schema:
+                type: object
+                description: Each item in the stream is a JSON object with this structure.
+                properties:
+                  streamId: "stream123"
+                  streamPartition: 0
+                  timestamp: 1633095662
+                  sequenceNumber: 12345
+                  publisherId: "pub123"
+                  msgChainId: "msg123"
+                  messageType: "TYPE_A"
+                  contentType: "text/plain"
+                  encryptionType: "NONE"
+                  groupKeyId: "group123"
+                  content: "Hello, world!"
+                  signature: "SIG123"
         '400':
           description: An invalid input response is returned when the request parameters are not valid, such as an invalid `id` or `queryType`.
           content:
