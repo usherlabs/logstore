@@ -57,6 +57,8 @@
 
    For Validator interactions:
 
+   _Requires Broker interactions_
+
    ```bash
    127.0.0.1   arweave.net
    127.0.0.1   sidechain
