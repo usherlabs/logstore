@@ -47,6 +47,13 @@
 
 ## Validator Testing
 
+### Kyve Kepler Wallet Setup
+
+To access and setup Validators via the Kyve UI - `http://localhost:8801`, A Kepler Wallet must be configured.
+Import the **KYVE Validator Mnemonic** keys, detailed above, into your Kyve Extension.
+
+### Local Validator Operation
+
 - Validator set to `restart: always` in Docker Compose
   - On second start, the actual Validator process will automatically start on the DevNetwork
   - To prevent this, edit the `docker-compose.yml` on the DevNetwork to use `restart: on-failure`
