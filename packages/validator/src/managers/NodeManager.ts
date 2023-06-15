@@ -123,6 +123,12 @@ export class NodeManager {
 
 	async getStartBlockNumber(): Promise<number> {
 		const startBlockNumber = await this.contract.startBlockNumber();
-		return startBlockNumber.toNumber();
+		const n = startBlockNumber.toNumber();
+		if (n === 0) {
+			throw new Error(
+				'No Brokers Nodes are available on the network to validate'
+			);
+		}
+		return n;
 	}
 }

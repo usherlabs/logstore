@@ -1,21 +1,6 @@
 import { StreamrMessage } from '@/types';
 import { Provider } from '@ethersproject/providers';
 
-/**
- * A function used to format a struct object gotten from the blockchain
- * @param struct {Array} a strut onject directly from the blockchain
- * @returns
- */
-export const parseStruct = (struct: [] | Record<string, unknown>) => {
-	const initialArgs = { ...struct };
-	const parsedArgs = Object.create({});
-	Object.keys(initialArgs).forEach((key) => {
-		if (+key || +key === 0) return; // if the index is a number, it means it is a duplicate key we dont need
-		parsedArgs[key] = initialArgs[key].toString();
-	});
-	return parsedArgs;
-};
-
 // Inspired by: https://medium.com/@hanyi.lol/how-to-get-a-block-number-by-timestamp-fefde4c69162
 export async function getClosestBlockByTime(
 	timestamp: number,

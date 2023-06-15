@@ -5,10 +5,12 @@ import ContractAddresses from '@logsn/contracts/address.json';
 import { Item } from './core/item';
 import { Report } from './core/report';
 import { appPackageName, appVersion } from './env-config';
-import Listener from './listener';
 import { Managers } from './managers';
+import { SystemListener } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
+
+const VALIDATOR_DELAY = 10 * 60; // There should be an arbitrary delay between the Validators and the Broker Network // TODO: This should be the latest indexed block instead
 
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
@@ -22,10 +24,10 @@ export default class Runtime implements IRuntimeExtended {
 			readMultiplier: 0.05, // 5% of the write. For comparison AWS Serverless DynamoDB read fees are 20% of the write fees, prorated to the nearest 4kb
 		},
 	};
-	public listener: Listener;
+	public listener: SystemListener;
 
 	async setupThreads(core: Validator, homeDir: string) {
-		this.listener = new Listener(
+		this.listener = new SystemListener(
 			this.config.systemStreamId,
 			homeDir,
 			core.logger
@@ -76,7 +78,7 @@ export default class Runtime implements IRuntimeExtended {
 				return managers.getBlockTime();
 			}
 		);
-		if (keyInt > blockTime) {
+		if (keyInt > blockTime * VALIDATOR_DELAY) {
 			return null;
 		}
 
@@ -137,7 +139,7 @@ export default class Runtime implements IRuntimeExtended {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			const startBlockNumber = await Managers.withSources<string>(
+			const startTs = await Managers.withSources<string>(
 				this.config.sources,
 				async (managers) => {
 					const res = await managers.getBlock(
@@ -146,7 +148,7 @@ export default class Runtime implements IRuntimeExtended {
 					return res.timestamp.toString();
 				}
 			);
-			return startBlockNumber;
+			return startTs;
 		}
 
 		keyInt++;

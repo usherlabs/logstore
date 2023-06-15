@@ -14,7 +14,7 @@ import { ReportManager } from './ReportManager';
 import { StoreManager } from './StoreManager';
 
 export class Managers {
-	private provider: Provider;
+	private _provider: Provider;
 	private startBlockNumber: number;
 
 	public store: StoreManager;
@@ -22,7 +22,11 @@ export class Managers {
 	public report: ReportManager;
 
 	constructor(rpcUrl: string) {
-		this.provider = new JsonRpcProvider(rpcUrl);
+		this._provider = new JsonRpcProvider(rpcUrl);
+	}
+
+	public get provider() {
+		return this._provider;
 	}
 
 	async init() {

@@ -2,7 +2,7 @@ import type { IRuntime } from '@kyvejs/protocol';
 import { MessageMetadata } from '@logsn/client';
 import type { QueryOptions } from '@logsn/protocol';
 
-import type Listener from '../listener';
+import { SystemListener } from '../threads';
 import type Validator from '../validator';
 
 export interface IRuntimeExtended extends IRuntime {
