@@ -45,6 +45,8 @@
 | EVN Address              | `0x4798bf7bf01Bbd6D2E9DaE615727970ECDe56267`                                   |
 | EVM Private Key          | `cc00000000000000000000000000000000000000000000000000000000000003`             |
 
+---
+
 ## Validator Testing
 
 ### Kyve Kepler Wallet Setup
@@ -53,6 +55,23 @@ To access and setup Validators via the Kyve UI - `http://localhost:8801`, A Kepl
 Import the **KYVE Validator Mnemonic** keys, detailed above, into your Kyve Extension.
 
 ### Local Validator Operation
+
+1. If you intend to operate a Validator Node from your Local Machine, be sure to clean any `.env` variables from your `packages/validator` directory.
+2. Install `dotenv-cli` with `pnpm i -g dotenv-cli` to load the relevant `.env.validator-X` env files
+3. As per the `dev-network/assets/validator/start-in-docker.sh` - Run the Validator Node with `dotenv` in a similar manner to the following:
+
+```bash
+dotenv -e ./.env.validator-1 -- ../../../packages/validator/dist/bin/logstore-validator.js start --pool 0 \
+	--valaccount VALACCOUNT \
+	--storage-priv STORAGE_PRIV \
+	--chain-id kyve-local \
+	--rpc http://logstore-kyve:26657 \
+	--rest http://logstore-kyve:1317
+```
+
+_The above runs the Validator from the `dev-network/assets/validator` directory._
+
+### Notes on Validator in DevNetwork
 
 - Validator set to `restart: always` in Docker Compose
   - On second start, the actual Validator process will automatically start on the DevNetwork

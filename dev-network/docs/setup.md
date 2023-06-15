@@ -63,22 +63,7 @@
    127.0.0.1   logstore-kyve
    ```
 
-   **Caveats for Validator operation**:
-
-   1. If you intend to operate a Validator Node from your Local Machine, be sure to clean any `.env` variables from your `packages/validator` directory.
-   2. Install `dotenv-cli` with `pnpm i -g dotenv-cli` to load the relevant `.env.validator-X` env files
-   3. As per the `dev-network/assets/validator/start-in-docker.sh` - Run the Validator Node with `dotenv` in a similar manner to the following:
-
-   ```bash
-   dotenv -e ./.env.validator-1 -- ../../../packages/validator/dist/bin/logstore-validator.js start --pool 0 \
-     --valaccount VALACCOUNT \
-     --storage-priv STORAGE_PRIV \
-     --chain-id kyve-local \
-     --rpc http://logstore-kyve:26657 \
-     --rest http://logstore-kyve:1317
-   ```
-
-   _The above runs the Validator from the `dev-network/assets/validator` directory._
+   To learn more about Local Validator operation and testing, read the [validators.md](./validators.md).
 
 5. Connect to the DevNetwork:
    ```bash
