@@ -60,17 +60,22 @@ export class TimeIndexer {
 
 			this.logger.info('Starting time indexer ...');
 
-			const startBlockNumber = await Managers.withSources<number>(
+			const startBlock = await Managers.withSources<number>(
 				this.config.sources,
-				(managers) => {
-					return managers.node.getStartBlockNumber();
+				async (managers) => {
+					const lastReport = await managers.report.getLastReport();
+					if ((lastReport || {})?.id) {
+						return lastReport.height;
+					}
+					const startBlockNumber = await managers.node.getStartBlockNumber();
+					return startBlockNumber;
 				}
 			);
 
-			this.logger.info('Start Block Number: ', startBlockNumber);
+			this.logger.info('Start Block Number: ', startBlock);
 
 			this._running = true;
-			await this._poll(startBlockNumber);
+			await this._poll(startBlock);
 		} catch (e) {
 			this.logger.error(`Unexpected error indexing blocks by time...`);
 			this.logger.error(e);
