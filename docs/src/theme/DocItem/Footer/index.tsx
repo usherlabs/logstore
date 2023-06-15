@@ -57,7 +57,6 @@ export default function DocItemFooter(): JSX.Element | null {
 		metadata;
 	const { api_page } = frontMatter;
 	const isAPI = api_page === true;
-	console.log({api_page})
 	// END CUSTOM CODE
 
 	const canDisplayTagsRow = tags.length > 0;
