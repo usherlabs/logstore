@@ -1,8 +1,6 @@
-import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
 
-import { getEvmPrivateKey, useStreamrTestConfig } from '../env-config';
 import { Managers } from '../managers';
 import { AbstractDataItem } from './abstract';
 
@@ -43,19 +41,11 @@ export class Item extends AbstractDataItem<IPrepared> {
 		// Range will be from last key (timestamp) to this key
 		const toTimestamp = parseInt(key, 10) * 1000;
 		const fromTimestamp = toTimestamp - 1000;
-		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
-
-		const logstore = new LogStoreClient({
-			...streamrConfig,
-			auth: {
-				privateKey: getEvmPrivateKey(), // The Validator needs to stake in QueryManager
-			},
-		});
 
 		const messages = [];
 		for (let i = 0; i < stores.length; i++) {
 			const store = stores[i];
-			const resp = await logstore.query(
+			const resp = await this.listener.client.query(
 				{
 					id: store.id,
 				},
