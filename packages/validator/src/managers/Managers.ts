@@ -68,7 +68,7 @@ export class Managers {
 		sources: string[],
 		// eslint-disable-next-line
 		fn: (managers: Managers, source: string) => Promise<T>
-	) {
+	): Promise<T> {
 		const results = [];
 		for (const source of sources) {
 			const managers = new Managers(source);

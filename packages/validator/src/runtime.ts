@@ -70,7 +70,7 @@ export default class Runtime implements IRuntimeExtended {
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
 		const keyInt = parseInt(key, 10);
 
-		const blockTime = await Managers.withSources(
+		const blockTime = await Managers.withSources<number>(
 			this.config.sources,
 			(managers) => {
 				return managers.getBlockTime();
@@ -137,16 +137,16 @@ export default class Runtime implements IRuntimeExtended {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			const startBlockNumber = await Managers.withSources(
+			const startBlockNumber = await Managers.withSources<string>(
 				this.config.sources,
 				async (managers) => {
 					const res = await managers.getBlock(
 						await managers.node.getStartBlockNumber()
 					);
-					return res;
+					return res.timestamp.toString();
 				}
 			);
-			return startBlockNumber.timestamp.toString();
+			return startBlockNumber;
 		}
 
 		keyInt++;
