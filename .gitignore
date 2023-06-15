@@ -35,6 +35,7 @@ package-lock.json
 ipfs
 .secrets
 notes.txt
+.logstore-metadata
 
 # debug
 npm-debug.log*
@@ -44,6 +45,7 @@ yarn-error.log*
 # env files
 !.env.example
 *.env
+.env*
 
 # Typescript
 tsconfig.tsbuildinfo

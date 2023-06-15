@@ -44,3 +44,14 @@
 | KYVE Valaccount Name     | `required-teal-aphid`                                                          |
 | EVN Address              | `0x4798bf7bf01Bbd6D2E9DaE615727970ECDe56267`                                   |
 | EVM Private Key          | `cc00000000000000000000000000000000000000000000000000000000000003`             |
+
+## Validator Testing
+
+- Validator set to `restart: always` in Docker Compose
+  - On second start, the actual Validator process will automatically start on the DevNetwork
+  - To prevent this, edit the `docker-compose.yml` on the DevNetwork to use `restart: on-failure`
+- `restart: on-failure` will run only once, which means that the operation to stake and setup Validators will be performed without running the Validator Node.
+- `logstore-validator-3` — may be commented out temporarily on DevNetwork to support testing.
+- **Important**:
+  - If the Validators fail thier setup, this can be done via the Kyve UI - `http://localhost:8801`
+  - Be sure to activate the **Expert Mode** within the Kyve UI to setup Validators within the DevNetwork Kyve Pool
