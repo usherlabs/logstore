@@ -7,6 +7,7 @@ import {
 } from '@logsn/shared';
 
 import { getEvmPrivateKey } from '../env-config';
+import { IConfig } from '../types';
 import { getClosestBlockByTime } from '../utils/helpers';
 import { NodeManager } from './NodeManager';
 import { ReportManager } from './ReportManager';
@@ -58,5 +59,32 @@ export class Managers {
 		const { provider } = this;
 		const block = await provider.getBlock(blockNumber);
 		return block;
+	}
+
+	/**
+	 * This method encapsulate the iteration over sources and consolidation of result for each Blockchain RPC source.
+	 */
+	public static async withSources<T>(
+		sources: string[],
+		// eslint-disable-next-line
+		fn: (managers: Managers, source: string) => Promise<T>
+	) {
+		const results = [];
+		for (const source of sources) {
+			const managers = new Managers(source);
+			await managers.init();
+
+			const result = await fn(managers, source);
+			results.push(result);
+		}
+
+		// check if results from the different sources match
+		if (
+			!results.every((b) => JSON.stringify(b) === JSON.stringify(results[0]))
+		) {
+			throw new Error(`Sources returned different results`);
+		}
+
+		return results[0];
 	}
 }

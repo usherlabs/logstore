@@ -23,7 +23,6 @@ export default class Runtime implements IRuntimeExtended {
 		},
 	};
 	public listener: Listener;
-	private managers: Managers;
 
 	async setupThreads(core: Validator, homeDir: string) {
 		this.listener = new Listener(
@@ -60,9 +59,6 @@ export default class Runtime implements IRuntimeExtended {
 			throw new Error(`Config sources have invalid network chain identifier`);
 		}
 
-		this.managers = new Managers(config.sources[0]);
-		await this.managers.init();
-
 		this.config = {
 			...this.config,
 			...config,
@@ -74,7 +70,13 @@ export default class Runtime implements IRuntimeExtended {
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
 		const keyInt = parseInt(key, 10);
 
-		if (keyInt > (await this.managers.getBlockTime())) {
+		const blockTime = await Managers.withSources(
+			this.config.sources,
+			(managers) => {
+				return managers.getBlockTime();
+			}
+		);
+		if (keyInt > blockTime) {
 			return null;
 		}
 
@@ -135,11 +137,16 @@ export default class Runtime implements IRuntimeExtended {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			return (
-				await this.managers.getBlock(
-					await this.managers.node.getStartBlockNumber()
-				)
-			).timestamp.toString();
+			const startBlockNumber = await Managers.withSources(
+				this.config.sources,
+				async (managers) => {
+					const res = await managers.getBlock(
+						await managers.node.getStartBlockNumber()
+					);
+					return res;
+				}
+			);
+			return startBlockNumber.timestamp.toString();
 		}
 
 		keyInt++;
