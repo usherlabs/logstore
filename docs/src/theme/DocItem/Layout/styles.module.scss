@@ -21,6 +21,9 @@
 	:global {
 		--markdown-bold-c: none;
 		.redocusaurus {
+			.redoc-wrap {
+				color: var(--ifm-font-color-base);
+			}
 			table {
 				box-shadow: none;
 			}

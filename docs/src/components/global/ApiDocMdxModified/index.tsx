@@ -110,7 +110,7 @@ const colorsGenerated = {
 			},
 		},
 		text: {
-			primary: '#855b7c',
+			// primary: '#1F2933', // dont work nice
 			secondary: '#7b8794',
 			light: '#D9CBA3',
 		},
@@ -124,8 +124,8 @@ const colorsGenerated = {
 	},
 	typography: {
 		code: {
-			color: 'white',
-			backgroundColor: 'rgba(38, 50, 56, 0.35)',
+			color: 'rgb(0,0,0)',
+			backgroundColor: 'rgba(255,255,255, 0.35)',
 		},
 	},
 };
