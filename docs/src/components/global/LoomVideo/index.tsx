@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 
 type Props = {
 	/// expected url: https://www.loom.com/embed/<id>
@@ -12,24 +12,24 @@ const LoomVideo = (props: Props) => {
 	const { src, hideOwner, hideTitle, hideShare, hideEmbed } = props;
 
 	const optionsMapping = {
-		"hide_owner": hideOwner,
-		"hide_title": hideTitle,
-		"hide_share": hideShare,
-		"hideEmbedTopBar": hideEmbed
+		hide_owner: hideOwner,
+		hide_title: hideTitle,
+		hide_share: hideShare,
+		hideEmbedTopBar: hideEmbed,
 	};
 
 	const options = Object.entries(optionsMapping)
 		.filter(([key, value]) => value)
 		.map(([key, value]) => `${key}=${value}`)
-		.join("&");
+		.join('&');
 	const url = `${src}?${options}`;
 
 	return (
 		<div
 			style={{
-				position: "relative",
-				paddingBottom: "56.25%",
-				height: 0
+				position: 'relative',
+				paddingBottom: '56.25%',
+				height: 0,
 			}}
 		>
 			<iframe
@@ -37,15 +37,15 @@ const LoomVideo = (props: Props) => {
 				frameBorder={0}
 				allowFullScreen
 				style={{
-					position: "absolute",
+					position: 'absolute',
 					top: 0,
 					left: 0,
-					width: "100%",
-					height: "100%"
+					width: '100%',
+					height: '100%',
 				}}
 			></iframe>
 		</div>
 	);
 };
 
-export default LoomVideo
+export default LoomVideo;

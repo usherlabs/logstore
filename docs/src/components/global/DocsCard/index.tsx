@@ -1,5 +1,5 @@
-import React from "react";
-import clsx from "clsx";
+import React from 'react';
+import clsx from 'clsx';
 
 interface DemoCardProps {
 	className?: string;
@@ -18,37 +18,37 @@ const DemoCard: React.FC<DemoCardProps> = ({
 	title,
 	description,
 	ctaLink,
-	ctaText
+	ctaText,
 }) => {
 	const cardContent = (
 		<>
-			{!!imgSrcOrNode ? (
-				typeof imgSrcOrNode === "string" ? (
+			{imgSrcOrNode ? (
+				typeof imgSrcOrNode === 'string' ? (
 					<img src={imgSrcOrNode} alt={altText} width="48" height="48" />
 				) : (
-					<div style={{ width: "48px", height: "48px" }}>{imgSrcOrNode}</div>
+					<div style={{ width: '48px', height: '48px' }}>{imgSrcOrNode}</div>
 				)
 			) : null}
-			<h3 className="my-3" style={{ color: "var(--ifm-heading-color)" }}>
+			<h3 className="my-3" style={{ color: 'var(--ifm-heading-color)' }}>
 				{title}
 			</h3>
-			<p style={{ color: "var(--ifm-font-color-base)" }}>{description}</p>
+			<p style={{ color: 'var(--ifm-font-color-base)' }}>{description}</p>
 		</>
 	);
 	return (
 		<div
 			className={clsx(
-				"rounded-lg p-6 border transition-all",
+				'rounded-lg p-6 border transition-all',
 				{
-					"cursor-pointer": !ctaText,
-					"hover:shadow": !ctaText,
-					"hover:opacity-90": !ctaText
+					'cursor-pointer': !ctaText,
+					'hover:shadow': !ctaText,
+					'hover:opacity-90': !ctaText,
 				},
 				className
 			)}
 			style={{
-				backgroundColor: "var(--ifm-background-surface-color)",
-				borderColor: "var(--ifm-table-border-color)"
+				backgroundColor: 'var(--ifm-background-surface-color)',
+				borderColor: 'var(--ifm-table-border-color)',
 			}}
 		>
 			{cardContent}
@@ -58,7 +58,7 @@ const DemoCard: React.FC<DemoCardProps> = ({
 					target="_blank"
 					rel="noopener noreferrer"
 					className="text-primary inline-flex items-center space-x-1 hover:underline"
-					style={{ transition: "color 0.3s" }}
+					style={{ transition: 'color 0.3s' }}
 				>
 					<span>{ctaText}</span>
 					<span>→</span>
