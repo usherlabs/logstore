@@ -6,57 +6,61 @@ slug: '/'
 
 # Overview
 
-Log Store is a decentralized time-series database.
+Welcome to LogStore, a next-generation, decentralized time-series database. We've built a permissionless platform that allows you to publish event data from any software environment and query data between two timestamps. Our system ensures your data is permanently stored, cached, verifiably tamper-proof, and highly available.
 
-All data transported to and from Log Store is verifiably tamper-proof.
+## **The Power of Decentralization**
 
-It can be used to
+LogStore harnesses the power of decentralized architecture, distributing workloads across multiple nodes to enable infinite scalability and redundancy without significant penalties. Your data remains safe, with integrity maintained, and the network scales effortlessly as new nodes join the network.
 
-1. Publish event data from any device
-2. Query event data between two timestamps
+We're proud of our collaborations with the [Streamr](https://streamr.network/) Network and the [Kyve](https://www.kyve.network/) Network, essential technologies that power our network. Streamr's data publishing speed and efficiency breakthroughs, as outlined in their **[Performance and Scalability Whitepaper](https://blog.streamr.network/streamr-network-performance-and-scalability-whitepaper/)**, are integral to our operations, enabling real-time data publishing to reach anywhere in the network in less than a third of a second.
 
-It’s formed by a network of nodes that come to a consensus about data validity from the point of data capture through to storage and query-ability.
+Kyve's network, on the other hand, provides consensus over data stored by LogStore in [Arweave's Blockchain](https://www.arweave.org/), contributing to the verifiability and tamper-proof nature of our database. It ensures the validity of data from the point of capture to storage and query-ability.
 
-The first layer of the network operates as **Brokers**,
+## **Brokers and Validators: Our Two-Layer Approach**
 
-1. participating in the Streamr Network,
-2. caching all data transport over registered Streamr data streams,
-3. forwarding Validator reports to Smart Contracts,
-4. coordinating to produce verifiable responses to each query request
+At the heart of LogStore's functionality are two layers: Brokers and Validators. Brokers participating in the Streamr Network cache all data transport over registered Streamr data streams and coordinate to produce verifiable responses to each query request. Validators participating in the Kyve Network observe, store, and report on data that occurs within the Broker layer.
 
-The second layer operates as **Validators**, participating in the Kyve Network. Validators observe, store, and report on data that occurs within the Broker layer. Validators write their data to Arweave for permanent storage and availability.
+Together, these layers form a robust system that guarantees tamper-proof data transported and stored from any source. For an in-depth understanding of these layers, please refer to our **[Primer](https://docs.logstore.usher.so/primer)**.
 
-The outcome is tamper-proof data transported and stored from any source.
+## **Key Functions**
 
-[Read the primer on how it works →](./primer.md)
+- **Data Storage**: LogStore's time-series data storage platform is secure and efficient, permitting you to store events emitted from any device.
+- **Data Querying**: Fetching data from LogStore between any two timestamps is as simple as it can be. You are assured of receiving highly available and safe results.
 
-### Store data
+## **AlphaNet: The first release of the Network**
 
-1. Register your Streamr streams into the LogStoreManager Smart Contract, where AlphaNet tokens can be staked to fund its storage.
-2. Once registered, all stakeholders of the stream can also participate in staking to fund its storage.
-3. As data is published to the Stream, the Log Store network will be responsible for
-   1. First, caching the received data in a time-series format as to ensure high-availability
-   2. Second, bundle and store all cached data onto Arweave
+We're thrilled to introduce AlphaNet, the first release of the Log Store Network which uses its own token, **LSAN** — necessary to enable compatibility with MainNet environments, while giving us the control we need to ensure secure operation of our early alpha software. Stay tuned for updates, and check out the **[AlphaNet](https://docs.logstore.usher.so/alphanet)** section for more details.
 
-### Query data
+## **Getting Started with LogStore**
 
-1. Stake AlphaNet tokens into the LogStoreQueryManger Smart Contract.
-2. Use the Log Store Network’s API to fetch data between any two timestamps.
-3. Optionally, verify your query response.
-   Each Query response will be accompanied by a series of signatures of each of the Nodes responsible for the response, meaning that you can verify that each response is truly the response of the entire network.
+Ready to dive in? By following these steps you’ll be able to participate in our network, store data, and query data:
 
-### AlphaNet
+1. **Mint LSAN Tokens**: LSAN tokens are the fundamental fuel that powers the capabilities of LogStore. Start by minting your tokens with **MATIC**.
+2. **Stake LSAN Tokens**: Fund the network by staking your LSAN tokens. This staking allows you to store or query data. We use dynamic pricing to ensure fair compensation to the network based on the data services you utilize.
+3. **Store and Query Data**: Use our interfaces to store and query data as per your application's needs.
 
-The Log Store AlphaNet will launch in June 2023, we do disclaim that this is very early software and that we may encounter bugs along the way.
+### LogStore interfaces
 
-For this reason, the AlphaNet will launch with its own custom ERC20 Token.
+Our detailed documentation on SDK, CLI, and API is designed to guide you every step of the way:
 
-This will enable us to permission Node Operator access while also delivering compatibility with live Streamr streams and Arweave storage.
+- **LogStore SDK**: With our SDK, you can seamlessly integrate LogStore's capabilities into your software application. You can stake tokens and also store and query data using it.<br/>
+	[Learn more →](./sdk/getting-started)
+- **LogStore CLI**: Our Command-Line Interface (CLI) tool lets you mint and stake LSAN tokens from your terminal.<br/>
+	[Learn more →](./cli/getting-started)
+- **LogStore HTTP API**: Our HTTP API provides an interface for interacting with LogStore over the web. It offers a set of HTTP endpoints retrieving data, and there’ll be more functionalities soon. It’s ideal for integrating with any application, Oracle Network, or Smart Contract platform compatible with HTTP interfaces.<br/>
+	[Learn more →](./api/getting-started)
 
-To obtain this Token so that you can get started and store or query data, a separate process will be involved for exchanging your MATIC for AlphaNet Tokens.
+## About Usher Labs
 
-This exchange is only necessary to compensate the network for storing the data!
+Usher Labs is at the forefront of creating software for Web3 and Blockchain, focusing on the management of digital assets using custom data. Our mission is to provide a secure and free management system for digital assets based on digital interactions and signals.
 
-The solution is now nearing its first alpha release — being appropriately named the AlphaNet.
+The Log Store Network is our solution. It offers secure and permanent storage for event data. This data is indexed and is searchable over time, providing a robust infrastructure for data management.
 
-The AlphaNet is scheduled to release in June 2023, so stay tuned by connecting with the team over [Discord](https://go.usher.so/discord) and [Twitter](https://twitter.com/usher_web3)!
+The infrastructure also supports Usher, our Web3-integrated referral marketing platform. Usher enables Brands to fund campaigns using digital assets. These assets are then redistributed to wallets that have successfully performed referrals.
+
+[Learn more about Usher →](https://usher.so/)
+
+## Stay Connected
+
+Join our vibrant community on **[Discord](https://go.usher.so/discord)** and **[Twitter](https://twitter.com/usher_web3)
+**. Stay updated, ask questions, share your experiences, and help us build a more robust, efficient, and secure decentralized event/atomic data storage and retrieval ecosystem.
