@@ -1,0 +1,48 @@
+.docItemContainer header + *,
+.docItemContainer article > *:first-child {
+	margin-top: 0;
+}
+
+@media (min-width: 997px) {
+	.docItemCol {
+		max-width: 75% !important;
+	}
+
+	.tocMobile {
+		display: none;
+	}
+}
+
+.api {
+	max-width: unset;
+	width: 100%;
+	--doc-item-container-width: none;
+
+	:global {
+		--markdown-bold-c: none;
+		.redocusaurus {
+			table {
+				box-shadow: none;
+			}
+			.api-info {
+				display: none;
+			}
+			.menu-content {
+				top: var(--ifm-navbar-height) !important;
+			}
+		  label[role="menuitem"]{
+				background-color: transparent;
+				&.active {
+					font-weight: bolder;
+				}
+			}
+			a[href="https://redocly.com/redoc/"] {
+				display: none;
+			}
+
+			.menu-content {
+				background: transparent;
+			}
+		}
+	}
+}

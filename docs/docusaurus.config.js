@@ -86,6 +86,26 @@ const config = {
 		// path.resolve(__dirname, './node_modules/@docusaurus/theme-search-algolia'), // INITIAL TODO if needed to activate algolia
 	],
 
+	presets: [
+		[
+			'redocusaurus',
+			{
+				// Plugin Options for loading OpenAPI files
+				specs: [
+					{
+						spec: './docs/network/api/_api.spec.yaml',
+						route: '/network/api/reference',
+					},
+				],
+				// Theme Options for modifying how redoc renders them
+				theme: {
+					// Change with your site colors
+					primaryColor: '#1890ff',
+				},
+			},
+		],
+	],
+
 	themeConfig:
 		/** @type {import('@docusaurus/preset-classic').ThemeConfig} */
 		({
