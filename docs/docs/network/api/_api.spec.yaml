@@ -8,20 +8,20 @@ servers:
 paths:
   /streams/{id}/data/partitions/{partition}/{queryType}:
     get:
-      summary: Retrieve data
+      summary: Query Data
       description: |
         ```http
         /streams/{id}/data/partitions/{partition}/{queryType}
         ```
 
-        The **Retrieve Data** endpoint fetches data from a specific stream partition using three types of queries: **`last`**, **`from`**, **`range`**. The endpoint returns a stream of data, which can be processed in real-time or piece-by-piece, rather than all at once.
+        The **Query Data** endpoint fetches data from a specific stream partition using three types of queries: **`last`**, **`from`**, **`range`**. The endpoint returns a stream of data, which can be processed in real-time or piece-by-piece, rather than all at once.
 
         - **`format`** to specify response data format, which can be **`protocol`**, **`object`**, or **`raw`**.
-        - **`version`** to define the version of the data to retrieve.
+        - **`version`** to define the version of the data to query.
         - Additional parameters like **`count`**, **`fromTimestamp`**, **`fromSequenceNumber`**, **`toTimestamp`**, **`toSequenceNumber`**, **`publisherId`**, and **`msgChainId`** to narrow down the data based on the chosen query type.
 
         The endpoint is secured with Basic Authentication, and improper authentication results in a '401 Unauthorized' response. The responses can be in either **`application/json`** or **`text/plain`** format, depending on the chosen **`format`**.
-      operationId: retrieveData
+      operationId: queryData
       security:
         - basicAuth: [ ]
       parameters:
