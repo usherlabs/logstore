@@ -44,11 +44,11 @@ Ready to dive in? By following these steps you’ll be able to participate in ou
 Our detailed documentation on SDK, CLI, and API is designed to guide you every step of the way:
 
 - **LogStore SDK**: With our SDK, you can seamlessly integrate LogStore's capabilities into your software application. You can stake tokens and also store and query data using it.<br/>
-	[Learn more →](./sdk/getting-started)
+	[Learn more →](./sdk/getting-started.md)
 - **LogStore CLI**: Our Command-Line Interface (CLI) tool lets you mint and stake LSAN tokens from your terminal.<br/>
-	[Learn more →](./cli/getting-started)
+	[Learn more →](./cli/getting-started.md)
 - **LogStore HTTP API**: Our HTTP API provides an interface for interacting with LogStore over the web. It offers a set of HTTP endpoints retrieving data, and there’ll be more functionalities soon. It’s ideal for integrating with any application, Oracle Network, or Smart Contract platform compatible with HTTP interfaces.<br/>
-	[Learn more →](./api/getting-started)
+	[Learn more →](./api/getting-started.md)
 
 ## About Usher Labs
 
