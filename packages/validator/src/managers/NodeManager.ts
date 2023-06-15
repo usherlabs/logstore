@@ -50,7 +50,7 @@ export class NodeManager {
 		const brokerNodes = detailedAllNodes.filter(
 			({ stake }) =>
 				typeof minStakeRequirement !== 'undefined' &&
-				stake > minStakeRequirement
+				stake >= minStakeRequirement
 		);
 
 		return brokerNodes;

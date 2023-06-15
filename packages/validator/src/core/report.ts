@@ -152,8 +152,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// With this mapping, we can determine which events in the storeCache pertain to the ProofOfMessageStored hash - and therefore which publishers/brokers contributed.
 		const storeHashKeyMap: Record<string, [number, number][]> = {};
 		const storeCachedItems = storeCache.getRange({
-			start: fromKey,
-			end: toKey,
+			start: fromKey * 1000,
+			end: toKey * 1000,
 		});
 		// TODO: We may need to create a special cache for streamIds that are complete dropped during a given item cycle.
 		for (const { key: cacheKey, value: cacheValue } of storeCachedItems) {
@@ -228,7 +228,11 @@ export class Report extends AbstractDataItem<IPrepared> {
 					};
 				} else {
 					streamsMap[id].bytes += size;
-					streamsMap[id].contributors.push(event.metadata.publisherId);
+					if (
+						!streamsMap[id].contributors.includes(event.metadata.publisherId)
+					) {
+						streamsMap[id].contributors.push(event.metadata.publisherId);
+					}
 				}
 			}
 		}
@@ -273,12 +277,15 @@ export class Report extends AbstractDataItem<IPrepared> {
 		const queryResponseCache = listener.queryResponseDb();
 		// Iterate over the query-request events between the range
 		const queryRequestCachedItems = queryRequestCache.getRange({
-			start: fromKey,
-			end: toKey,
+			start: fromKey * 1000,
+			end: toKey * 1000,
 		});
 
 		// Determine read fees
-		const readFee = fees.readMultiplier * (writeFee / totalBytesStored);
+		const readFee =
+			totalBytesStored === 0
+				? 0
+				: fees.readMultiplier * (writeFee / totalBytesStored);
 		const readTreasuryFee = readFee * fees.treasuryMultiplier;
 		const readNodeFee = readFee - readTreasuryFee;
 
