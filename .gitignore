@@ -36,6 +36,7 @@ ipfs
 .secrets
 notes.txt
 .logstore-*
+last_synced_block.txt
 
 # debug
 npm-debug.log*

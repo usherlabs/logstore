@@ -44,6 +44,7 @@ const child = shell.exec(
 		console.log('Program stderr:', stderr);
 	}
 );
+console.log(`ETL PID:`, child.pid);
 child.stderr.on('data', (data) => {
 	process.stderr.write(data);
 });

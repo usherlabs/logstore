@@ -1,14 +1,11 @@
-import {
-	callWithBackoffStrategy,
-	sleep,
-	standardizeJSON,
-} from '@kyvejs/protocol';
+import { sha256, sleep } from '@kyvejs/protocol';
+import type { ChildProcess } from 'child_process';
 import fse from 'fs-extra';
 import type { RootDatabase } from 'lmdb';
 import path from 'path';
+import shell from 'shelljs';
 import type { Logger } from 'tslog';
 
-import { NotRunningError } from '../errors/NotRunningError';
 import { Managers } from '../managers';
 import { IConfig } from '../types';
 // import { shouldClearTimeIndex } from './env-config';
@@ -16,11 +13,25 @@ import { Database } from '../utils/database';
 
 type BlockNumber = number;
 type Timestamp = number;
-type DB = RootDatabase<BlockNumber, Timestamp>;
+type DB = RootDatabase<
+	{
+		b: BlockNumber;
+		s: string[]; // Sources that agree
+	},
+	Timestamp
+>;
+
+// type SourceIndexEval = {
+// 	source: string,
+// 	block: number,
+// 	timestamp: number
+// }
 
 const CONFIRMATIONS = 128 as const; // The number of confirmations/blocks required to determine finality.
-const POLL_INTERVAL = 10000 as const; // The time to delay between the latest index and the next - 10s
 const SCAN_BUFFER = 10000 as const; // The time a find/scan will use to evaluate the indexed block
+const DEFAULT_DB_VALUE = { b: 0, s: [] };
+const POLL_INTERVAL = 10 as const; // The time in seconds to delay between the latest index and the next
+const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
 
 /**
  * Class to manage an index of blocks and their timestamps
@@ -35,9 +46,12 @@ export class TimeIndexer {
 	private _db!: DB;
 	// private _blockTime: number; // Calculated based on average difference between blocks.
 	private _ready: boolean = false;
-	private _latestBlock: number;
+	// private _latestBlock: number;
 	private _latestTimestamp: number;
-	private _running: boolean = false;
+	private _childProcesses: ChildProcess[];
+	// private _running: boolean = false;
+	// private _eval: SourceIndexEval[]
+	// private _erroring: boolean = false;
 
 	constructor(
 		homeDir: string,
@@ -45,6 +59,12 @@ export class TimeIndexer {
 		protected logger: Logger
 	) {
 		this._cachePath = path.join(homeDir, '.logstore-time');
+
+		if (!shell.which('ethereumetl')) {
+			throw new Error(
+				'ethereumetl is not installed. Please re-install the Log Store Validator, or run `pip install ethereum-etl`'
+			);
+		}
 	}
 
 	public get latestTimestamp() {
@@ -56,7 +76,10 @@ export class TimeIndexer {
 			// if(shouldClearTimeIndex){
 			await fse.remove(this._cachePath);
 			// }
-			this._db = Database.create('time-index', this._cachePath) as DB;
+			this._db = Database.create(
+				'time-index',
+				path.join(this._cachePath, 'cache')
+			) as DB;
 
 			this.logger.info('Starting time indexer ...');
 
@@ -74,8 +97,7 @@ export class TimeIndexer {
 
 			this.logger.info('Start Block Number: ', startBlock);
 
-			this._running = true;
-			await this._poll(startBlock);
+			await this.etl(startBlock);
 		} catch (e) {
 			this.logger.error(`Unexpected error indexing blocks by time...`);
 			this.logger.error(e);
@@ -84,7 +106,9 @@ export class TimeIndexer {
 	}
 
 	public stop() {
-		this._running = false;
+		this._childProcesses.forEach((child) => {
+			child.kill();
+		});
 	}
 
 	// Wait until the TimeIndex is ready
@@ -97,7 +121,7 @@ export class TimeIndexer {
 		}
 	}
 
-	public find(timestamp: number) {
+	public find(timestamp: number): number {
 		const db = this.db();
 
 		if (timestamp === 0) {
@@ -105,9 +129,9 @@ export class TimeIndexer {
 		}
 
 		// If exact match, use it.
-		const res = db.get(timestamp) || 0;
-		if (res > 0) {
-			return res;
+		const res = db.get(timestamp) || DEFAULT_DB_VALUE;
+		if (res.b > 0 && res.s.length > 0) {
+			return res.b;
 		}
 		// Create an array of diffs - indicating how far the parameter timestamp is from the current value
 		const diffs = [];
@@ -116,9 +140,9 @@ export class TimeIndexer {
 			end: timestamp + SCAN_BUFFER,
 		})) {
 			if (key === timestamp) {
-				return value;
+				return value.b;
 			}
-			diffs.push({ diff: Math.abs(timestamp - key), value });
+			diffs.push({ diff: Math.abs(timestamp - key), block: value.b });
 		}
 		if (diffs.length === 0) {
 			throw new Error('Time and Blocks have not been indexed');
@@ -132,21 +156,17 @@ export class TimeIndexer {
 				return 1;
 			}
 			if (a.diff === b.diff) {
-				if (a.value < b.value) {
+				if (a.block < b.block) {
 					return -1;
 				}
-				if (a.value < b.value) {
+				if (a.block < b.block) {
 					return 1;
 				}
 			}
 			return 0;
 		});
 
-		return diffs[0].value;
-	}
-
-	protected async index(timestamp: number, blockNumber: number) {
-		await this.db().put(timestamp, blockNumber);
+		return diffs[0].block;
 	}
 
 	protected db() {
@@ -156,72 +176,87 @@ export class TimeIndexer {
 		return this._db;
 	}
 
-	private async _poll(startBlock?: number) {
+	private async etl(startBlock?: number) {
 		const { sources } = this.config;
-		this.logger.debug(`Indexing block ${startBlock} ...`);
+		const db = this.db();
+		this.logger.debug(`Start ETL from block ${startBlock || `'latest'`} ...`);
 
-		try {
-			const { block, timestamp, delay } = await callWithBackoffStrategy(
-				async () => {
-					return await Managers.withSources(
-						sources,
-						async (managers: Managers) => {
-							const latestBlock =
-								(await managers.provider.getBlockNumber()) - CONFIRMATIONS;
+		for (const source of sources) {
+			const saveFilename = `last_synced_block_${sha256(
+				Buffer.from(source)
+			)}.txt`;
+			const savefile = path.join(this._cachePath, saveFilename);
+			const managers = new Managers(source);
+			await managers.init();
+			const latestBlock =
+				(await managers.provider.getBlockNumber()) - CONFIRMATIONS;
+			const fromBlock = startBlock || latestBlock;
 
-							const fromBlock = startBlock || latestBlock;
-
-							const toBlock = Math.min(fromBlock, latestBlock);
-
-							let timestamp: number = 0;
-							if (toBlock !== this._latestBlock) {
-								const block = await managers.provider.getBlock(toBlock);
-								timestamp = block.timestamp;
-							}
-
-							const delay = toBlock === this._latestBlock ? POLL_INTERVAL : 0;
-
-							return {
-								block: toBlock,
-								timestamp,
-								delay,
-							};
-						}
-					);
-				},
-				{ limitTimeoutMs: 5 * 60 * 1000, increaseByMs: 10 * 1000 },
-				async (err: any, ctx) => {
-					if (!this._running) {
-						throw new NotRunningError();
-					}
-
-					this.logger.info(
-						`Requesting timestamp of block was unsuccessful. Retrying in ${(
-							ctx.nextTimeoutInMs / 1000
-						).toFixed(2)}s ...`
-					);
-					this.logger.debug(standardizeJSON(err));
-				}
+			const child = shell.exec(
+				`ethereumetl stream -s ${fromBlock} -e block -p ${source} -l ${savefile} --period-seconds ${POLL_INTERVAL} -b ${BATCH_SIZE} --lag ${CONFIRMATIONS}`,
+				{ async: true, silent: true, fatal: true }
 			);
+			this._childProcesses.push(child);
 
-			if (timestamp === 0) {
-				this.logger.info(`Time Indexer is ready!`);
+			this.logger.debug(`ETL (${source}) PID:`, child.pid);
 
-				this._ready = true;
-			} else {
-				this.logger.debug(`Index block`, { timestamp, block });
+			child.stderr.on('data', (data) => {
+				if (data.includes(`root [INFO]`)) {
+					this.logger.info(`ETL (${source}):`, data);
+				} else if (data.includes(`[INFO]`)) {
+					this.logger.debug(`ETL (${source}):`, data);
+				} else {
+					this.logger.error(`ETL (${source}):`, data);
+				}
+			});
 
-				await this.index(timestamp, block);
-				this._latestBlock = block;
-				this._latestTimestamp = timestamp;
-			}
+			child.stdout.on('data', async (data) => {
+				let block: number;
+				let timestamp: number;
+				try {
+					if (data.includes(`"type": "block"`)) {
+						const json = JSON.parse(data);
+						block = json.number;
+						timestamp = json.timestamp;
+					}
+				} catch (e) {
+					// ...
+				}
+				if (block && timestamp) {
+					this.logger.debug(`ETL (${source}): Indexing block:`, {
+						block,
+						timestamp,
+					});
 
-			setTimeout(() => this._running && this._poll(block + 1), delay);
-		} catch (err) {
-			if (!(err instanceof NotRunningError)) {
-				this.logger.error(`Failed TimeIndexer`);
-				this.logger.error(standardizeJSON(err));
-			}
+					await db.transaction(() => {
+						const value = db.get(timestamp) || DEFAULT_DB_VALUE;
+						if (value.b === 0 && value.s.length === 0) {
+							return db.put(timestamp, { b: block, s: [source] });
+						} else if (value.b !== block) {
+							this.logger.error(
+								`ETL (${source}): Sources returned different results`,
+								{
+									databaseValue: value,
+									newValue: {
+										source,
+										block,
+										timestamp,
+									},
+								}
+							);
+							throw new Error(`Sources returned different results`);
+						} else {
+							return db.put(timestamp, {
+								b: block,
+								s: [...value.s, source],
+							});
+						}
+					});
+
+					// this._latestBlock = block;
+					this._latestTimestamp = timestamp;
+				}
+			});
 		}
 	}
 }

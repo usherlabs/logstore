@@ -49,6 +49,7 @@
 		"@streamr/utils": "^8.1.0",
 		"@types/jest": "^29.5.1",
 		"@types/node": "^18.7.18",
+		"@types/shelljs": "^0.8.12",
 		"del-cli": "^5.0.0",
 		"dotenv": "^16.0.3",
 		"dotenv-cli": "^7.2.1",
