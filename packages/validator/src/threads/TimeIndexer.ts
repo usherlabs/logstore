@@ -157,10 +157,16 @@ export class TimeIndexer {
 			if (key === timestamp) {
 				return value.b;
 			}
-			diffs.push({ diff: Math.abs(timestamp - key), block: value.b });
+			diffs.push({ diff: Math.abs(timestamp - key), ts: key, block: value.b });
 		}
+
+		this.logger.debug('Scan blocks with timestamp', {
+			timestamp,
+			diffs,
+		});
+
 		if (diffs.length === 0) {
-			throw new Error('Time and Blocks have not been indexed');
+			throw new Error('Could not find time indexed blocks for timestamp');
 		}
 		// Sort by diff and value
 		diffs.sort((a, b) => {
@@ -215,6 +221,8 @@ export class TimeIndexer {
 
 			this.logger.debug(`TimeIndexer (${source}) PID:`, child.pid);
 
+			// let isReady = false
+
 			child.stderr.on('data', (data) => {
 				if (data.includes(`[INFO]`)) {
 					// Skip logs that aren't root of command
@@ -225,6 +233,9 @@ export class TimeIndexer {
 						this.logger.debug(`TimeIndexer (${source}):`, data);
 					} else if (data.includes(`Nothing to sync`)) {
 						this.logger.info(`TimeIndexer (${source}):`, data);
+
+						// Once there is nothing to sync, the TimeIndex is considered Ready
+						this._ready = true;
 					}
 				} else {
 					this.logger.error(`TimeIndexer (${source}):`, data);
