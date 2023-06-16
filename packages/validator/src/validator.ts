@@ -12,7 +12,12 @@ export async function runCache(this: Validator): Promise<void> {
 	this.logger.debug('Cache output:', this.home);
 }
 
+export async function validateDataAvailability(this: Validator): Promise<void> {
+	return;
+}
+
 export default class Validator extends KyveValidator {
 	protected runtime!: IRuntimeExtended;
+	protected override validateDataAvailability = validateDataAvailability;
 	protected override runCache = runCache;
 }
