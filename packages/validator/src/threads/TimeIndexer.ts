@@ -48,7 +48,7 @@ export class TimeIndexer {
 	private _ready: boolean = false;
 	// private _latestBlock: number;
 	private _latestTimestamp: number;
-	private _childProcesses: ChildProcess[];
+	private _childProcesses: ChildProcess[] = [];
 	// private _running: boolean = false;
 	// private _eval: SourceIndexEval[]
 	// private _erroring: boolean = false;
@@ -198,15 +198,18 @@ export class TimeIndexer {
 			);
 			this._childProcesses.push(child);
 
-			this.logger.debug(`ETL (${source}) PID:`, child.pid);
+			this.logger.debug(`TimeIndexer (${source}) PID:`, child.pid);
 
 			child.stderr.on('data', (data) => {
-				if (data.includes(`root [INFO]`)) {
-					this.logger.info(`ETL (${source}):`, data);
-				} else if (data.includes(`[INFO]`)) {
-					this.logger.debug(`ETL (${source}):`, data);
+				if (data.includes(`[INFO]`)) {
+					if (data.includes(`Nothing to sync.`)) {
+						this.logger.info(`TimeIndexer (${source}):`, data);
+					} else {
+						this.logger.debug(`TimeIndexer (${source}):`, data);
+					}
 				} else {
-					this.logger.error(`ETL (${source}):`, data);
+					this.logger.error(`TimeIndexer (${source}):`, data);
+					throw new Error('TimeIndexer Error');
 				}
 			});
 
@@ -223,18 +226,13 @@ export class TimeIndexer {
 					// ...
 				}
 				if (block && timestamp) {
-					this.logger.debug(`ETL (${source}): Indexing block:`, {
-						block,
-						timestamp,
-					});
-
 					await db.transaction(() => {
 						const value = db.get(timestamp) || DEFAULT_DB_VALUE;
 						if (value.b === 0 && value.s.length === 0) {
 							return db.put(timestamp, { b: block, s: [source] });
 						} else if (value.b !== block) {
 							this.logger.error(
-								`ETL (${source}): Sources returned different results`,
+								`TimeIndexer (${source}): Sources returned different results`,
 								{
 									databaseValue: value,
 									newValue: {
@@ -252,6 +250,12 @@ export class TimeIndexer {
 							});
 						}
 					});
+
+					if ((block - fromBlock) % 100 === 0) {
+						this.logger.info(
+							`TimeIndexer (${source}): Indexed ${block - fromBlock} blocks`
+						);
+					}
 
 					// this._latestBlock = block;
 					this._latestTimestamp = timestamp;
