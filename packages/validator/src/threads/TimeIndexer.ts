@@ -158,6 +158,8 @@ export class TimeIndexer {
 
 	private async _poll(startBlock?: number) {
 		const { sources } = this.config;
+		this.logger.debug(`Indexing block ${startBlock} ...`);
+
 		try {
 			const { block, timestamp, delay } = await callWithBackoffStrategy(
 				async () => {
@@ -203,8 +205,12 @@ export class TimeIndexer {
 			);
 
 			if (timestamp === 0) {
+				this.logger.info(`Time Indexer is ready!`);
+
 				this._ready = true;
 			} else {
+				this.logger.debug(`Index block`, { timestamp, block });
+
 				await this.index(timestamp, block);
 				this._latestBlock = block;
 				this._latestTimestamp = timestamp;

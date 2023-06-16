@@ -35,7 +35,7 @@ package-lock.json
 ipfs
 .secrets
 notes.txt
-.logstore-metadata
+.logstore-*
 
 # debug
 npm-debug.log*
