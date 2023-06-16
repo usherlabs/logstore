@@ -78,6 +78,7 @@ export class TimeIndexer {
 			let startBlock = 0;
 			const dbPath = path.join(this._cachePath, 'cache');
 
+			// ? For testing purposes
 			if (copyFromTimeIndex) {
 				this.logger.info(`Copy from an existing Time Index`);
 				const exists = await fse.pathExists(copyFromTimeIndex);
@@ -90,6 +91,7 @@ export class TimeIndexer {
 
 			this._db = Database.create('time-index', dbPath) as DB;
 
+			// ? If the index already exists, check it's latest data.
 			for (const { key, value } of this._db.getRange({
 				reverse: true,
 				limit: 1,
@@ -226,10 +228,14 @@ export class TimeIndexer {
 
 			child.stderr.on('data', (data) => {
 				if (data.includes(`[INFO]`)) {
-					if (data.includes(`Nothing to sync.`)) {
-						this.logger.info(`TimeIndexer (${source}):`, data);
-					} else {
+					// Skip logs that aren't root of command
+					if (
+						data.includes(`Writing last synced block`) ||
+						data.includes(`Current block`)
+					) {
 						this.logger.debug(`TimeIndexer (${source}):`, data);
+					} else if (data.includes(`Nothing to sync`)) {
+						this.logger.info(`TimeIndexer (${source}):`, data);
 					}
 				} else {
 					this.logger.error(`TimeIndexer (${source}):`, data);

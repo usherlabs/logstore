@@ -36,7 +36,7 @@ if (!shell.which('ethereumetl')) {
 const savefile = `.logstore-last_synced_block.txt`;
 shell.rm(savefile);
 const child = shell.exec(
-	`ethereumetl stream -s 124773 -e block -p http://localhost:8546 -l ${savefile}`,
+	`ethereumetl stream -s 133408 -e block -p http://localhost:8546 -l ${savefile}`,
 	{ async: true, silent: true, fatal: true },
 	function (code, stdout, stderr) {
 		console.log('Exit code:', code);

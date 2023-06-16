@@ -16,3 +16,4 @@ export const useStreamrTestConfig = () =>
 	parseBoolean('USE_STREAMR_TEST_CONFIG');
 
 export const copyFromTimeIndex = process.env.COPY_FROM_TIME_INDEX;
+export const overrideStartBlockNumber = process.env.START_BLOCK_NUMBER || '0';
