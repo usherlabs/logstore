@@ -15,4 +15,4 @@ export const getEvmPrivateKey = () => parseEvmPriv('EVM_PRIVATE_KEY');
 export const useStreamrTestConfig = () =>
 	parseBoolean('USE_STREAMR_TEST_CONFIG');
 
-export const shouldClearTimeIndex = process.env.CLEAR_TIME_INDEX === 'true';
+export const copyFromTimeIndex = process.env.COPY_FROM_TIME_INDEX;

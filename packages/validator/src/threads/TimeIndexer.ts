@@ -6,9 +6,9 @@ import path from 'path';
 import shell from 'shelljs';
 import type { Logger } from 'tslog';
 
+import { copyFromTimeIndex } from '../env-config';
 import { Managers } from '../managers';
 import { IConfig } from '../types';
-// import { shouldClearTimeIndex } from './env-config';
 import { Database } from '../utils/database';
 
 type BlockNumber = number;
@@ -73,27 +73,51 @@ export class TimeIndexer {
 
 	public async start(): Promise<void> {
 		try {
-			// if(shouldClearTimeIndex){
 			await fse.remove(this._cachePath);
-			// }
-			this._db = Database.create(
-				'time-index',
-				path.join(this._cachePath, 'cache')
-			) as DB;
+
+			let startBlock = 0;
+			const dbPath = path.join(this._cachePath, 'cache');
+
+			if (copyFromTimeIndex) {
+				this.logger.info(`Copy from an existing Time Index`);
+				const exists = await fse.pathExists(copyFromTimeIndex);
+				if (!exists) {
+					throw new Error('Time Index to copy from does not exist');
+				}
+				const existingTimeIndex = path.join(copyFromTimeIndex, 'cache');
+				await fse.copySync(existingTimeIndex, dbPath);
+			}
+
+			this._db = Database.create('time-index', dbPath) as DB;
+
+			for (const { key, value } of this._db.getRange({
+				reverse: true,
+				limit: 1,
+			})) {
+				this.logger.debug(
+					`Fetch last Time Index item - ${key}: ${value.b} (${value.s.join(
+						','
+					)})`
+				);
+				this._latestTimestamp = key;
+				startBlock = value.b;
+			}
 
 			this.logger.info('Starting time indexer ...');
 
-			const startBlock = await Managers.withSources<number>(
-				this.config.sources,
-				async (managers) => {
-					const lastReport = await managers.report.getLastReport();
-					if ((lastReport || {})?.id) {
-						return lastReport.height;
+			if (startBlock === 0) {
+				startBlock = await Managers.withSources<number>(
+					this.config.sources,
+					async (managers) => {
+						const lastReport = await managers.report.getLastReport();
+						if ((lastReport || {})?.id) {
+							return lastReport.height;
+						}
+						const startBlockNumber = await managers.node.getStartBlockNumber();
+						return startBlockNumber;
 					}
-					const startBlockNumber = await managers.node.getStartBlockNumber();
-					return startBlockNumber;
-				}
-			);
+				);
+			}
 
 			this.logger.info('Start Block Number: ', startBlock);
 
