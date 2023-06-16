@@ -70,6 +70,9 @@ export class Report extends AbstractDataItem<IPrepared> {
 			config: { fees },
 		} = this;
 
+		const toKeyMs = toKey * 1000;
+		const fromKeyMs = fromKey * 1000;
+
 		// Establish the report
 		const report: IReport = {
 			id: key,
@@ -151,8 +154,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// With this mapping, we can determine which events in the storeCache pertain to the ProofOfMessageStored hash - and therefore which publishers/brokers contributed.
 		const storeHashKeyMap: Record<string, [number, number][]> = {};
 		const storeCachedItems = storeCache.getRange({
-			start: fromKey * 1000,
-			end: toKey * 1000,
+			start: fromKeyMs,
+			end: toKeyMs,
 		});
 		// TODO: We may need to create a special cache for streamIds that are complete dropped during a given item cycle.
 		for (const { key: cacheKey, value: cacheValue } of storeCachedItems) {
@@ -248,7 +251,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		}, 0);
 		const expensePerByteStored = await Arweave.getPrice(
 			totalBytesStored,
-			toKey * 1000
+			toKeyMs
 		);
 		const writeFee = fees.writeMultiplier * expensePerByteStored;
 		const writeTreasuryFee =
@@ -279,8 +282,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 		const queryResponseCache = listener.queryResponseDb();
 		// Iterate over the query-request events between the range
 		const queryRequestCachedItems = queryRequestCache.getRange({
-			start: fromKey * 1000,
-			end: toKey * 1000,
+			start: fromKeyMs,
+			end: toKeyMs,
 		});
 
 		// Determine read fees
@@ -354,23 +357,23 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		// ------------ FEE CONVERSION ------------
 		// Convert fees to stake token
-		report.treasury = await stakeToken.fromUSD(report.treasury, toKey * 1000);
+		report.treasury = await stakeToken.fromUSD(report.treasury, toKeyMs);
 		report.streams.forEach(async (s) => {
-			s.capture = await stakeToken.fromUSD(s.capture, toKey * 1000);
+			s.capture = await stakeToken.fromUSD(s.capture, toKeyMs);
 			return s;
 		});
 		report.consumers.forEach(async (c) => {
-			c.capture = await stakeToken.fromUSD(c.capture, toKey * 1000);
+			c.capture = await stakeToken.fromUSD(c.capture, toKeyMs);
 			return c;
 		});
 		Object.keys(report.nodes).forEach(async (n) => {
-			report.nodes[n] = await stakeToken.fromUSD(report.nodes[n], toKey * 1000);
+			report.nodes[n] = await stakeToken.fromUSD(report.nodes[n], toKeyMs);
 		});
 		Object.keys(report.delegates).forEach((d) => {
 			Object.keys(report.delegates[d]).forEach(async (n) => {
 				report.delegates[d][n] = await stakeToken.fromUSD(
 					report.delegates[d][n],
-					toKey * 1000
+					toKeyMs
 				);
 			});
 		});

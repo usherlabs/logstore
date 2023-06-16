@@ -3,7 +3,6 @@ import redstone from 'redstone-api';
 
 export class Arweave {
 	private static _arweaveClient;
-	// private static _arweaveClientBackup;
 
 	private static get arweaveClient(): ArweaveClient {
 		if (!this._arweaveClient) {
