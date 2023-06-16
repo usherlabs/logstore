@@ -3,7 +3,7 @@ import { getTokenPrice } from '@logsn/shared';
 import { Contract, ethers, Signer } from 'ethers';
 
 export class StakeToken {
-	public price: number;
+	// public price: number;
 	public tokenContract: Contract;
 	constructor(
 		public address: string,
@@ -15,24 +15,31 @@ export class StakeToken {
 
 	public async init() {
 		this.tokenContract = LSAN__factory.connect(this.address, this.signer);
-		this.price = await this.getPrice();
+		// this.price = await this.getPrice(Date.now());
 	}
 
-	public async getPrice() {
-		const tokenPrice = getTokenPrice(this.address, this.signer);
+	public async getPrice(timestamp: number) {
+		const tokenPrice = await getTokenPrice(
+			this.address,
+			this.signer,
+			timestamp
+		);
 		return tokenPrice;
 	}
 
-	public fromUSD(usdValue: number) {
-		if (!this.price) {
-			throw new Error('Price has not been initiated');
-		}
+	public async fromUSD(usdValue: number, timestamp: number) {
+		// if (!this.price) {
+		// 	throw new Error('Price has not been initiated');
+		// }
+
+		const price = await this.getPrice(timestamp);
+
 		return Math.floor(
 			parseInt(
 				ethers.utils
 					.parseUnits(
 						// reduce precision to max allowed to prevent errors
-						`${(usdValue / this.price).toPrecision(15)}`,
+						`${(usdValue / price).toPrecision(15)}`,
 						this.decimals
 					)
 					.toString(),

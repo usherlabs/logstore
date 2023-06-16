@@ -246,7 +246,10 @@ export class Report extends AbstractDataItem<IPrepared> {
 			totalBytes += bytes;
 			return totalBytes;
 		}, 0);
-		const expensePerByteStored = await Arweave.getPrice(totalBytesStored);
+		const expensePerByteStored = await Arweave.getPrice(
+			totalBytesStored,
+			toKey * 1000
+		);
 		const writeFee = fees.writeMultiplier * expensePerByteStored;
 		const writeTreasuryFee =
 			fees.treasuryMultiplier * (writeFee - expensePerByteStored); // multiplier on the margin
@@ -351,21 +354,24 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		// ------------ FEE CONVERSION ------------
 		// Convert fees to stake token
-		report.treasury = stakeToken.fromUSD(report.treasury);
-		report.streams = report.streams.map((s) => {
-			s.capture = stakeToken.fromUSD(s.capture);
+		report.treasury = await stakeToken.fromUSD(report.treasury, toKey * 1000);
+		report.streams.forEach(async (s) => {
+			s.capture = await stakeToken.fromUSD(s.capture, toKey * 1000);
 			return s;
 		});
-		report.consumers = report.consumers.map((c) => {
-			c.capture = stakeToken.fromUSD(c.capture);
+		report.consumers.forEach(async (c) => {
+			c.capture = await stakeToken.fromUSD(c.capture, toKey * 1000);
 			return c;
 		});
-		Object.keys(report.nodes).forEach((n) => {
-			report.nodes[n] = stakeToken.fromUSD(report.nodes[n]);
+		Object.keys(report.nodes).forEach(async (n) => {
+			report.nodes[n] = await stakeToken.fromUSD(report.nodes[n], toKey * 1000);
 		});
 		Object.keys(report.delegates).forEach((d) => {
-			Object.keys(report.delegates[d]).forEach((n) => {
-				report.delegates[d][n] = stakeToken.fromUSD(report.delegates[d][n]);
+			Object.keys(report.delegates[d]).forEach(async (n) => {
+				report.delegates[d][n] = await stakeToken.fromUSD(
+					report.delegates[d][n],
+					toKey * 1000
+				);
 			});
 		});
 		// ------------ END FEE CONVERSION ------------

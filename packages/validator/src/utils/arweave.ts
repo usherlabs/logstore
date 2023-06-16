@@ -15,12 +15,14 @@ export class Arweave {
 		return this._arweaveClient;
 	}
 
-	public static async getPrice(byteSize: number) {
+	public static async getPrice(byteSize: number, timestamp: number) {
 		const atomicPriceInWinston = await this.arweaveClient.transactions.getPrice(
 			byteSize
 		);
 		const priceInAr = this.arweaveClient.ar.winstonToAr(atomicPriceInWinston);
-		const arPrice = await redstone.getPrice('AR');
+		const arPrice = await redstone.getHistoricalPrice('AR', {
+			date: timestamp,
+		});
 		return parseFloat(priceInAr) * arPrice.value;
 	}
 }
