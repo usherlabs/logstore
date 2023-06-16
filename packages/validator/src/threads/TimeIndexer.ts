@@ -202,7 +202,10 @@ export class TimeIndexer {
 		const db = this.db();
 		this.logger.debug(`Start ETL from block ${startBlock || `'latest'`} ...`);
 
-		for (const source of sources) {
+		const readyChecks = sources.map(() => false);
+
+		for (let i = 0; i < sources.length; i++) {
+			const source = sources[i];
 			const saveFilename = `last_synced_block_${sha256(
 				Buffer.from(source)
 			)}.txt`;
@@ -226,16 +229,19 @@ export class TimeIndexer {
 			child.stderr.on('data', (data) => {
 				if (data.includes(`[INFO]`)) {
 					// Skip logs that aren't root of command
-					if (
+					if (data.includes(`Nothing to sync`)) {
+						this.logger.info(`TimeIndexer (${source}):`, data);
+
+						// Once there is nothing to sync, the TimeIndex is considered Ready
+						readyChecks[i] = true;
+						if (!readyChecks.includes(false)) {
+							this._ready = true;
+						}
+					} else if (
 						data.includes(`Writing last synced block`) ||
 						data.includes(`Current block`)
 					) {
 						this.logger.debug(`TimeIndexer (${source}):`, data);
-					} else if (data.includes(`Nothing to sync`)) {
-						this.logger.info(`TimeIndexer (${source}):`, data);
-
-						// Once there is nothing to sync, the TimeIndex is considered Ready
-						this._ready = true;
 					}
 				} else {
 					this.logger.error(`TimeIndexer (${source}):`, data);
