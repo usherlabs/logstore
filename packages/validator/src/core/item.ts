@@ -15,18 +15,17 @@ export class Item extends AbstractDataItem<IPrepared> {
 	prepared: IPrepared;
 
 	override async load(managers: Managers) {
-		const { core, key } = this;
+		const { key } = this;
 
 		const toKey = parseInt(key, 10);
+		if (toKey === 0) {
+			return { stores: [] };
+		}
+
 		const block = await this.runtime.time.find(toKey);
-		core.logger.debug('produceItem:', {
-			isMaxBlock: toKey >= block.timestamp,
-			blockTs: block.timestamp,
-			ts: toKey,
-		});
 
 		// Fetch full store list
-		const stores = await managers.store.getStores(block.number);
+		const stores = await managers.store.getStores(block);
 
 		return {
 			stores,

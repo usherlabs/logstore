@@ -33,10 +33,8 @@ export default class Runtime implements IRuntimeExtended {
 			core.logger
 		);
 
-		/* eslint-disable */
-		this.listener.start();
-		this.time.start();
-		/* eslint-enable */
+		await this.time.start();
+		await this.listener.start();
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {

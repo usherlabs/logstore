@@ -99,6 +99,11 @@ export class TimeIndexer {
 
 	public find(timestamp: number) {
 		const db = this.db();
+
+		if (timestamp === 0) {
+			return 0;
+		}
+
 		// If exact match, use it.
 		const res = db.get(timestamp) || 0;
 		if (res > 0) {
@@ -172,7 +177,7 @@ export class TimeIndexer {
 								timestamp = block.timestamp;
 							}
 
-							const delay = toBlock === latestBlock ? POLL_INTERVAL : 0;
+							const delay = toBlock === this._latestBlock ? POLL_INTERVAL : 0;
 
 							return {
 								block: toBlock,

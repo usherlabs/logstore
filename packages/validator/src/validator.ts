@@ -5,7 +5,7 @@ import { IRuntimeExtended } from './types';
 
 export async function runCache(this: Validator): Promise<void> {
 	if (this.runtime.setupThreads) {
-		this.runtime.setupThreads(this, this.home);
+		await this.runtime.setupThreads(this, this.home);
 	}
 
 	await runKyveCache.call(this);
