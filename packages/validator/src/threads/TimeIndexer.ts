@@ -281,13 +281,21 @@ export class TimeIndexer {
 						}
 					});
 
-					if ((block - fromBlock) % 100 === 0) {
+					this.logger.debug(
+						`TimeIndexer (${source}): Indexed ${
+							db.get(timestamp).b
+						} at time ${timestamp}`
+					);
+					const blocksIndexedSinceStart = block - fromBlock;
+					if (
+						blocksIndexedSinceStart % 100 === 0 &&
+						blocksIndexedSinceStart > 0
+					) {
 						this.logger.info(
-							`TimeIndexer (${source}): Indexed ${block - fromBlock} blocks`
+							`TimeIndexer (${source}): Indexed ${blocksIndexedSinceStart} blocks`
 						);
 					}
 
-					// this._latestBlock = block;
 					this._latestTimestamp = timestamp;
 				}
 			});

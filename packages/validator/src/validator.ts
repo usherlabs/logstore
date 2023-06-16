@@ -6,7 +6,8 @@ import { IRuntimeExtended } from './types';
 // Hook into this method
 export async function validateDataAvailability(this: Validator): Promise<void> {
 	if (this.runtime.setupThreads) {
-		await this.runtime.setupThreads(this, this.home);
+		// * We cannot `await setupThreads` here because we need it to run async alongside other threads (ie. Kyve's `runCache` and `runNode`)
+		this.runtime.setupThreads(this, this.home);
 	}
 
 	await runKyveValidateDataAvailability.call(this);
