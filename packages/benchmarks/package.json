@@ -32,9 +32,13 @@
 		"lodash": "^4.17.21"
 	},
 	"devDependencies": {
+		"@types/benchmark": "^2.1.2",
 		"del-cli": "^5.0.0",
 		"dotenv": "^16.0.3",
 		"dotenv-cli": "^7.2.1",
+		"vitest": "^0.32.0",
+		"vitest-fixture": "^0.5.1",
+		"benchmark": "^2.1.4",
 		"eslint": "^8.36.0",
 		"prettier": "^2.6.2",
 		"ts-node": "^10.9.1",
