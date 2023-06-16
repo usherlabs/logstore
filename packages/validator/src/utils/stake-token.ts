@@ -21,8 +21,8 @@ export class StakeToken {
 	public async getPrice(timestamp: number) {
 		const tokenPrice = await getTokenPrice(
 			this.address,
-			this.signer,
-			timestamp
+			timestamp,
+			this.signer
 		);
 		return tokenPrice;
 	}

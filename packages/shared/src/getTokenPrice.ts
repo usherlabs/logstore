@@ -5,8 +5,8 @@ import redstone from 'redstone-api';
 
 export const getTokenPrice = async (
 	tokenAddress: string,
-	signer: Signer,
-	timestamp: number
+	timestamp: number,
+	signer: Signer
 ) => {
 	// get the provider from the signer
 	const provider = await signer.provider;
