@@ -21,12 +21,6 @@ type DB = RootDatabase<
 	Timestamp
 >;
 
-// type SourceIndexEval = {
-// 	source: string,
-// 	block: number,
-// 	timestamp: number
-// }
-
 const CONFIRMATIONS = 128 as const; // The number of confirmations/blocks required to determine finality.
 const SCAN_BUFFER = 10000 as const; // The time a find/scan will use to evaluate the indexed block
 const DEFAULT_DB_VALUE = { b: 0, s: [] };
@@ -44,14 +38,9 @@ const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
 export class TimeIndexer {
 	protected _cachePath: string;
 	private _db!: DB;
-	// private _blockTime: number; // Calculated based on average difference between blocks.
 	private _ready: boolean = false;
-	// private _latestBlock: number;
 	private _latestTimestamp: number;
 	private _childProcesses: ChildProcess[] = [];
-	// private _running: boolean = false;
-	// private _eval: SourceIndexEval[]
-	// private _erroring: boolean = false;
 
 	constructor(
 		homeDir: string,
