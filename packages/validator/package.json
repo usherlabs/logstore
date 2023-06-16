@@ -6,6 +6,7 @@
 	"description": "The Log Store Network Validator Node",
 	"private": false,
 	"scripts": {
+		"postinstall": "pip install ethereum-etl && echo \"Python EVM ETL CLI Installed for LS Validator\"",
 		"build": "del dist && tsc -p ./tsconfig.release.json",
 		"start": "node ./dist/src/index.js",
 		"format": "prettier --write .",
@@ -38,7 +39,8 @@
 		"fs-extra": "^11.1.1",
 		"lmdb": "^2.7.11",
 		"lodash": "^4.17.21",
-		"redstone-api": "^0.4.11"
+		"redstone-api": "^0.4.11",
+		"shelljs": "^0.8.5"
 	},
 	"devDependencies": {
 		"@ethersproject/bignumber": "^5.7.0",
