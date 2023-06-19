@@ -2,12 +2,13 @@ FROM golang:1.20.4-bullseye
 
 RUN useradd -ms /bin/bash kyve
 
-RUN curl https://get.ignite.com/cli! | bash
+RUN curl https://get.ignite.com/cli@v0.26.1! | bash
+# RUN curl https://get.ignite.com/cli! | bash
 
 USER kyve
 WORKDIR /home/kyve
 
-RUN git clone https://github.com/KYVENetwork/chain.git chain && cd chain && git checkout v1.2.0
+RUN git clone https://github.com/KYVENetwork/chain.git chain && cd chain && git checkout v1.2.2
 
 WORKDIR /home/kyve/chain
 

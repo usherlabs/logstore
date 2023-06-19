@@ -26,10 +26,10 @@ $SSH \
   -L 7773:localhost:7773 \
   -L 8000:localhost:8000 \
   -L 8081:localhost:8081 \
-  -L 8082:localhost:8081 \
   -L 8545:localhost:8545 \
   -L 8546:localhost:8546 \
   -L 8801:localhost:8801 \
+  -L 8802:localhost:8802 \
   -L 9042:localhost:9042 \
   -L 26657:localhost:26657 \
   -L 30301:localhost:30301 \
