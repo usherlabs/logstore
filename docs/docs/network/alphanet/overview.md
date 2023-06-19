@@ -5,20 +5,19 @@ title: 'Overview'
 
 # Overview
 
-AlphaNet is an integral part of the LogStore ecosystem, deployed on the Polygon Blockchain. It serves as a testbed for LogStore's decentralized data storage and retrieval solution, while also remaining compatible with the Streamr Network’s live pub/sub topics (streams), and Arweave’s live storage environment.
+AlphaNet is an integral part of the release of the Log Store Network. It serves as a initial testbed for Log Store's decentralized data storage and retrieval solution, while also remaining compatible with the Streamr Network’s live pub/sub topics (streams), managed within the Polygon Blockchain's MainNet, and Arweave’s live storage environment.
 
 ### Getting Started with AlphaNet
 
-To interact with AlphaNet, you will need to follow a simple set of instructions. First, you must acquire LSAN tokens — a custom token developed exclusively for the LogStore AlphaNet. These tokens facilitate transactions within the network and can be obtained by depositing MATIC into the LogStore AlphaNet Smart Contract.
+To interact with AlphaNet, you will need to follow a simple set of instructions. First, you must acquire **LSAN** tokens — a custom token developed exclusively for the Log Store AlphaNet. These tokens facilitate transactions within the network and can be obtained by depositing **MATIC** into the Log Store AlphaNet ERC20 Smart Contract.
 
-[Learn how to mint LSAN with our CLI  →](../cli/getting-started.md)
-
+[Learn how to mint LSAN with our CLI →](../cli/getting-started.md)
 
 ### Roadmap to BetaNet & MainNet
 
 AlphaNet is a stepping stone toward the full deployment of the Log Store Network.
 
-As we transition from AlphaNet to BetaNet and eventually to MainNet, the LSAN tokens will play a crucial role. These tokens will eventually be destroyed as part of a hard fork, paving the way for deploying a new set of Smart Contracts powered by a token with production-grade tokenomics.
+As we transition from AlphaNet to BetaNet and eventually to MainNet, the LSAN tokens will play a crucial role. These tokens will eventually be replaced with a completely trustless counterpart, paving the way for deploying a new set of Smart Contracts powered by a token with production-grade tokenomics.
 
 ### Participation and Community Engagement
 
