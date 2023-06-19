@@ -13,6 +13,7 @@ Hit [Ctrl+C] to abort.
 "
 
 $SSH \
+	-o ServerAliveInterval=60 \
   -N \
   -L 80:localhost:80 \
   -L 443:localhost:443 \

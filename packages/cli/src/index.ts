@@ -86,7 +86,8 @@ program
 						amount = await convertFromUsd(
 							tokenManagerContract.address,
 							Number(amount),
-							signer
+							signer,
+							Date.now()
 						);
 					}
 					const receipt = await (

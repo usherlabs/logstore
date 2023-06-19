@@ -1,6 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { LogStoreNodeManager, LSAN__factory } from '@logsn/contracts';
 
+import { overrideStartBlockNumber } from '../env-config';
 import { IBrokerNode } from '../types';
 import { StakeToken } from '../utils/stake-token';
 
@@ -50,7 +51,7 @@ export class NodeManager {
 		const brokerNodes = detailedAllNodes.filter(
 			({ stake }) =>
 				typeof minStakeRequirement !== 'undefined' &&
-				stake > minStakeRequirement
+				stake >= minStakeRequirement
 		);
 
 		return brokerNodes;
@@ -121,8 +122,18 @@ export class NodeManager {
 		return stakeToken;
 	}
 
+	// ? For testing purposes, enable overriding startBlockNumber
 	async getStartBlockNumber(): Promise<number> {
-		const startBlockNumber = await this.contract.startBlockNumber();
-		return startBlockNumber.toNumber();
+		const startBlockNumber =
+			overrideStartBlockNumber !== '0'
+				? BigNumber.from(overrideStartBlockNumber)
+				: await this.contract.startBlockNumber();
+		const n = startBlockNumber.toNumber();
+		if (n === 0) {
+			throw new Error(
+				'No Brokers Nodes are available on the network to validate'
+			);
+		}
+		return n;
 	}
 }

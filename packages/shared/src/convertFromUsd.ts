@@ -9,7 +9,8 @@ const logger = new Logger();
 export const convertFromUsd = async (
 	stakeTokenAddress: string,
 	amount: number,
-	signer: Signer
+	signer: Signer,
+	timestamp: number
 ) => {
 	const stakeTokenContract = LSAN__factory.connect(stakeTokenAddress, signer);
 	const stakeTokenSymbol = await stakeTokenContract.symbol();
@@ -20,7 +21,7 @@ export const convertFromUsd = async (
 
 	let price = 0.01;
 	try {
-		price = await getTokenPrice(stakeTokenAddress, signer);
+		price = await getTokenPrice(stakeTokenAddress, timestamp, signer);
 	} catch (e) {
 		logger.warn(`Cannot get price of ${stakeTokenSymbol} from RedStone`);
 	}

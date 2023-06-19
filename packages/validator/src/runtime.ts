@@ -5,8 +5,8 @@ import ContractAddresses from '@logsn/contracts/address.json';
 import { Item } from './core/item';
 import { Report } from './core/report';
 import { appPackageName, appVersion } from './env-config';
-import Listener from './listener';
 import { Managers } from './managers';
+import { SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
@@ -22,18 +22,19 @@ export default class Runtime implements IRuntimeExtended {
 			readMultiplier: 0.05, // 5% of the write. For comparison AWS Serverless DynamoDB read fees are 20% of the write fees, prorated to the nearest 4kb
 		},
 	};
-	public listener: Listener;
-	private managers: Managers;
+	public listener: SystemListener;
+	public time: TimeIndexer;
 
 	async setupThreads(core: Validator, homeDir: string) {
-		this.listener = new Listener(
-			this.config.systemStreamId,
+		this.time = new TimeIndexer(homeDir, this.config, core.logger);
+		this.listener = new SystemListener(
 			homeDir,
+			this.config.systemStreamId,
 			core.logger
 		);
 
-		// eslint-disable-next-line
-		this.listener.start();
+		await this.time.start();
+		await this.listener.start();
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {
@@ -60,9 +61,6 @@ export default class Runtime implements IRuntimeExtended {
 			throw new Error(`Config sources have invalid network chain identifier`);
 		}
 
-		this.managers = new Managers(config.sources[0]);
-		await this.managers.init();
-
 		this.config = {
 			...this.config,
 			...config,
@@ -72,13 +70,16 @@ export default class Runtime implements IRuntimeExtended {
 
 	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
+		// Ensure that the Time Index is ready
+		await this.time.ready();
+
 		const keyInt = parseInt(key, 10);
 
-		if (keyInt > (await this.managers.getBlockTime())) {
+		if (keyInt > this.time.latestTimestamp) {
 			return null;
 		}
 
-		const item = new Item(core, this.listener, this.config, key);
+		const item = new Item(core, this, this.config, key);
 		await item.prepare();
 		const messages = await item.generate();
 
@@ -120,12 +121,13 @@ export default class Runtime implements IRuntimeExtended {
 	): Promise<string> {
 		const lastItem = bundle.at(-1);
 		core.logger.info(`Create Report: ${lastItem.key}`);
-		const report = new Report(core, this.listener, this.config, lastItem.key);
+		const report = new Report(core, this, this.config, lastItem.key);
 		await report.prepare();
-		const report_data = await report.generate();
+		const reportData = await report.generate();
+		const reportHash = sha256(Buffer.from(JSON.stringify(reportData)));
 
-		lastItem.value.r = report_data;
-		return lastItem.key;
+		lastItem.value.r = reportData;
+		return lastItem.key + '_' + reportHash;
 	}
 
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
@@ -134,11 +136,16 @@ export default class Runtime implements IRuntimeExtended {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			return (
-				await this.managers.getBlock(
-					await this.managers.node.getStartBlockNumber()
-				)
-			).timestamp.toString();
+			const startTs = await Managers.withSources<string>(
+				this.config.sources,
+				async (managers) => {
+					const res = await managers.getBlock(
+						await managers.node.getStartBlockNumber()
+					);
+					return res.timestamp.toString();
+				}
+			);
+			return startTs;
 		}
 
 		keyInt++;

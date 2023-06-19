@@ -8,12 +8,13 @@ import {
 	SystemMessageType,
 } from '@logsn/protocol';
 import fse from 'fs-extra';
-import { open, RootDatabase } from 'lmdb';
+import type { RootDatabase } from 'lmdb';
 import path from 'path';
 import type { Logger } from 'tslog';
 
-import { useStreamrTestConfig } from './env-config';
-import type { StreamrMessage } from './types';
+import { getEvmPrivateKey, useStreamrTestConfig } from '../env-config';
+import type { StreamrMessage } from '../types';
+import { Database } from '../utils/database';
 
 // -------------> usual storage of QueryRequest and POS in listener cache
 // timestamp(number)|requestId(string) => [{content, metadata},{content, metadata}]
@@ -35,23 +36,26 @@ type DB = {
 	[SystemMessageType.QueryResponse]: QueryResponseDatabase;
 };
 
-export default class Listener {
+export class SystemListener {
+	protected _cachePath: string;
 	private _client: LogStoreClient;
 	private _db!: DB;
-	private _cachePath: string;
 	private _startTime: number;
 
 	constructor(
-		protected systemStreamId: string,
 		homeDir: string,
+		protected systemStreamId: string,
 		protected logger: Logger
 	) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		// core.logger.debug('Streamr Config', streamrConfig);
-		this._client = new LogStoreClient(streamrConfig);
+		this._client = new LogStoreClient({
+			...streamrConfig,
+			auth: {
+				privateKey: getEvmPrivateKey(), // The Validator needs to stake in QueryManager
+			},
+		});
 
-		// Kyve cache dir would have already setup this directory
-		// On each new bundle, this cache will be deleted
 		this._cachePath = path.join(homeDir, '.logstore-metadata');
 	}
 
@@ -59,26 +63,30 @@ export default class Listener {
 		return this._startTime;
 	}
 
+	public get client() {
+		return this._client;
+	}
+
 	public async start(): Promise<void> {
 		try {
 			await fse.remove(this._cachePath);
 			this._db = {
-				[SystemMessageType.ProofOfMessageStored]: this.createDb(
+				[SystemMessageType.ProofOfMessageStored]: Database.create(
 					'ProofOfMessageStored',
 					this._cachePath
 				),
-				[SystemMessageType.QueryRequest]: this.createDb(
+				[SystemMessageType.QueryRequest]: Database.create(
 					'QueryRequest',
 					this._cachePath
 				),
-				[SystemMessageType.QueryResponse]: this.createDb(
+				[SystemMessageType.QueryResponse]: Database.create(
 					'QueryResponse',
 					this._cachePath
 				),
 			} as DB;
 
 			// const systemSubscription =
-			this.logger.info('Starting listeners ...');
+			this.logger.info('Starting System Listener ...');
 			this.logger.debug(`System Stream Id: `, this.systemStreamId);
 			await this.subscribe(this.systemStreamId);
 
@@ -116,20 +124,11 @@ export default class Listener {
 		return this.db(SystemMessageType.QueryResponse) as QueryResponseDatabase;
 	}
 
-	private db(type: SystemMessageType) {
+	protected db(type: SystemMessageType) {
 		if (!this._db[type]) {
 			throw new Error('Database is not initialised');
 		}
 		return this._db[type];
-	}
-
-	private createDb(name: string, dbPath: string) {
-		return open({
-			name,
-			path: dbPath,
-			compression: true,
-			encoding: 'json',
-		});
 	}
 
 	private async onMessage(

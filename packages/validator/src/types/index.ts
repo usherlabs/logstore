@@ -2,11 +2,12 @@ import type { IRuntime } from '@kyvejs/protocol';
 import { MessageMetadata } from '@logsn/client';
 import type { QueryOptions } from '@logsn/protocol';
 
-import type Listener from '../listener';
+import type { SystemListener, TimeIndexer } from '../threads';
 import type Validator from '../validator';
 
 export interface IRuntimeExtended extends IRuntime {
-	listener: Listener;
+	listener: SystemListener;
+	time: TimeIndexer;
 	setupThreads?: (core: Validator, homeDir: string) => void;
 }
 

@@ -1,8 +1,6 @@
-import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
 
-import { getEvmPrivateKey, useStreamrTestConfig } from '../env-config';
 import { Managers } from '../managers';
 import { AbstractDataItem } from './abstract';
 
@@ -17,18 +15,17 @@ export class Item extends AbstractDataItem<IPrepared> {
 	prepared: IPrepared;
 
 	override async load(managers: Managers) {
-		const { core, key } = this;
+		const { key } = this;
 
 		const toKey = parseInt(key, 10);
-		const block = await managers.getBlockByTime(toKey);
-		core.logger.debug('produceItem:', {
-			isMaxBlock: toKey >= block.timestamp,
-			blockTs: block.timestamp,
-			ts: toKey,
-		});
+		if (toKey === 0) {
+			return { stores: [] };
+		}
+
+		const block = await this.runtime.time.find(toKey);
 
 		// Fetch full store list
-		const stores = await managers.store.getStores(block.number);
+		const stores = await managers.store.getStores(block);
 
 		return {
 			stores,
@@ -43,19 +40,11 @@ export class Item extends AbstractDataItem<IPrepared> {
 		// Range will be from last key (timestamp) to this key
 		const toTimestamp = parseInt(key, 10) * 1000;
 		const fromTimestamp = toTimestamp - 1000;
-		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
-
-		const logstore = new LogStoreClient({
-			...streamrConfig,
-			auth: {
-				privateKey: getEvmPrivateKey(), // The Validator needs to stake in QueryManager
-			},
-		});
 
 		const messages = [];
 		for (let i = 0; i < stores.length; i++) {
 			const store = stores[i];
-			const resp = await logstore.query(
+			const resp = await this.runtime.listener.client.query(
 				{
 					id: store.id,
 				},

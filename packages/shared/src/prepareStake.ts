@@ -88,7 +88,8 @@ async function prepareStake(
 		realAmount = await convertFromUsd(
 			stakeTokenAddress,
 			amount as number,
-			signer
+			signer,
+			Date.now()
 		);
 	}
 
