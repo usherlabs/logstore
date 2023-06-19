@@ -41,6 +41,7 @@
 | 8890  | Streamr Broker (storage) #1     | streamr-dev-broker-node-storage-1    | Streamr  |
 | 8891  | Streamr Broker (storage) #1     | streamr-dev-broker-node-storage-1    | Streamr  |
 | 8801  | KYVE app                        | logstore-nginx                       | LogStore |
+| 8802  | EVM Block Explorer              | logstore-b-explorer                  | LogStore |
 | 9000  | Streamr Broker (storage) #1     | streamr-dev-broker-node-storage-1    | Streamr  |
 | 9042  | Cassandra                       | streamr-dev-cassandra                | Streamr  |
 | 9100  | Streamr Broker (no storage) #1  | streamr-dev-broker-node-no-storage-1 | Streamr  |
