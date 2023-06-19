@@ -283,6 +283,26 @@ services:
       logstore-broker-3:
         condition: service_started
 
+  logstore-heartbeat:
+    container_name: logstore-heartbeat
+    hostname: logstore-heartbeat
+    image: logstore-heartbeat
+    build:
+      context: ../
+      dockerfile: ./dev-network/Dockerfile.heartbeat
+    restart: always
+    networks:
+      - streamr-network
+    env_file:
+      - ./assets/heartbeat/.env.heartbeat
+    depends_on:
+      logstore-base:
+        condition: service_completed_successfully
+      logstore-deploy-subgraph:
+        condition: service_completed_successfully
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
+
 networks:
   streamr-network:
     name: streamr-docker-dev_streamr-network

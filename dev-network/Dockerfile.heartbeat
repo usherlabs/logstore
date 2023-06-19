@@ -1,0 +1,6 @@
+FROM logstore-base
+
+USER node
+WORKDIR /home/node/logstore/packages/heartbeat
+
+CMD [ "./dist/main.js" ]

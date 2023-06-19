@@ -26,6 +26,7 @@ COPY --chown=node:node ./packages/client/package.json ./packages/client/
 COPY --chown=node:node ./packages/cli/package.json ./packages/cli/
 COPY --chown=node:node ./packages/broker/package.json ./packages/broker/
 COPY --chown=node:node ./packages/validator/package.json ./packages/validator/
+COPY --chown=node:node ./packages/heartbeat/package.json ./packages/heartbeat/
 
 RUN pnpm install
 

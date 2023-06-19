@@ -1,0 +1,21 @@
+{
+  "name": "@logsn/heartbeat",
+  "version": "0.0.1",
+  "description": "Log Store Network Heartbeat",
+  "repository": "https://github.com/usherlabs/logstore.git",
+  "author": "Victor Shevtsov <victor.shevtsov@usher.so>",
+  "license": "Apache-2.0",
+  "private": false,
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@logsn/client": "workspace:^",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.3.1"
+  }
+}
