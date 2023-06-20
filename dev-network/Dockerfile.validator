@@ -1,0 +1,15 @@
+FROM logstore-base
+
+WORKDIR /home/node/cli
+COPY --chown=node:node ./dev-network/assets/validator/cli/* ./
+RUN npm install
+
+USER root
+RUN mkdir /firstrun && chown node:node /firstrun
+RUN npm i -g /home/node/logstore/packages/cli
+RUN npm i -g /home/node/logstore/packages/validator
+
+USER node
+WORKDIR /home/node
+
+CMD [ "start-in-docker" ]

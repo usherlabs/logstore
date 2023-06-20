@@ -1,3 +1,4 @@
+import { BigNumber } from '@ethersproject/bignumber';
 import { LogStoreManager } from '@logsn/contracts';
 
 export class StoreManager {
@@ -9,16 +10,16 @@ export class StoreManager {
 
 	public async getStores(
 		toBlockNumber?: number
-	): Promise<{ id: string; amount: number }[]> {
+	): Promise<{ id: string; amount: BigNumber }[]> {
 		const storeUpdateEvents = await this.contract.queryFilter(
 			this.contract.filters.StoreUpdated(),
 			0,
 			toBlockNumber
 		);
-		const stores: { id: string; amount: number }[] = [];
+		const stores: { id: string; amount: BigNumber }[] = [];
 		storeUpdateEvents.forEach((e) => {
 			const storeId = e.args.store.toString();
-			const amount = e.args.amount.toNumber();
+			const amount = e.args.amount;
 			const sIndex = stores.findIndex((s) => s.id === storeId);
 			if (sIndex < 0) {
 				stores.push({
@@ -27,7 +28,7 @@ export class StoreManager {
 				});
 				return;
 			}
-			stores[sIndex].amount += amount;
+			stores[sIndex].amount = stores[sIndex].amount.add(amount);
 		});
 		const dataStoredEvents = await this.contract.queryFilter(
 			this.contract.filters.DataStored(),
@@ -36,10 +37,10 @@ export class StoreManager {
 		);
 		dataStoredEvents.forEach((e) => {
 			const storeId = e.args.store.toString();
-			const amount = e.args.fees.toNumber();
+			const amount = e.args.fees as BigNumber;
 			const sIndex = stores.findIndex((s) => s.id === storeId);
 			if (sIndex >= 0) {
-				stores[sIndex].amount -= amount;
+				stores[sIndex].amount = stores[sIndex].amount.sub(amount);
 			}
 		});
 

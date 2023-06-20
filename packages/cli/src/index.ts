@@ -1,6 +1,8 @@
 import {
+	convertFromUsd,
 	getQueryManagerContract,
 	getStoreManagerContract,
+	getTokenManagerContract,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
@@ -54,12 +56,12 @@ program
 	});
 
 program
-	.command('query')
-	.description('Manage your Log Store Queries')
+	.command('mint')
+	.description('Manage minting tokens for the Log Store Network')
 	.addCommand(
 		new Command()
-			.name('stake')
-			.description('Stake to submit Query requests to the Log Store Network')
+			.name('lsan')
+			.description('Mint LSAN tokens for the Log Store Network.')
 			.argument(
 				'<amount>',
 				'Amount in Wei to stake into the Query Manager Contract. Ensure funds are available for queries to the Log Store Network.'
@@ -75,21 +77,80 @@ program
 				try {
 					const provider = new ethers.providers.JsonRpcProvider(options.host);
 					const signer = new ethers.Wallet(options.wallet, provider);
-					const stakeAmount = await prepareStakeForQueryManager(
-						signer,
-						amount,
-						cmdOptions.usd,
-						allowanceConfirm
+
+					const tokenManagerContract = await getTokenManagerContract(signer);
+
+					let amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
+
+					if (cmdOptions.usd) {
+						amount = await convertFromUsd(
+							tokenManagerContract.address,
+							Number(amount),
+							signer,
+							Date.now()
+						);
+					}
+					const receipt = await (
+						await tokenManagerContract.mint({ value: BigInt(amount) })
+					).wait();
+
+					console.log(
+						`Successfully minted tokens to network:Tx ${receipt.transactionHash}, Amount:Tx ${amount}`
 					);
-					const queryManagerContract = await getQueryManagerContract(signer);
-					logger.info(`Staking ${stakeAmount}...`);
-					await (await queryManagerContract.stake(stakeAmount)).wait();
-					logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
 				} catch (e) {
-					logger.info(chalk.red('Stake failed'));
+					logger.info(chalk.red('mint failed'));
 					logger.error(e);
 				}
 			})
+	);
+
+program
+	.command('query')
+	.description('Manage your Log Store Queries')
+	.addCommand(
+		new Command()
+			.name('stake')
+			.description('Stake to submit Query requests to the Log Store Network')
+			.argument(
+				'<amount>',
+				'Amount in Wei to stake into the Query Manager Contract. Ensure funds are available for queries to the Log Store Network.'
+			)
+			.option(
+				'-u, --usd',
+				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
+			)
+			.option('-y, --assume-yes', 'Assume Yes to all queries and do not prompt')
+			.action(
+				async (
+					amt: string,
+					cmdOptions: { usd: boolean; assumeYes: boolean }
+				) => {
+					const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
+					logger.debug('Command Params: ', {
+						amount,
+						...options,
+						...cmdOptions,
+					});
+
+					try {
+						const provider = new ethers.providers.JsonRpcProvider(options.host);
+						const signer = new ethers.Wallet(options.wallet, provider);
+						const stakeAmount = await prepareStakeForQueryManager(
+							signer,
+							amount,
+							cmdOptions.usd,
+							!cmdOptions.assumeYes ? allowanceConfirm : undefined
+						);
+						const queryManagerContract = await getQueryManagerContract(signer);
+						logger.info(`Staking ${stakeAmount}...`);
+						await (await queryManagerContract.stake(stakeAmount)).wait();
+						logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
+					} catch (e) {
+						logger.info(chalk.red('Stake failed'));
+						logger.error(e);
+					}
+				}
+			)
 	);
 
 program
@@ -110,8 +171,13 @@ program
 				'-u, --usd',
 				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
 			)
+			.option('-y, --assume-yes', 'Assume Yes to all queries and do not prompt')
 			.action(
-				async (streamId: string, amt: string, cmdOptions: { usd: boolean }) => {
+				async (
+					streamId: string,
+					amt: string,
+					cmdOptions: { usd: boolean; assumeYes: boolean }
+				) => {
 					const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
 					if (!streamId) {
 						throw new Error('Stream ID is invalid');
@@ -131,15 +197,12 @@ program
 							signer,
 							amount,
 							cmdOptions.usd,
-							allowanceConfirm
+							!cmdOptions.assumeYes ? allowanceConfirm : undefined
 						);
 						const storeManagerContract = await getStoreManagerContract(signer);
 						logger.info(`Staking ${stakeAmount}...`);
 						await (
-							await storeManagerContract.stake(streamId, stakeAmount, {
-								gas: 2100000,
-								gasPrice: 8000000000,
-							})
+							await storeManagerContract.stake(streamId, stakeAmount)
 						).wait();
 						logger.info(chalk.green(`Successfully staked ${stakeAmount}`));
 					} catch (e) {

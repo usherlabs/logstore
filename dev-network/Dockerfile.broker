@@ -1,0 +1,10 @@
+FROM logstore-base
+
+USER root
+RUN mkdir /firstrun && chown node:node /firstrun
+RUN npm i -g /home/node/logstore/packages/broker
+
+USER node
+WORKDIR /home/node
+
+CMD [ "start-in-docker" ]

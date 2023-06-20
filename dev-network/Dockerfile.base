@@ -1,0 +1,38 @@
+FROM node:18.15-buster
+
+RUN apt update
+RUN apt install -y libsecret-1-dev
+
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+RUN wget -O - https://bootstrap.pypa.io/get-pip.py | python
+
+RUN npm i -g pnpm
+
+USER node
+
+WORKDIR /home/node/logstore
+
+COPY --chown=node:node ./package.json ./
+COPY --chown=node:node ./pnpm-lock.yaml ./
+COPY --chown=node:node ./pnpm-workspace.yaml ./
+COPY --chown=node:node ./tsconfig.node.json ./
+COPY --chown=node:node ./node_artifacts/ ./node_artifacts/
+
+COPY --chown=node:node ./packages/contracts/package.json ./packages/contracts/
+COPY --chown=node:node ./packages/subgraph/package.json ./packages/subgraph/
+COPY --chown=node:node ./packages/protocol/package.json ./packages/protocol/
+COPY --chown=node:node ./packages/shared/package.json ./packages/shared/
+COPY --chown=node:node ./packages/client/package.json ./packages/client/
+COPY --chown=node:node ./packages/cli/package.json ./packages/cli/
+COPY --chown=node:node ./packages/broker/package.json ./packages/broker/
+COPY --chown=node:node ./packages/validator/package.json ./packages/validator/
+
+RUN pnpm install
+
+COPY --chown=node:node ./ ./
+
+RUN cp ./packages/contracts/.env.dev-network ./packages/contracts/.env
+
+RUN pnpm build
+
+WORKDIR /home/node

@@ -1,6 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { ERC20__factory, LogStoreNodeManager } from '@logsn/contracts';
+import { LogStoreNodeManager, LSAN__factory } from '@logsn/contracts';
 
+import { overrideStartBlockNumber } from '../env-config';
 import { IBrokerNode } from '../types';
 import { StakeToken } from '../utils/stake-token';
 
@@ -50,7 +51,7 @@ export class NodeManager {
 		const brokerNodes = detailedAllNodes.filter(
 			({ stake }) =>
 				typeof minStakeRequirement !== 'undefined' &&
-				stake > minStakeRequirement
+				stake >= minStakeRequirement
 		);
 
 		return brokerNodes;
@@ -102,18 +103,18 @@ export class NodeManager {
 			blockTag: blockNumber,
 		});
 		// Get decimal count for the stake token
-		const stakeTokenContract = ERC20__factory.connect(
+		const stakeTokenContract = LSAN__factory.connect(
 			stakeTokenAddress,
 			this.contract.provider
 		);
 		const stakeTokenSymbol = await stakeTokenContract.symbol();
 		const stakeTokenDecimals = await stakeTokenContract.decimals();
-
 		const stakeToken = new StakeToken(
 			stakeTokenAddress,
 			stakeTokenSymbol,
 			stakeTokenDecimals,
-			+minStakeRequirement
+			+minStakeRequirement,
+			this.contract.signer
 		);
 
 		await stakeToken.init();
@@ -121,8 +122,18 @@ export class NodeManager {
 		return stakeToken;
 	}
 
+	// ? For testing purposes, enable overriding startBlockNumber
 	async getStartBlockNumber(): Promise<number> {
-		const startBlockNumber = await this.contract.startBlockNumber();
-		return startBlockNumber.toNumber();
+		const startBlockNumber =
+			overrideStartBlockNumber !== '0'
+				? BigNumber.from(overrideStartBlockNumber)
+				: await this.contract.startBlockNumber();
+		const n = startBlockNumber.toNumber();
+		if (n === 0) {
+			throw new Error(
+				'No Brokers Nodes are available on the network to validate'
+			);
+		}
+		return n;
 	}
 }

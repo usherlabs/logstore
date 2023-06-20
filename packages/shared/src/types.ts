@@ -3,6 +3,7 @@ export enum Manager {
 	StoreManager = 'StoreManager',
 	QueryManager = 'QueryManager',
 	ReportManager = 'ReportManager',
+	TokenManager = 'TokenManager',
 }
 
 export enum Network {

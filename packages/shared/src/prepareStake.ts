@@ -1,4 +1,4 @@
-import { ERC20__factory } from '@logsn/contracts';
+import { LSAN__factory } from '@logsn/contracts';
 import { Signer } from 'ethers';
 import { Logger } from 'tslog';
 
@@ -77,7 +77,7 @@ async function prepareStake(
 	const stakeTokenAddress: string = await managerContract.stakeTokenAddress();
 	logger.debug('Stake Token Address: ', stakeTokenAddress);
 
-	const stakeTokenContract = ERC20__factory.connect(stakeTokenAddress, signer);
+	const stakeTokenContract = LSAN__factory.connect(stakeTokenAddress, signer);
 	const stakeTokenSymbol = await stakeTokenContract.symbol();
 	logger.debug('Stake Token Symbol: ', stakeTokenSymbol);
 
@@ -88,7 +88,8 @@ async function prepareStake(
 		realAmount = await convertFromUsd(
 			stakeTokenAddress,
 			amount as number,
-			signer
+			signer,
+			Date.now()
 		);
 	}
 

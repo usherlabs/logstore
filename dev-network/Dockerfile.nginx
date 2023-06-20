@@ -1,0 +1,17 @@
+FROM nginx
+
+RUN apt update -y && apt install zip -y
+
+COPY ./assets/nginx/certs/arweave.net.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
+
+COPY ./assets/nginx/dhparam.pem /etc/nginx/
+COPY ./assets/nginx/snippets/* /etc/nginx/snippets/
+
+COPY ./assets/nginx/certs/arweave.net.crt /etc/ssl/certs/
+COPY ./assets/nginx/certs/arweave.net.key /etc/ssl/private/
+
+COPY ./assets/nginx/kyve.app.zip /tmp/
+RUN unzip -o /tmp/kyve.app.zip -d /usr/share/nginx/kyve/ && rm /tmp/kyve.app.zip
+
+COPY ./assets/nginx/conf.d/* /etc/nginx/conf.d/

@@ -1,0 +1,37 @@
+{
+	"$schema": "https://json.schemastore.org/tsconfig",
+	"display": "Validator",
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es2015",
+		"moduleResolution": "node",
+		"rootDir": ".",
+		"outDir": "__benchmarks__",
+		"allowSyntheticDefaultImports": true,
+		"importHelpers": true,
+		"alwaysStrict": true,
+		"sourceMap": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitAny": false,
+		"noImplicitThis": false,
+		"strictNullChecks": false,
+		"forceConsistentCasingInFileNames": true,
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"baseUrl": "."
+	},
+	"exclude": ["node_modules", "build", "dist"],
+	"include": ["**/*.ts", "./index.d.ts"],
+	"ts-node": {
+		"require": ["tsconfig-paths/register"]
+	},
+	"references": [
+		{
+			"path": "../client/tsconfig.node.json"
+		}
+	]
+}

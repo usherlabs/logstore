@@ -4,7 +4,6 @@ import { SystemMessageType } from '@logsn/protocol';
 import { Managers } from '../managers';
 import { IBrokerNode, IReport } from '../types';
 import { Arweave } from '../utils/arweave';
-import { reportPrefix } from '../utils/constants';
 import { fetchQueryResponseConsensus } from '../utils/helpers';
 import { StakeToken } from '../utils/stake-token';
 import { AbstractDataItem } from './abstract';
@@ -28,22 +27,16 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// The from key will default to the startBlockNumber
 		let fromKey = startBlock.timestamp;
 		if ((lastReport || {})?.id) {
-			core.logger.debug('Last Report Id: ', lastReport.id);
-			const rKey = lastReport.id.substring(
-				reportPrefix.length,
-				lastReport.id.length
-			);
-			fromKey = parseInt(rKey, 10);
+			fromKey = parseInt(lastReport.id, 10);
 		}
-		const toKey = parseInt(key.substring(reportPrefix.length, key.length), 10);
+		const toKey = parseInt(key, 10);
 		core.logger.debug('Report Range: ', { fromKey, toKey });
 
 		// Get all state from Smart Contract up to the current key (where key = block at a timestamp)
 		// We do this by using the key (timestamp) to determine the most relevant block
 		// ? We need to get the closest block because it may not be the most recent block...
 		core.logger.debug('getBlockByTime...');
-		const block = await managers.getBlockByTime(toKey);
-		const blockNumber = block.number;
+		const blockNumber = await this.runtime.time.find(toKey);
 		core.logger.debug('Block Number: ', {
 			blockNumber,
 		});
@@ -72,10 +65,13 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		const {
 			core,
-			listener,
+			runtime: { listener },
 			key,
 			config: { fees },
 		} = this;
+
+		const toKeyMs = toKey * 1000;
+		const fromKeyMs = fromKey * 1000;
 
 		// Establish the report
 		const report: IReport = {
@@ -158,8 +154,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// With this mapping, we can determine which events in the storeCache pertain to the ProofOfMessageStored hash - and therefore which publishers/brokers contributed.
 		const storeHashKeyMap: Record<string, [number, number][]> = {};
 		const storeCachedItems = storeCache.getRange({
-			start: fromKey,
-			end: toKey,
+			start: fromKeyMs,
+			end: toKeyMs,
 		});
 		// TODO: We may need to create a special cache for streamIds that are complete dropped during a given item cycle.
 		for (const { key: cacheKey, value: cacheValue } of storeCachedItems) {
@@ -234,7 +230,11 @@ export class Report extends AbstractDataItem<IPrepared> {
 					};
 				} else {
 					streamsMap[id].bytes += size;
-					streamsMap[id].contributors.push(event.metadata.publisherId);
+					if (
+						!streamsMap[id].contributors.includes(event.metadata.publisherId)
+					) {
+						streamsMap[id].contributors.push(event.metadata.publisherId);
+					}
 				}
 			}
 		}
@@ -249,8 +249,11 @@ export class Report extends AbstractDataItem<IPrepared> {
 			totalBytes += bytes;
 			return totalBytes;
 		}, 0);
-		const expensePerByteStored = await Arweave.getPrice(totalBytesStored);
-		const writeFee = (fees.writeMultiplier + 1) * expensePerByteStored;
+		const expensePerByteStored = await Arweave.getPrice(
+			totalBytesStored,
+			toKeyMs
+		);
+		const writeFee = fees.writeMultiplier * expensePerByteStored;
 		const writeTreasuryFee =
 			fees.treasuryMultiplier * (writeFee - expensePerByteStored); // multiplier on the margin
 		const writeNodeFee = writeFee - writeTreasuryFee;
@@ -279,12 +282,15 @@ export class Report extends AbstractDataItem<IPrepared> {
 		const queryResponseCache = listener.queryResponseDb();
 		// Iterate over the query-request events between the range
 		const queryRequestCachedItems = queryRequestCache.getRange({
-			start: fromKey,
-			end: toKey,
+			start: fromKeyMs,
+			end: toKeyMs,
 		});
 
 		// Determine read fees
-		const { read: readFee } = fees;
+		const readFee =
+			totalBytesStored === 0
+				? 0
+				: fees.readMultiplier * (writeFee / totalBytesStored);
 		const readTreasuryFee = readFee * fees.treasuryMultiplier;
 		const readNodeFee = readFee - readTreasuryFee;
 
@@ -351,21 +357,24 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		// ------------ FEE CONVERSION ------------
 		// Convert fees to stake token
-		report.treasury = stakeToken.fromUSD(report.treasury);
-		report.streams = report.streams.map((s) => {
-			s.capture = stakeToken.fromUSD(s.capture);
+		report.treasury = await stakeToken.fromUSD(report.treasury, toKeyMs);
+		report.streams.forEach(async (s) => {
+			s.capture = await stakeToken.fromUSD(s.capture, toKeyMs);
 			return s;
 		});
-		report.consumers = report.consumers.map((c) => {
-			c.capture = stakeToken.fromUSD(c.capture);
+		report.consumers.forEach(async (c) => {
+			c.capture = await stakeToken.fromUSD(c.capture, toKeyMs);
 			return c;
 		});
-		Object.keys(report.nodes).forEach((n) => {
-			report.nodes[n] = stakeToken.fromUSD(report.nodes[n]);
+		Object.keys(report.nodes).forEach(async (n) => {
+			report.nodes[n] = await stakeToken.fromUSD(report.nodes[n], toKeyMs);
 		});
 		Object.keys(report.delegates).forEach((d) => {
-			Object.keys(report.delegates[d]).forEach((n) => {
-				report.delegates[d][n] = stakeToken.fromUSD(report.delegates[d][n]);
+			Object.keys(report.delegates[d]).forEach(async (n) => {
+				report.delegates[d][n] = await stakeToken.fromUSD(
+					report.delegates[d][n],
+					toKeyMs
+				);
 			});
 		});
 		// ------------ END FEE CONVERSION ------------

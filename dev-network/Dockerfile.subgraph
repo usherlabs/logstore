@@ -1,0 +1,5 @@
+FROM logstore-base
+
+WORKDIR /home/node/logstore/packages/subgraph
+
+ENTRYPOINT [ "sh", "./start.sh" ]

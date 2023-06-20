@@ -1,7 +1,10 @@
-import { BigNumber } from 'ethers';
+import ArweaveClient from 'arweave';
+import axios from 'axios';
+import { ethers } from 'ethers';
 import fs from 'fs';
 import hre from 'hardhat';
 import path from 'path';
+import redstone from 'redstone-api';
 
 import { STAKE_TOKEN_CONTRACTS, STREAMR_REGISTRY_ADDRESS } from './addresses';
 
@@ -14,7 +17,7 @@ export const getAccounts = async () => hre.ethers.getSigners();
 
 export const toBigDecimal = (amount: number, exponent = 18) => {
 	if (amount < 0) throw 'amount < 0';
-	return BigNumber.from(`${amount}${'0'.repeat(exponent)}`);
+	return ethers.BigNumber.from(`${amount}${'0'.repeat(exponent)}`);
 };
 
 export async function getNodeManagerInputParameters(
@@ -139,4 +142,32 @@ export const getReportBlockBuffer = async () => {
 	const blockTime = await getBlockTime();
 	const reportBlockBuffer = Math.ceil(30000 / blockTime); // The number of blocks to wait between each reporter starting from the height of the report.
 	return reportBlockBuffer;
+};
+
+// const winstonToAr = (
+// 	winstonString: string,
+// 	{ formatted = false, decimals = 12, trim = true } = {}
+// ) => {
+// 	const number =  this.stringToBigNum(winstonString, decimals).shiftedBy(-12);
+
+// 	return formatted ? number.toFormat(decimals) : number.toFixed(decimals);
+// }
+
+export const getWeiPerByte = async () => {
+	const mb = 1000000;
+	// ? Arweave's fetch is experimental and causes a bug when used inside of DevNetwork
+	const { data: winston } = await axios.get(`https://arweave.net/price/1000`);
+	const arweave = new ArweaveClient({
+		host: 'arweave.net',
+		protocol: 'https',
+	});
+	// Get price from Arweave
+	const priceInAr = arweave.ar.winstonToAr(winston);
+	// Get AR and Matic price
+	const arPrice = await redstone.getPrice('AR');
+	const maticPrice = await redstone.getPrice('MATIC');
+	// Get AR / Matic
+	const priceOfArInMatic = arPrice.value / maticPrice.value;
+	const maticPerByte = (priceOfArInMatic * +priceInAr) / mb;
+	return ethers.utils.parseUnits(maticPerByte.toFixed(18));
 };

@@ -1,4 +1,4 @@
-import { ERC20__factory } from '@logsn/contracts';
+import { LSAN__factory } from '@logsn/contracts';
 import { Signer } from 'ethers';
 
 import { getManagerContract } from './getManager';
@@ -18,7 +18,7 @@ export const ensureEnoughAllowance = async (
 	const mangerContract = await getManagerContract(signer, manager);
 	// @ts-ignore -- manager excludes ReportManager
 	const stakeTokenAddress = await mangerContract.stakeTokenAddress();
-	const stakeToken = ERC20__factory.connect(stakeTokenAddress, signer);
+	const stakeToken = LSAN__factory.connect(stakeTokenAddress, signer);
 
 	const currentAllowance = (
 		await stakeToken.allowance(

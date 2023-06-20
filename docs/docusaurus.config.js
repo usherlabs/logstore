@@ -48,7 +48,7 @@ const config = {
 				// Remove this to remove the "edit this page" links.
 				editUrl:
 					// INITIAL TODO change this to your repo. This is where a user will be redirected to if they follow the link on "edit this page"
-					'https://github.com/usherlabs/logstore-docs/tree/main/',
+					'https://github.com/usherlabs/logstore/tree/master/docs/',
 			},
 		],
 		// This plugin enables tailwind
@@ -84,6 +84,26 @@ const config = {
 			},
 		],
 		// path.resolve(__dirname, './node_modules/@docusaurus/theme-search-algolia'), // INITIAL TODO if needed to activate algolia
+	],
+
+	presets: [
+		[
+			'redocusaurus',
+			{
+				// Plugin Options for loading OpenAPI files
+				specs: [
+					{
+						spec: './docs/network/api/_api.spec.yaml',
+						route: '/network/api/reference',
+					},
+				],
+				// Theme Options for modifying how redoc renders them
+				theme: {
+					// Change with your site colors
+					primaryColor: '#1890ff',
+				},
+			},
+		],
 	],
 
 	themeConfig:

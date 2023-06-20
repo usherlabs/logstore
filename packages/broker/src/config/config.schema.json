@@ -52,8 +52,7 @@
 		"pool": {
 			"type": "object",
 			"description": "Kyve Pool configuration",
-			"additionalProperties": true,
-			"default": {},
+			"additionalProperties": false,
 			"properties": {
 				"id": {
 					"description": "The Id of the pool to poll for a new bundle",
@@ -67,6 +66,12 @@
 					"description": "The interval to which to poll the kyve network for newly validated bundles",
 					"type": "number"
 				}
+			},
+			"required": ["id", "url", "pollInterval"],
+			"default": {
+				"id": "0",
+				"url": "http://logstore-kyve:1317",
+				"pollInterval": 60000
 			}
 		},
 		"httpServer": {
