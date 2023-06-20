@@ -1,6 +1,10 @@
 FROM logstore-base
 
-USER node
-WORKDIR /home/node/logstore/packages/heartbeat
+USER root
+RUN mkdir /firstrun && chown node:node /firstrun
+RUN npm i -g /home/node/logstore/packages/heartbeat
 
-CMD [ "./dist/main.js" ]
+USER node
+WORKDIR /home/node
+
+CMD [ "start-in-docker" ]
