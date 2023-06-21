@@ -79,7 +79,7 @@ export default class Runtime implements IRuntimeExtended {
 			return null;
 		}
 
-		const item = new Item(core, this, this.config, key);
+		const item = new Item(core, this, this.config, key, key);
 		await item.prepare();
 		const messages = await item.generate();
 
@@ -119,9 +119,16 @@ export default class Runtime implements IRuntimeExtended {
 		core: Validator,
 		bundle: DataItem[]
 	): Promise<string> {
+		const firstItem = bundle.at(0);
 		const lastItem = bundle.at(-1);
 		core.logger.info(`Create Report: ${lastItem.key}`);
-		const report = new Report(core, this, this.config, lastItem.key);
+		const report = new Report(
+			core,
+			this,
+			this.config,
+			firstItem.key,
+			lastItem.key
+		);
 		await report.prepare();
 		const reportData = await report.generate();
 		const reportHash = sha256(Buffer.from(JSON.stringify(reportData)));

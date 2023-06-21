@@ -9,7 +9,8 @@ export abstract class AbstractDataItem<IPrepared> {
 		protected core: Validator,
 		protected runtime: IRuntimeExtended,
 		protected config: IConfig,
-		protected key: string
+		protected fromKey: string,
+		protected toKey: string
 	) {}
 
 	abstract load(
@@ -23,8 +24,7 @@ export abstract class AbstractDataItem<IPrepared> {
 		this.prepared = await Managers.withSources<IPrepared>(
 			config.sources,
 			async (managers: Managers, source: string) => {
-				const startBlockNumber = await managers.node.getStartBlockNumber();
-				const outcome = await this.load(managers, startBlockNumber, source);
+				const outcome = await this.load(managers, -1, source);
 				return outcome;
 			}
 		);

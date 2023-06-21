@@ -19,18 +19,21 @@ interface IPrepared {
 export class Report extends AbstractDataItem<IPrepared> {
 	prepared: IPrepared;
 
-	override async load(managers: Managers, startBlockNumber: number) {
-		const { core, key } = this;
-
-		const startBlock = await managers.getBlock(startBlockNumber);
-		const lastReport = await managers.report.getLastReport();
-		// The from key will default to the startBlockNumber
-		let fromKey = startBlock.timestamp;
-		if ((lastReport || {})?.id) {
-			fromKey = parseInt(lastReport.id, 10);
-		}
-		const toKey = parseInt(key, 10);
+	override async load(managers: Managers) {
+		const { core, fromKey: fromKeyStr, toKey: toKeyStr } = this;
+		const fromKey = parseInt(fromKeyStr, 10);
+		const toKey = parseInt(toKeyStr, 10);
 		core.logger.debug('Report Range: ', { fromKey, toKey });
+
+		if (toKey === 0) {
+			return {
+				fromKey: 0,
+				toKey: 0,
+				blockNumber: 0,
+				stakeToken: undefined,
+				brokerNodes: [],
+			};
+		}
 
 		// Get all state from Smart Contract up to the current key (where key = block at a timestamp)
 		// We do this by using the key (timestamp) to determine the most relevant block
@@ -66,16 +69,16 @@ export class Report extends AbstractDataItem<IPrepared> {
 		const {
 			core,
 			runtime: { listener },
-			key,
+			toKey: keyStr,
 			config: { fees },
 		} = this;
 
-		const toKeyMs = toKey * 1000;
 		const fromKeyMs = fromKey * 1000;
+		const toKeyMs = toKey * 1000;
 
 		// Establish the report
 		const report: IReport = {
-			id: key,
+			id: keyStr,
 			height: blockNumber,
 			treasury: 0,
 			streams: [],

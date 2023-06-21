@@ -15,7 +15,7 @@ export class Item extends AbstractDataItem<IPrepared> {
 	prepared: IPrepared;
 
 	override async load(managers: Managers) {
-		const { key } = this;
+		const { toKey: key } = this;
 
 		const toKey = parseInt(key, 10);
 		if (toKey === 0) {
@@ -34,11 +34,12 @@ export class Item extends AbstractDataItem<IPrepared> {
 
 	// eslint-disable-next-line
 	public async generate(): Promise<any[]> {
-		const { key } = this;
+		const { toKey: key } = this;
 		const { stores } = this.prepared;
 
+		const keyInt = parseInt(key, 10);
 		// Range will be from last key (timestamp) to this key
-		const toTimestamp = parseInt(key, 10) * 1000;
+		const toTimestamp = keyInt * 1000;
 		const fromTimestamp = toTimestamp - 1000;
 
 		const messages = [];
