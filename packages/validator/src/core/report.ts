@@ -91,6 +91,10 @@ export class Report extends AbstractDataItem<IPrepared> {
 			},
 		};
 
+		if (keyStr === '0') {
+			return report;
+		}
+
 		// ------------ SETUP UTILS ------------
 		// This method works by distributing a total captured fee amount to a set of nodes.
 		// The report yields a difference in node's balance (positive or negative) to apply to the balance on-chain
