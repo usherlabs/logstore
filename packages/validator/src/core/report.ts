@@ -382,7 +382,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		const reportDelegatesKeys = Object.keys(report.delegates);
 		for (let i = 0; i < reportDelegatesKeys.length; i++) {
 			const dKey = reportDelegatesKeys[i];
-			const rDelegateNodesKeys = Object.keys(dKey);
+			const rDelegateNodesKeys = Object.keys(report.delegates[dKey]);
 			for (let j = 0; j < rDelegateNodesKeys.length; j++) {
 				const nKey = rDelegateNodesKeys[j];
 				report.delegates[dKey][nKey] = await stakeToken.fromUSD(
