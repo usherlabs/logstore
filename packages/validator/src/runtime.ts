@@ -89,7 +89,7 @@ export default class Runtime implements IRuntimeExtended {
 						`Listener.startTime (${this.listener.startTime}) > keyOfFirstItem (${keyMs})`
 					);
 					core.logger.info(
-						`Keep the Validator running until next Bundle starts to participate in the Pool!`
+						`Keep the Validator running until next Bundle Proposal starts to participate in the Pool!`
 					);
 					return null;
 				}
