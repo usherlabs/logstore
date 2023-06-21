@@ -18,11 +18,17 @@
 			}
 		}
 	},
-	"plugins": ["@typescript-eslint", "import", "unused-imports", "jest", "simple-import-sort"],
+	"plugins": [
+		"@typescript-eslint",
+		"import",
+		"unused-imports",
+		"jest",
+		"simple-import-sort"
+	],
 	"extends": [
-    "eslint:recommended",
+		"eslint:recommended",
 		"plugin:prettier/recommended",
-    "plugin:@typescript-eslint/recommended"
+		"plugin:@typescript-eslint/recommended"
 	],
 	"rules": {
 		"import/prefer-default-export": "off",
@@ -30,12 +36,24 @@
 		"class-methods-use-this": "off",
 		"no-await-in-loop": "off",
 		"no-constant-condition": "off",
-		"no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
+		"no-restricted-syntax": [
+			"error",
+			"ForInStatement",
+			"LabeledStatement",
+			"WithStatement"
+		],
 		"no-continue": "off",
 		"no-console": "off",
+		"no-shadow": "error",
 		"import/no-extraneous-dependencies": "off",
-		"@typescript-eslint/no-floating-promises": ["error", {"ignoreIIFE": true, "ignoreVoid": true}],
+		"@typescript-eslint/no-floating-promises": [
+			"error",
+			{ "ignoreIIFE": true, "ignoreVoid": true }
+		],
 		"@typescript-eslint/no-inferrable-types": "off",
-		"@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "_", "varsIgnorePattern": "_" }]
+		"@typescript-eslint/no-unused-vars": [
+			"error",
+			{ "argsIgnorePattern": "_", "varsIgnorePattern": "_" }
+		]
 	}
 }
