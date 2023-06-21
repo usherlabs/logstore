@@ -23,7 +23,7 @@ export async function validateDataAvailability(this: Validator): Promise<void> {
 		{ limitTimeoutMs: 5 * 60 * 1000, increaseByMs: 10 * 1000 },
 		async (err: any, ctx) => {
 			this.logger.info(
-				`Requesting validateDataAvailability was unsuccessful. Retrying in ${(
+				`validateDataAvailability was unsuccessful. Retrying in ${(
 					ctx.nextTimeoutInMs / 1000
 				).toFixed(2)}s ...`
 			);

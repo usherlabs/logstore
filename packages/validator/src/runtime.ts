@@ -68,7 +68,7 @@ export default class Runtime implements IRuntimeExtended {
 		};
 	}
 
-	// * Data items are produced here for local bundles - which are used to vote, and used to create bundle proposals.
+	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
 		const keyInt = parseInt(key, 10);
 		if (!keyInt) {
@@ -76,13 +76,28 @@ export default class Runtime implements IRuntimeExtended {
 			key = await this.startKey();
 		}
 
-		const keyMs = keyInt * 1000;
-		if (keyMs > this.listener.startTime) {
-			// ? Prevent the Validator Node from passing validateDataAvailability, if key > listener.startTime
-			return null;
+		// ? Only if the Pool has started already created Bundles, check to ensure that the listener.startTime > keyOfFirstItem
+		// eslint-disable-next-line
+		if (core.pool.data!.current_key) {
+			const keyOfFirstItem = await this.nextKey(
+				core,
+				// eslint-disable-next-line
+				core.pool.data!.current_key
+			);
+			if (keyOfFirstItem === key) {
+				const keyMs = parseInt(keyOfFirstItem, 10) * 1000;
+				const valid = this.listener.startTime > keyMs;
+				// ? Prevent the Validator Node from passing validateDataAvailability, if keyAfterCurrentKey > listener.startTime
+				if (!valid) {
+					core.logger.warn(
+						`Listener has started after the start of the Bundle. Listener.startTime (${this.listener.startTime}) < keyOfFirstItem (${keyMs})`
+					);
+					return null;
+				}
+			}
 		}
 
-		// ? Ensure that the Time Index is ready
+		// Ensure that the Time Index is ready
 		await this.time.ready();
 
 		if (keyInt > this.time.latestTimestamp) {
@@ -159,7 +174,7 @@ export default class Runtime implements IRuntimeExtended {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			return this.startKey();
+			return await this.startKey();
 		}
 
 		keyInt++;
