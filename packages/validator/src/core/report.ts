@@ -116,7 +116,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			for (let j = 0; j < brokerNodes.length; j++) {
 				const bNode = brokerNodes[j];
 
-				if (typeof report.nodes[bNode.id] !== 'undefined') {
+				if (typeof report.nodes[bNode.id] !== 'number') {
 					report.nodes[bNode.id] = 0;
 				}
 
@@ -134,7 +134,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 				for (let l = 0; l < delegates.length; l++) {
 					const [delegateAddr, delegateAmount] = delegates[l];
 					const delegatePortion = delegateAmount / bNode.stake;
-					if (!report.delegates[delegateAddr]) {
+					if (typeof report.delegates[delegateAddr] === 'undefined') {
 						report.delegates[delegateAddr] = {};
 					}
 					if (typeof report.delegates[delegateAddr][bNode.id] !== 'number') {
@@ -250,10 +250,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 			totalBytes += bytes;
 			return totalBytes;
 		}, 0);
-		const expensePerByteStored = await Arweave.getPrice(
-			totalBytesStored,
-			toKeyMs
-		);
+		const expense = await Arweave.getPrice(totalBytesStored, toKeyMs);
+		const expensePerByteStored = expense / totalBytesStored;
 		const writeFee = fees.writeMultiplier * expensePerByteStored;
 		const writeTreasuryFee =
 			fees.treasuryMultiplier * (writeFee - expensePerByteStored); // multiplier on the margin
@@ -288,10 +286,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		});
 
 		// Determine read fees
-		const readFee =
-			totalBytesStored === 0
-				? 0
-				: fees.readMultiplier * (writeFee / totalBytesStored);
+		const readFee = totalBytesStored === 0 ? 0 : fees.readMultiplier * writeFee;
 		const readTreasuryFee = readFee * fees.treasuryMultiplier;
 		const readNodeFee = readFee - readTreasuryFee;
 
@@ -329,11 +324,10 @@ export class Report extends AbstractDataItem<IPrepared> {
 					hash,
 					size,
 				});
+				const captureAmount = readFee * size;
 				const existingConsumerIndex = report.consumers.findIndex(
 					(c) => c.id === content.consumerId
 				);
-
-				const captureAmount = readFee * size;
 				if (existingConsumerIndex < 0) {
 					report.consumers.push({
 						id: content.consumerId,

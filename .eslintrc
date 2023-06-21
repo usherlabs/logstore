@@ -44,7 +44,8 @@
 		],
 		"no-continue": "off",
 		"no-console": "off",
-		"no-shadow": "error",
+		"no-shadow": "off",
+		"@typescript-eslint/no-shadow": "error",
 		"import/no-extraneous-dependencies": "off",
 		"@typescript-eslint/no-floating-promises": [
 			"error",
