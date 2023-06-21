@@ -119,7 +119,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			for (let j = 0; j < brokerNodes.length; j++) {
 				const bNode = brokerNodes[j];
 
-				if (typeof report.nodes[bNode.id] !== 'undefined') {
+				if (typeof report.nodes[bNode.id] !== 'number') {
 					report.nodes[bNode.id] = 0;
 				}
 
@@ -137,7 +137,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 				for (let l = 0; l < delegates.length; l++) {
 					const [delegateAddr, delegateAmount] = delegates[l];
 					const delegatePortion = delegateAmount / bNode.stake;
-					if (!report.delegates[delegateAddr]) {
+					if (typeof report.delegates[delegateAddr] === 'undefined') {
 						report.delegates[delegateAddr] = {};
 					}
 					if (typeof report.delegates[delegateAddr][bNode.id] !== 'number') {
@@ -211,8 +211,9 @@ export class Report extends AbstractDataItem<IPrepared> {
 			// ? Fees are determined after the report has been populated by the event data
 			const contributingPublishers = [];
 			for (let j = 0; j < storeKeys.length; j++) {
-				const [key, valueIndex] = storeKeys[j];
-				const event = storeCache.get(key)[valueIndex];
+				const [cacheKey, valueIndex] = storeKeys[j];
+				const cacheValues = storeCache.get(cacheKey);
+				const event = cacheValues[valueIndex];
 				if (!event) continue;
 
 				// Now, we're iterating over each specific proofOfMessageStored event published by each Broker on the Broker Network
@@ -252,10 +253,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 			totalBytes += bytes;
 			return totalBytes;
 		}, 0);
-		const expensePerByteStored = await Arweave.getPrice(
-			totalBytesStored,
-			toKeyMs
-		);
+		const expense = await Arweave.getPrice(totalBytesStored, toKeyMs);
+		const expensePerByteStored = expense / totalBytesStored;
 		const writeFee = fees.writeMultiplier * expensePerByteStored;
 		const writeTreasuryFee =
 			fees.treasuryMultiplier * (writeFee - expensePerByteStored); // multiplier on the margin
@@ -290,10 +289,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		});
 
 		// Determine read fees
-		const readFee =
-			totalBytesStored === 0
-				? 0
-				: fees.readMultiplier * (writeFee / totalBytesStored);
+		const readFee = totalBytesStored === 0 ? 0 : fees.readMultiplier * writeFee;
 		const readTreasuryFee = readFee * fees.treasuryMultiplier;
 		const readNodeFee = readFee - readTreasuryFee;
 
@@ -331,11 +327,10 @@ export class Report extends AbstractDataItem<IPrepared> {
 					hash,
 					size,
 				});
+				const captureAmount = readFee * size;
 				const existingConsumerIndex = report.consumers.findIndex(
 					(c) => c.id === content.consumerId
 				);
-
-				const captureAmount = readFee * size;
 				if (existingConsumerIndex < 0) {
 					report.consumers.push({
 						id: content.consumerId,
@@ -361,25 +356,37 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// ------------ FEE CONVERSION ------------
 		// Convert fees to stake token
 		report.treasury = await stakeToken.fromUSD(report.treasury, toKeyMs);
-		report.streams.forEach(async (s) => {
-			s.capture = await stakeToken.fromUSD(s.capture, toKeyMs);
-			return s;
-		});
-		report.consumers.forEach(async (c) => {
-			c.capture = await stakeToken.fromUSD(c.capture, toKeyMs);
-			return c;
-		});
-		Object.keys(report.nodes).forEach(async (n) => {
-			report.nodes[n] = await stakeToken.fromUSD(report.nodes[n], toKeyMs);
-		});
-		Object.keys(report.delegates).forEach((d) => {
-			Object.keys(report.delegates[d]).forEach(async (n) => {
-				report.delegates[d][n] = await stakeToken.fromUSD(
-					report.delegates[d][n],
+		for (let i = 0; i < report.streams.length; i++) {
+			report.streams[i].capture = await stakeToken.fromUSD(
+				report.streams[i].capture,
+				toKeyMs
+			);
+		}
+		for (let i = 0; i < report.consumers.length; i++) {
+			report.consumers[i].capture = await stakeToken.fromUSD(
+				report.consumers[i].capture,
+				toKeyMs
+			);
+		}
+		const reportNodesKeys = Object.keys(report.nodes);
+		for (let i = 0; i < reportNodesKeys.length; i++) {
+			report.nodes[reportNodesKeys[i]] = await stakeToken.fromUSD(
+				report.nodes[reportNodesKeys[i]],
+				toKeyMs
+			);
+		}
+		const reportDelegatesKeys = Object.keys(report.delegates);
+		for (let i = 0; i < reportDelegatesKeys.length; i++) {
+			const dKey = reportDelegatesKeys[i];
+			const rDelegateNodesKeys = Object.keys(dKey);
+			for (let j = 0; j < rDelegateNodesKeys.length; j++) {
+				const nKey = rDelegateNodesKeys[j];
+				report.delegates[dKey][nKey] = await stakeToken.fromUSD(
+					report.delegates[dKey][nKey],
 					toKeyMs
 				);
-			});
-		});
+			}
+		}
 		// ------------ END FEE CONVERSION ------------
 		// -------------------------------------
 
