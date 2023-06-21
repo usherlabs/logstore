@@ -80,7 +80,7 @@ export default class Runtime implements IRuntimeExtended {
 			if (keyOfFirstItem === key) {
 				const keyMs = parseInt(keyOfFirstItem, 10) * 1000;
 				const valid = this.listener.startTime < keyMs;
-				// ? Prevent the Validator Node from passing validateDataAvailability, if keyAfterCurrentKey > listener.startTime
+				// ? Prevent the Validator Node from passing validateDataAvailability, if listener.startTime > keyOfFirstItem
 				if (!valid) {
 					core.logger.warn(
 						`System Listener has started after the start of the Current Bundle Proposal...`
