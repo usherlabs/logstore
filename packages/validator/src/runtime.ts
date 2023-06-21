@@ -71,7 +71,7 @@ export default class Runtime implements IRuntimeExtended {
 	// * Data items are produced here for the bundle in local cache. The local bundle is then used for voting on proposed bundles, and creating new bundle proposals?
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
 		// -------- Validate Data Listener Start Time --------
-		// ? Only if the Pool has started already created Bundles, check to ensure that the listener.startTime > keyOfFirstItem
+		// ? Only if the Pool has started already created Bundles, check to ensure that the listener.startTime < keyOfFirstItem
 		// eslint-disable-next-line
 		if (core.pool.data!.current_key) {
 			const keyOfFirstItem = await this.nextKey(
@@ -82,14 +82,14 @@ export default class Runtime implements IRuntimeExtended {
 			// Is this the first item of the bundle?
 			if (keyOfFirstItem === key) {
 				const keyMs = parseInt(keyOfFirstItem, 10) * 1000;
-				const valid = this.listener.startTime > keyMs;
+				const valid = this.listener.startTime < keyMs;
 				// ? Prevent the Validator Node from passing validateDataAvailability, if keyAfterCurrentKey > listener.startTime
 				if (!valid) {
 					core.logger.warn(
 						`System Listener has started after the start of the Current Bundle Proposal...`
 					);
 					core.logger.debug(
-						`Listener.startTime (${this.listener.startTime}) < keyOfFirstItem (${keyMs})`
+						`Listener.startTime (${this.listener.startTime}) > keyOfFirstItem (${keyMs})`
 					);
 					core.logger.info(
 						`Keep the Validator running until next Bundle starts to participate in the Pool!`
