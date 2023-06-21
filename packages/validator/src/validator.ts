@@ -28,6 +28,9 @@ export async function validateDataAvailability(this: Validator): Promise<void> {
 				).toFixed(2)}s ...`
 			);
 			this.logger.debug(standardizeJSON(err));
+
+			this.logger.info('Re-synchronizing Pool State...');
+			await this.syncPoolState(true);
 		}
 	);
 }

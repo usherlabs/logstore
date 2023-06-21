@@ -70,12 +70,7 @@ export default class Runtime implements IRuntimeExtended {
 
 	// * Data items are produced here for the bundle in local cache. The local bundle is then used for voting on proposed bundles, and creating new bundle proposals?
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
-		const keyInt = parseInt(key, 10);
-		if (!keyInt) {
-			// ? In validateDataAvailability, the start_key is used if no Bundle current_key exists -- ie. 0
-			key = await this.startKey();
-		}
-
+		// -------- Validate Data Listener Start Time --------
 		// ? Only if the Pool has started already created Bundles, check to ensure that the listener.startTime > keyOfFirstItem
 		// eslint-disable-next-line
 		if (core.pool.data!.current_key) {
@@ -91,20 +86,34 @@ export default class Runtime implements IRuntimeExtended {
 				// ? Prevent the Validator Node from passing validateDataAvailability, if keyAfterCurrentKey > listener.startTime
 				if (!valid) {
 					core.logger.warn(
-						`Listener has started after the start of the Bundle. Listener.startTime (${this.listener.startTime}) < keyOfFirstItem (${keyMs})`
+						`System Listener has started after the start of the Current Bundle Proposal...`
+					);
+					core.logger.debug(
+						`Listener.startTime (${this.listener.startTime}) < keyOfFirstItem (${keyMs})`
+					);
+					core.logger.info(
+						`Keep the Validator running until next Bundle starts to participate in the Pool!`
 					);
 					return null;
 				}
 			}
 		}
 
-		// Ensure that the Time Index is ready
+		// -------- Validate Data Availability --------
+		const keyInt = parseInt(key, 10);
+		if (!keyInt) {
+			// ? In validateDataAvailability, the start_key is used if no Bundle current_key exists -- ie. 0
+			key = await this.startKey();
+		}
+
+		// -------- Validate Time Index --------
 		await this.time.ready();
 
 		if (keyInt > this.time.latestTimestamp) {
 			return null;
 		}
 
+		// -------- Produce the Data Item --------
 		const item = new Item(core, this, this.config, key);
 		await item.prepare();
 		const messages = await item.generate();
