@@ -68,7 +68,7 @@ export default class Runtime implements IRuntimeExtended {
 		};
 	}
 
-	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
+	// * Data items are produced here for the bundle in local cache. The local bundle is then used for voting on proposed bundles, and creating new bundle proposals?
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
 		const keyInt = parseInt(key, 10);
 		if (!keyInt) {
@@ -84,6 +84,7 @@ export default class Runtime implements IRuntimeExtended {
 				// eslint-disable-next-line
 				core.pool.data!.current_key
 			);
+			// Is this the first item of the bundle?
 			if (keyOfFirstItem === key) {
 				const keyMs = parseInt(keyOfFirstItem, 10) * 1000;
 				const valid = this.listener.startTime > keyMs;
