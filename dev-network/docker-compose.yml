@@ -137,8 +137,8 @@ services:
       - type: bind
         source: ../packages/broker/configs/docker-1.env.json
         target: /home/node/.logstore/config/default.json
-    environment:
-      BROKER_METADATA: '{ "http": "http://logstore-broker-1:7771" }'
+    env_file:
+      - ./assets/broker/.env.broker-1
     depends_on:
       logstore-base:
         condition: service_completed_successfully
@@ -166,8 +166,8 @@ services:
       - type: bind
         source: ../packages/broker/configs/docker-2.env.json
         target: /home/node/.logstore/config/default.json
-    environment:
-      BROKER_METADATA: '{ "http": "http://logstore-broker-2:7772" }'
+    env_file:
+      - ./assets/broker/.env.broker-2
     depends_on:
       logstore-base:
         condition: service_completed_successfully
@@ -195,8 +195,8 @@ services:
       - type: bind
         source: ../packages/broker/configs/docker-3.env.json
         target: /home/node/.logstore/config/default.json
-    environment:
-      BROKER_METADATA: '{ "http": "http://logstore-broker-3:7773" }'
+    env_file:
+      - ./assets/broker/.env.broker-3
     depends_on:
       logstore-base:
         condition: service_completed_successfully
