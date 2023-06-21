@@ -68,12 +68,22 @@ export default class Runtime implements IRuntimeExtended {
 		};
 	}
 
-	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
+	// * Data items are produced here for local bundles - which are used to vote, and used to create bundle proposals.
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
-		// Ensure that the Time Index is ready
-		await this.time.ready();
-
 		const keyInt = parseInt(key, 10);
+		if (!keyInt) {
+			// ? In validateDataAvailability, the start_key is used if no Bundle current_key exists -- ie. 0
+			key = await this.startKey();
+		}
+
+		const keyMs = keyInt * 1000;
+		if (keyMs > this.listener.startTime) {
+			// ? Prevent the Validator Node from passing validateDataAvailability, if key > listener.startTime
+			return null;
+		}
+
+		// ? Ensure that the Time Index is ready
+		await this.time.ready();
 
 		if (keyInt > this.time.latestTimestamp) {
 			return null;
@@ -130,22 +140,26 @@ export default class Runtime implements IRuntimeExtended {
 		return lastItem.key + '_' + reportHash;
 	}
 
+	async startKey() {
+		const startTs = await Managers.withSources<string>(
+			this.config.sources,
+			async (managers) => {
+				const res = await managers.getBlock(
+					await managers.node.getStartBlockNumber()
+				);
+				return res.timestamp.toString();
+			}
+		);
+		return startTs;
+	}
+
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
 	// https://github.com/KYVENetwork/kyvejs/blob/main/common/protocol/src/methods/main/runCache.ts#L147
 	async nextKey(_: Validator, key: string): Promise<string> {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			const startTs = await Managers.withSources<string>(
-				this.config.sources,
-				async (managers) => {
-					const res = await managers.getBlock(
-						await managers.node.getStartBlockNumber()
-					);
-					return res.timestamp.toString();
-				}
-			);
-			return startTs;
+			return this.startKey();
 		}
 
 		keyInt++;
