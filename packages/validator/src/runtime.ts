@@ -73,12 +73,9 @@ export default class Runtime implements IRuntimeExtended {
 		// -------- Validate Data Listener Start Time --------
 		// ? Only if the Pool has started already created Bundles, check to ensure that the listener.startTime < keyOfFirstItem
 		// eslint-disable-next-line
-		if (core.pool.data!.current_key) {
-			const keyOfFirstItem = await this.nextKey(
-				core,
-				// eslint-disable-next-line
-				core.pool.data!.current_key
-			);
+		const currentKey = core.pool.data!.current_key;
+		if (currentKey) {
+			const keyOfFirstItem = await this.nextKey(core, currentKey);
 			// Is this the first item of the bundle?
 			if (keyOfFirstItem === key) {
 				const keyMs = parseInt(keyOfFirstItem, 10) * 1000;
