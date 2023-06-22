@@ -1,8 +1,4 @@
-import {
-	callWithBackoffStrategy,
-	Validator as KyveValidator,
-	standardizeJSON,
-} from '@kyvejs/protocol';
+import { Validator as KyveValidator } from '@kyvejs/protocol';
 import { validateDataAvailability as runKyveValidateDataAvailability } from '@kyvejs/protocol/dist/src/methods';
 
 import { IRuntimeExtended } from './types';
@@ -15,25 +11,10 @@ export async function validateDataAvailability(this: Validator): Promise<void> {
 		this.runtime.setupThreads(this, this.home);
 	}
 
-	// ? Here we call the validateDataAvailability in a backoff strategy so that it's retried over time -- AFTER the Listener and Time Cache have started
-	await callWithBackoffStrategy(
-		async () => {
-			await runKyveValidateDataAvailability.call(this);
-		},
-		{ limitTimeoutMs: 5 * 60 * 1000, increaseByMs: 10 * 1000 },
-		async (err: any, ctx) => {
-			this.logger.info(
-				`validateDataAvailability was unsuccessful. Retrying in ${(
-					ctx.nextTimeoutInMs / 1000
-				).toFixed(2)}s ...`
-			);
-			this.logger.debug(standardizeJSON(err));
-
-			this.logger.info('Re-synchronizing Pool State...');
-			await this.syncPoolState(true);
-		}
-	);
+	await this.runtime.time.ready();
+	await runKyveValidateDataAvailability.call(this);
 }
+
 export default class Validator extends KyveValidator {
 	protected runtime!: IRuntimeExtended;
 	protected override validateDataAvailability = validateDataAvailability;

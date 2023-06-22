@@ -70,41 +70,10 @@ export default class Runtime implements IRuntimeExtended {
 
 	// * Data items are produced here for the bundle in local cache. The local bundle is then used for voting on proposed bundles, and creating new bundle proposals?
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
-		// -------- Validate Data Listener Start Time --------
-		// ? Only if the Pool has started already created Bundles, check to ensure that the listener.startTime < keyOfFirstItem
-		// eslint-disable-next-line
-		const currentKey = core.pool.data!.current_key;
-		if (currentKey) {
-			const keyOfFirstItem = await this.nextKey(core, currentKey);
-			// Is this the first item of the bundle?
-			if (keyOfFirstItem === key) {
-				const keyMs = parseInt(keyOfFirstItem, 10) * 1000;
-				const valid = this.listener.startTime < keyMs;
-				// ? Prevent the Validator Node from passing validateDataAvailability, if listener.startTime > keyOfFirstItem
-				if (!valid) {
-					core.logger.warn(
-						`System Listener has started after the start of the Current Bundle Proposal...`
-					);
-					core.logger.debug(
-						`Listener.startTime (${this.listener.startTime}) > keyOfFirstItem (${keyMs})`
-					);
-					core.logger.info(
-						`Keep the Validator running until next Bundle Proposal starts to participate in the Pool!`
-					);
-					return null;
-				}
-			}
-		}
-
-		// -------- Validate Data Availability --------
 		const keyInt = parseInt(key, 10);
 		if (!keyInt) {
-			// ? In validateDataAvailability, the start_key is used if no Bundle current_key exists -- ie. 0
-			key = await this.startKey();
+			return { key, value: { m: [] } };
 		}
-
-		// -------- Validate Time Index --------
-		await this.time.ready();
 
 		if (keyInt > this.time.latestTimestamp) {
 			return null;
@@ -173,10 +142,10 @@ export default class Runtime implements IRuntimeExtended {
 		const startTs = await Managers.withSources<string>(
 			this.config.sources,
 			async (managers) => {
-				const res = await managers.getBlock(
+				const startBlock = await managers.getBlock(
 					await managers.node.getStartBlockNumber()
 				);
-				return res.timestamp.toString();
+				return startBlock.timestamp.toString();
 			}
 		);
 		return startTs;
