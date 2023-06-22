@@ -16,6 +16,7 @@ program
 	.option('-o, --outDir <string>', 'Output directory', './results')
 	.option('-s, --streamrHost <string>', 'Streamr host', 'localhost')
 	.option('-n, --numberOfIterations <number>', 'Number of iterations', '5')
+	.option('-t, --testTimeout <number>', 'Test timeout in ms', '120000')
 	.option(
 		'-l, --logLevel <string>',
 		'Log level: debug | info | warn | error | fatal | silent',
@@ -27,6 +28,7 @@ program
 			outDir: string;
 			streamrHost: string;
 			numberOfIterations: number;
+			testTimeout: number;
 			logLevel: 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent';
 		}) => {
 			await runVitestBenchmarks(options);
