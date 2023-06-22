@@ -13,18 +13,14 @@ export abstract class AbstractDataItem<IPrepared> {
 		protected toKey: string
 	) {}
 
-	abstract load(
-		managers: Managers,
-		startBlockNumber: number,
-		source: string
-	): Promise<IPrepared>;
+	abstract load(managers: Managers, source: string): Promise<IPrepared>;
 
 	public async prepare() {
 		const { config } = this;
 		this.prepared = await Managers.withSources<IPrepared>(
 			config.sources,
 			async (managers: Managers, source: string) => {
-				const outcome = await this.load(managers, -1, source);
+				const outcome = await this.load(managers, source);
 				return outcome;
 			}
 		);
