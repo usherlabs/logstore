@@ -1,13 +1,18 @@
-import esbuild from "esbuild";
-import { globby } from "globby";
-import { Logger } from "tslog";
-
+import esbuild from 'esbuild';
+import { globby } from 'globby';
+import { Logger } from 'tslog';
 
 // necessary:
 // CLI tool at src/cli/index.ts
 // vitest tests at src/**/*.benchmark.ts
 const logger = new Logger();
-const external = ['vitest', 'commander', 'chalk', '@streamr-client'];
+const external = [
+	'vitest',
+	'commander',
+	'chalk',
+	'@streamr-client',
+	'@logsn/client',
+];
 
 const buildCli = async () => {
 	await esbuild.build({
