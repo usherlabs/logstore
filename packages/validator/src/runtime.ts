@@ -68,17 +68,49 @@ export default class Runtime implements IRuntimeExtended {
 		};
 	}
 
-	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
+	// * Data items are produced here for the bundle in local cache. The local bundle is then used for voting on proposed bundles, and creating new bundle proposals?
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
-		// Ensure that the Time Index is ready
-		await this.time.ready();
+		// -------- Validate Data Listener Start Time --------
+		// ? Only if the Pool has started already created Bundles, check to ensure that the listener.startTime < keyOfFirstItem
+		// eslint-disable-next-line
+		const currentKey = core.pool.data!.current_key;
+		if (currentKey) {
+			const keyOfFirstItem = await this.nextKey(core, currentKey);
+			// Is this the first item of the bundle?
+			if (keyOfFirstItem === key) {
+				const keyMs = parseInt(keyOfFirstItem, 10) * 1000;
+				const valid = this.listener.startTime < keyMs;
+				// ? Prevent the Validator Node from passing validateDataAvailability, if listener.startTime > keyOfFirstItem
+				if (!valid) {
+					core.logger.warn(
+						`System Listener has started after the start of the Current Bundle Proposal...`
+					);
+					core.logger.debug(
+						`Listener.startTime (${this.listener.startTime}) > keyOfFirstItem (${keyMs})`
+					);
+					core.logger.info(
+						`Keep the Validator running until next Bundle Proposal starts to participate in the Pool!`
+					);
+					return null;
+				}
+			}
+		}
 
+		// -------- Validate Data Availability --------
 		const keyInt = parseInt(key, 10);
+		if (!keyInt) {
+			// ? In validateDataAvailability, the start_key is used if no Bundle current_key exists -- ie. 0
+			key = await this.startKey();
+		}
+
+		// -------- Validate Time Index --------
+		await this.time.ready();
 
 		if (keyInt > this.time.latestTimestamp) {
 			return null;
 		}
 
+		// -------- Produce the Data Item --------
 		const item = new Item(core, this, this.config, key, key);
 		await item.prepare();
 		const messages = await item.generate();
@@ -137,22 +169,26 @@ export default class Runtime implements IRuntimeExtended {
 		return lastItem.key + '_' + reportHash;
 	}
 
+	async startKey() {
+		const startTs = await Managers.withSources<string>(
+			this.config.sources,
+			async (managers) => {
+				const res = await managers.getBlock(
+					await managers.node.getStartBlockNumber()
+				);
+				return res.timestamp.toString();
+			}
+		);
+		return startTs;
+	}
+
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
 	// https://github.com/KYVENetwork/kyvejs/blob/main/common/protocol/src/methods/main/runCache.ts#L147
 	async nextKey(_: Validator, key: string): Promise<string> {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			const startTs = await Managers.withSources<string>(
-				this.config.sources,
-				async (managers) => {
-					const res = await managers.getBlock(
-						await managers.node.getStartBlockNumber()
-					);
-					return res.timestamp.toString();
-				}
-			);
-			return startTs;
+			return await this.startKey();
 		}
 
 		keyInt++;

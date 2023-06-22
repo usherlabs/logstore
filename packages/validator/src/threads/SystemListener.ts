@@ -130,6 +130,7 @@ export class SystemListener {
 	}
 
 	private async onMessage(
+		// eslint-disable-next-line
 		content: any,
 		metadata: MessageMetadata
 	): Promise<void> {
