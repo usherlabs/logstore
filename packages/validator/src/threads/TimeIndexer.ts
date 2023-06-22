@@ -22,9 +22,9 @@ type DB = RootDatabase<
 >;
 
 const CONFIRMATIONS = 128 as const; // The number of confirmations/blocks required to determine finality.
-const SCAN_BUFFER = 10000 as const; // The time a find/scan will use to evaluate the indexed block
+const SCAN_BUFFER = 10 as const; // The time (in seconds) a find/scan will use to evaluate the indexed block
 const DEFAULT_DB_VALUE = { b: 0, s: [] };
-const POLL_INTERVAL = 10 as const; // The time in seconds to delay between the latest index and the next
+const POLL_INTERVAL = 10 as const; // The time (in seconds) to delay between the latest index and the next
 const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
 
 /**
@@ -303,6 +303,12 @@ export class TimeIndexer {
 					}
 
 					this._latestTimestamp = timestamp;
+				} else {
+					// Log message here to indicate that there was an output by the process' stdout -- but that nothing was indexed.
+					this.logger.debug(
+						`TimeIndexer (${source}): Data received on process stdout but nothing indexed!`,
+						data
+					);
 				}
 			});
 		}
