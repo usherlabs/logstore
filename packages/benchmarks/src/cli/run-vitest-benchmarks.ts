@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 import path from 'path';
 import { Logger } from 'tslog';
+import * as url from 'url';
 import { startVitest } from 'vitest/node';
-import * as url from "url";
 
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
@@ -16,12 +16,14 @@ export const runVitestBenchmarks = async ({
 	config,
 	numberOfIterations,
 	streamrHost,
+	testTimeout,
 }: {
 	outDir: string;
 	config: string;
 	numberOfIterations: number;
 	streamrHost: string;
 	logLevel: 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent';
+	testTimeout: number;
 }) => {
 	// todo remove when works
 	logger.info('root', projectRoot);
@@ -34,6 +36,7 @@ export const runVitestBenchmarks = async ({
 		NUMBER_OF_ITERATIONS: numberOfIterations?.toString(),
 		STREAMR_DOCKER_DEV_HOST: streamrHost,
 		LOG_LEVEL: 'info',
+		TEST_TIMEOUT: testTimeout.toString(),
 	};
 	const vitest = await startVitest('test', undefined, {
 		watch: false,
