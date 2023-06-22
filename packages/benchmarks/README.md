@@ -44,6 +44,8 @@ The benchmarks produce JSON output with statistics. The meaning of each stat can
 
 Each benchmark produces two sets of results: Cold and Hot. Cold start tests are executed first with fewer iterations and mainly serve to warm up the process. Hot tests run immediately after. This distinction is necessary for analyzing the performance during the warmup phase.
 
+Note: New results will override old results by test name. This means that it doesn't delete the last file, but instead replaces it with new results if the test name is equal.
+
 ### **Configurations**
 
 - **Number of Iterations**: You can configure the number of iterations via the **`TEST_TIMEOUT`** environment variable for test mode, or through the appropriate argument when using the CLI.
