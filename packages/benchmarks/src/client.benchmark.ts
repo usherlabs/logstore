@@ -17,7 +17,7 @@ import { afterAll, beforeAll, describe, expect, it, Test } from 'vitest';
 
 // it's important to import CONFIG_TEST relatively, otherwise it won't work
 import { CONFIG_TEST } from '../../client/src/ConfigTest';
-import { NUMBER_OF_ITERATIONS, TEST_TIMEOUT } from "./environment-vars";
+import { LOG_LEVEL, NUMBER_OF_ITERATIONS, TEST_TIMEOUT } from "./environment-vars";
 import { collectBenchmarkResults } from './utils/benchmarking/collect-benchmark-results';
 import { measure } from './utils/benchmarking/measure';
 import { createJsonReporter } from './utils/benchmarking/reporters/json-reporter';
@@ -88,7 +88,7 @@ describe('Client Package Benchmarks', () => {
 		// Clients
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
-			logLevel: undefined,
+			logLevel: LOG_LEVEL,
 			auth: {
 				privateKey: publisherAccount.privateKey,
 			},
@@ -96,7 +96,7 @@ describe('Client Package Benchmarks', () => {
 
 		consumerClient = new LogStoreClient({
 			...CONFIG_TEST,
-			logLevel: undefined,
+			logLevel: LOG_LEVEL,
 			auth: {
 				privateKey: storeConsumerAccount.privateKey,
 			},
