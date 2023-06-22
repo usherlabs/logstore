@@ -4,14 +4,18 @@ import { promisify } from "util";
 
 
 
+import { OUTPUT_DIR } from "../../../environment-vars";
 import { isObject } from "../../utils";
 import { RawResultRecord } from "../result-types";
 import { Reporter } from "./reporter-types";
+import { Logger } from "tslog";
 
 
 // UTILS
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
+
+const logger = new Logger()
 
 /**
  * Try to merge object to file. If doesn't exist, create a new file with this content
@@ -35,6 +39,7 @@ const aggregateOrCreateJsonFile = async (
 	}, {} as RawResultRecord);
 
 	await writeFile(path, JSON.stringify(sortedResult, null, 2));
+	logger.info(`Saved results to ${path}`);
 };
 
 const tryParseJsonFile = async <T = unknown>(path: string) => {
@@ -46,7 +51,20 @@ const tryParseJsonFile = async <T = unknown>(path: string) => {
 	}
 };
 
-const resultsDir = path.join(process.cwd(), 'results');
+const createDirIfNotExists = async (dir: string) => {
+	if (!fs.existsSync(dir)) {
+		await fs.promises.mkdir(dir, { recursive: true });
+	}
+};
+
+const ensureJsonExtension = (filename: string) => {
+	if (!filename.endsWith('.json')) {
+		return `${filename}.json`;
+	}
+	return filename;
+};
+
+const resultsDir = path.join(process.cwd(), OUTPUT_DIR ?? 'results');
 export const createJsonReporter = ({
 	outputDir = resultsDir,
 	filename,
@@ -54,9 +72,10 @@ export const createJsonReporter = ({
 	outputDir?: string;
 	filename: `${string}.json`;
 }): Reporter => {
-	const filepath = path.join(outputDir, filename);
+	const filepath = path.join(outputDir, ensureJsonExtension(filename));
 	return {
 		save: async (result) => {
+			await createDirIfNotExists(outputDir);
 			await aggregateOrCreateJsonFile({ ...result }, filepath);
 		},
 		load: async () => {

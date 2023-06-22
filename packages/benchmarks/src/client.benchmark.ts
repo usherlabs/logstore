@@ -12,10 +12,12 @@ import { providers, Wallet } from 'ethers';
 import _ from 'lodash';
 import { firstValueFrom, take, tap, toArray } from 'rxjs';
 import Bench from 'tinybench';
+import { Logger } from 'tslog';
 import { afterAll, beforeAll, describe, expect, it, Test } from 'vitest';
 
 // it's important to import CONFIG_TEST relatively, otherwise it won't work
 import { CONFIG_TEST } from '../../client/src/ConfigTest';
+import { NUMBER_OF_ITERATIONS, TEST_TIMEOUT } from "./environment-vars";
 import { collectBenchmarkResults } from './utils/benchmarking/collect-benchmark-results';
 import { measure } from './utils/benchmarking/measure';
 import { createJsonReporter } from './utils/benchmarking/reporters/json-reporter';
@@ -23,8 +25,9 @@ import { messagesFromQuery } from './utils/messages-from-query';
 import { createTestStream } from './utils/test-stream';
 import { sleep } from './utils/utils';
 
-const TIMEOUT = 120 * 1000; // milliseconds;
+const logger = new Logger();
 const STAKE_AMOUNT = BigInt('1000000000000000000');
+
 // time needed to be safe that messages were stored in milliseconds
 // why 9 seconds? Copied from @logsn/client tests
 const MESSAGE_STORE_TIMEOUT = 9 * 1000;
@@ -52,7 +55,7 @@ describe('Client Package Benchmarks', () => {
 	const benchs = {
 		// we are not using warmup feature of tinybench because we can't save warmup stats
 		hot: new Bench({
-			iterations: 5, // it will run this number of iterations even if time is 1
+			iterations: +NUMBER_OF_ITERATIONS, // it will run this number of iterations even if time is 1
 			time: 1, // we want based on number of iterations, not time
 		}),
 		cold: new Bench({
@@ -72,7 +75,7 @@ describe('Client Package Benchmarks', () => {
 		storeOwnerAccount = new Wallet(privateKeys[1], provider);
 		storeConsumerAccount = new Wallet(privateKeys[2], provider);
 
-		console.log('Accounts prepared');
+		logger.info('Accounts prepared');
 
 		// Contracts
 		[storeManager, queryManager] = await Promise.all([
@@ -80,12 +83,12 @@ describe('Client Package Benchmarks', () => {
 			getQueryManagerContract(storeConsumerAccount),
 		]);
 
-		console.log('Contracts prepared');
+		logger.info('Contracts prepared');
 
 		// Clients
 		publisherClient = new LogStoreClient({
 			...CONFIG_TEST,
-			logLevel: 'error',
+			logLevel: undefined,
 			auth: {
 				privateKey: publisherAccount.privateKey,
 			},
@@ -93,12 +96,12 @@ describe('Client Package Benchmarks', () => {
 
 		consumerClient = new LogStoreClient({
 			...CONFIG_TEST,
-			logLevel: 'error',
+			logLevel: undefined,
 			auth: {
 				privateKey: storeConsumerAccount.privateKey,
 			},
 		});
-	}, TIMEOUT);
+	}, TEST_TIMEOUT);
 
 	afterAll(async () => {
 		/*
@@ -118,7 +121,7 @@ describe('Client Package Benchmarks', () => {
 			consumerClient?.destroy(),
 			jsonReporter.save(result),
 		]);
-	}, TIMEOUT);
+	}, TEST_TIMEOUT);
 
 	describe('public stream', () => {
 		let stream: Stream;
@@ -163,15 +166,15 @@ describe('Client Package Benchmarks', () => {
 				prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT),
 			]);
 
-			console.log('Stakes prepared');
+			logger.info('Stakes prepared');
 
 			await Promise.all([
 				storeManager.stake(stream.id, STAKE_AMOUNT),
 				queryManager.stake(STAKE_AMOUNT),
 			]);
 
-			console.log('Stakes staked');
-		}, TIMEOUT);
+			logger.info('Stakes staked');
+		}, TEST_TIMEOUT);
 
 		/**
 		 * The act of sending messages, and then querying is abstracted here to easily create multiple batch cases on different tests
@@ -227,7 +230,7 @@ describe('Client Package Benchmarks', () => {
 			async ({ task }) => {
 				await sendAndQueryForNMessages(task, 1);
 			},
-			TIMEOUT
+			TEST_TIMEOUT
 		);
 
 		it(
@@ -235,7 +238,7 @@ describe('Client Package Benchmarks', () => {
 			async ({ task }) => {
 				await sendAndQueryForNMessages(task, 20);
 			},
-			TIMEOUT
+			TEST_TIMEOUT
 		);
 	});
 });

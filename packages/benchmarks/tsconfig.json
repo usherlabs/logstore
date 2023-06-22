@@ -1,6 +1,6 @@
 {
 	"$schema": "https://json.schemastore.org/tsconfig",
-	"display": "Validator",
+	"display": "Benchmarks",
 	"compilerOptions": {
 		"module": "ES2020",
 		"target": "es2015",
@@ -21,9 +21,6 @@
 	},
 	"exclude": ["node_modules", "build", "dist"],
 	"include": ["**/*.ts"],
-	"ts-node": {
-		"require": ["tsconfig-paths/register"]
-	},
 	"references": [
 		{
 			"path": "../client/tsconfig.node.json"
