@@ -6,12 +6,9 @@
 	"description": "Log Store Benchmarks",
 	"private": false,
 	"scripts": {
-		"start": "ts-node ./src/index.ts",
-		"build": "echo \"Use npm script 'compile'\"",
 		"format": "prettier --write .",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts",
-		"test": "dotenv -e .env jest --",
-		"start:publish": "autocannon -c 10 -p 1 -d 10 --method 'POST' -H Content-Type=application/json -b {'hello': 'benchmarks'} http://localhost:7171/streams/"
+		"test": "vitest"
 	},
 	"files": [
 		"./dist"
@@ -23,21 +20,28 @@
 	"dependencies": {
 		"@logsn/client": "workspace:^",
 		"@logsn/contracts": "workspace:^",
+		"@logsn/broker": "workspace:^",
 		"@logsn/protocol": "workspace:^",
 		"@logsn/shared": "workspace:^",
 		"@streamr/test-utils": "^8.1.0",
 		"@streamr/utils": "^8.1.0",
+		"rxjs": "^7.8.1",
+		"tinybench": "^2.5.0",
 		"autocannon": "^7.11.0",
 		"ethers": "^5",
-		"lodash": "^4.17.21"
+		"lodash": "^4.17.21",
+		"@streamr-client": "file:../../node_artifacts/fork-streamr-client-8.1.0.tgz"
 	},
 	"devDependencies": {
 		"@types/benchmark": "^2.1.2",
+		"@types/node": "^18.15.3",
 		"del-cli": "^5.0.0",
+		"globby": "^13.2.0",
 		"dotenv": "^16.0.3",
 		"dotenv-cli": "^7.2.1",
+		"@types/lodash": "^4.14.195",
+		"@streamr/network-tracker": "8.5.3",
 		"vitest": "^0.32.0",
-		"vitest-fixture": "^0.5.1",
 		"benchmark": "^2.1.4",
 		"eslint": "^8.36.0",
 		"prettier": "^2.6.2",

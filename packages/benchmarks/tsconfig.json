@@ -2,10 +2,11 @@
 	"$schema": "https://json.schemastore.org/tsconfig",
 	"display": "Validator",
 	"compilerOptions": {
-		"module": "commonjs",
+		"module": "ES2020",
 		"target": "es2015",
 		"moduleResolution": "node",
 		"rootDir": ".",
+		"types": ["vitest/importMeta"],
 		"outDir": "__benchmarks__",
 		"allowSyntheticDefaultImports": true,
 		"importHelpers": true,
