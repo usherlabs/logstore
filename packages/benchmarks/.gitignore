@@ -1,2 +1,6 @@
 __benchmarks__
 __benchmarks__/**
+__benchmarks_results__/**
+__benchmarks_results__/**
+
+results/*.json
