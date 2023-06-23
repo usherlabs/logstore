@@ -77,6 +77,11 @@ accounts:
       - 1000000000000000tkyve
     mnemonic: solid spring cotton good already board cover safe transfer appear idea chair
 
+  - name: valdator-4
+    coins:
+      - 1000000000000000tkyve
+    mnemonic: acquire flat federal rack cup snap barrel price unusual height coin mercy
+
   - name: valaccount-1
     coins:
       - 1000000000000tkyve
@@ -91,6 +96,11 @@ accounts:
     coins:
       - 1000000000000tkyve
     mnemonic: chapter carpet veteran hotel inch real depth tribe define you fatigue pet
+
+  - name: valaccount-4
+    coins:
+      - 1000000000000tkyve
+    mnemonic: media else aware scrap exhaust impact accuse off coyote notable example oppose
 
 faucet:
   name: faucet
