@@ -40,11 +40,40 @@ logsn-benchmarks run
 
 ### **Output**
 
-The benchmarks produce JSON output with statistics. The meaning of each stat can be found in the **[Tinybench documentation](https://github.com/tinylibs/tinybench#taskresult)**. When running as normal Vitest tests, the results are saved in the **`results`** directory.
+The benchmarks produce JSON output with statistics. When running as normal Vitest tests, the results are saved in the **`results`** directory.
 
 Each benchmark produces two sets of results: Cold and Hot. Cold start tests are executed first with fewer iterations and mainly serve to warm up the process. Hot tests run immediately after. This distinction is necessary for analyzing the performance during the warmup phase.
 
 Note: New results will override old results by test name. This means that it doesn't delete the last file, but instead replaces it with new results if the test name is equal.
+
+### **Results reference**
+
+We are collecting and exporting the standard statistics [provided by Tinybench](https://github.com/tinylibs/tinybench#taskresult), except for `samples` propery. The following table describes each of the properties in the results object.
+
+| Property     | Type     | Description                                                                                                        |
+| ------------ | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `error`      | unknown? | The last error that was thrown while running the task. Optional.                                                   |
+| `totalTime`  | number   | The amount of time in milliseconds to run the benchmark task (cycle).                                              |
+| `min`        | number   | The minimum value in the samples.                                                                                  |
+| `max`        | number   | The maximum value in the samples.                                                                                  |
+| `hz`         | number   | The number of operations per second.                                                                               |
+| `period`     | number   | How long each operation takes in milliseconds.                                                                     |
+| `mean`       | number   | Samples mean/average (estimate of the population mean).                                                            |
+| `variance`   | number   | Samples variance (estimate of the population variance).                                                            |
+| `sd`         | number   | Samples standard deviation (estimate of the population standard deviation).                                        |
+| `sem`        | number   | Standard error of the mean (also known as the standard deviation of the sampling distribution of the sample mean). |
+| `df`         | number   | Degrees of freedom.                                                                                                |
+| `critical`   | number   | Critical value of the samples.                                                                                     |
+| `moe`        | number   | Margin of error.                                                                                                   |
+| `rme`        | number   | Relative margin of error.                                                                                          |
+| `p75`        | number   | 75th percentile.                                                                                                   |
+| `p99`        | number   | 99th percentile.                                                                                                   |
+| `p995`       | number   | 99.5th percentile.                                                                                                 |
+| `p999`       | number   | 99.9th percentile.                                                                                                 |
+| `population` | number   | Number of iterations / samples.                                                                                    |
+
+Note: The ommited `samples` property references each individual task interation time, so 1000 iterations would mean large files.
+But if default statistics provided by Tinybench are not enough, we can always access the `samples` property in the results object and build our own statistics.
 
 ### **Configurations**
 
