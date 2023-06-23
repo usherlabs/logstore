@@ -23,7 +23,7 @@ pnpm benchmark
 
 This command will run all **`*.benchmark.ts`** test files.
 
-2. **Using CLI Tool**: You can also run the benchmarks through the command line interface.
+1. **(WIP): Using CLI Tool**: You can also run the benchmarks through the command line interface.
 
 To run without installing globally:
 
