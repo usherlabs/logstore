@@ -1,6 +1,11 @@
 import type { IRuntime } from '@kyvejs/protocol';
 import { MessageMetadata } from '@logsn/client';
-import type { QueryOptions } from '@logsn/protocol';
+import type {
+	ProofOfMessageStored,
+	QueryOptions,
+	QueryRequest,
+	QueryResponse,
+} from '@logsn/protocol';
 
 import type { SystemListener, TimeIndexer } from '../threads';
 import type Validator from '../validator';
@@ -69,4 +74,16 @@ export type StreamrMessage = {
 	// eslint-disable-next-line
 	content: any;
 	metadata: MessageMetadata;
+};
+
+export type QueryResponseMessage = Omit<StreamrMessage, 'content'> & {
+	content: QueryResponse;
+};
+
+export type QueryRequestMessage = Omit<StreamrMessage, 'content'> & {
+	content: QueryRequest;
+};
+
+export type ProofOfMessageStoredMessage = Omit<StreamrMessage, 'content'> & {
+	content: ProofOfMessageStored;
 };

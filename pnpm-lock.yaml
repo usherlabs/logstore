@@ -866,6 +866,19 @@ importers:
         specifier: ^4.9.5
         version: 4.9.5
 
+  packages/heartbeat:
+    dependencies:
+      '@logsn/client':
+        specifier: workspace:^
+        version: link:../client
+      dotenv:
+        specifier: ^16.0.3
+        version: 16.0.3
+    devDependencies:
+      '@types/node':
+        specifier: ^20.3.1
+        version: 20.3.1
+
   packages/protocol:
     devDependencies:
       '@tsconfig/node16':
@@ -6378,6 +6391,10 @@ packages:
 
   /@types/node@18.15.10:
     resolution: {integrity: sha512-9avDaQJczATcXgfmMAW3MIWArOO7A+m90vuCFLr8AotWf8igO/mRoYukrk2cqZVtv38tHs33retzHEilM7FpeQ==}
+
+  /@types/node@20.3.1:
+    resolution: {integrity: sha512-EhcH/wvidPy1WeML3TtYFGR83UzjxeWRen9V402T8aUGYsCHOmfoisV3ZSg03gAFIbLq8TnWOJ0f4cALtnSEUg==}
+    dev: true
 
   /@types/node@8.10.66:
     resolution: {integrity: sha512-tktOkFUA4kXx2hhhrB8bIFb5TbwzS4uOhKEmwiD+NoiL0qtP2OQ9mFldbgD4dV1djrlBYP6eBuQZiWjuHUpqFw==}
@@ -14428,7 +14445,7 @@ packages:
       nanoid: 3.3.6
       parse-duration: 1.1.0
       timeout-abort-controller: 2.0.0
-      uint8arrays: 3.0.0
+      uint8arrays: 3.1.1
     transitivePeerDependencies:
       - encoding
       - node-fetch
@@ -17367,7 +17384,7 @@ packages:
       err-code: 3.0.1
       is-ip: 3.1.0
       multiformats: 9.9.0
-      uint8arrays: 3.0.0
+      uint8arrays: 3.1.1
       varint: 6.0.0
     transitivePeerDependencies:
       - node-fetch
@@ -17382,7 +17399,7 @@ packages:
       err-code: 3.0.1
       is-ip: 3.1.0
       multiformats: 9.9.0
-      uint8arrays: 3.0.0
+      uint8arrays: 3.1.1
       varint: 6.0.0
     transitivePeerDependencies:
       - node-fetch
