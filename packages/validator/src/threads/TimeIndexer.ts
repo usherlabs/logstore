@@ -22,9 +22,9 @@ type DB = RootDatabase<
 >;
 
 const CONFIRMATIONS = 128 as const; // The number of confirmations/blocks required to determine finality.
-const SCAN_BUFFER = 10000 as const; // The time a find/scan will use to evaluate the indexed block
+const SCAN_BUFFER = 10 as const; // The time (in seconds) a find/scan will use to evaluate the indexed block
 const DEFAULT_DB_VALUE = { b: 0, s: [] };
-const POLL_INTERVAL = 10 as const; // The time in seconds to delay between the latest index and the next
+const POLL_INTERVAL = 10 as const; // The time (in seconds) to delay between the latest index and the next
 const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
 
 /**
@@ -249,60 +249,74 @@ export class TimeIndexer {
 				}
 			});
 
+			let buffer: string = '';
 			child.stdout.on('data', async (data) => {
-				let block: number;
-				let timestamp: number;
-				try {
-					if (data.includes(`"type": "block"`)) {
-						const json = JSON.parse(data);
-						block = json.number;
-						timestamp = json.timestamp;
-					}
-				} catch (e) {
-					// ...
-				}
-				if (block && timestamp) {
-					await db.transaction(() => {
-						const value = db.get(timestamp) || DEFAULT_DB_VALUE;
-						if (value.b === 0 && value.s.length === 0) {
-							return db.put(timestamp, { b: block, s: [source] });
-						} else if (value.b !== block) {
-							this.logger.error(
-								`TimeIndexer (${source}): Sources returned different results`,
-								{
-									databaseValue: value,
-									newValue: {
-										source,
-										block,
-										timestamp,
-									},
-								}
-							);
-							throw new Error(`Sources returned different results`);
-						} else {
-							return db.put(timestamp, {
-								b: block,
-								s: [...value.s, source],
-							});
-						}
-					});
+				buffer += data;
 
-					this.logger.debug(
-						`TimeIndexer (${source}): Indexed ${
-							db.get(timestamp).b
-						} at time ${timestamp}`
-					);
-					const blocksIndexedSinceStart = block - fromBlock;
-					if (
-						blocksIndexedSinceStart % 100 === 0 &&
-						blocksIndexedSinceStart > 0
-					) {
-						this.logger.info(
-							`TimeIndexer (${source}): Indexed ${blocksIndexedSinceStart} blocks`
+				const entries = buffer.split('\n');
+				buffer = entries.splice(-1)[0];
+
+				for (const entry of entries) {
+					let block: number;
+					let timestamp: number;
+					try {
+						if (entry.includes(`"type": "block"`)) {
+							const json = JSON.parse(entry);
+							block = parseInt(json.number);
+							timestamp = parseInt(json.timestamp);
+						}
+					} catch (e) {
+						// ...
+					}
+
+					if (block && timestamp) {
+						await db.transaction(() => {
+							const value = db.get(timestamp) || DEFAULT_DB_VALUE;
+							if (value.b === 0 && value.s.length === 0) {
+								return db.put(timestamp, { b: block, s: [source] });
+							} else if (value.b !== block) {
+								this.logger.error(
+									`TimeIndexer (${source}): Sources returned different results`,
+									{
+										databaseValue: value,
+										newValue: {
+											source,
+											block,
+											timestamp,
+										},
+									}
+								);
+								throw new Error(`Sources returned different results`);
+							} else {
+								return db.put(timestamp, {
+									b: block,
+									s: [...value.s, source],
+								});
+							}
+						});
+
+						this.logger.debug(
+							`TimeIndexer (${source}): Indexed ${db.get(timestamp).b
+							} at time ${timestamp}`
+						);
+						const blocksIndexedSinceStart = block - fromBlock;
+						if (
+							blocksIndexedSinceStart % 100 === 0 &&
+							blocksIndexedSinceStart > 0
+						) {
+							this.logger.info(
+								`TimeIndexer (${source}): Indexed ${blocksIndexedSinceStart} blocks`
+							);
+						}
+
+						this._latestTimestamp = timestamp;
+					} else {
+						// Log message here to indicate that there was an output by the process' stdout -- but that nothing was indexed.
+						this.logger.debug(
+							`TimeIndexer (${source}): Data received on process stdout but nothing indexed!`,
+							data
 						);
 					}
-
-					this._latestTimestamp = timestamp;
 				}
 			});
 		}

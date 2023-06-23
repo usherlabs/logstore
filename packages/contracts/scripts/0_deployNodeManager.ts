@@ -132,6 +132,8 @@ async function main() {
 		const ACCOUNT_PK_PREFIX = '';
 		const BROKER_PK_PREFIX = 'bb';
 		const VALIDATOR_PK_PREFIX = 'cc';
+		const HEARTBEAT_PK =
+			'1111111111111111111111111111111111111111111111111111111111111111';
 		const NUM_ACCOUNTS = 100;
 		const NUM_BROKERS = 3;
 		const NUM_VALIDATORS = 3;
@@ -256,6 +258,19 @@ async function main() {
 				);
 			}
 		}
+
+		console.log();
+		console.log(
+			`Minting native token and LSAN to the Heartbeat account with Primary Key: ${HEARTBEAT_PK}`
+		);
+		const address = new Wallet(HEARTBEAT_PK).address;
+
+		const tx = {
+			to: address,
+			value: hre.ethers.utils.parseEther('1'),
+		};
+		await (await signer.sendTransaction(tx)).wait();
+		await (await token.mintTokens(address, MINT_AMOUNT)).wait();
 	}
 	// --------------------------- mint dev token to the test accounts ------------------------- //
 

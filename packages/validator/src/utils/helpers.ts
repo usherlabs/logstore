@@ -1,14 +1,14 @@
-import { StreamrMessage } from '@/types';
+import { QueryResponseMessage } from '@/types';
 
 // go through all the responses recieved and verify using the content.hash property
 // to find a consesnus of all the responses recieved the listener for a particular request
-export function fetchQueryResponseConsensus(arr: StreamrMessage[]) {
-	const result: Record<string, StreamrMessage[]> = {};
-	let maxHash = null;
+export function fetchQueryResponseConsensus(arr: QueryResponseMessage[]) {
+	const result: Record<string, QueryResponseMessage[]> = {};
+	let maxHash = '';
 	let maxCount = -1;
 
 	// Filter to ensure that each publisher only produces a single query response
-	const filtered: StreamrMessage[] = [];
+	const filtered: QueryResponseMessage[] = [];
 	arr.forEach((obj) => {
 		if (
 			!filtered
