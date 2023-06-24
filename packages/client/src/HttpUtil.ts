@@ -99,15 +99,12 @@ export class HttpUtil {
 		url: string,
 		abortController = new AbortController()
 	): AsyncIterable<StreamMessage> {
-		const authUser = await this.authentication.getAddress();
-		const authPassword = await this.authentication.createMessageSignature(
-			authUser
-		);
+		const { token: authToken } = await this.fetchAuthParams();
 
 		const response = await fetchResponse(url, this.logger, {
 			signal: abortController.signal,
 			headers: {
-				Authorization: `Basic ${Base64.encode(`${authUser}:${authPassword}`)}`,
+				Authorization: `Basic ${authToken}`,
 			},
 		});
 		if (!response.body) {
@@ -167,6 +164,18 @@ export class HttpUtil {
 			Object.entries(query).filter(([_k, v]) => v != null)
 		);
 		return new URLSearchParams(withoutEmpty).toString();
+	}
+
+	async fetchAuthParams() {
+		const user = await this.authentication.getAddress();
+		const password = await this.authentication.createMessageSignature(user);
+		const token = Base64.encode(`${user}:${password}`);
+
+		return {
+			user,
+			password,
+			token,
+		};
 	}
 }
 

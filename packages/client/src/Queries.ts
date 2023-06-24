@@ -28,7 +28,10 @@ export enum QueryType {
 	Range = 'range',
 }
 
-type QueryDict = Record<string, string | number | boolean | null | undefined>;
+export type QueryDict = Record<
+	string,
+	string | number | boolean | null | undefined
+>;
 
 export interface QueryRef {
 	timestamp: number;
@@ -233,7 +236,7 @@ export class Queries implements IResends {
 		});
 	}
 
-	private async from(
+	async from(
 		streamPartId: StreamPartID,
 		{
 			fromTimestamp,
@@ -280,7 +283,7 @@ export class Queries implements IResends {
 		});
 	}
 
-	private createUrl(
+	createUrl(
 		baseUrl: string,
 		endpointSuffix: string,
 		streamPartId: StreamPartID,
@@ -296,5 +299,9 @@ export class Queries implements IResends {
 		return `${baseUrl}/streams/${encodeURIComponent(
 			streamId
 		)}/data/partitions/${streamPartition}/${endpointSuffix}?${queryString}`;
+	}
+
+	getAuth() {
+		return this.httpUtil.fetchAuthParams();
 	}
 }

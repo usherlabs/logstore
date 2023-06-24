@@ -8,6 +8,7 @@ import {
 import { Stream, StreamPermission } from '@logsn/streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
+import axios from 'axios';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
 
@@ -21,6 +22,8 @@ const NUM_OF_FROM_MESSAGES = 15;
 const NUM_OF_RANGE_MESSAGES = 10;
 const MESSAGE_STORE_TIMEOUT = 9 * 1000;
 const TIMEOUT = 90 * 1000;
+
+const BASE_NODE_URL = `http://localhost:7771`;
 
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(undefined), ms));
@@ -212,6 +215,59 @@ describe('query', () => {
 					() => `messages array length was ${messages.length}`
 				);
 				expect(messages).toHaveLength(NUM_OF_RANGE_MESSAGES);
+			},
+			TIMEOUT
+		);
+
+		it(
+			'can request a query for the last messages via HTTP Interface',
+			async () => {
+				await publishMessages(NUM_OF_LAST_MESSAGES);
+
+				const queryUrl = await consumerClient.createQueryUrl(
+					BASE_NODE_URL,
+					{
+						streamId: stream.id,
+						partition: 0,
+					},
+					'last',
+					{
+						count: NUM_OF_LAST_MESSAGES,
+					}
+				);
+				const { token } = await consumerClient.apiAuth();
+
+				const resp = await axios
+					.get(queryUrl, {
+						headers: {
+							Authorization: `Basic ${token}`,
+						},
+					})
+					.then(({ data }) => data);
+
+				console.log('HTTP RESPONSE:', resp);
+
+				expect(resp).toHaveLength(NUM_OF_LAST_MESSAGES);
+
+				// const messages: unknown[] = [];
+				// await consumerClient.query(
+				// 	{
+				// 		streamId: stream.id,
+				// 		partition: 0,
+				// 	},
+				// 	{ last: NUM_OF_LAST_MESSAGES },
+				// 	(msg: any) => {
+				// 		messages.push(msg);
+				// 	}
+				// );
+				// await waitForCondition(
+				// 	() => messages.length >= NUM_OF_LAST_MESSAGES,
+				// 	TIMEOUT - 1000,
+				// 	250,
+				// 	undefined,
+				// 	() => `messages array length was ${messages.length}`
+				// );
+				// expect(messages).toHaveLength(NUM_OF_LAST_MESSAGES);
 			},
 			TIMEOUT
 		);
