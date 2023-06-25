@@ -1,3 +1,4 @@
+import { MessageMetadata } from '@logsn/client';
 import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
 
@@ -42,7 +43,10 @@ export class Item extends AbstractDataItem<IPrepared> {
 		const toTimestamp = keyInt * 1000;
 		const fromTimestamp = toTimestamp - 1000;
 
-		const messages = [];
+		const messages: {
+			content: unknown;
+			metadata: MessageMetadata;
+		}[] = [];
 		for (let i = 0; i < stores.length; i++) {
 			const store = stores[i];
 			const resp = await this.runtime.listener.client.query(
@@ -63,6 +67,15 @@ export class Item extends AbstractDataItem<IPrepared> {
 			}
 		}
 
-		return messages;
+		const messageId = (metadata: MessageMetadata): string => {
+			const { streamId, streamPartition, timestamp, sequenceNumber } = metadata;
+			return `${streamId}/${streamPartition}/${timestamp}/${sequenceNumber}`;
+		};
+
+		const sortedMessages = messages.sort((a, b) => {
+			return messageId(a.metadata).localeCompare(messageId(b.metadata));
+		});
+
+		return sortedMessages;
 	}
 }
