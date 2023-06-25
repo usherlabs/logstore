@@ -124,7 +124,6 @@ async function main() {
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //
 	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
-		const tokenManager = await hre.ethers.getContractFactory('LSAN');
 		const token = await tokenManager.attach(stakeTokenAddress);
 
 		const wallets: string[] = [];
@@ -180,8 +179,6 @@ async function main() {
 				);
 			}
 		}
-
-		const [signer] = await hre.ethers.getSigners();
 
 		console.log();
 		console.log(
