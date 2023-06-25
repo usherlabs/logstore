@@ -283,6 +283,32 @@ services:
       logstore-broker-3:
         condition: service_started
 
+  logstore-validator-4:
+    container_name: logstore-validator-4
+    hostname: logstore-validator-4
+    image: logstore-validator
+    build:
+      context: ../
+      dockerfile: ./dev-network/Dockerfile.validator
+    restart: always
+    networks:
+      - streamr-network
+    volumes:
+      - type: bind
+        source: ./assets/validator/start-in-docker.sh
+        target: /usr/local/bin/start-in-docker
+    env_file:
+      - ./assets/validator/.env.validator-4
+    depends_on:
+      logstore-base:
+        condition: service_completed_successfully
+      logstore-kyve:
+        condition: service_started
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
+      logstore-broker-3:
+        condition: service_started
+
   logstore-heartbeat:
     container_name: logstore-heartbeat
     hostname: logstore-heartbeat

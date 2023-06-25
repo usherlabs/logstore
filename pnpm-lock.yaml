@@ -112,7 +112,7 @@ importers:
         version: 16.0.3
       ethers:
         specifier: ^5
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       globby:
         specifier: ^13.2.0
         version: 13.2.0
@@ -185,7 +185,7 @@ importers:
         version: 5.7.0
       '@ethersproject/providers':
         specifier: ^5.7.2
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       '@ethersproject/transactions':
         specifier: ^5.7.0
         version: 5.7.0
@@ -212,7 +212,7 @@ importers:
         version: 8.1.0
       '@streamr/network-tracker':
         specifier: ^8.1.0
-        version: 8.1.0
+        version: 8.5.3
       '@streamr/protocol':
         specifier: ^8.1.0
         version: 8.1.0
@@ -242,7 +242,7 @@ importers:
         version: 2.8.5
       ethers:
         specifier: ^5.4.7
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       eventemitter3:
         specifier: ^4.0.7
         version: 4.0.7
@@ -387,7 +387,7 @@ importers:
         version: 10.0.0
       ethers:
         specifier: ^5.7.0
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       inquirer:
         specifier: ^8.1.1
         version: 8.1.1
@@ -466,7 +466,7 @@ importers:
         version: 5.7.0
       '@ethersproject/providers':
         specifier: ^5.7.2
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       '@ethersproject/transactions':
         specifier: ^5.7.0
         version: 5.7.0
@@ -508,7 +508,7 @@ importers:
         version: 2.2.1
       ethers:
         specifier: ^5.4.7
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       eventemitter3:
         specifier: ^4.0.7
         version: 4.0.7
@@ -741,7 +741,7 @@ importers:
         version: 5.7.0
       '@ethersproject/providers':
         specifier: ^5.7.2
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       '@nomicfoundation/hardhat-chai-matchers':
         specifier: ^1.0.5
         version: 1.0.5(@nomiclabs/hardhat-ethers@2.2.2)(chai@4.3.7)(ethers@5.7.2)(hardhat@2.12.6)
@@ -810,7 +810,7 @@ importers:
         version: 1.0.2
       ethers:
         specifier: ^5.7.2
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       hardhat:
         specifier: ^2.12.6
         version: 2.12.6(ts-node@10.9.1)(typescript@4.9.5)
@@ -922,13 +922,13 @@ importers:
     dependencies:
       '@ethersproject/providers':
         specifier: ^5
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       '@logsn/contracts':
         specifier: workspace:^
         version: link:../contracts
       ethers:
         specifier: ^5.7.0
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       inquirer:
         specifier: ^8.1.1
         version: 8.1.1
@@ -996,7 +996,7 @@ importers:
         version: 5.7.0
       '@ethersproject/providers':
         specifier: ^5.7.2
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       '@ethersproject/wallet':
         specifier: ^5.7.0
         version: 5.7.0
@@ -1016,8 +1016,11 @@ importers:
         specifier: workspace:^
         version: link:../shared
       arweave:
-        specifier: ^1.13.7
-        version: 1.13.7
+        specifier: file:../../node_artifacts/arweave-1.13.7.tgz
+        version: file:node_artifacts/arweave-1.13.7.tgz
+      axios:
+        specifier: ^1.4.0
+        version: 1.4.0
       bigint-buffer:
         specifier: ^1.1.5
         version: 1.1.5
@@ -1026,7 +1029,7 @@ importers:
         version: 10.0.0
       ethers:
         specifier: ^5
-        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       fs-extra:
         specifier: ^11.1.1
         version: 11.1.1
@@ -2449,7 +2452,7 @@ packages:
       bs58: 4.0.1
       commander: 8.3.0
       csv: 6.3.1
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       inquirer: 8.2.5
       js-sha256: 0.9.0
       mime-types: 2.1.35
@@ -3165,7 +3168,7 @@ packages:
     engines: {node: '>=10.0'}
     dependencies:
       '@ethereum-waffle/provider': 3.4.4
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -3182,7 +3185,7 @@ packages:
       '@typechain/ethers-v5': 2.0.0(ethers@5.7.2)(typechain@3.0.0)
       '@types/mkdirp': 0.5.2
       '@types/node-fetch': 2.6.2
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       mkdirp: 0.5.6
       node-fetch: 2.6.11
       solc: 0.6.12
@@ -3202,7 +3205,7 @@ packages:
     dependencies:
       '@ensdomains/ens': 0.4.5
       '@ensdomains/resolver': 0.2.4
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -3213,7 +3216,7 @@ packages:
     engines: {node: '>=10.0'}
     dependencies:
       '@ethersproject/abi': 5.7.0
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -3224,7 +3227,7 @@ packages:
     engines: {node: '>=10.0'}
     dependencies:
       '@ethereum-waffle/ens': 3.4.4
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       ganache-core: 2.13.2
       patch-package: 6.5.1
       postinstall-postinstall: 2.1.0
@@ -3472,7 +3475,6 @@ packages:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
-    dev: false
 
   /@ethersproject/random@5.7.0:
     resolution: {integrity: sha512-19WjScqRA8IIeWclFme75VMXSBvi4e6InrUNuaR4s5pTF2qNhcGdCUwdxUVGtDDqC00sDLCO93jPQoDUH4HVmQ==}
@@ -3975,7 +3977,7 @@ packages:
       '@jridgewell/resolve-uri': 3.1.1
       '@jridgewell/sourcemap-codec': 1.4.15
 
-  /@json-rpc-tools/provider@1.7.6(bufferutil@4.0.7)(utf-8-validate@5.0.10):
+  /@json-rpc-tools/provider@1.7.6:
     resolution: {integrity: sha512-z7D3xvJ33UfCGv77n40lbzOYjZKVM3k2+5cV7xS8G6SCvKTzMkhkUYuD/qzQUNT4cG/lv0e9mRToweEEVLVVmA==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     dependencies:
@@ -3987,12 +3989,14 @@ packages:
       - bufferutil
       - debug
       - utf-8-validate
+    dev: false
 
   /@json-rpc-tools/types@1.7.6:
     resolution: {integrity: sha512-nDSqmyRNEqEK9TZHtM15uNnDljczhCUdBmRhpNZ95bIPKEDQ+nTDmGMFd2lLin3upc5h2VVVd9tkTDdbXUhDIQ==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     dependencies:
       keyvaluestorage-interface: 1.0.0
+    dev: false
 
   /@json-rpc-tools/utils@1.7.6:
     resolution: {integrity: sha512-HjA8x/U/Q78HRRe19yh8HVKoZ+Iaoo3YZjakJYxR+rw52NHo6jM+VE9b8+7ygkCFXl/EHID5wh/MkXaE/jGyYw==}
@@ -4000,6 +4004,7 @@ packages:
     dependencies:
       '@json-rpc-tools/types': 1.7.6
       '@pedrouid/environment': 1.0.1
+    dev: false
 
   /@keplr-wallet/common@0.11.64:
     resolution: {integrity: sha512-kEnv6K+TxH+BBwwqUgiTcIXuRLBn6PaZMO4jwJbE1O8C8Qh/2j1QtkMLAMgl3Nj9qQkHgJ/dvA5oIqOIdLVMwg==}
@@ -4125,7 +4130,7 @@ packages:
       '@protobufs/gogoproto': 0.0.10
       '@protobufs/google': 0.0.10
       nx: 14.8.8
-      ts-proto: 1.150.0
+      ts-proto: 1.150.1
     transitivePeerDependencies:
       - '@swc-node/register'
       - '@swc/core'
@@ -4142,7 +4147,7 @@ packages:
       '@lit-protocol/misc': 2.1.114
       '@lit-protocol/types': 2.1.114
       '@lit-protocol/uint8arrays': 2.1.114
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       tslib: 2.5.0
     transitivePeerDependencies:
       - bufferutil
@@ -4171,7 +4176,7 @@ packages:
       '@lit-protocol/uint8arrays': 2.1.114
       '@walletconnect/ethereum-provider': 2.5.1(@types/node@18.15.10)(@web3modal/standalone@2.2.1)(typescript@4.9.5)
       '@web3modal/standalone': 2.2.1(react@18.2.0)
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       lit-connect-modal: 0.1.11
       lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
       tslib: 2.5.0
@@ -4208,7 +4213,7 @@ packages:
       '@lit-protocol/misc-browser': 2.1.50(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@lit-protocol/nacl': 2.1.50
       '@lit-protocol/uint8arrays': 2.1.50
-      '@walletconnect/ethereum-provider': 2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@walletconnect/ethereum-provider': 2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       lit-connect-modal: 0.1.11
       lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
@@ -4225,7 +4230,6 @@ packages:
       - '@react-native-async-storage/async-storage'
       - '@walletconnect/modal'
       - bufferutil
-      - debug
       - encoding
       - lokijs
       - utf-8-validate
@@ -4257,7 +4261,7 @@ packages:
       '@lit-protocol/nacl': 2.1.114
       '@lit-protocol/types': 2.1.114
       '@lit-protocol/uint8arrays': 2.1.114
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       tslib: 2.5.0
     transitivePeerDependencies:
       - bufferutil
@@ -4297,7 +4301,7 @@ packages:
       '@lit-protocol/nacl': 2.1.114
       '@lit-protocol/types': 2.1.114
       '@lit-protocol/uint8arrays': 2.1.114
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       ipfs-http-client: 56.0.0(node-fetch@2.6.6)
       jszip: 3.10.1
       tslib: 2.5.0
@@ -4341,7 +4345,7 @@ packages:
       '@lit-protocol/nacl': 2.1.114
       '@lit-protocol/types': 2.1.114
       '@lit-protocol/uint8arrays': 2.1.114
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       ipfs-http-client: 56.0.0(node-fetch@2.6.6)
       jszip: 3.10.1
       lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
@@ -4377,7 +4381,7 @@ packages:
       '@lit-protocol/uint8arrays': 2.1.114
       '@walletconnect/ethereum-provider': 2.5.1(@types/node@18.15.10)(@web3modal/standalone@2.4.3)(typescript@4.9.5)
       '@web3modal/standalone': 2.4.3(react@18.2.0)
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       ipfs-http-client: 56.0.0(node-fetch@2.6.6)
       jszip: 3.10.1
       lit-connect-modal: 0.1.11
@@ -4420,7 +4424,7 @@ packages:
       '@lit-protocol/misc-browser': 2.1.50(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@lit-protocol/nacl': 2.1.50
       '@lit-protocol/uint8arrays': 2.1.50
-      '@walletconnect/ethereum-provider': 2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@walletconnect/ethereum-provider': 2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       jszip: 3.10.1
       lit-connect-modal: 0.1.11
@@ -4437,7 +4441,6 @@ packages:
       - '@react-native-async-storage/async-storage'
       - '@walletconnect/modal'
       - bufferutil
-      - debug
       - encoding
       - lokijs
       - utf-8-validate
@@ -4456,7 +4459,7 @@ packages:
       '@lit-protocol/misc': 2.1.114
       '@lit-protocol/types': 2.1.114
       '@lit-protocol/uint8arrays': 2.1.114
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       tslib: 2.5.0
     transitivePeerDependencies:
       - bufferutil
@@ -4908,7 +4911,7 @@ packages:
       chai-as-promised: 7.1.1(chai@4.3.7)
       chalk: 2.4.2
       deep-eql: 4.1.3
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       hardhat: 2.12.6(ts-node@10.9.1)(typescript@4.9.5)
       ordinal: 1.0.3
     dev: true
@@ -4946,7 +4949,7 @@ packages:
       typescript: '>=4.5.0'
     dependencies:
       '@ethersproject/abi': 5.7.0
-      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       '@nomicfoundation/hardhat-chai-matchers': 1.0.5(@nomiclabs/hardhat-ethers@2.2.2)(chai@4.3.7)(ethers@5.7.2)(hardhat@2.12.6)
       '@nomicfoundation/hardhat-network-helpers': 1.0.7(hardhat@2.12.6)
       '@nomiclabs/hardhat-ethers': 2.2.2(ethers@5.7.2)(hardhat@2.12.6)
@@ -4957,7 +4960,7 @@ packages:
       '@types/mocha': 10.0.1
       '@types/node': 18.15.10
       chai: 4.3.7
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       hardhat: 2.12.6(ts-node@10.9.1)(typescript@4.9.5)
       hardhat-gas-reporter: 1.0.9(hardhat@2.12.6)
       solidity-coverage: 0.8.2(hardhat@2.12.6)
@@ -5078,7 +5081,7 @@ packages:
       ethers: ^5.0.0
       hardhat: ^2.0.0
     dependencies:
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       hardhat: 2.12.6(ts-node@10.9.1)(typescript@4.9.5)
     dev: true
 
@@ -5114,7 +5117,7 @@ packages:
       '@types/sinon-chai': 3.2.9
       '@types/web3': 1.0.19
       ethereum-waffle: 3.4.4(typescript@4.9.5)
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       hardhat: 2.12.6(ts-node@10.9.1)(typescript@4.9.5)
     dev: true
 
@@ -5219,7 +5222,7 @@ packages:
       '@openzeppelin/upgrades-core': 1.27.1
       chalk: 4.1.2
       debug: 4.3.4(supports-color@8.1.1)
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       hardhat: 2.12.6(ts-node@10.9.1)(typescript@4.9.5)
       proper-lockfile: 4.1.2
     transitivePeerDependencies:
@@ -5278,6 +5281,7 @@ packages:
 
   /@pedrouid/environment@1.0.1:
     resolution: {integrity: sha512-HaW78NszGzRZd9SeoI3JD11JqY+lubnaOx7Pewj5pfjqWXOEATpeKIFb9Z4t2WBUK2iryiXX3lzWwmYWgUL0Ug==}
+    dev: false
 
   /@pkgr/utils@2.4.1:
     resolution: {integrity: sha512-JOqwkgFEyi+OROIyq7l4Jy28h/WwhDnG/cPkXG2Z1iFbubB6jsHW1NDvmyOzTBxHr3yg68YGirmh1JUgMqa+9w==}
@@ -5550,10 +5554,12 @@ packages:
     engines: {node: '>= 12.13.0', npm: '>= 6.12.0'}
     dependencies:
       '@types/node': 18.15.10
+    dev: true
 
   /@slack/types@2.8.0:
     resolution: {integrity: sha512-ghdfZSF0b4NC9ckBA8QnQgC9DJw2ZceDq0BIjjRSv6XAZBXJdWgxIsYz0TYnWSiqsKZGH2ZXbj9jYABZdH3OSQ==}
     engines: {node: '>= 12.13.0', npm: '>= 6.12.0'}
+    dev: true
 
   /@slack/web-api@6.8.1:
     resolution: {integrity: sha512-eMPk2S99S613gcu7odSw/LV+Qxr8A+RXvBD0GYW510wJuTERiTjP5TgCsH8X09+lxSumbDE88wvWbuFuvGa74g==}
@@ -5572,6 +5578,7 @@ packages:
       p-retry: 4.6.2
     transitivePeerDependencies:
       - debug
+    dev: true
 
   /@solana/buffer-layout@4.0.1:
     resolution: {integrity: sha512-E1ImOIAD1tBZFRdjeM4/pzTiTApC0AOBGwyAMS4fwIodCWArzJ3DWdoh8cKxeFM2fElkxBh2Aqts1BPC373rHA==}
@@ -5819,33 +5826,6 @@ packages:
       - supports-color
     dev: false
 
-  /@streamr/network-tracker@8.1.0:
-    resolution: {integrity: sha512-vLB/P8kCcBhKBsukuRpWGU6PJqggFhfnWhKw30jVWNUsGNpIf9Fvy8IawHD3ptHQfuROpmR4TtdV3ifrh8NEKg==}
-    hasBin: true
-    dependencies:
-      '@streamr/network-node': 8.1.0
-      '@streamr/protocol': 8.1.0
-      '@streamr/slackbot': 1.1.0
-      '@streamr/utils': 8.1.0
-      ajv: 8.8.2
-      commander: 8.3.0
-      compression: 1.7.4
-      cors: 2.8.5
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      express: 4.18.2
-      geoip-lite: 1.4.7
-      lodash: 4.17.21
-      morgan: 1.10.0
-      uuid: 8.3.2
-    optionalDependencies:
-      bufferutil: 4.0.7
-      pino-pretty: 5.1.3
-      utf-8-validate: 5.0.10
-    transitivePeerDependencies:
-      - debug
-      - supports-color
-    dev: false
-
   /@streamr/network-tracker@8.1.0-beta.0:
     resolution: {integrity: sha512-QYfOKyjalIuaCV71RitsuSJQKE+021VvAI/7uuczGn3kTRrwpXDyq2rOFYEsQC0ULgMP1Eld7j6IoRRkXd6Vdw==}
     hasBin: true
@@ -5921,6 +5901,7 @@ packages:
       '@slack/web-api': 6.8.1
     transitivePeerDependencies:
       - debug
+    dev: true
 
   /@streamr/test-utils@8.1.0:
     resolution: {integrity: sha512-CSkWW9qpCov2T7YK9xBtrQZWs9EwEpqZlnDqy7MElI0iurYu/Y2kgTwl2QFWWim5COQ+X06kvDKDMP/74RbfCw==}
@@ -6037,8 +6018,8 @@ packages:
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/bytes': 5.7.0
-      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
+      ethers: 5.7.2
       lodash: 4.17.21
       ts-essentials: 7.0.3(typescript@4.9.5)
       typechain: 8.1.1(typescript@4.9.5)
@@ -6051,7 +6032,7 @@ packages:
       ethers: ^5.0.0
       typechain: ^3.0.0
     dependencies:
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       typechain: 3.0.0(typescript@4.9.5)
     dev: true
 
@@ -6066,9 +6047,9 @@ packages:
       typechain: ^8.1.1
     dependencies:
       '@ethersproject/abi': 5.7.0
-      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       '@typechain/ethers-v5': 10.2.0(@ethersproject/abi@5.7.0)(@ethersproject/bytes@5.7.0)(@ethersproject/providers@5.7.2)(ethers@5.7.2)(typechain@8.1.1)(typescript@4.9.5)
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       fs-extra: 9.1.0
       hardhat: 2.12.6(ts-node@10.9.1)(typescript@4.9.5)
       typechain: 8.1.1(typescript@4.9.5)
@@ -6221,7 +6202,7 @@ packages:
       '@types/body-parser': 1.19.2
       '@types/express-serve-static-core': 4.17.35
       '@types/qs': 6.9.7
-      '@types/serve-static': 1.15.1
+      '@types/serve-static': 1.15.2
     dev: true
 
   /@types/form-data@0.0.33:
@@ -6258,6 +6239,10 @@ packages:
     dev: true
     optional: true
 
+  /@types/http-errors@2.0.1:
+    resolution: {integrity: sha512-/K3ds8TRAfBvi5vfjuz8y6+GiAYBZ0x4tXv1Av6CWBWn0IlADc+ZX9pMq7oU0fNQPnBwIZl3rmeLp6SBApbxSQ==}
+    dev: true
+
   /@types/inquirer@8.1.3:
     resolution: {integrity: sha512-AayK4ZL5ssPzR1OtnOLGAwpT0Dda3Xi/h1G0l1oJDNrowp7T1423q4Zb8/emr7tzRlCy4ssEri0LWVexAqHyKQ==}
     dependencies:
@@ -6269,6 +6254,7 @@ packages:
     resolution: {integrity: sha512-jkZatu4QVbR60mpIzjINmtS1ZF4a/FqdTUTBeQDVOQ2PYyidtwFKr0B5G6ERukKwliq+7mIXvxyppwzG5EgRYg==}
     dependencies:
       '@types/node': 18.15.10
+    dev: true
 
   /@types/istanbul-lib-coverage@2.0.4:
     resolution: {integrity: sha512-z/QT1XN4K4KYuslS23k62yDIDLwLFkzxOuMplDtObz0+y7VqJCaO2o+SPwHCvLFZh7xazvvoor2tA/hPz9ee7g==}
@@ -6448,6 +6434,7 @@ packages:
 
   /@types/retry@0.12.0:
     resolution: {integrity: sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==}
+    dev: true
 
   /@types/secp256k1@4.0.3:
     resolution: {integrity: sha512-Da66lEIFeIz9ltsdMZcpQvmrmmoqrfju8pm1BH8WbYjZSwUgCwXLb9C+9XYogwBITnbsSaMdVPb2ekf7TV+03w==}
@@ -6465,9 +6452,10 @@ packages:
       '@types/node': 18.15.10
     dev: true
 
-  /@types/serve-static@1.15.1:
-    resolution: {integrity: sha512-NUo5XNiAdULrJENtJXZZ3fHtfMolzZwczzBbnAeBbqBwG+LaG6YaJtuwzwGSQZ2wsCrxjEhNNjAkKigy3n8teQ==}
+  /@types/serve-static@1.15.2:
+    resolution: {integrity: sha512-J2LqtvFYCzaj8pVYKw8klQXrLLk7TBZmQ4ShlcdkELFKGwGMfevMLneMMRkMgZxotOD9wg497LpC7O8PcvAmfw==}
     dependencies:
+      '@types/http-errors': 2.0.1
       '@types/mime': 3.0.1
       '@types/node': 18.15.10
     dev: true
@@ -6863,8 +6851,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/core@2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10):
-    resolution: {integrity: sha512-mN9Zkdl/NeThntK8cydDoQOW6jUEpOeFgYR1RCKPLH51VQwlbdSgvvQIeanSQXEY4U7AM3x8cs1sxqMomIfRQg==}
+  /@walletconnect/core@2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10):
+    resolution: {integrity: sha512-24ygQe1RIjcBQEh+I1KlhpLgKONrL0ll+2HIoLlSs/NLvsvNT7Ib2ku+ded8o82Pgji3DSSl5h0RNknkw2L5pQ==}
     dependencies:
       '@walletconnect/heartbeat': 1.2.1
       '@walletconnect/jsonrpc-provider': 1.0.13
@@ -6877,8 +6865,8 @@ packages:
       '@walletconnect/relay-auth': 1.0.4
       '@walletconnect/safe-json': 1.0.2
       '@walletconnect/time': 1.0.2
-      '@walletconnect/types': 2.8.1
-      '@walletconnect/utils': 2.8.1
+      '@walletconnect/types': 2.8.2
+      '@walletconnect/utils': 2.8.2
       events: 3.3.0
       lodash.isequal: 4.5.0
       uint8arrays: 3.1.1
@@ -6955,8 +6943,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/ethereum-provider@2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10):
-    resolution: {integrity: sha512-YlF8CCiFTSEZRyANIBsop/U+t+d1Z1/UXXoE9+iwjSGKJsaym6PgBLPb2d8XdmS/qR6Tcx7lVodTp4cVtezKnA==}
+  /@walletconnect/ethereum-provider@2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10):
+    resolution: {integrity: sha512-MWhjSSbbT60vYdcLuhmTFI6t/UYHIJzILeKuKQnv4j6Pt4X4SzG2uuL7eP9PL5nHBdZxMeA0mwGn/Yhs8mgcng==}
     peerDependencies:
       '@walletconnect/modal': '>=2'
     peerDependenciesMeta:
@@ -6967,15 +6955,14 @@ packages:
       '@walletconnect/jsonrpc-provider': 1.0.13
       '@walletconnect/jsonrpc-types': 1.0.3
       '@walletconnect/jsonrpc-utils': 1.0.8
-      '@walletconnect/sign-client': 2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      '@walletconnect/types': 2.8.1
-      '@walletconnect/universal-provider': 2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      '@walletconnect/utils': 2.8.1
+      '@walletconnect/sign-client': 2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@walletconnect/types': 2.8.2
+      '@walletconnect/universal-provider': 2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@walletconnect/utils': 2.8.2
       events: 3.3.0
     transitivePeerDependencies:
       - '@react-native-async-storage/async-storage'
       - bufferutil
-      - debug
       - encoding
       - lokijs
       - utf-8-validate
@@ -7137,17 +7124,17 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/sign-client@2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10):
-    resolution: {integrity: sha512-6DbpjP9BED2YZOZdpVgYo0HwPBV7k99imnsdMFrTn16EFAxhuYP0/qPwum9d072oNMGWJSA6d4rzc8FHNtHsCA==}
+  /@walletconnect/sign-client@2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10):
+    resolution: {integrity: sha512-TcViLWHE55SqYeFPDny1JTuktMOszffzYK5R22VAGOeHW3PhUqJoMcMXUEhSHuEeLcvGT1F25CiyNOWo2url/g==}
     dependencies:
-      '@walletconnect/core': 2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@walletconnect/core': 2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@walletconnect/events': 1.0.1
       '@walletconnect/heartbeat': 1.2.1
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/logger': 2.0.1
       '@walletconnect/time': 1.0.2
-      '@walletconnect/types': 2.8.1
-      '@walletconnect/utils': 2.8.1
+      '@walletconnect/types': 2.8.2
+      '@walletconnect/utils': 2.8.2
       events: 3.3.0
     transitivePeerDependencies:
       - '@react-native-async-storage/async-storage'
@@ -7178,8 +7165,8 @@ packages:
       - typescript
     dev: false
 
-  /@walletconnect/types@2.8.1:
-    resolution: {integrity: sha512-MLISp85b+27vVkm3Wkud+eYCwySXCdOrmn0yQCSN6DnRrrunrD05ksz4CXGP7h2oXUvvXPDt/6lXBf1B4AfqrA==}
+  /@walletconnect/types@2.8.2:
+    resolution: {integrity: sha512-TzFGL2+SEU5jTt/i+kOZhcboqxhkDL+HaFcVl5+CVS6i67dYCjHu2AUkx6NARRmVzJZV5tTIjSDnpPXARoJaZA==}
     dependencies:
       '@walletconnect/events': 1.0.1
       '@walletconnect/heartbeat': 1.2.1
@@ -7202,7 +7189,7 @@ packages:
       '@walletconnect/sign-client': 2.5.1(@types/node@18.15.10)(typescript@4.9.5)
       '@walletconnect/types': 2.5.1(@types/node@18.15.10)(typescript@4.9.5)
       '@walletconnect/utils': 2.5.1(@types/node@18.15.10)(typescript@4.9.5)
-      eip1193-provider: 1.0.1(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      eip1193-provider: 1.0.1
       events: 3.3.0
       pino: 7.11.0
     transitivePeerDependencies:
@@ -7218,23 +7205,21 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/universal-provider@2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10):
-    resolution: {integrity: sha512-6shgE4PM/S+GEh9oTWMloHZlt2BLsCitRn9tBh2Vf+jZiGlug3WNm+tBc/Fo6ILyHuzeYPbkzCM67AxcutOHGQ==}
+  /@walletconnect/universal-provider@2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10):
+    resolution: {integrity: sha512-BguG0gp5r3xq49+A201OAx81aqLI6Et0S7derGwBRN8BaNlSqlIY+/hRSnQohjt0Gy57ZikACI9nSNPWNl8nHw==}
     dependencies:
       '@walletconnect/jsonrpc-http-connection': 1.0.7
       '@walletconnect/jsonrpc-provider': 1.0.13
       '@walletconnect/jsonrpc-types': 1.0.3
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/logger': 2.0.1
-      '@walletconnect/sign-client': 2.8.1(bufferutil@4.0.7)(utf-8-validate@5.0.10)
-      '@walletconnect/types': 2.8.1
-      '@walletconnect/utils': 2.8.1
-      eip1193-provider: 1.0.1(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@walletconnect/sign-client': 2.8.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@walletconnect/types': 2.8.2
+      '@walletconnect/utils': 2.8.2
       events: 3.3.0
     transitivePeerDependencies:
       - '@react-native-async-storage/async-storage'
       - bufferutil
-      - debug
       - encoding
       - lokijs
       - utf-8-validate
@@ -7266,8 +7251,8 @@ packages:
       - typescript
     dev: false
 
-  /@walletconnect/utils@2.8.1:
-    resolution: {integrity: sha512-d6p9OX3v70m6ijp+j4qvqiQZQU1vbEHN48G8HqXasyro3Z+N8vtcB5/gV4pTYsbWgLSDtPHj49mzbWQ0LdIdTw==}
+  /@walletconnect/utils@2.8.2:
+    resolution: {integrity: sha512-VyOL1iuE7X7BorBlyB5t/FCZsFMihF5JO7gNjpharIZMRoIjiXv2SVKU+qbPT/LyrGswJ0Fkjia+hXUb3tGaWw==}
     dependencies:
       '@stablelib/chacha20poly1305': 1.0.1
       '@stablelib/hkdf': 1.0.1
@@ -7277,7 +7262,7 @@ packages:
       '@walletconnect/relay-api': 1.0.9
       '@walletconnect/safe-json': 1.0.2
       '@walletconnect/time': 1.0.2
-      '@walletconnect/types': 2.8.1
+      '@walletconnect/types': 2.8.2
       '@walletconnect/window-getters': 1.0.1
       '@walletconnect/window-metadata': 1.0.1
       detect-browser: 5.3.0
@@ -7887,7 +7872,6 @@ packages:
   /ansi-regex@2.1.1:
     resolution: {integrity: sha512-TIGnTpdo+E3+pCyAluZvtED5p5wCqLdezCyhPZzKPcxvFplEt4i+W7OONCKgeZFT3+y5NZZfOOS/Bdcanm1MYA==}
     engines: {node: '>=0.10.0'}
-    dev: true
 
   /ansi-regex@3.0.1:
     resolution: {integrity: sha512-+O9Jct8wf++lXxxFc4hc8LsjaSq0HFzzL7cVsw8pRDIPdjKD2mT4ytDZlLuSBZ4cLKZFXIrMGO7DbQCtMJJMKw==}
@@ -8019,7 +8003,7 @@ packages:
       axios: 0.21.4(debug@4.3.4)
       base64url: 3.0.1
       bs58: 4.0.1
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       keccak: 3.0.3
       multistream: 4.1.0
       process: 0.11.10
@@ -9311,7 +9295,7 @@ packages:
   /borsh@0.6.0:
     resolution: {integrity: sha512-sl5k89ViqsThXQpYa9XDtz1sBl3l1lI313cFUY1HKr+wvMILnb+58xpkqTNrYbelh99dY7K8usxoCusQmqix9Q==}
     dependencies:
-      bn.js: 5.2.0
+      bn.js: 5.2.1
       bs58: 4.0.1
       text-encoding-utf-8: 1.0.2
     dev: false
@@ -9461,7 +9445,7 @@ packages:
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001507
-      electron-to-chromium: 1.4.439
+      electron-to-chromium: 1.4.440
     dev: true
 
   /browserslist@4.21.9:
@@ -9470,7 +9454,7 @@ packages:
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001507
-      electron-to-chromium: 1.4.439
+      electron-to-chromium: 1.4.440
       node-releases: 2.0.12
       update-browserslist-db: 1.0.11(browserslist@4.21.9)
     dev: true
@@ -10145,7 +10129,6 @@ packages:
   /code-point-at@1.1.0:
     resolution: {integrity: sha512-RpAVKQA5T63xEj6/giIbUEtZwJ4UFIc3ZtvEkiaUERylqe8xb5IvqcgOurZLahv93CLKfxcw5YI+DZcUBRyLXA==}
     engines: {node: '>=0.10.0'}
-    dev: true
 
   /collect-v8-coverage@1.0.1:
     resolution: {integrity: sha512-iBPtljfCNcTKNAto0KEtDfZ3qzjJvqE3aTGZsbhjSBlorqpXJlaWWtPO35D+ZImoC3KWejX64o+yPGxhWSTzfg==}
@@ -11251,14 +11234,15 @@ packages:
   /ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  /eip1193-provider@1.0.1(bufferutil@4.0.7)(utf-8-validate@5.0.10):
+  /eip1193-provider@1.0.1:
     resolution: {integrity: sha512-kSuqwQ26d7CzuS/t3yRXo2Su2cVH0QfvyKbr2H7Be7O5YDyIq4hQGCNTo5wRdP07bt+E2R/8nPCzey4ojBHf7g==}
     dependencies:
-      '@json-rpc-tools/provider': 1.7.6(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@json-rpc-tools/provider': 1.7.6
     transitivePeerDependencies:
       - bufferutil
       - debug
       - utf-8-validate
+    dev: false
 
   /ejs@2.7.4:
     resolution: {integrity: sha512-7vmuyh5+kuUyJKePhQfRQBhXV5Ce+RnaeeQArKu1EAMpL3WbgMt5WG6uQZpEVvYSSsxMXRKOewtDk9RaTKXRlA==}
@@ -11289,8 +11273,8 @@ packages:
       encoding: 0.1.13
     dev: false
 
-  /electron-to-chromium@1.4.439:
-    resolution: {integrity: sha512-BHpErPSNhb9FB25+OwQP6mCAf3ZXfGbmuvc4LzBNVJwpCcXQJm++LerimocYRG9FRxUVRKZqaB7d0+pImSTPSg==}
+  /electron-to-chromium@1.4.440:
+    resolution: {integrity: sha512-r6dCgNpRhPwiWlxbHzZQ/d9swfPaEJGi8ekqRBwQYaR3WmA5VkqQfBWSDDjuJU1ntO+W9tHx8OHV/96Q8e0dVw==}
     dev: true
 
   /elliptic@6.5.4:
@@ -12152,7 +12136,7 @@ packages:
       '@ethereum-waffle/compiler': 3.4.4(typescript@4.9.5)
       '@ethereum-waffle/mock-contract': 3.4.4
       '@ethereum-waffle/provider': 3.4.4
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -12376,6 +12360,43 @@ packages:
       xmlhttprequest: 1.8.0
     dev: true
 
+  /ethers@5.7.2:
+    resolution: {integrity: sha512-wswUsmWo1aOK8rR7DIKiWSw9DbLWe6x98Jrn8wcTflTVvaXhAMaB5zGAXy0GYQEQp9iO1iSHWVyARQm11zUtyg==}
+    dependencies:
+      '@ethersproject/abi': 5.7.0
+      '@ethersproject/abstract-provider': 5.7.0
+      '@ethersproject/abstract-signer': 5.7.0
+      '@ethersproject/address': 5.7.0
+      '@ethersproject/base64': 5.7.0
+      '@ethersproject/basex': 5.7.0
+      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bytes': 5.7.0
+      '@ethersproject/constants': 5.7.0
+      '@ethersproject/contracts': 5.7.0
+      '@ethersproject/hash': 5.7.0
+      '@ethersproject/hdnode': 5.7.0
+      '@ethersproject/json-wallets': 5.7.0
+      '@ethersproject/keccak256': 5.7.0
+      '@ethersproject/logger': 5.7.0
+      '@ethersproject/networks': 5.7.1
+      '@ethersproject/pbkdf2': 5.7.0
+      '@ethersproject/properties': 5.7.0
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
+      '@ethersproject/random': 5.7.0
+      '@ethersproject/rlp': 5.7.0
+      '@ethersproject/sha2': 5.7.0
+      '@ethersproject/signing-key': 5.7.0
+      '@ethersproject/solidity': 5.7.0
+      '@ethersproject/strings': 5.7.0
+      '@ethersproject/transactions': 5.7.0
+      '@ethersproject/units': 5.7.0
+      '@ethersproject/wallet': 5.7.0
+      '@ethersproject/web': 5.7.1
+      '@ethersproject/wordlists': 5.7.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   /ethers@5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10):
     resolution: {integrity: sha512-wswUsmWo1aOK8rR7DIKiWSw9DbLWe6x98Jrn8wcTflTVvaXhAMaB5zGAXy0GYQEQp9iO1iSHWVyARQm11zUtyg==}
     dependencies:
@@ -12449,7 +12470,6 @@ packages:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
-    dev: false
 
   /ethjs-unit@0.1.6:
     resolution: {integrity: sha512-/Sn9Y0oKl0uqQuvgFk/zQgR7aw1g36qX/jzSQ5lSwlO0GigPymk4eGQfeNTD03w1dPOqfz8V77Cy43jH56pagw==}
@@ -12472,6 +12492,7 @@ packages:
 
   /eventemitter3@3.1.2:
     resolution: {integrity: sha512-tvtQIeLVHjDkJYnzf2dgVMxfuSGJeM/7UCG17TT4EumTfNtF+0nebF/4zWOIkCreAbtNqhGEboB6BWrwqNaw4Q==}
+    dev: true
 
   /eventemitter3@4.0.4:
     resolution: {integrity: sha512-rlaVLnVxtxvoyLsQQFBx53YmXHDxRIzzTLbdfxqi4yocpSjAxXwkU0cScM5JgSKMqEhrZpnvQ2D9gjylR0AimQ==}
@@ -13463,7 +13484,7 @@ packages:
       fs.realpath: 1.0.0
       inflight: 1.0.6
       inherits: 2.0.4
-      minimatch: 3.1.2
+      minimatch: 3.0.5
       once: 1.4.0
       path-is-absolute: 1.0.1
 
@@ -13739,7 +13760,7 @@ packages:
       chokidar: 3.5.3
       debug: 4.3.4(supports-color@8.1.1)
       enquirer: 2.3.6
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       form-data: 4.0.0
       fs-extra: 10.1.0
       match-all: 1.2.6
@@ -14701,6 +14722,7 @@ packages:
 
   /is-electron@2.2.0:
     resolution: {integrity: sha512-SpMppC2XR3YdxSzczXReBjqs2zGscWQpBIKqwXYBFic0ERaxNVgwLCHwOLZeESfdJQjX0RDvrJ1lBXX2ij+G1Q==}
+    dev: true
 
   /is-electron@2.2.2:
     resolution: {integrity: sha512-FO/Rhvz5tuw4MCWkpMzHFKWD2LsfHzIb7i6MdPYZ/KW7AlxawyLkqdy+jPZP1WubqEADE3O4FUENlJHDfQASRg==}
@@ -14737,7 +14759,6 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       number-is-nan: 1.0.1
-    dev: true
 
   /is-fullwidth-code-point@2.0.0:
     resolution: {integrity: sha512-VHskAKYM8RfSFXwee5t5cbN5PZeq1Wrh6qd5bkyiXIf6UQcN6w/A0eXM9r6t8d+GYOh+o6ZhiEnb88LN/Y8m2w==}
@@ -14882,6 +14903,7 @@ packages:
   /is-stream@1.1.0:
     resolution: {integrity: sha512-uQPm8kcs47jx38atAcWTVxyltQYoPT68y9aWYdV6yWXSyW8mzSat0TL6CiWdZeCdF3KrAvpVtnHbTv4RN+rqdQ==}
     engines: {node: '>=0.10.0'}
+    dev: true
 
   /is-stream@2.0.1:
     resolution: {integrity: sha512-hFoiJiTl63nn+kstHGBtewWSKnQLpyb155KHheA1l39uvtO9nWIop1p3udqPcUd/xbF1VLMO4n7OI6p7RbngDg==}
@@ -15324,7 +15346,7 @@ packages:
       jest:
         optional: true
     dependencies:
-      jest: 29.4.3(@types/node@18.15.10)
+      jest: 29.4.3
       jest-diff: 29.5.0
       jest-get-type: 29.4.3
     dev: true
@@ -15595,6 +15617,26 @@ packages:
       supports-color: 8.1.1
     dev: true
 
+  /jest@29.4.3:
+    resolution: {integrity: sha512-XvK65feuEFGZT8OO0fB/QAQS+LGHvQpaadkH5p47/j3Ocqq3xf2pK9R+G0GzgfuhXVxEv76qCOOcMb5efLk6PA==}
+    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+    hasBin: true
+    peerDependencies:
+      node-notifier: ^8.0.1 || ^9.0.0 || ^10.0.0
+    peerDependenciesMeta:
+      node-notifier:
+        optional: true
+    dependencies:
+      '@jest/core': 29.5.0(ts-node@10.9.1)
+      '@jest/types': 29.5.0
+      import-local: 3.1.0
+      jest-cli: 29.5.0(@types/node@18.15.10)
+    transitivePeerDependencies:
+      - '@types/node'
+      - supports-color
+      - ts-node
+    dev: true
+
   /jest@29.4.3(@types/node@18.15.10):
     resolution: {integrity: sha512-XvK65feuEFGZT8OO0fB/QAQS+LGHvQpaadkH5p47/j3Ocqq3xf2pK9R+G0GzgfuhXVxEv76qCOOcMb5efLk6PA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -15739,7 +15781,7 @@ packages:
       whatwg-encoding: 2.0.0
       whatwg-mimetype: 3.0.0
       whatwg-url: 10.0.0
-      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       xml-name-validator: 4.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -17957,7 +17999,6 @@ packages:
   /number-is-nan@1.0.1:
     resolution: {integrity: sha512-4jbtZXNAsfZbAHiiqjLPBiCl16dES1zI4Hpzzxw61Tk+loF+sBDBKx1ICKKKwIqQ7M0mFn1TmkN7euSncWgHiQ==}
     engines: {node: '>=0.10.0'}
-    dev: true
 
   /number-to-bn@1.7.0:
     resolution: {integrity: sha512-wsJ9gfSz1/s4ZsJN01lyonwuxA1tml6X1yBDnfpMglypcBRFZZkus26EdPSlqS5GJfYddVZa22p3VNb3z5m5Ig==}
@@ -18327,6 +18368,7 @@ packages:
   /p-finally@1.0.0:
     resolution: {integrity: sha512-LICb2p9CB7FS+0eR1oqWnHhp0FljGLZCWBE9aix0Uye9W8LTQPwMTYVGWQWIw9RdQiDg4+epXQODwIYJtSJaow==}
     engines: {node: '>=4'}
+    dev: true
 
   /p-finally@2.0.1:
     resolution: {integrity: sha512-vpm09aKwq6H9phqRQzecoDpD8TmVyGw70qmWlyq5onxY7tqyTTFVvxMykxQSQKILBSFlbXpypIw2T1Ml7+DDtw==}
@@ -18417,6 +18459,7 @@ packages:
     dependencies:
       eventemitter3: 4.0.7
       p-timeout: 3.2.0
+    dev: true
 
   /p-reflect@2.1.0:
     resolution: {integrity: sha512-paHV8NUz8zDHu5lhr/ngGWQiW067DK/+IbJ+RfZ4k+s8y4EKyYCz8pGYWjxCg35eHztpJAt+NUgvN4L+GCbPlg==}
@@ -18428,6 +18471,7 @@ packages:
     dependencies:
       '@types/retry': 0.12.0
       retry: 0.13.1
+    dev: true
 
   /p-settle@4.1.1:
     resolution: {integrity: sha512-6THGh13mt3gypcNMm0ADqVNCcYa3BK6DWsuJWFCuEKP1rpY+OKGp7gaZwVmLspmic01+fsg/fN57MfvDzZ/PuQ==}
@@ -18445,6 +18489,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       p-finally: 1.0.0
+    dev: true
 
   /p-try@1.0.0:
     resolution: {integrity: sha512-U1etNYuMJoIz3ZXSrrySFjsXQTWOx2/jdi86L+2pRvph/qMKL6sbcCYdH23fqsbm8TH2Gn0OybpT4eSFlCVHww==}
@@ -19974,8 +20019,8 @@ packages:
     dependencies:
       bn.js: 5.2.1
 
-  /rollup@3.25.1:
-    resolution: {integrity: sha512-tywOR+rwIt5m2ZAWSe5AIJcTat8vGlnPFAv15ycCrw33t6iFsXZ6mzHVFh2psSjxQPmI+xgzMZZizUAukBI4aQ==}
+  /rollup@3.25.2:
+    resolution: {integrity: sha512-VLnkxZMDr3jpxgtmS8pQZ0UvhslmF4ADq/9w4erkctbgjCqLW9oa89fJuXEs4ZmgyoF7Dm8rMDKSS5b5u2hHUg==}
     engines: {node: '>=14.18.0', npm: '>=8.0.0'}
     hasBin: true
     optionalDependencies:
@@ -20183,7 +20228,7 @@ packages:
     dependencies:
       jszip: 3.10.1
       tmp: 0.2.1
-      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -20961,7 +21006,7 @@ packages:
       chalk: 4.1.2
       commander: 8.3.0
       cors: 2.8.5
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
       express: 4.18.2
       heap: 0.2.7
       inquirer: 8.1.1
@@ -20974,7 +21019,7 @@ packages:
       qs: 6.11.2
       streamr-client: 8.1.0-beta.0(@ethersproject/hash@5.7.0)
       uuid: 8.3.2
-      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
     transitivePeerDependencies:
       - '@ethersproject/hash'
       - '@react-native-async-storage/async-storage'
@@ -21042,7 +21087,6 @@ packages:
       - '@react-native-async-storage/async-storage'
       - '@walletconnect/modal'
       - bluebird
-      - debug
       - encoding
       - lokijs
       - supports-color
@@ -21089,7 +21133,6 @@ packages:
       code-point-at: 1.1.0
       is-fullwidth-code-point: 1.0.0
       strip-ansi: 3.0.1
-    dev: true
 
   /string-width@2.1.1:
     resolution: {integrity: sha512-nOqH59deCq9SRHlxq1Aw85Jnt4w6KvLKqWVik6oA9ZklXLNIOlqg4F2yrT1MVaTjAqvVwdfeZ7w7aCvJD7ugkw==}
@@ -21176,7 +21219,6 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       ansi-regex: 2.1.1
-    dev: true
 
   /strip-ansi@4.0.0:
     resolution: {integrity: sha512-4XaJ2zQdCzROZDivEVIDPkcQn8LMFSa8kj8Gxb/Lnwzv9A8VctNZ+lfivC/sV3ivW8ElJTERXZoPBRrZKkNKow==}
@@ -21893,7 +21935,7 @@ packages:
       '@babel/core': 7.16.0
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
-      jest: 29.4.3(@types/node@18.15.10)
+      jest: 29.4.3
       jest-util: 29.5.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
@@ -21959,8 +22001,8 @@ packages:
       long: 4.0.0
       protobufjs: 6.11.3
 
-  /ts-proto@1.150.0:
-    resolution: {integrity: sha512-EYnKWkNkWRmnK2nG5D9J1zN959YD/gff+e8/nqpOw7kdrfsnCe1dr/+EYxiRhPnq/umVpBLwI/KaSDg9G+9KPA==}
+  /ts-proto@1.150.1:
+    resolution: {integrity: sha512-8g6zaegwqRZNbLUQxTRPhNj3yygKjVVtA9GO2EwPiJrnh9e1yUPSEPLc2tCRwf5d11D0cSlZhuRxddXkReIbxg==}
     hasBin: true
     dependencies:
       '@types/object-hash': 3.0.2
@@ -22485,7 +22527,6 @@ packages:
     requiresBuild: true
     dependencies:
       node-gyp-build: 4.6.0
-    dev: false
 
   /utf8@3.0.0:
     resolution: {integrity: sha512-E8VjFIQ/TyQgp+TZfS6l8yp/xWppSAHzidGiRrqe4bK4XP9pTRyKFgGJpO3SN7zdX4DeomTrwaseCHovfpFcqQ==}
@@ -22672,7 +22713,7 @@ packages:
       '@types/node': 18.15.10
       esbuild: 0.17.19
       postcss: 8.4.24
-      rollup: 3.25.1
+      rollup: 3.25.2
     optionalDependencies:
       fsevents: 2.3.2
     dev: false
@@ -23409,7 +23450,7 @@ packages:
   /wide-align@1.1.5:
     resolution: {integrity: sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==}
     dependencies:
-      string-width: 4.2.3
+      string-width: 1.0.2
 
   /widest-line@3.1.0:
     resolution: {integrity: sha512-NsmoXalsWVDMGupxZ5R08ka9flZjjiLvHVAWYOKtiKM8ujtZWr9cRffak+uSE48+Ob8ObalXpwyeUiyDD6QFgg==}
@@ -23559,7 +23600,6 @@ packages:
     dependencies:
       bufferutil: 4.0.7
       utf-8-validate: 6.0.3
-    dev: false
 
   /ws@7.5.9(bufferutil@4.0.7)(utf-8-validate@5.0.10):
     resolution: {integrity: sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==}
@@ -23605,7 +23645,6 @@ packages:
     dependencies:
       bufferutil: 4.0.7
       utf-8-validate: 6.0.3
-    dev: false
 
   /xhr-request-promise@0.1.3:
     resolution: {integrity: sha512-YUBytBsuwgitWtdRzXDDkWAXzhdGB8bYm0sSzMPZT7Z2MBjMSTHFsyCT1yCRATY+XC69DUrQraRAEgcoCRaIPg==}
@@ -23868,12 +23907,24 @@ packages:
     peerDependencies:
       ethers: ~5.7.0
     dependencies:
-      ethers: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ethers: 5.7.2
     dev: true
 
   /zlib@1.0.5:
     resolution: {integrity: sha512-40fpE2II+Cd3k8HWTWONfeKE2jL+P42iWJ1zzps5W51qcTsOUKM5Q5m2PFb0CLxlmFAaUuUdJGc3OfZy947v0w==}
     engines: {node: '>=0.2.0'}
+    dev: false
+
+  file:node_artifacts/arweave-1.13.7.tgz:
+    resolution: {integrity: sha512-H49By40rEMbjsydyUFjEuT87SLOXjIqClUQjh3ng69yv8AnykKIZYuraM1hcVy49TGMcirtLNX1XelPnrph5JA==, tarball: file:node_artifacts/arweave-1.13.7.tgz}
+    name: arweave
+    version: 1.13.7
+    engines: {node: '>=16.15.0'}
+    dependencies:
+      arconnect: 0.4.2
+      asn1.js: 5.4.1
+      base64-js: 1.5.1
+      bignumber.js: 9.1.1
     dev: false
 
   file:node_artifacts/fork-streamr-client-8.1.0.tgz(@ethersproject/hash@5.7.0):
@@ -23891,7 +23942,7 @@ packages:
       '@ethersproject/bytes': 5.7.0
       '@ethersproject/constants': 5.7.0
       '@ethersproject/contracts': 5.7.0
-      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       '@ethersproject/transactions': 5.7.0
       '@ethersproject/wallet': 5.7.0
       '@ethersproject/web': 5.7.1
@@ -23933,7 +23984,6 @@ packages:
       - '@react-native-async-storage/async-storage'
       - '@walletconnect/modal'
       - bluebird
-      - debug
       - encoding
       - lokijs
       - supports-color

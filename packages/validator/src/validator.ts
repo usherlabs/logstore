@@ -1,6 +1,7 @@
 import { Validator as KyveValidator } from '@kyvejs/protocol';
 import { validateDataAvailability as runKyveValidateDataAvailability } from '@kyvejs/protocol/dist/src/methods';
 
+import { storageProviderFactory } from './storageProviders';
 import { IRuntimeExtended } from './types';
 
 // Hook into this method
@@ -14,6 +15,8 @@ export async function validateDataAvailability(this: Validator): Promise<void> {
 	await this.runtime.time.ready();
 	await runKyveValidateDataAvailability.call(this);
 }
+
+KyveValidator.storageProviderFactory = storageProviderFactory;
 
 export default class Validator extends KyveValidator {
 	protected runtime!: IRuntimeExtended;
