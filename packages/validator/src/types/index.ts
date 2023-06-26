@@ -6,6 +6,7 @@ import type {
 	QueryRequest,
 	QueryResponse,
 } from '@logsn/protocol';
+import { BigNumber } from 'ethers';
 
 import type { SystemListener, TimeIndexer } from '../threads';
 import type Validator from '../validator';
@@ -35,19 +36,19 @@ export type ReportEvent = {
 export interface IReport {
 	id: string;
 	height: number;
-	treasury: number;
+	treasury: BigNumber;
 	streams: {
 		id: string;
-		capture: number;
+		capture: BigNumber;
 		bytes: number;
 	}[];
 	consumers: {
 		id: string;
-		capture: number;
+		capture: BigNumber;
 		bytes: number;
 	}[];
-	nodes: Record<string, number>;
-	delegates: Record<string, Record<string, number>>;
+	nodes: Record<string, BigNumber>;
+	delegates: Record<string, Record<string, BigNumber>>;
 
 	// The following properties are not signed by the Broker Nodes
 	events?: {

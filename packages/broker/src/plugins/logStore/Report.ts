@@ -15,7 +15,7 @@ import {
 } from '@logsn/shared';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
-import { ethers, Signer, Wallet } from 'ethers';
+import { BigNumber, ethers, Signer, Wallet } from 'ethers';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
@@ -337,12 +337,49 @@ export class ReportPoller {
 		const extractedReport = {
 			id: report.id,
 			height: `${report.height}`,
-			treasury: `${report.treasury}`,
-			streams: report.streams,
-			consumers: report.consumers,
-			nodes: report.nodes,
-			delegates: report.delegates,
+			treasury: BigNumber.from(report.treasury).toHexString(),
+			streams: [] as {
+				id: string;
+				capture: string;
+				bytes: number;
+			}[],
+			consumers: [] as {
+				id: string;
+				capture: string;
+				bytes: number;
+			}[],
+			nodes: {} as Record<string, string>,
+			delegates: {} as Record<string, Record<string, string>>,
 		};
+
+		for (const stream of report.streams) {
+			extractedReport.streams.push({
+				id: stream.id,
+				capture: BigNumber.from(stream.capture).toHexString(),
+				bytes: stream.bytes,
+			});
+		}
+		for (const consumer of report.consumers) {
+			extractedReport.consumers.push({
+				id: consumer.id,
+				capture: BigNumber.from(consumer.capture).toHexString(),
+				bytes: consumer.bytes,
+			});
+		}
+		for (const nodeKey of Object.keys(report.nodes)) {
+			extractedReport.nodes[nodeKey] = BigNumber.from(
+				report.nodes[nodeKey]
+			).toHexString();
+		}
+		for (const delegateKey of Object.keys(report.delegates)) {
+			extractedReport.delegates[delegateKey] = {};
+			for (const nodeKey of Object.keys(report.delegates[delegateKey])) {
+				extractedReport.delegates[delegateKey][nodeKey] = BigNumber.from(
+					report.delegates[delegateKey][nodeKey]
+				).toHexString();
+			}
+		}
+
 		const hashedReport = ethers.utils.solidityKeccak256(
 			['string'],
 			[JSON.stringify(extractedReport).toLowerCase()]
@@ -358,7 +395,7 @@ export class ReportPoller {
 			// -- streams
 			streams: report.streams.map(({ id }: { id: string }) => id.toLowerCase()),
 			writeCaptureAmounts: report.streams.map(
-				({ capture }: { capture: number }) => capture
+				({ capture }: { capture: BigNumber }) => capture
 			),
 			writeBytes: report.streams.map(({ bytes }: { bytes: number }) => bytes),
 			// -- streams
@@ -368,7 +405,7 @@ export class ReportPoller {
 				({ id }: { id: number }) => id
 			),
 			readCaptureAmounts: report.consumers.map(
-				({ capture }: { capture: number }) => capture
+				({ capture }: { capture: BigNumber }) => capture
 			),
 			readBytes: report.consumers.map(({ bytes }: { bytes: number }) => bytes),
 			// -- consumers

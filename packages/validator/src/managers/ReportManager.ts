@@ -28,15 +28,15 @@ export class ReportManager {
 		const report: IReport = {
 			id: r.id,
 			height: r.height.toNumber(),
-			treasury: r.treasury.toNumber(),
+			treasury: r.treasury,
 			streams: r.streams.map((s) => ({
 				id: s.id.toString(),
-				capture: s.writeCapture.toNumber(),
+				capture: s.writeCapture,
 				bytes: s.writeBytes.toNumber(),
 			})),
 			consumers: r.consumers.map((c) => ({
 				id: c.id.toString(),
-				capture: c.readCapture.toNumber(),
+				capture: c.readCapture,
 				bytes: c.readBytes.toNumber(),
 			})),
 			nodes,

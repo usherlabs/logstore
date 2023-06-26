@@ -55,6 +55,15 @@ library StringsUpgradeable {
     }
 
     /**
+     * @dev Converts a `int256` to its ASCII `string` hexadecimal representation.
+     */
+    function toHexString(int256 value) internal pure returns (string memory) {
+        unchecked {
+            return string(abi.encodePacked(value < 0 ? "-" : "", toHexString(SignedMathUpgradeable.abs(value))));
+        }
+    }
+
+    /**
      * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
      */
     function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {

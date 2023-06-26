@@ -1,8 +1,9 @@
+import { BigNumber } from 'ethers';
 import { sha256 } from '@kyvejs/protocol';
-import { SystemMessageType } from '@logsn/protocol';
+import { QueryOptions, SystemMessageType } from '@logsn/protocol';
 
 import { Managers } from '../managers';
-import { IBrokerNode, IReport } from '../types';
+import { IBrokerNode, IReport, ReportEvent } from '../types';
 import { Arweave } from '../utils/arweave';
 import { fetchQueryResponseConsensus } from '../utils/helpers';
 import { StakeToken } from '../utils/stake-token';
@@ -113,7 +114,32 @@ export class Report extends AbstractDataItem<IPrepared> {
 		const toKeyMs = toKey * 1000;
 
 		// Establish the report
-		const report: IReport = {
+		const report: {
+			id: string;
+			height: number;
+			treasury: number;
+			streams: {
+				id: string;
+				capture: number;
+				bytes: number;
+			}[];
+			consumers: {
+				id: string;
+				capture: number;
+				bytes: number;
+			}[];
+			nodes: Record<string, number>;
+			delegates: Record<string, Record<string, number>>;
+
+			// The following properties are not signed by the Broker Nodes
+			events?: {
+				queries: (ReportEvent & {
+					query: QueryOptions;
+					consumer: string;
+				})[];
+				storage: ReportEvent[];
+			};
+		} = {
 			id: keyStr,
 			height: blockNumber,
 			treasury: 0,
@@ -127,8 +153,22 @@ export class Report extends AbstractDataItem<IPrepared> {
 			},
 		};
 
+		const result: IReport = {
+			id: report.id,
+			height: report.height,
+			treasury: BigNumber.from(0),
+			streams: [],
+			consumers: [],
+			nodes: {},
+			delegates: {},
+			events: {
+				queries: [],
+				storage: [],
+			},
+		};
+
 		if (keyStr === '0') {
-			return report;
+			return result;
 		}
 
 		// ------------ SETUP UTILS ------------
@@ -395,34 +435,31 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		// ------------ FEE CONVERSION ------------
 		// Convert fees to stake token
-		report.treasury = await stakeToken.fromUSD(report.treasury, toKeyMs);
-		for (let i = 0; i < report.streams.length; i++) {
-			report.streams[i].capture = await stakeToken.fromUSD(
-				report.streams[i].capture,
+		for (const stream of report.streams) {
+			result.streams.push({
+				id: stream.id,
+				capture: await stakeToken.fromUSD(stream.capture, toKeyMs),
+				bytes: stream.bytes,
+			});
+		}
+		for (const consumer of report.consumers) {
+			result.consumers.push({
+				id: consumer.id,
+				capture: await stakeToken.fromUSD(consumer.capture, toKeyMs),
+				bytes: consumer.bytes,
+			});
+		}
+		for (const nodeKey of Object.keys(report.nodes)) {
+			result.nodes[nodeKey] = await stakeToken.fromUSD(
+				report.nodes[nodeKey],
 				toKeyMs
 			);
 		}
-		for (let i = 0; i < report.consumers.length; i++) {
-			report.consumers[i].capture = await stakeToken.fromUSD(
-				report.consumers[i].capture,
-				toKeyMs
-			);
-		}
-		const reportNodesKeys = Object.keys(report.nodes);
-		for (let i = 0; i < reportNodesKeys.length; i++) {
-			report.nodes[reportNodesKeys[i]] = await stakeToken.fromUSD(
-				report.nodes[reportNodesKeys[i]],
-				toKeyMs
-			);
-		}
-		const reportDelegatesKeys = Object.keys(report.delegates);
-		for (let i = 0; i < reportDelegatesKeys.length; i++) {
-			const dKey = reportDelegatesKeys[i];
-			const rDelegateNodesKeys = Object.keys(report.delegates[dKey]);
-			for (let j = 0; j < rDelegateNodesKeys.length; j++) {
-				const nKey = rDelegateNodesKeys[j];
-				report.delegates[dKey][nKey] = await stakeToken.fromUSD(
-					report.delegates[dKey][nKey],
+		for (const delegateKey of Object.keys(report.delegates)) {
+			result.delegates[delegateKey] = {};
+			for (const nodeKey of Object.keys(report.delegates[delegateKey])) {
+				result.delegates[delegateKey][nodeKey] = await stakeToken.fromUSD(
+					report.delegates[delegateKey][nodeKey],
 					toKeyMs
 				);
 			}
@@ -430,8 +467,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// ------------ END FEE CONVERSION ------------
 		// -------------------------------------
 
-		core.logger.debug('Report Generated', report);
+		core.logger.debug('Report Generated', result);
 
-		return this.sort(report);
+		return this.sort(result);
 	}
 }

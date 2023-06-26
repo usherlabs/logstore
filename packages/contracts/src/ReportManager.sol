@@ -148,7 +148,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             '","height":"',
             StringsUpgradeable.toString(blockHeight),
             '","treasury":"',
-            StringsUpgradeable.toString(treasurySupplyChange),
+            StringsUpgradeable.toHexString(treasurySupplyChange),
             '","streams":['
         );
 
@@ -158,9 +158,9 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                 reportJson,
                 '{"id":"',
                 streams[i],
-                '","capture":',
-                StringsUpgradeable.toString(writeCaptureAmounts[i]),
-                ',"bytes":',
+                '","capture":"',
+                StringsUpgradeable.toHexString(writeCaptureAmounts[i]),
+                '","bytes":',
                 StringsUpgradeable.toString(writeBytes[i]),
                 "}"
             );
@@ -179,9 +179,9 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                 reportJson,
                 '{"id":"',
                 StringsUpgradeable.toHexString(readConsumerAddresses[i]),
-                '","capture":',
-                StringsUpgradeable.toString(readCaptureAmounts[i]),
-                ',"bytes":',
+                '","capture":"',
+                StringsUpgradeable.toHexString(readCaptureAmounts[i]),
+                '","bytes":',
                 StringsUpgradeable.toString(readBytes[i]),
                 "}"
             );
@@ -203,8 +203,9 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                 reportJson,
                 '"',
                 StringsUpgradeable.toHexString(nodes[i]),
-                '":',
-                StringsUpgradeable.toString(nodeChanges[i])
+                '":"',
+                StringsUpgradeable.toHexString(nodeChanges[i]),
+                '"'
             );
             if (i != nodes.length - 1) {
                 reportJson = string.concat(reportJson, ",");
@@ -223,8 +224,9 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                     reportJson,
                     '"',
                     StringsUpgradeable.toHexString(delegateNodes[i][j]),
-                    '":',
-                    StringsUpgradeable.toString(delegateNodeChanges[i][j])
+                    '":"',
+                    StringsUpgradeable.toHexString(delegateNodeChanges[i][j]),
+                    '"'
                 );
                 if (j != delegateNodes[i].length - 1) {
                     reportJson = string.concat(reportJson, ",");
