@@ -62,6 +62,42 @@ export class Report extends AbstractDataItem<IPrepared> {
 		};
 	}
 
+	private sort(source: IReport): IReport {
+		const result: IReport = {
+			id: source.id,
+			height: source.height,
+			treasury: source.treasury,
+			streams: source.streams.sort((a, b) => a.id.localeCompare(b.id)),
+			consumers: source.consumers.sort((a, b) => a.id.localeCompare(b.id)),
+			nodes: {},
+			delegates: {},
+			events: {
+				queries: source.events.queries.sort((a, b) =>
+					a.hash.localeCompare(b.hash)
+				),
+				storage: source.events.storage.sort((a, b) =>
+					a.hash.localeCompare(b.hash)
+				),
+			},
+		};
+
+		const nodeKeys = Object.keys(source.nodes).sort((a, b) =>
+			a.localeCompare(b)
+		);
+		for (const key of nodeKeys) {
+			result.nodes[key] = source.nodes[key];
+		}
+
+		const delegateKeys = Object.keys(source.delegates).sort((a, b) =>
+			a.localeCompare(b)
+		);
+		for (const key of delegateKeys) {
+			result.delegates[key] = source.delegates[key];
+		}
+
+		return result;
+	}
+
 	public async generate(): Promise<IReport> {
 		const { fromKey, toKey, blockNumber, brokerNodes, stakeToken } =
 			this.prepared;
@@ -396,6 +432,6 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		core.logger.debug('Report Generated', report);
 
-		return report;
+		return this.sort(report);
 	}
 }
