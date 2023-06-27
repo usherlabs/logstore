@@ -14,13 +14,13 @@ export class ReportManager {
 
 		const nodes = {};
 		r.nodes.forEach((n) => {
-			nodes[n.id.toString()] = n.amount.toNumber();
+			nodes[n.id.toString()] = n.amount;
 		});
 		const delegates = {};
 		r.delegates.forEach((d) => {
 			const dNodes = {};
 			d.nodes.forEach((n) => {
-				dNodes[n.id.toString()] = n.amount.toNumber();
+				dNodes[n.id.toString()] = n.amount;
 			});
 			delegates[d.id.toString()] = dNodes;
 		});
