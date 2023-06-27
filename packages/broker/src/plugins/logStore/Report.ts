@@ -213,6 +213,31 @@ export class ReportPoller {
 										report
 									);
 									try {
+										const params = {
+											id: formattedReport.id,
+											blockHeight: formattedReport.blockHeight,
+											streams: formattedReport.streams,
+											writeCaptureAmounts: formattedReport.writeCaptureAmounts,
+											writeBytes: formattedReport.writeBytes,
+											readConsumerAddresses:
+												formattedReport.readConsumerAddresses,
+											readCaptureAmounts: formattedReport.readCaptureAmounts,
+											readBytes: formattedReport.readBytes,
+											nodes: formattedReport.nodes,
+											nodeChanges: formattedReport.nodeChanges,
+											delegates: formattedReport.delegates,
+											delegateNodes: formattedReport.delegateNodes,
+											delegateNodeChanges: formattedReport.delegateNodeChanges,
+											treasurySupplyChange:
+												formattedReport.treasurySupplyChange,
+											addresses: formattedReport.addresses,
+											signature: formattedReport.signatures,
+										};
+										logger.info(
+											`reportManagerContract.report params: ${JSON.stringify(
+												params
+											)}`
+										);
 										const submitReportTx = await reportManagerContract.report(
 											formattedReport.id,
 											formattedReport.blockHeight,
