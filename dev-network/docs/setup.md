@@ -24,7 +24,7 @@
 
 7. Ensure that legacy `docker-compose` is installed for compatibility with `streamr-docker-dev` - `sudo apt get docker-compose`
 
-8. Ensure that [`docker`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04) and [`docker compose`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-22-04) are installed
+8. Ensure that [`docker`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04) and [`docker compose`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-22-04) are installed and that Docker can be [managed as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/).
 
 9. Run the DevNetwork
 

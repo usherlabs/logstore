@@ -22,6 +22,7 @@ services:
     hostname: logstore-arweave
     image: logstore-arweave
     build:
+      context: '.'
       dockerfile: ./Dockerfile.arweave
     restart: always
     ports:
@@ -34,6 +35,7 @@ services:
     hostname: logstore-kyve
     image: logstore-kyve
     build:
+      context: '.'
       dockerfile: ./Dockerfile.kyve
     restart: always
     networks:
@@ -44,6 +46,7 @@ services:
     hostname: logstore-nginx
     image: logstore-nginx
     build:
+      context: '.'
       dockerfile: ./Dockerfile.nginx
     restart: always
     ports:

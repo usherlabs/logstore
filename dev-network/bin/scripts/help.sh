@@ -39,7 +39,7 @@ Subcommands:
 
     show                show connection configuration
 
-Usage: dev-network config set -i 10.0.0.1 -u ubuntu -i /home/ubuntu/.ssh/id_rsa.pub
+Usage: dev-network config set -i 10.0.0.1 -u ubuntu -f /home/ubuntu/.ssh/id_rsa.pub
 Usage: dev-network config show
 "
 }
