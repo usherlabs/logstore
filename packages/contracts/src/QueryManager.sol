@@ -40,6 +40,7 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
     /// @param bytesProcessed number of bytes in the response
     function capture(address consumer, uint256 amount, uint256 bytesProcessed) public nonReentrant onlyOwner {
         require(amount <= stakeToken.balanceOf(address(this)), "error_notEnoughStake");
+				require(balanceOf[consumer] > 0, "error_invalidConsumerAddress");
 
         balanceOf[consumer] -= amount;
         totalSupply -= amount;

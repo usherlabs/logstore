@@ -70,6 +70,9 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
                 }
             }
         }
+
+				require(stores[streamId] > 0, "error_invalidStreamId");
+
         stores[streamId] -= amount;
         totalSupply -= amount;
 
