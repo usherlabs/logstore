@@ -187,8 +187,8 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             }
         }
         for (uint256 i = 0; i < report.nodes.length; i++) {
-						address reportNodeAddress = report.nodes[i].id;
-						int256 reportNodeAmountChange = report.nodes[i].amount;
+            address reportNodeAddress = report.nodes[i].id;
+            int256 reportNodeAmountChange = report.nodes[i].amount;
             int256 newNodeAmount = int(nodes[reportNodeAddress].stake) + reportNodeAmountChange;
             if (newNodeAmount > 0) {
                 nodes[reportNodeAddress].stake = uint(newNodeAmount);
@@ -198,7 +198,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             _checkAndGrantAccess(reportNodeAddress);
         }
         for (uint256 i = 0; i < report.delegates.length; i++) {
-						address reportDelegateAddress = report.delegates[i].id;
+            address reportDelegateAddress = report.delegates[i].id;
             for (uint256 j = 0; j < report.delegates[i].nodes.length; j++) {
                 address delegateNodeAddress = report.delegates[i].nodes[j].id;
                 int256 delegateNodeChange = report.delegates[i].nodes[j].amount;
