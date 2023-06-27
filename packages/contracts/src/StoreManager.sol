@@ -49,7 +49,8 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
     }
 
     // Only the LogStore Contract can call the capture method
-    function capture(string memory streamId, uint256 amount, uint256 bytesStored) public returns (bool success) {
+    function capture(string memory streamId, uint256 amount, uint256 bytesStored) public nonReentrant onlyOwner {
+				require(stores[streamId] > 0, "error_invalidStreamId");
         require(amount <= stakeToken.balanceOf(address(this)), "error_notEnoughStake");
 
         address[] memory stakeholders = storeStakeholders[streamId];
@@ -71,8 +72,6 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
             }
         }
 
-				require(stores[streamId] > 0, "error_invalidStreamId");
-
         stores[streamId] -= amount;
         totalSupply -= amount;
 
@@ -80,8 +79,6 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
         require(transferSuccess == true, "error_unsuccessfulCapture");
 
         emit DataStored(streamId, amount, bytesStored);
-
-        return transferSuccess;
     }
 
     function stake(string memory streamId, uint amount) public {
