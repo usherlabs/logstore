@@ -106,23 +106,23 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
 
     // Verifies a report and adds it to its accepted reports mapping
     function report(
-        string memory id,
+        string calldata id,
         uint256 blockHeight,
-        string[] memory streams,
-        uint256[] memory writeCaptureAmounts,
-        uint256[] memory writeBytes,
-        address[] memory readConsumerAddresses,
-        uint256[] memory readCaptureAmounts,
-        uint256[] memory readBytes,
-        address[] memory nodes,
-        int256[] memory nodeChanges,
-        address[] memory delegates,
-        address[][] memory delegateNodes,
-        int256[][] memory delegateNodeChanges,
+        string[] calldata streams,
+        uint256[] calldata writeCaptureAmounts,
+        uint256[] calldata writeBytes,
+        address[] calldata readConsumerAddresses,
+        uint256[] calldata readCaptureAmounts,
+        uint256[] calldata readBytes,
+        address[] calldata nodes,
+        int256[] calldata nodeChanges,
+        address[] calldata delegates,
+        address[][] calldata delegateNodes,
+        int256[][] calldata delegateNodeChanges,
         int256 treasurySupplyChange,
         // Arrays of addresses and signatures for verification
-        address[] memory addresses,
-        bytes[] memory signatures
+        address[] calldata addresses,
+        bytes[] calldata signatures
     ) public onlyStaked {
         require(blockHeight <= block.number && blockHeight > reports[lastReportId].height, "error_invalidReport");
         require(quorumIsMet(addresses), "error_quorumNotMet");

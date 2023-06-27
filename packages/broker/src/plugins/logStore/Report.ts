@@ -209,9 +209,7 @@ export class ReportPoller {
 									isProcessing = true;
 									logger.info('Processing report to send as transaction');
 									// submit the actual report
-									const formattedReport = await this.formatReportForContract(
-										report
-									);
+									const formattedReport = this.formatReportForContract(report);
 									try {
 										const params = {
 											id: formattedReport.id,
@@ -263,6 +261,9 @@ export class ReportPoller {
 										// process the newly submitted transactions
 										// ? what happens if for any reason a report is submitted sucesfully
 										// ? but encounters an error when processed i.e if a consumer/storer is not staked to a stream
+										// * Once a report is produced, it's final.
+										// * Stake for storage and queries is a one way exchange to prevent withdrawals before processing.
+										// TODO: If there is an error on reporting, there should be a retry process -- similar/copied to Kyve's callWithBackoffStrategy
 										const processReportTx =
 											await nodeManagerContract.processReport(report.id);
 										await processReportTx.wait();
@@ -421,7 +422,7 @@ export class ReportPoller {
 		return hashedReport;
 	}
 
-	async formatReportForContract(report: IReport) {
+	formatReportForContract(report: IReport) {
 		const output = {
 			id: report.id,
 			blockHeight: report.height,

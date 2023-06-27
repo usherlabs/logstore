@@ -20,7 +20,13 @@
    ln -sf $(pwd)/dev-network/bin/bin.sh /usr/local/bin/dev-network
    ```
 
-6. Run the DevNetwork
+6. Ensure that `ifconfig` is installed - [https://linuxhint.com/fix-ifconfig-command-not-found-linux/](https://linuxhint.com/fix-ifconfig-command-not-found-linux/)
+
+7. Ensure that legacy `docker-compose` is installed for compatibility with `streamr-docker-dev` - `sudo apt get docker-compose`
+
+8. Ensure that [`docker`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04) and [`docker compose`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-22-04) are installed
+
+9. Run the DevNetwork
 
    ```bash
    dev-network start -l
