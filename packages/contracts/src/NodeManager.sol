@@ -206,9 +206,9 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
                 int256 newDelegateAmount = int(delegatesOf[reportDelegateAddress][delegateNodeAddress]) +
                     delegateNodeChange;
                 if (newDelegateAmount > 0) {
-                    delegatesOf[report.delegates[i].id][delegateNodeAddress] = uint(newDelegateAmount);
+                    delegatesOf[reportDelegateAddress][delegateNodeAddress] = uint(newDelegateAmount);
                 } else {
-                    delegatesOf[report.delegates[i].id][delegateNodeAddress] = 0;
+                    delegatesOf[reportDelegateAddress][delegateNodeAddress] = 0;
                 }
             }
         }
