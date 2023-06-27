@@ -1,6 +1,6 @@
-import { BigNumber } from 'ethers';
 import { sha256 } from '@kyvejs/protocol';
 import { QueryOptions, SystemMessageType } from '@logsn/protocol';
+import { BigNumber } from 'ethers';
 
 import { Managers } from '../managers';
 import { IBrokerNode, IReport, ReportEvent } from '../types';

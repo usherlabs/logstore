@@ -2,14 +2,14 @@ import type { IRuntime } from '@kyvejs/protocol';
 import { MessageMetadata } from '@logsn/client';
 import type {
 	ProofOfMessageStored,
-	QueryOptions,
 	QueryRequest,
 	QueryResponse,
 } from '@logsn/protocol';
-import { BigNumber } from 'ethers';
 
 import type { SystemListener, TimeIndexer } from '../threads';
 import type Validator from '../validator';
+
+export type { IReport, ReportEvent } from '@logsn/shared';
 
 export interface IRuntimeExtended extends IRuntime {
 	listener: SystemListener;
@@ -24,39 +24,6 @@ export interface IConfig {
 		writeMultiplier: number;
 		treasuryMultiplier: number;
 		readMultiplier: number;
-	};
-}
-
-export type ReportEvent = {
-	id: string;
-	hash: string;
-	size: number;
-};
-
-export interface IReport {
-	id: string;
-	height: number;
-	treasury: BigNumber;
-	streams: {
-		id: string;
-		capture: BigNumber;
-		bytes: number;
-	}[];
-	consumers: {
-		id: string;
-		capture: BigNumber;
-		bytes: number;
-	}[];
-	nodes: Record<string, BigNumber>;
-	delegates: Record<string, Record<string, BigNumber>>;
-
-	// The following properties are not signed by the Broker Nodes
-	events?: {
-		queries: (ReportEvent & {
-			query: QueryOptions;
-			consumer: string;
-		})[];
-		storage: ReportEvent[];
 	};
 }
 
