@@ -13,7 +13,7 @@ import {VerifySignature} from "./lib/VerifySignature.sol";
 import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 
 contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
-    event ReportAccepted(string raw);
+    event ReportAccepted(string id);
     event Logger(bool isMet);
 
     struct Consumer {
@@ -292,7 +292,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             }
         }
 
-        emit ReportAccepted(reportJson);
+        emit ReportAccepted(currentReport.id);
     }
 
     /**
