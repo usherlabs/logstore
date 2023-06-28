@@ -8,35 +8,49 @@ export type ReportV1Event = {
 	size: number;
 };
 
-export type ReportV1EventSerialized = {
-	id: HexString;
-	hash: string;
-	size: number;
-};
+export type ReportV1QueryEvent = ReportV1Event & {
+	query: QueryOptions;
+	consumer: string;
+}
 
-interface CaptureBase {
+export type ReportV1EventSerialized = [
+	// id
+	HexString,
+	// hash
+	string,
+	// size
+	number
+]
+
+export interface IReportV1Stream{
+	id: string;
+	capture: number;
 	bytes: number;
 }
 
-export interface IReportV1Stream extends CaptureBase {
+export type IReportV1StreamSerialized = [
+	// id
+	HexString,
+	// capture
+	HexString,
+	// bytes
+	number
+]
+
+export interface IReportV1Consumer {
 	id: string;
 	capture: number;
+	bytes: number;
 }
 
-export interface IReportV1StreamSerialized extends CaptureBase {
-	id: HexString;
-	capture: HexString;
-}
-
-export interface IReportV1Consumer extends CaptureBase {
-	id: string;
-	capture: number;
-}
-
-export interface IReportV1ConsumerSerialized extends CaptureBase {
-	id: string;
-	capture: HexString;
-}
+export type IReportV1ConsumerSerialized = [
+	// id
+	string,
+	// capture
+	number,
+	// bytes
+	number
+]
 
 export type ReportV1Nodes = Record<string, number>;
 
@@ -49,14 +63,13 @@ export type ReportV1DelegatesSerialized = Record<
 	Record<string, HexString>
 >;
 
-interface ReportBase {
-	s: boolean; // serialized flag
+export type ReportV1QueryEventsSerialized = [
+	[]
+]
+export interface IReportV1 {
 	v: ReportSerializerVersions;
 	id: string;
 	height: number;
-}
-
-export interface IReportV1 extends ReportBase {
 	treasury: number;
 	streams: IReportV1Stream[];
 	consumers: IReportV1Consumer[];
@@ -65,15 +78,29 @@ export interface IReportV1 extends ReportBase {
 
 	// The following properties are not signed by the Broker Nodes
 	events?: {
-		queries: (ReportV1Event & {
-			query: QueryOptions;
-			consumer: string;
-		})[];
+		queries: ()[];
 		storage: ReportV1Event[];
 	};
 }
 
-export interface IReportV1Serialized extends ReportBase {
+export type IReportV1Serialized = [
+	// Version
+	ReportSerializerVersions,
+	// id
+	string,
+	// height
+	number,
+	// treasury
+	HexString,
+	IReportV1StreamSerialized[],
+	IReportV1ConsumerSerialized[],
+	ReportV1NodesSerialized,
+	ReportV1DelegatesSerialized,
+	ReportV1QueryEventsSerialized[],
+	ReportV1StorageEventsSerialized[]
+]
+
+{
 	treasury: HexString;
 	streams: IReportV1StreamSerialized[];
 	consumers: IReportV1ConsumerSerialized[];
