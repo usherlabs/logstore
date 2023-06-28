@@ -1,6 +1,7 @@
-import { ReportSerializerVersions } from '../report/ReportSerializerVersions';
+import { BigNumber } from '@ethersproject/bignumber';
+
 import type { QueryOptions } from '../system/QueryRequest';
-import { HexString } from './report.common';
+import { HexString, ReportSerializerVersions } from './report.common';
 
 export type ReportV1Event = {
 	id: string;
@@ -8,7 +9,12 @@ export type ReportV1Event = {
 	size: number;
 };
 
-export type ReportV1EventSerialized = {
+export type ReportV1QueryEvent = ReportV1Event & {
+	query: QueryOptions;
+	consumer: string;
+};
+
+export type ReportV1StorageEventSerialized = {
 	id: HexString;
 	hash: string;
 	size: number;
@@ -20,7 +26,7 @@ interface CaptureBase {
 
 export interface IReportV1Stream extends CaptureBase {
 	id: string;
-	capture: number;
+	capture: BigNumber;
 }
 
 export interface IReportV1StreamSerialized extends CaptureBase {
@@ -30,7 +36,7 @@ export interface IReportV1StreamSerialized extends CaptureBase {
 
 export interface IReportV1Consumer extends CaptureBase {
 	id: string;
-	capture: number;
+	capture: BigNumber;
 }
 
 export interface IReportV1ConsumerSerialized extends CaptureBase {
@@ -38,9 +44,9 @@ export interface IReportV1ConsumerSerialized extends CaptureBase {
 	capture: HexString;
 }
 
-export type ReportV1Nodes = Record<string, number>;
+export type ReportV1Nodes = Record<string, BigNumber>;
 
-export type ReportV1Delegates = Record<string, Record<string, number>>;
+export type ReportV1Delegates = Record<string, Record<string, BigNumber>>;
 
 export type ReportV1NodesSerialized = Record<string, HexString>;
 
@@ -51,29 +57,27 @@ export type ReportV1DelegatesSerialized = Record<
 
 interface ReportBase {
 	s: boolean; // serialized flag
-	v: ReportSerializerVersions;
 	id: string;
 	height: number;
 }
 
 export interface IReportV1 extends ReportBase {
-	treasury: number;
+	v: ReportSerializerVersions;
+	treasury: BigNumber;
 	streams: IReportV1Stream[];
 	consumers: IReportV1Consumer[];
-	nodes: Record<string, number>;
-	delegates: Record<string, Record<string, number>>;
+	nodes: Record<string, BigNumber>;
+	delegates: Record<string, Record<string, BigNumber>>;
 
 	// The following properties are not signed by the Broker Nodes
 	events?: {
-		queries: (ReportV1Event & {
-			query: QueryOptions;
-			consumer: string;
-		})[];
+		queries: ReportV1QueryEvent[];
 		storage: ReportV1Event[];
 	};
 }
 
 export interface IReportV1Serialized extends ReportBase {
+	v: number;
 	treasury: HexString;
 	streams: IReportV1StreamSerialized[];
 	consumers: IReportV1ConsumerSerialized[];
@@ -82,10 +86,7 @@ export interface IReportV1Serialized extends ReportBase {
 
 	// The following properties are not signed by the Broker Nodes
 	events?: {
-		queries: (ReportV1EventSerialized & {
-			query: QueryOptions;
-			consumer: string;
-		})[];
-		storage: ReportV1EventSerialized[];
+		queries: ReportV1QueryEvent[];
+		storage: ReportV1StorageEventSerialized[];
 	};
 }

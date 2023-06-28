@@ -5,7 +5,3 @@ export const strToHex = (str: string): HexString =>
 
 export const hexToStr = (hex: HexString): string =>
 	Buffer.from(hex, 'hex').toString('utf8');
-
-export const numToHex = (num: number | bigint): HexString => num.toString(16);
-
-export const hexToNum = (hex: HexString): number => parseInt(hex, 16);

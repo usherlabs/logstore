@@ -1,52 +1,37 @@
 import { ReportSerializer } from '../abstracts/ReportSerializer';
+import { ValidationError } from '../errors';
+import { ReportSerializerVersions } from '../interfaces/report.common';
 import { IReportV1, IReportV1Serialized } from '../interfaces/report.v1';
-import { ReportSerializerVersions } from './ReportSerializerVersions';
 
 const serializerByVersion: Record<string, ReportSerializer> = {};
 
 const LATEST_VERSION = ReportSerializerVersions.V1;
 
-type IReportAny = IReportV1 | IReportV1Serialized;
-
+type IReport = IReportV1 | IReportV1Serialized;
 export class SystemReport {
-	constructor(
-		protected report: IReportAny,
-		protected version = LATEST_VERSION
-	) {
-		if (report.v === ReportSerializerVersions.V1) {
-			if (report.s === true) {
-				this.report = report as IReportV1Serialized;
-			} else {
-				this.report = report as IReportV1;
-			}
+	constructor(protected report: IReport, protected version = LATEST_VERSION) {
+		if (!('s' in report && 'v' in report)) {
+			throw new ValidationError('Invalid Report Payload');
 		}
-	}
-
-	private getSerializer() {
-		if (typeof serializerByVersion[this.version] === 'undefined') {
-			throw new Error('Invalid ReportSerializerVersion');
-		}
-		const serializer = serializerByVersion[this.version];
-		return serializer;
 	}
 
 	serialize() {
-		const serializer = this.getSerializer();
-		return serializer.serialize(this.report);
+		const serializer = SystemReport.getSerializer(this.version);
+		return serializer.serialize(this.report as IReportV1);
 	}
 
 	deserialize() {
-		const serializer = this.getSerializer();
-		return serializer.deserialize(this.report);
+		const serializer = SystemReport.getSerializer(this.version);
+		return serializer.deserialize(this.report as IReportV1Serialized);
 	}
 
 	toJSON() {
-		const serializer = this.getSerializer();
+		const serializer = SystemReport.getSerializer(this.version);
 		return serializer.toJSON(this.report);
 	}
 
 	toContract() {
-		const serializer = this.getSerializer();
+		const serializer = SystemReport.getSerializer(this.version);
 		return serializer.toContract(this.report);
 	}
 
@@ -64,7 +49,30 @@ export class SystemReport {
 		serializerByVersion[version] = serializer;
 	}
 
+	public static getSerializer(version: ReportSerializerVersions) {
+		if (typeof serializerByVersion[version] === 'undefined') {
+			throw new ValidationError('Invalid ReportSerializerVersion');
+		}
+		const serializer = serializerByVersion[version];
+		return serializer;
+	}
+
 	static unregisterSerializer(version: ReportSerializerVersions): void {
 		delete serializerByVersion[version];
+	}
+
+	static getVersionByNumber(versionNumber: number): ReportSerializerVersions {
+		const res =
+			ReportSerializerVersions[ReportSerializerVersions[versionNumber]];
+
+		return res;
+	}
+
+	static getSupportedVersions(): number[] {
+		const res = Object.values(ReportSerializerVersions)
+			.filter((v) => typeof v === 'number')
+			.map((v) => v as number);
+
+		return res;
 	}
 }

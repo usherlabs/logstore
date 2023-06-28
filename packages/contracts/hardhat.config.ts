@@ -6,6 +6,7 @@ import '@nomiclabs/hardhat-ethers';
 import '@openzeppelin/hardhat-upgrades';
 import '@typechain/hardhat';
 import { config as dotenvConfig } from 'dotenv';
+import 'hardhat-contract-sizer';
 import type { HardhatUserConfig } from 'hardhat/config';
 import type { MultiSolcUserConfig, NetworkUserConfig } from 'hardhat/types';
 import snakeCase from 'lodash.snakecase';

@@ -1,6 +1,10 @@
+export enum ReportSerializerVersions {
+	V1 = 1,
+}
+
 export type HexString = string;
 
-export type ReportContractParamsBase = [
+export type ReportContractParams = [
 	// id
 	string,
 	// blockHeight
@@ -8,33 +12,33 @@ export type ReportContractParamsBase = [
 	// streams
 	string[],
 	// writeCaptureAmounts
-	bigint[],
+	number[],
 	// writeBytes
 	number[],
 	// readConsumerAddresses
 	string[],
 	// readCaptureAmounts,
-	bigint[],
+	number[],
 	// readBytes,
 	number[],
 	// nodes,
 	string[],
 	// nodeChanges,
-	bigint[],
+	number[],
 	// delegates,
 	string[],
 	// delegateNodes,
 	string[][],
 	// delegateNodeChanges,
-	bigint[][],
+	number[][],
 	// treasurySupplyChange,
-	bigint
+	number
 ];
 
-export type ReportContractParams = [
-	...ReportContractParamsBase,
-	// addresses,
-	string[],
-	// signatures
-	string[]
-];
+// export type ReportContractParams = [
+// 	...ReportContractParamsBase,
+// 	// addresses,
+// 	string[],
+// 	// signatures
+// 	string[]
+// ];

@@ -10,4 +10,3 @@ export * from './system';
 export * from './interfaces/report.common';
 export * from './interfaces/report.v1';
 export * from './report/SystemReport';
-export * from './report/ReportSerializerVersions';

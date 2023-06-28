@@ -1,4 +1,4 @@
-import { ReportContractParamsBase } from '../interfaces/report.common';
+import { ReportContractParams } from '../interfaces/report.common';
 import { IReportV1, IReportV1Serialized } from '../interfaces/report.v1';
 
 type IReport = IReportV1;
@@ -13,5 +13,5 @@ export abstract class ReportSerializer {
 
 	abstract toContract(
 		payload: IReport | IReportSerialized
-	): ReportContractParamsBase;
+	): ReportContractParams;
 }
