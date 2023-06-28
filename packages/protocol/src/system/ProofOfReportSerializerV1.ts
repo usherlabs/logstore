@@ -1,4 +1,4 @@
-import { Serializer } from '../Serializer';
+import { Serializer } from '../abstracts/Serializer';
 import { ProofOfReport } from './ProofOfReport';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
 

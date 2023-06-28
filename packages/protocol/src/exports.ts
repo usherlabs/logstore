@@ -6,3 +6,4 @@ import './system/QueryResponseSerializerV1';
 
 export * from './errors';
 export * from './system';
+export * from './interfaces/report';
