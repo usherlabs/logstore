@@ -13,6 +13,9 @@ export class SystemReport {
 		if (!('s' in report && 'v' in report)) {
 			throw new ValidationError('Invalid Report Payload');
 		}
+		if (!ReportSerializerVersions[report.v]) {
+			throw new ValidationError('Invalid Version');
+		}
 	}
 
 	serialize() {

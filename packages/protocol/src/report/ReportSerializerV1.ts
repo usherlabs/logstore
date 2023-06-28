@@ -25,6 +25,9 @@ export class ReportSeralizerV1 extends ReportSerializer {
 
 		const delegates: ReportV1DelegatesSerialized = {};
 		Object.entries(payload.delegates).forEach(([delAddress, records]) => {
+			if (typeof delegates[delAddress] === 'undefined') {
+				delegates[delAddress] = {};
+			}
 			Object.entries(records).forEach(([nodeAddress, value]) => {
 				delegates[delAddress][nodeAddress] =
 					BigNumber.from(value).toHexString();
@@ -34,10 +37,7 @@ export class ReportSeralizerV1 extends ReportSerializer {
 		let events;
 		if (payload.events) {
 			events = {
-				queries: payload.events.queries.map((p) => ({
-					...p,
-					id: hexUtils.strToHex(p.id),
-				})),
+				queries: payload.events.queries,
 				storage: payload.events.queries.map((p) => ({
 					...p,
 					id: hexUtils.strToHex(p.id),
@@ -74,6 +74,9 @@ export class ReportSeralizerV1 extends ReportSerializer {
 
 		const delegates: ReportV1Delegates = {};
 		Object.entries(payload.delegates).forEach(([delAddress, records]) => {
+			if (typeof delegates[delAddress] === 'undefined') {
+				delegates[delAddress] = {};
+			}
 			Object.entries(records).forEach(([nodeAddress, value]) => {
 				delegates[delAddress][nodeAddress] = BigNumber.from(value);
 			});
@@ -82,10 +85,7 @@ export class ReportSeralizerV1 extends ReportSerializer {
 		let events;
 		if (payload.events) {
 			events = {
-				queries: payload.events.queries.map((p) => ({
-					...p,
-					id: hexUtils.hexToStr(p.id),
-				})),
+				queries: payload.events.queries,
 				storage: payload.events.queries.map((p) => ({
 					...p,
 					id: hexUtils.hexToStr(p.id),
@@ -119,28 +119,31 @@ export class ReportSeralizerV1 extends ReportSerializer {
 		if (payload.s === true) {
 			report = this.deserialize(payload as IReportV1Serialized);
 		}
-		const nodes: Record<string, number> = {};
+		const nodes: Record<string, bigint> = {};
 		Object.entries(report.nodes).forEach(([address, value]) => {
-			nodes[address] = value.toNumber();
+			nodes[address] = value.toBigInt();
 		});
 
-		const delegates: Record<string, Record<string, number>> = {};
+		const delegates: Record<string, Record<string, bigint>> = {};
 		Object.entries(report.delegates).forEach(([delAddress, records]) => {
+			if (typeof delegates[delAddress] === 'undefined') {
+				delegates[delAddress] = {};
+			}
 			Object.entries(records).forEach(([nodeAddress, value]) => {
-				delegates[delAddress][nodeAddress] = value.toNumber();
+				delegates[delAddress][nodeAddress] = value.toBigInt();
 			});
 		});
 
 		const json = {
 			...report,
-			treasury: report.treasury.toNumber(),
+			treasury: report.treasury.toBigInt(),
 			streams: report.streams.map((p) => ({
 				...p,
-				capture: p.capture.toNumber(),
+				capture: p.capture.toBigInt(),
 			})),
 			consumers: report.consumers.map((p) => ({
 				...p,
-				capture: p.capture.toNumber(),
+				capture: p.capture.toBigInt(),
 			})),
 			nodes,
 			delegates,
@@ -157,24 +160,24 @@ export class ReportSeralizerV1 extends ReportSerializer {
 
 		const streams = report.streams.map(({ id }) => id);
 		const writeCaptureAmounts = report.streams.map(({ capture }) =>
-			capture.toNumber()
+			capture.toBigInt()
 		);
 		const writeBytes = report.streams.map(({ bytes }) => bytes);
 		const readConsumerAddresses = report.consumers.map(({ id }) => id);
 		const readCaptureAmounts = report.consumers.map(({ capture }) =>
-			capture.toNumber()
+			capture.toBigInt()
 		);
 		const readBytes = report.consumers.map(({ bytes }) => bytes);
 		const nodes = Object.keys(report.nodes);
-		const nodeChanges = Object.values(report.nodes).map((v) => v.toNumber());
+		const nodeChanges = Object.values(report.nodes).map((v) => v.toBigInt());
 		const delegates = Object.keys(report.delegates);
 		const delegateNodes = Object.keys(report.delegates).map((delegate) =>
 			Object.keys(report.delegates[delegate])
 		);
 		const delegateNodeChanges = Object.keys(report.delegates).map((delegate) =>
-			Object.values(report.delegates[delegate]).map((v) => v.toNumber())
+			Object.values(report.delegates[delegate]).map((v) => v.toBigInt())
 		);
-		const treasurySupplyChange = report.treasury.toNumber();
+		const treasurySupplyChange = report.treasury.toBigInt();
 
 		const params: ReportContractParams = [
 			report.id,

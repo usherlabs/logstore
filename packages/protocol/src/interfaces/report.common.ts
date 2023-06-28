@@ -12,27 +12,27 @@ export type ReportContractParams = [
 	// streams
 	string[],
 	// writeCaptureAmounts
-	number[],
+	bigint[],
 	// writeBytes
 	number[],
 	// readConsumerAddresses
 	string[],
 	// readCaptureAmounts,
-	number[],
+	bigint[],
 	// readBytes,
 	number[],
 	// nodes,
 	string[],
 	// nodeChanges,
-	number[],
+	bigint[],
 	// delegates,
 	string[],
 	// delegateNodes,
 	string[][],
 	// delegateNodeChanges,
-	number[][],
+	bigint[][],
 	// treasurySupplyChange,
-	number
+	bigint
 ];
 
 // export type ReportContractParams = [
