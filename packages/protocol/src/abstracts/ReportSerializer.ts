@@ -7,7 +7,7 @@ type IReportSerialized = IReportV1Serialized;
 export abstract class ReportSerializer {
 	abstract serialize(payload: IReport): IReportSerialized;
 
-	abstract deserialize(payload: IReport): IReport;
+	abstract deserialize(payload: IReportSerialized): IReport;
 
 	abstract toJSON(payload: IReport | IReportSerialized): string;
 

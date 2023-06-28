@@ -24,9 +24,9 @@ export type ReportContractParamsBase = [
 	// delegates,
 	string[],
 	// delegateNodes,
-	string[],
+	string[][],
 	// delegateNodeChanges,
-	bigint[],
+	bigint[][],
 	// treasurySupplyChange,
 	bigint
 ];
