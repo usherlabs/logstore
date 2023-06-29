@@ -153,7 +153,6 @@ export class ReportSeralizerV1 extends ReportSerializer {
 		const params: ReportContractParams = [
 			report.id,
 			report.height,
-			treasurySupplyChange,
 			streams,
 			writeCaptureAmounts,
 			writeBytes,
@@ -165,6 +164,7 @@ export class ReportSeralizerV1 extends ReportSerializer {
 			delegates,
 			delegateNodes,
 			delegateNodeChanges,
+			treasurySupplyChange,
 		];
 
 		return params;

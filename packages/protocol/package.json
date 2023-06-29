@@ -6,8 +6,8 @@
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "SEE LICENSE IN ./LICENSE",
 	"private": false,
-	"types": "./dist/types/src/exports.d.ts",
-	"main": "./dist/src/exports.js",
+	"types": "./dist/types/exports.d.ts",
+	"main": "./dist/exports.js",
 	"files": [
 		"./dist"
 	],
@@ -31,6 +31,7 @@
 		"typescript": "^4.9.5"
 	},
 	"dependencies": {
-		"@ethersproject/bignumber": "^5.7.0"
+		"@ethersproject/bignumber": "^5.7.0",
+		"@ethersproject/solidity": "^5.7.0"
 	}
 }

@@ -78,7 +78,7 @@ describe('ReportManager', async function () {
 			blockheight: blockHeight,
 		});
 		const event = await fetchEventArgsFromTx(responseTx, 'ReportAccepted');
-		expect(event?.raw).to.be.equal(JSON.stringify(contractReportData));
+		expect(event?.id).to.be.equal(contractReportData.id);
 	});
 
 	it('ReportManager ---- un-staked Node cannot submit report', async function () {

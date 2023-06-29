@@ -8,15 +8,15 @@ import {
 	ProofOfReport,
 	SystemMessage,
 	SystemMessageType,
+	SystemReport,
 } from '@logsn/protocol';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,
-	IReport,
 } from '@logsn/shared';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
-import { BigNumber, ethers, Signer, Wallet } from 'ethers';
+import { ethers, Signer, Wallet } from 'ethers';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
@@ -74,16 +74,16 @@ export class ReportPoller {
 		// so nodes who join halfway through the process, wait for the next round before starting
 		if (latestBundle > this.latestBundle && this.latestBundle > 0) {
 			// theres a new bundle that should be processed
-			const reportInformation = await this.fetchReportData(latestBundle);
+			const systemReport = await this.fetchReportData(latestBundle);
 			// do not process this report if it has been submitted
 			const latestReport = await reportManager.getLastReport();
-			if (latestReport.id === reportInformation.id) {
+			if (latestReport.id === systemReport.id) {
 				return;
 			}
 			// clear buffer/timeout/subscription and process the report information gotten
 			this.cleanUpPoller();
 			// process a new report
-			await this.processNewReport(reportInformation);
+			await this.processNewReport(systemReport);
 		}
 		// set the latest bundle
 		this.latestBundle = Math.max(latestBundle, this.latestBundle);
@@ -105,17 +105,17 @@ export class ReportPoller {
 	}
 
 	// poll kyve url for information on how many bundles have been finalized by tthis pool
-	async fetchPoolLatestBundle() {
+	async fetchPoolLatestBundle(): Promise<number> {
 		logger.info(`Fetching the pool information to get latest bundle`);
 		const { data: response } = await axios.get(
 			`${this.poolConfig.url}/kyve/query/v1beta1/pool/${this.poolConfig.id}`
 		);
 		const { total_bundles: totalBundles } = response.pool.data;
-		return totalBundles - 1;
+		return (totalBundles as number) - 1;
 	}
 
 	// using the bundle id, fetch information about this bundle
-	async fetchReportData(bundleId: number): Promise<IReport> {
+	async fetchReportData(bundleId: number): Promise<SystemReport> {
 		logger.info(`Fetching the bundle with id:${bundleId}`);
 		// fetch information about the bundle parameter passed in
 		const { data: response } = await axios.get(
@@ -136,16 +136,32 @@ export class ReportPoller {
 		const unzippedJson = JSON.parse(unzippedJsonStringified as string);
 
 		// get a report from the last item in the bundle
-		const reportJson = unzippedJson.at(-1);
-		if (!reportJson.value.r) {
+		const lastItem = unzippedJson.at(-1);
+		if (!lastItem.value.r) {
+			logger.error('Report not found in bundle');
 			throw Error('Report not found in bundle');
 		}
-		return reportJson.value.r as IReport;
+		const { r: reportJsonStr } = lastItem.value;
+		let reportJson;
+		try {
+			reportJson = JSON.parse(reportJsonStr);
+		} catch (e) {
+			logger.error('Could not JSON.parse serialized Report', { reportJsonStr });
+			throw e;
+		}
+		let systemReport: SystemReport;
+		try {
+			systemReport = new SystemReport(reportJson, reportJson.v);
+		} catch (e) {
+			logger.error('Report in bundle is invalid', { reportJson });
+			throw e;
+		}
+		return systemReport;
 	}
 
 	// process the new report json provided
-	async processNewReport(report: IReport) {
-		logger.info(`Processing New report ${report.id}`);
+	async processNewReport(systemReport: SystemReport) {
+		logger.info(`Processing New report ${systemReport.id}`);
 		// define contracts
 		const signer = this.signer as Wallet;
 		const nodeManagerContract = await getNodeManagerContract(signer);
@@ -188,7 +204,7 @@ export class ReportPoller {
 							const waitTillTurnOrReport = async () => {
 								// check if this node can submit a report
 								const nodeCanReport = await this.nodeCanSubmitReport(
-									report,
+									systemReport,
 									orderedReporters,
 									blockBuffer
 								);
@@ -209,50 +225,38 @@ export class ReportPoller {
 									isProcessing = true;
 									logger.info('Processing report to send as transaction');
 									// submit the actual report
-									const formattedReport = this.formatReportForContract(report);
+									// -- signature and broker validations
+									const reportAddresses = this.reportsBuffer.map(
+										(buffer) => buffer.address
+									);
+									const reportSignatures = this.reportsBuffer.map(
+										(buffer) => buffer.signature
+									);
+									// -- signature and broker validations
+									const contractParams = systemReport.toContract();
 									try {
-										const params = {
-											id: formattedReport.id,
-											blockHeight: formattedReport.blockHeight,
-											streams: formattedReport.streams,
-											writeCaptureAmounts: formattedReport.writeCaptureAmounts,
-											writeBytes: formattedReport.writeBytes,
-											readConsumerAddresses:
-												formattedReport.readConsumerAddresses,
-											readCaptureAmounts: formattedReport.readCaptureAmounts,
-											readBytes: formattedReport.readBytes,
-											nodes: formattedReport.nodes,
-											nodeChanges: formattedReport.nodeChanges,
-											delegates: formattedReport.delegates,
-											delegateNodes: formattedReport.delegateNodes,
-											delegateNodeChanges: formattedReport.delegateNodeChanges,
-											treasurySupplyChange:
-												formattedReport.treasurySupplyChange,
-											addresses: formattedReport.addresses,
-											signature: formattedReport.signatures,
-										};
 										logger.info(
 											`reportManagerContract.report params: ${JSON.stringify(
-												params
+												contractParams
 											)}`
 										);
 										const submitReportTx = await reportManagerContract.report(
-											formattedReport.id,
-											formattedReport.blockHeight,
-											formattedReport.streams,
-											formattedReport.writeCaptureAmounts,
-											formattedReport.writeBytes,
-											formattedReport.readConsumerAddresses,
-											formattedReport.readCaptureAmounts,
-											formattedReport.readBytes,
-											formattedReport.nodes,
-											formattedReport.nodeChanges,
-											formattedReport.delegates,
-											formattedReport.delegateNodes,
-											formattedReport.delegateNodeChanges,
-											formattedReport.treasurySupplyChange,
-											formattedReport.addresses,
-											formattedReport.signatures
+											contractParams[0],
+											contractParams[1],
+											contractParams[2],
+											contractParams[3],
+											contractParams[4],
+											contractParams[5],
+											contractParams[6],
+											contractParams[7],
+											contractParams[8],
+											contractParams[9],
+											contractParams[10],
+											contractParams[11],
+											contractParams[12],
+											contractParams[13],
+											reportAddresses,
+											reportSignatures
 										);
 										await submitReportTx.wait();
 										logger.info(
@@ -265,10 +269,10 @@ export class ReportPoller {
 										// * Stake for storage and queries is a one way exchange to prevent withdrawals before processing.
 										// TODO: If there is an error on reporting, there should be a retry process -- similar/copied to Kyve's callWithBackoffStrategy
 										const processReportTx =
-											await nodeManagerContract.processReport(report.id);
+											await nodeManagerContract.processReport(systemReport.id);
 										await processReportTx.wait();
 										logger.info(
-											`Report:${report.id} processed on tx:${submitReportTx.hash};`
+											`Report:${systemReport.id} processed on tx:${submitReportTx.hash};`
 										);
 										resolve([submitReportTx, processReportTx]);
 									} catch (err) {
@@ -305,7 +309,7 @@ export class ReportPoller {
 					)
 					.then(async (subscription: Subscription) => {
 						this.subscription = subscription;
-						await this.publishReport(report);
+						await this.publishReport(systemReport);
 					})
 					.catch((err: Error) => {
 						reject(err);
@@ -316,12 +320,12 @@ export class ReportPoller {
 		return response;
 	}
 
-	async publishReport(report: IReport) {
+	async publishReport(systemReport: SystemReport) {
 		// put this call into a method to publish a report which handles all of these
 		// hash the report
 		logger.info('Publishing a report to the network');
 		const brokerAddress = await this.signer.getAddress();
-		const reportHash = this.hashReport(report);
+		const reportHash = SystemReport.toContractHash(systemReport.toContract());
 		logger.info(`hashed report:${reportHash}`);
 		// sign the hash
 		const signature = await this.signer.signMessage(
@@ -343,7 +347,7 @@ export class ReportPoller {
 	}
 
 	async nodeCanSubmitReport(
-		report: IReport,
+		systemReport: SystemReport,
 		reportersList: Array<string>,
 		blockBuffer: number
 	) {
@@ -353,7 +357,7 @@ export class ReportPoller {
 		);
 		const blockNumber = (await this.signer.provider?.getBlockNumber()) || 0;
 		logger.info(
-			`Blocknumber:${blockNumber}; ReportHeight: ${report.height}; NodeIndex:${nodeIndex}; blockBuffer:${blockBuffer}; reporters:${reportersList}; broker: ${brokerAddress}`
+			`Blocknumber:${blockNumber}; ReportHeight: ${systemReport.height}; NodeIndex:${nodeIndex}; blockBuffer:${blockBuffer}; reporters:${reportersList}; broker: ${brokerAddress}`
 		);
 		// use this condition to determine if a node is capable of submitting a report
 		// same logic smart contract uses to determine who can or cannot submit
@@ -361,103 +365,8 @@ export class ReportPoller {
 			blockNumber >
 			nodeIndex * blockBuffer +
 				(nodeIndex > 0 ? blockBuffer : 0) +
-				report.height;
+				systemReport.height;
 
 		return condition;
-	}
-
-	hashReport(report: IReport) {
-		// extract only the fields that need to be hashed from the report
-		const extractedReport = {
-			id: report.id,
-			height: `${report.height}`,
-			treasury: BigNumber.from(report.treasury).toHexString(),
-			streams: [] as {
-				id: string;
-				capture: string;
-				bytes: number;
-			}[],
-			consumers: [] as {
-				id: string;
-				capture: string;
-				bytes: number;
-			}[],
-			nodes: {} as Record<string, string>,
-			delegates: {} as Record<string, Record<string, string>>,
-		};
-
-		for (const stream of report.streams) {
-			extractedReport.streams.push({
-				id: stream.id,
-				capture: BigNumber.from(stream.capture).toHexString(),
-				bytes: stream.bytes,
-			});
-		}
-		for (const consumer of report.consumers) {
-			extractedReport.consumers.push({
-				id: consumer.id,
-				capture: BigNumber.from(consumer.capture).toHexString(),
-				bytes: consumer.bytes,
-			});
-		}
-		for (const nodeKey of Object.keys(report.nodes)) {
-			extractedReport.nodes[nodeKey] = BigNumber.from(
-				report.nodes[nodeKey]
-			).toHexString();
-		}
-		for (const delegateKey of Object.keys(report.delegates)) {
-			extractedReport.delegates[delegateKey] = {};
-			for (const nodeKey of Object.keys(report.delegates[delegateKey])) {
-				extractedReport.delegates[delegateKey][nodeKey] = BigNumber.from(
-					report.delegates[delegateKey][nodeKey]
-				).toHexString();
-			}
-		}
-
-		const hashedReport = ethers.utils.solidityKeccak256(
-			['string'],
-			[JSON.stringify(extractedReport).toLowerCase()]
-		);
-
-		return hashedReport;
-	}
-
-	formatReportForContract(report: IReport) {
-		const output = {
-			id: report.id,
-			blockHeight: report.height,
-			// -- streams
-			streams: report.streams.map(({ id }) => id.toLowerCase()),
-			writeCaptureAmounts: report.streams.map(({ capture }) => capture),
-			writeBytes: report.streams.map(({ bytes }) => bytes),
-			// -- streams
-
-			// -- consumers
-			readConsumerAddresses: report.consumers.map(({ id }) => id),
-			readCaptureAmounts: report.consumers.map(({ capture }) => capture),
-			readBytes: report.consumers.map(({ bytes }) => bytes),
-			// -- consumers
-
-			// -- nodes
-			nodes: Object.keys(report.nodes),
-			nodeChanges: Object.values(report.nodes),
-			// -- nodes
-
-			// -- delegates
-			delegates: Object.keys(report.delegates),
-			delegateNodes: Object.keys(report.delegates).map((delegate) =>
-				Object.keys(report.delegates[delegate])
-			),
-			delegateNodeChanges: Object.keys(report.delegates).map((delegate) =>
-				Object.values(report.delegates[delegate])
-			),
-			// -- delegates
-			treasurySupplyChange: report.treasury,
-			// -- signature and broker validations
-			addresses: this.reportsBuffer.map((buffer) => buffer.address),
-			signatures: this.reportsBuffer.map((buffer) => buffer.signature),
-			// -- signature and broker validations
-		};
-		return output;
 	}
 }

@@ -13,6 +13,8 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     event DataQueried(address indexed consumer, uint256 fees, uint256 bytesProcessed);
     event Stake(address indexed consumer, uint amount);
+    event CaptureOverflow(address consumer, uint stake, uint capture, uint overflow);
+    event SupplyOverflow(uint supply, uint capture, uint overflow);
 
     uint256 public totalSupply;
     address public stakeTokenAddress;
@@ -40,10 +42,20 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
     /// @param bytesProcessed number of bytes in the response
     function capture(address consumer, uint256 amount, uint256 bytesProcessed) public nonReentrant onlyOwner {
         require(amount <= stakeToken.balanceOf(address(this)), "error_notEnoughStake");
-				require(balanceOf[consumer] > 0, "error_invalidConsumerAddress");
+        require(balanceOf[consumer] > 0, "error_invalidConsumerAddress");
 
-        balanceOf[consumer] -= amount;
-        totalSupply -= amount;
+        if (balanceOf[consumer] < amount) {
+            emit CaptureOverflow(consumer, balanceOf[consumer], amount, amount - balanceOf[consumer]);
+            balanceOf[consumer] = 0;
+        } else {
+            balanceOf[consumer] -= amount;
+        }
+        if (totalSupply < amount) {
+            emit SupplyOverflow(totalSupply, amount, amount - totalSupply);
+            totalSupply = 0;
+        } else {
+            totalSupply -= amount;
+        }
 
         bool success = stakeToken.transfer(msg.sender, amount);
         require(success == true, "error_unsuccessfulCapture");

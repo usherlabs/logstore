@@ -15,6 +15,8 @@ import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     event StoreUpdated(string store, bool isNew, uint256 amount);
     event DataStored(string store, uint256 fees, uint256 bytesStored);
+    event CaptureOverflow(string store, uint stake, uint capture, uint overflow);
+    event SupplyOverflow(uint supply, uint capture, uint overflow);
 
     uint256 public totalSupply;
     address public stakeTokenAddress;
@@ -50,7 +52,7 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
 
     // Only the LogStore Contract can call the capture method
     function capture(string memory streamId, uint256 amount, uint256 bytesStored) public nonReentrant onlyOwner {
-				require(stores[streamId] > 0, "error_invalidStreamId");
+        require(stores[streamId] > 0, "error_invalidStreamId");
         require(amount <= stakeToken.balanceOf(address(this)), "error_notEnoughStake");
 
         address[] memory stakeholders = storeStakeholders[streamId];
@@ -72,8 +74,20 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
             }
         }
 
-        stores[streamId] -= amount;
-        totalSupply -= amount;
+        // Prevent overflow errors On-Chain
+        // Validators to index and manage any overflows.
+        if (stores[streamId] < amount) {
+            emit CaptureOverflow(streamId, stores[streamId], amount, amount - stores[streamId]);
+            stores[streamId] = 0;
+        } else {
+            stores[streamId] -= amount;
+        }
+        if (totalSupply < amount) {
+            emit SupplyOverflow(totalSupply, amount, amount - totalSupply);
+            totalSupply = 0;
+        } else {
+            totalSupply -= amount;
+        }
 
         bool transferSuccess = stakeToken.transfer(msg.sender, amount);
         require(transferSuccess == true, "error_unsuccessfulCapture");

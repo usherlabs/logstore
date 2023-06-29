@@ -9,12 +9,12 @@
 	"bin": {
 		"logstore-broker": "./dist/bin/logstore-broker.js"
 	},
-	"main": "src/index.ts",
+	"main": "./dist/src/index.ts",
 	"files": [
 		"./dist"
 	],
 	"scripts": {
-		"build": "del ./dist && tsc",
+		"build": "del ./dist && tsc --build ./tsconfig.release.json",
 		"format": "prettier --write .",
 		"start": "node ./dist/bin/logstore-broker.js",
 		"start:fresh": "npm-run-all -s build start",
