@@ -142,51 +142,49 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         }
 
         /* solhint-disable quotes */
-        string memory reportJson = string.concat(
-            '{"id":"',
-            id,
-            '","height":"',
-            StringsUpgradeable.toString(blockHeight),
-            '","treasury":"',
-            StringsUpgradeable.toHexString(treasurySupplyChange),
-            '","streams":['
-        );
+        string[14] memory hashElements;
+        hashElements[0] = string.concat('"', id, '"');
+        hashElements[1] = StringsUpgradeable.toString(blockHeight);
+        hashElements[13] = string.concat('"', StringsUpgradeable.toHexString(treasurySupplyChange), '"');
 
         Stream[] memory rStreams = new Stream[](streams.length);
         for (uint256 i = 0; i < streams.length; i++) {
-            reportJson = string.concat(
-                reportJson,
-                '{"id":"',
-                streams[i],
-                '","capture":"',
+            hashElements[2] = string.concat(hashElements[2], '"', streams[i], '"');
+            hashElements[3] = string.concat(
+                hashElements[3],
+                '"',
                 StringsUpgradeable.toHexString(writeCaptureAmounts[i]),
-                '","bytes":',
-                StringsUpgradeable.toString(writeBytes[i]),
-                "}"
+                '"'
             );
-
+            hashElements[4] = string.concat(hashElements[4], StringsUpgradeable.toString(writeBytes[i]));
             if (i != streams.length - 1) {
-                reportJson = string.concat(reportJson, ",");
+                hashElements[2] = string.concat(hashElements[2], ",");
+                hashElements[3] = string.concat(hashElements[3], ",");
+                hashElements[4] = string.concat(hashElements[4], ",");
             }
 
             rStreams[i] = Stream({id: streams[i], writeCapture: writeCaptureAmounts[i], writeBytes: writeBytes[i]});
         }
 
-        reportJson = string.concat(reportJson, '],"consumers":[');
         Consumer[] memory rConsumers = new Consumer[](readConsumerAddresses.length);
         for (uint256 i = 0; i < readConsumerAddresses.length; i++) {
-            reportJson = string.concat(
-                reportJson,
-                '{"id":"',
+            hashElements[5] = string.concat(
+                hashElements[5],
+                '"',
                 StringsUpgradeable.toHexString(readConsumerAddresses[i]),
-                '","capture":"',
-                StringsUpgradeable.toHexString(readCaptureAmounts[i]),
-                '","bytes":',
-                StringsUpgradeable.toString(readBytes[i]),
-                "}"
+                '"'
             );
+            hashElements[6] = string.concat(
+                hashElements[6],
+                '"',
+                StringsUpgradeable.toHexString(readCaptureAmounts[i]),
+                '"'
+            );
+            hashElements[7] = string.concat(hashElements[7], StringsUpgradeable.toString(readBytes[i]));
             if (i != readConsumerAddresses.length - 1) {
-                reportJson = string.concat(reportJson, ",");
+                hashElements[5] = string.concat(hashElements[5], ",");
+                hashElements[6] = string.concat(hashElements[6], ",");
+                hashElements[7] = string.concat(hashElements[7], ",");
             }
 
             rConsumers[i] = Consumer({
@@ -196,54 +194,102 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             });
         }
 
-        reportJson = string.concat(reportJson, '],"nodes":{');
         Node[] memory rNodes = new Node[](nodes.length);
         for (uint256 i = 0; i < nodes.length; i++) {
-            reportJson = string.concat(
-                reportJson,
-                '"',
-                StringsUpgradeable.toHexString(nodes[i]),
-                '":"',
-                StringsUpgradeable.toHexString(nodeChanges[i]),
-                '"'
-            );
+            hashElements[8] = string.concat(hashElements[8], '"', StringsUpgradeable.toHexString(nodes[i]), '"');
+            hashElements[9] = string.concat(hashElements[9], '"', StringsUpgradeable.toHexString(nodeChanges[i]), '"');
             if (i != nodes.length - 1) {
-                reportJson = string.concat(reportJson, ",");
+                hashElements[8] = string.concat(hashElements[8], ",");
+                hashElements[9] = string.concat(hashElements[9], ",");
             }
 
             rNodes[i] = Node({id: nodes[i], amount: nodeChanges[i]});
         }
 
-        reportJson = string.concat(reportJson, '},"delegates":{');
         Delegate[] memory rDelegates = new Delegate[](delegates.length);
         for (uint256 i = 0; i < delegates.length; i++) {
-            reportJson = string.concat(reportJson, '"', StringsUpgradeable.toHexString(delegates[i]), '":{');
+            hashElements[10] = string.concat(hashElements[10], '"', StringsUpgradeable.toHexString(delegates[i]), '"');
+            hashElements[11] = string.concat(hashElements[11], "[");
+            hashElements[12] = string.concat(hashElements[12], "[");
+
             Node[] memory rDelegateNodes = new Node[](delegateNodes[i].length);
             for (uint256 j = 0; j < delegateNodes[i].length; j++) {
-                reportJson = string.concat(
-                    reportJson,
+                hashElements[11] = string.concat(
+                    hashElements[11],
                     '"',
                     StringsUpgradeable.toHexString(delegateNodes[i][j]),
-                    '":"',
+                    '"'
+                );
+                hashElements[12] = string.concat(
+                    hashElements[12],
+                    '"',
                     StringsUpgradeable.toHexString(delegateNodeChanges[i][j]),
                     '"'
                 );
                 if (j != delegateNodes[i].length - 1) {
-                    reportJson = string.concat(reportJson, ",");
+                    hashElements[11] = string.concat(hashElements[11], ",");
+                    hashElements[12] = string.concat(hashElements[12], ",");
                 }
 
                 rDelegateNodes[j] = Node({id: delegateNodes[i][j], amount: delegateNodeChanges[i][j]});
             }
+            hashElements[11] = string.concat(hashElements[11], "]");
+            hashElements[12] = string.concat(hashElements[12], "]");
             if (i != delegates.length - 1) {
-                reportJson = string.concat(reportJson, ",");
-            } else {
-                reportJson = string.concat(reportJson, "}");
+                hashElements[10] = string.concat(hashElements[10], ",");
+                hashElements[11] = string.concat(hashElements[11], ",");
+                hashElements[12] = string.concat(hashElements[12], ",");
             }
 
             rDelegates[i] = Delegate({id: delegates[i], nodes: rDelegateNodes});
         }
 
-        reportJson = string.concat(reportJson, "}}");
+        string memory rawHashParam = string.concat(
+            "[",
+            // id
+            hashElements[0],
+            ",",
+            // blockHeight
+            hashElements[1],
+            ",[",
+            // stream Ids
+            hashElements[2],
+            "],[",
+            // writeCaptureAmounts
+            hashElements[3],
+            "],[",
+            // writeBytes
+            hashElements[4],
+            "],[",
+            // readConsumerAddresses
+            hashElements[5],
+            "],[",
+            // readCaptureAmounts
+            hashElements[6],
+            "],[",
+            // readBytes
+            hashElements[7],
+            "],[",
+            // nodes
+            hashElements[8],
+            "],[",
+            // nodeChanges
+            hashElements[9],
+            "],[",
+            // delegates
+            hashElements[10],
+            "],[",
+            // delegatesNodes
+            hashElements[11],
+            "],[",
+            // delegatesNodeChanges
+            hashElements[12],
+            "],",
+            // treasurySupplyChange
+            hashElements[13],
+            "]"
+        );
+
         /* solhint-enable quotes */
 
         // Consume report data
@@ -259,7 +305,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             _processed: false
         });
 
-        bytes32 reportHash = keccak256(abi.encodePacked(reportJson));
+        bytes32 reportHash = keccak256(abi.encodePacked(rawHashParam));
 
         // Verify signatures
         bool accepted = true;

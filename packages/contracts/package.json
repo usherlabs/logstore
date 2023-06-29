@@ -47,6 +47,7 @@
 		"@ethersproject/abi": "^5.7.0",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/providers": "^5.7.2",
+		"@logsn/protocol": "workspace:^",
 		"@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
 		"@nomicfoundation/hardhat-network-helpers": "^1.0.7",
 		"@nomicfoundation/hardhat-toolbox": "^2.0.1",

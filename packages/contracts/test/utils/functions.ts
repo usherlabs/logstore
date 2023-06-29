@@ -1,3 +1,4 @@
+import { ReportContractParams, SystemReport } from '@logsn/protocol';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import Wallet from 'ethereumjs-wallet';
 import { BigNumber, Contract, ContractTransaction, ethers } from 'ethers';
@@ -13,7 +14,6 @@ import {
 	SAMPLE_STREAM_ID,
 	SAMPLE_WSS_URL,
 } from './constants';
-import { ReportData } from './types';
 
 export const generateWallet = () => Wallet.generate().getAddressString();
 
@@ -178,34 +178,51 @@ export async function generateReportData({
 	blockheight: number;
 	signer: SignerWithAddress;
 	bundleId: string;
-}): Promise<ReportData> {
+}): Promise<[...ReportContractParams, string[], string[]]> {
 	const nodeAddress = signer.address;
 	const signers = await hEthers.getSigners();
 	const consumer = signers[CONSUMER_INDEX].address.toLowerCase();
-	const reportdata: ReportData = {
+	const reportContractParams: ReportContractParams = [
+		// id
 		bundleId,
-		blockheight: blockheight,
-		streams: [SAMPLE_STREAM_ID],
-		writeCaptureAmounts: [10000],
-		writeBytes: [5],
-		readConsumerAddress: [consumer],
-		readCaptureAmounts: [20000],
-		readBytes: [6],
-		nodes: [nodeAddress],
-		nodeChanges: [30000],
-		delegates: [nodeAddress],
-		delegateNodes: [[nodeAddress]],
-		delegateNodeChanges: [[40000]],
-		treasurySupplyChange: 50000,
-		address: [nodeAddress],
-	};
+		// height
+		blockheight,
+		// streams
+		[SAMPLE_STREAM_ID],
+		// writeCaptureAmounts:
+		[BigInt(10000)],
+		// writeBytes:
+		[5],
+		// readConsumerAddress:
+		[consumer],
+		// readCaptureAmounts:
+		[BigInt(20000)],
+		// readBytes:
+		[6],
+		// nodes:
+		[nodeAddress],
+		// nodeChanges:
+		[BigInt(30000)],
+		// delegates:
+		[nodeAddress],
+		// delegateNodes:
+		[[nodeAddress]],
+		// delegateNodeChanges:
+		[[BigInt(40000)]],
+		// treasurySupplyChange:
+		BigInt(50000),
+	];
 
 	// ---- Include signatures in the report
-	const { reportHash } = await generateReportHash({ signer, blockheight });
+	const reportHash = SystemReport.toContractHash(reportContractParams);
 	const signature = await signer.signMessage(ethers.utils.arrayify(reportHash));
-	reportdata['signatures'] = [signature];
+	const reportData: [...ReportContractParams, string[], string[]] = [
+		...reportContractParams,
+		[nodeAddress],
+		[signature],
+	];
 
-	return reportdata;
+	return reportData;
 }
 
 // @todo make the addresses variable too so it will pass on other people's system

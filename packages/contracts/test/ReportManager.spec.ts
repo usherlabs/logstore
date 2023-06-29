@@ -70,7 +70,24 @@ describe('ReportManager', async function () {
 
 		const responseTx = await reportManagerContract
 			.connect(sampleNode)
-			.functions.report(...Object.values(reportData));
+			.functions.report(
+				reportData[0],
+				reportData[1],
+				reportData[2],
+				reportData[3],
+				reportData[4],
+				reportData[5],
+				reportData[6],
+				reportData[7],
+				reportData[8],
+				reportData[9],
+				reportData[10],
+				reportData[11],
+				reportData[12],
+				reportData[13],
+				reportData[14],
+				reportData[15]
+			);
 
 		// validate the string emmitted by the contract is correct
 		const { data: contractReportData } = await generateReportHash({
@@ -182,14 +199,14 @@ describe('ReportManager', async function () {
 		// ---- process the actual report
 		const processReportTx = await nodeManagerContract
 			.connect(currentNode)
-			.functions.processReport(reportData.bundleId);
+			.functions.processReport(reportData[0]);
 		// ---------------------------------------------- submit a report
 		// ---------------------------------------------- verify the report
 		const event = await fetchEventArgsFromTx(
 			processReportTx,
 			REPORT_MANAGER_EVENTS.REPORT_PROCESSED
 		);
-		expect(event?.id).to.equal(reportData.bundleId);
+		expect(event?.id).to.equal(reportData[0]);
 
 		// validate store manager capture funds
 		const consumerCapture = reportJson.streams[0].capture;
@@ -199,10 +216,10 @@ describe('ReportManager', async function () {
 		const [consumerStreamBalance] =
 			await storeManagerContract.functions.storeBalanceOf(
 				consumerSigner.address,
-				reportData.streams[0]
+				reportData[2][0] // streams first element
 			);
 		const [streamStoreBalance] = await storeManagerContract.functions.stores(
-			reportData.streams[0]
+			reportData[2][0] // streams first element
 		);
 
 		const [storeManagertotalSupply] =
@@ -227,7 +244,8 @@ describe('ReportManager', async function () {
 		// validate query manager capture function
 
 		// validate nodes
-		const nodeAddressKey = reportData.nodes[0].toLowerCase();
+		const nodeAddress = reportData[8][0]; // Nodes first element
+		const nodeAddressKey = nodeAddress.toLowerCase();
 		const allNodes: Record<string, number> = reportJson.nodes;
 		const allDelegates: Record<
 			string,
@@ -235,7 +253,7 @@ describe('ReportManager', async function () {
 		> = reportJson.delegates;
 		const nodeIncrement = allNodes[nodeAddressKey];
 		const foundNode = await nodeManagerContract.functions.nodes(
-			reportData.nodes[0]
+			reportData[8][0] // Nodes first element
 		);
 		const initialNodeStake = getDecimalBN(10);
 		expect(+foundNode.stake).to.equal(+initialNodeStake.add(nodeIncrement));
