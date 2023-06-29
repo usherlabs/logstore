@@ -127,7 +127,8 @@ async function main() {
 		const token = await tokenManager.attach(stakeTokenAddress);
 
 		const wallets: string[] = [];
-		const MINT_AMOUNT = '1000000000000000000000000';
+
+		const MINT_AMOUNT = '1000000000000000000000000000000000000';
 		const ACCOUNT_PK_PREFIX = '';
 		const BROKER_PK_PREFIX = 'bb';
 		const VALIDATOR_PK_PREFIX = 'cc';

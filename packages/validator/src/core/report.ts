@@ -442,6 +442,11 @@ export class Report extends AbstractDataItem<IPrepared> {
 				);
 			}
 		}
+
+		report.treasury = await stakeToken.fromUSD(
+			report.treasury.toNumber(),
+			toKeyMs
+		);
 		// ------------ END FEE CONVERSION ------------
 		// -------------------------------------
 

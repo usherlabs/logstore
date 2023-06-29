@@ -1,3 +1,4 @@
+/*
 import {
 	LogStoreClient,
 	MessageMetadata,
@@ -370,3 +371,4 @@ export class ReportPoller {
 		return condition;
 	}
 }
+*/
