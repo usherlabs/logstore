@@ -464,8 +464,12 @@ export class Report extends AbstractDataItem<IPrepared> {
 				);
 			}
 		}
+
+		result.treasury = await stakeToken.fromUSD(report.treasury, toKeyMs);
 		// ------------ END FEE CONVERSION ------------
 		// -------------------------------------
+
+		result.events = report.events;
 
 		core.logger.debug('Report Generated', result);
 
