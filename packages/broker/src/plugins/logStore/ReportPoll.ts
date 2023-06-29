@@ -1,5 +1,4 @@
-import { ProofOfReport } from '@logsn/protocol';
-import { IReport } from '@logsn/shared';
+import { ProofOfReport, SystemReport } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
 import { ethers } from 'ethers';
 
@@ -8,19 +7,19 @@ const logger = new Logger(module);
 const POLL_TIME = 60 * 1000;
 
 interface ReportPollOptions {
-	reportOrProof: IReport | ProofOfReport;
+	reportOrProof: SystemReport | ProofOfReport;
 	hash: string;
 	onProcessCb: (
-		poll: ReportPoll & { report: IReport }
+		poll: ReportPoll & { report: SystemReport }
 	) => Promise<ethers.ContractTransaction[] | undefined>;
 	onCompleteCb: () => void;
 }
 
 export class ReportPoll {
-	public report: IReport | undefined;
+	public report: SystemReport | undefined;
 	public readonly hash: string;
 	private readonly onProcessCb: (
-		poll: ReportPoll & { report: IReport }
+		poll: ReportPoll & { report: SystemReport }
 	) => Promise<ethers.ContractTransaction[] | undefined>;
 	private readonly onCompleteCb: () => void;
 	private timeout: NodeJS.Timeout;
@@ -47,7 +46,7 @@ export class ReportPoll {
 		}, POLL_TIME);
 	}
 
-	public assignReport(report: IReport) {
+	public assignReport(report: SystemReport) {
 		logger.info(`Assigning report ${report.id} to poll {hash: ${this.hash})`);
 		this.report = report;
 	}
@@ -78,7 +77,7 @@ export class ReportPoll {
 		logger.info(`Processing poll for report ${this.report.id} `);
 		if (!this.isProcessing) {
 			this.isProcessing = true;
-			this.onProcessCb(this as ReportPoll & { report: IReport })
+			this.onProcessCb(this as ReportPoll & { report: SystemReport })
 				.then((result) => {
 					if (result || isFinal) {
 						logger.info(`Completed poll for report ${this.report!.id}`);

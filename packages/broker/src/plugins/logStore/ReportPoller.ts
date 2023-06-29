@@ -1,14 +1,13 @@
 import { LogStoreClient, Stream } from '@logsn/client';
 import { LogStoreNodeManager, LogStoreReportManager } from '@logsn/contracts';
-import { ProofOfReport } from '@logsn/protocol';
+import { ProofOfReport, SystemReport } from '@logsn/protocol';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,
-	IReport,
 } from '@logsn/shared';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
-import { BigNumber, ethers, Signer, Wallet } from 'ethers';
+import { ethers, Signer, Wallet } from 'ethers';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
@@ -67,20 +66,20 @@ export class ReportPoller {
 		// so nodes who join halfway through the process, wait for the next round before starting
 		if (latestBundle > this.latestBundle && this.latestBundle > 0) {
 			// theres a new bundle that should be processed
-			const report = await this.fetchReportData(latestBundle);
+			const systemReport = await this.fetchReportData(latestBundle);
 			// do not process this report if it has been submitted
 			const latestReport = await this.reportManager.getLastReport();
-			if (latestReport.id === report.id) {
+			if (latestReport.id === systemReport.id) {
 				return;
 			}
 
-			const hash = this.createReportHash(report);
+			const hash = SystemReport.toContractHash(systemReport.toContract());
 			let poll = this.polls[hash];
 			if (poll) {
-				poll.assignReport(report);
+				poll.assignReport(systemReport);
 			} else {
 				poll = new ReportPoll({
-					reportOrProof: report,
+					reportOrProof: systemReport,
 					hash: hash,
 					onProcessCb: async (p) => await this.processPoll(p),
 					onCompleteCb: () => delete this.polls[poll.hash],
@@ -88,14 +87,14 @@ export class ReportPoller {
 				this.polls[hash] = poll;
 			}
 
-			await this.publishProof(poll as ReportPoll & { report: IReport });
+			await this.publishProof(poll as ReportPoll & { report: SystemReport });
 		}
 		// set the latest bundle
 		this.latestBundle = Math.max(latestBundle, this.latestBundle);
 	}
 
 	private async processPoll(
-		poll: ReportPoll & { report: IReport }
+		poll: ReportPoll & { report: SystemReport }
 	): Promise<ethers.ContractTransaction[] | undefined> {
 		// get important variables from contract
 		const allActiveNodes = await this.nodeManager.nodeAddresses();
@@ -135,7 +134,7 @@ export class ReportPoller {
 	}
 
 	// poll kyve url for information on how many bundles have been finalized by tthis pool
-	private async fetchPoolLatestBundle() {
+	private async fetchPoolLatestBundle(): Promise<number> {
 		logger.info(`Fetching the pool information to get latest bundle`);
 		const { data: response } = await axios.get(
 			`${this.poolConfig.url}/kyve/query/v1beta1/pool/${this.poolConfig.id}`
@@ -145,7 +144,7 @@ export class ReportPoller {
 	}
 
 	// using the bundle id, fetch information about this bundle
-	private async fetchReportData(bundleId: number): Promise<IReport> {
+	private async fetchReportData(bundleId: number): Promise<SystemReport> {
 		logger.info(`Fetching the bundle with id:${bundleId}`);
 		// fetch information about the bundle parameter passed in
 		const { data: response } = await axios.get(
@@ -166,15 +165,30 @@ export class ReportPoller {
 		const unzippedJson = JSON.parse(unzippedJsonStringified as string);
 
 		// get a report from the last item in the bundle
-		const reportJson = unzippedJson.at(-1);
-		if (!reportJson.value.r) {
+		const lastItem = unzippedJson.at(-1);
+		if (!lastItem.value.r) {
+			logger.error('Report not found in bundle');
 			throw Error('Report not found in bundle');
 		}
-
-		return reportJson.value.r as IReport;
+		const { r: reportJsonStr } = lastItem.value;
+		let reportJson;
+		try {
+			reportJson = JSON.parse(reportJsonStr);
+		} catch (e) {
+			logger.error('Could not JSON.parse serialized Report', { reportJsonStr });
+			throw e;
+		}
+		let systemReport: SystemReport;
+		try {
+			systemReport = new SystemReport(reportJson, reportJson.v);
+		} catch (e) {
+			logger.error('Report in bundle is invalid', { reportJson });
+			throw e;
+		}
+		return systemReport;
 	}
 
-	private async publishProof(poll: ReportPoll & { report: IReport }) {
+	private async publishProof(poll: ReportPoll & { report: SystemReport }) {
 		// put this call into a method to publish a report which handles all of these
 		// hash the report
 		logger.info(
@@ -206,7 +220,7 @@ export class ReportPoller {
 	}
 
 	private async nodeCanSubmitReport(
-		report: IReport,
+		report: SystemReport,
 		reportersList: Array<string>,
 		blockBuffer: number
 	) {
@@ -229,25 +243,32 @@ export class ReportPoller {
 		return condition;
 	}
 
-	private async submitReport(poll: ReportPoll & { report: IReport }) {
-		const formattedReport = await this.formatReportForContract(poll);
+	private async submitReport(poll: ReportPoll & { report: SystemReport }) {
+		const contractParams = poll.report.toContract();
+		logger.info(
+			`reportManagerContract.report params: ${JSON.stringify(contractParams)}`
+		);
+
+		const addressesParam = poll.proofs.map((proof) => proof.address);
+		const signaturesParam = poll.proofs.map((proof) => proof.signature);
+
 		const submitReportTx = await this.reportManager.report(
-			formattedReport.id,
-			formattedReport.blockHeight,
-			formattedReport.streams,
-			formattedReport.writeCaptureAmounts,
-			formattedReport.writeBytes,
-			formattedReport.readConsumerAddresses,
-			formattedReport.readCaptureAmounts,
-			formattedReport.readBytes,
-			formattedReport.nodes,
-			formattedReport.nodeChanges,
-			formattedReport.delegates,
-			formattedReport.delegateNodes,
-			formattedReport.delegateNodeChanges,
-			formattedReport.treasurySupplyChange,
-			formattedReport.addresses,
-			formattedReport.signatures
+			contractParams[0],
+			contractParams[1],
+			contractParams[2],
+			contractParams[3],
+			contractParams[4],
+			contractParams[5],
+			contractParams[6],
+			contractParams[7],
+			contractParams[8],
+			contractParams[9],
+			contractParams[10],
+			contractParams[11],
+			contractParams[12],
+			contractParams[13],
+			addressesParam,
+			signaturesParam
 		);
 		await submitReportTx.wait();
 		logger.info(
@@ -282,101 +303,5 @@ export class ReportPoller {
 			});
 			this.polls[proof.hash] = poll;
 		}
-	}
-
-	private async formatReportForContract(poll: ReportPoll) {
-		const report = poll.report!;
-		const output = {
-			id: report.id,
-			blockHeight: report.height,
-			// -- streams
-			streams: report.streams.map(({ id }) => id.toLowerCase()),
-			writeCaptureAmounts: report.streams.map(({ capture }) => capture),
-			writeBytes: report.streams.map(({ bytes }) => bytes),
-			// -- streams
-
-			// -- consumers
-			readConsumerAddresses: report.consumers.map(({ id }) => id),
-			readCaptureAmounts: report.consumers.map(({ capture }) => capture),
-			readBytes: report.consumers.map(({ bytes }) => bytes),
-			// -- consumers
-
-			// -- nodes
-			nodes: Object.keys(report.nodes),
-			nodeChanges: Object.values(report.nodes),
-			// -- nodes
-
-			// -- delegates
-			delegates: Object.keys(report.delegates),
-			delegateNodes: Object.keys(report.delegates).map((delegate) =>
-				Object.keys(report.delegates[delegate])
-			),
-			delegateNodeChanges: Object.keys(report.delegates).map((delegate) =>
-				Object.values(report.delegates[delegate])
-			),
-			// -- delegates
-			treasurySupplyChange: report.treasury,
-			// -- signature and broker validations
-			addresses: poll.proofs.map((proof) => proof.address),
-			signatures: poll.proofs.map((proof) => proof.signature),
-			// -- signature and broker validations
-		};
-		return output;
-	}
-
-	private createReportHash(report: IReport) {
-		// extract only the fields that need to be hashed from the report
-		const extractedReport = {
-			id: report.id,
-			height: `${report.height}`,
-			treasury: BigNumber.from(report.treasury).toHexString(),
-			streams: [] as {
-				id: string;
-				capture: string;
-				bytes: number;
-			}[],
-			consumers: [] as {
-				id: string;
-				capture: string;
-				bytes: number;
-			}[],
-			nodes: {} as Record<string, string>,
-			delegates: {} as Record<string, Record<string, string>>,
-		};
-
-		for (const stream of report.streams) {
-			extractedReport.streams.push({
-				id: stream.id,
-				capture: BigNumber.from(stream.capture).toHexString(),
-				bytes: stream.bytes,
-			});
-		}
-		for (const consumer of report.consumers) {
-			extractedReport.consumers.push({
-				id: consumer.id,
-				capture: BigNumber.from(consumer.capture).toHexString(),
-				bytes: consumer.bytes,
-			});
-		}
-		for (const node in report.nodes) {
-			extractedReport.nodes[node] = BigNumber.from(
-				report.nodes[node]
-			).toHexString();
-		}
-		for (const delegate in report.delegates) {
-			extractedReport.delegates[delegate] = {};
-			for (const node in report.delegates[delegate]) {
-				extractedReport.delegates[delegate][node] = BigNumber.from(
-					report.delegates[delegate][node]
-				).toHexString();
-			}
-		}
-
-		const hashedReport = ethers.utils.solidityKeccak256(
-			['string'],
-			[JSON.stringify(extractedReport).toLowerCase()]
-		);
-
-		return hashedReport;
 	}
 }
