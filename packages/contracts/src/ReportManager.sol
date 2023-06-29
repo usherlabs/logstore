@@ -13,6 +13,8 @@ import {VerifySignature} from "./lib/VerifySignature.sol";
 import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 
 contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+    uint256 public constant QUORUM_PRECISION = 10 ** 10;
+
     event ReportAccepted(string id);
     event Logger(bool isMet);
 
@@ -347,17 +349,16 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
     function quorumIsMet(address[] memory submittedNodes) public view returns (bool isMet) {
         uint256 count;
         address[] memory existingNodes = _nodeManager.nodeAddresses();
-        uint256 requiredNodes = existingNodes.length / 2;
-        uint256 minimumNodes = requiredNodes <= 0 ? 1 : requiredNodes; //condition for only one node
+        uint256 minCount = (existingNodes.length * QUORUM_PRECISION) / 2;
 
         for (uint256 i = 0; i < existingNodes.length; i++) {
             for (uint256 j = 0; j < submittedNodes.length; j++) {
                 if (existingNodes[i] == submittedNodes[j]) {
-                    count++;
+                    count += 1 * QUORUM_PRECISION;
                     break;
                 }
             }
-            if (count >= minimumNodes) {
+            if (count >= minCount) {
                 isMet = true;
                 break;
             }
