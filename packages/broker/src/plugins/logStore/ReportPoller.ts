@@ -93,6 +93,7 @@ export class ReportPoller {
 		this.latestBundle = Math.max(latestBundle, this.latestBundle);
 	}
 
+	// Called when all Proofs are received for a particular ReportPoll
 	private async processPoll(
 		poll: ReportPoll & { report: SystemReport }
 	): Promise<ethers.ContractTransaction[] | undefined> {
@@ -195,11 +196,19 @@ export class ReportPoller {
 			`Publishing proof of report ${poll.report.id} (hash: ${poll.hash})`
 		);
 		const brokerAddress = await this.signer.getAddress();
-		// this.reportHash = this.hashReport(report);
 		logger.info(`hashed report: ${poll.hash}`);
-		// sign the hash
+
+		// ? Create a Timestamp for Proof Of Report - Compatible with On-Chain Verification
+		// Tried using Streamr Message Timestamp, but hash/signature mechanism is difficult to replicate on-chain
+		const timestamp = Date.now();
+
+		// ? sign the hash + timestamp
+		// Signatures verified on-chain require proofTimestamp relative to the signature to be concatenated to Contract Params Hash
 		const signature = await this.signer.signMessage(
-			ethers.utils.arrayify(poll.hash)
+			new Uint8Array([
+				...ethers.utils.arrayify(poll.hash),
+				...ethers.utils.arrayify(timestamp),
+			])
 		);
 		logger.info(`signed report: ${signature}`);
 
@@ -208,6 +217,7 @@ export class ReportPoller {
 			address: brokerAddress,
 			signature,
 			hash: poll.hash,
+			timestamp,
 		});
 		await this.logStoreClient.publish(
 			this.systemStream,
@@ -251,6 +261,7 @@ export class ReportPoller {
 
 		const addressesParam = poll.proofs.map((proof) => proof.address);
 		const signaturesParam = poll.proofs.map((proof) => proof.signature);
+		const timestampsParam = poll.proofs.map((proof) => proof.timestamp);
 
 		const submitReportTx = await this.reportManager.report(
 			contractParams[0],
@@ -268,6 +279,7 @@ export class ReportPoller {
 			contractParams[12],
 			contractParams[13],
 			addressesParam,
+			timestampsParam,
 			signaturesParam
 		);
 		await submitReportTx.wait();

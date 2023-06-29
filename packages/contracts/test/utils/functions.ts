@@ -1,10 +1,15 @@
 import { ReportContractParams, SystemReport } from '@logsn/protocol';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import Wallet from 'ethereumjs-wallet';
-import { BigNumber, Contract, ContractTransaction, ethers } from 'ethers';
+import {
+	BigNumber,
+	Contract,
+	ContractTransaction,
+	ethers,
+	solidityKeccak256,
+} from 'ethers';
 import { ethers as hEthers, upgrades } from 'hardhat';
 
-import { getReportBlockBuffer } from '../../utils/functions';
 import ERC20 from './abi/ERC20.json';
 import {
 	// CONSUMER_ADDRESS,
@@ -14,6 +19,8 @@ import {
 	SAMPLE_STREAM_ID,
 	SAMPLE_WSS_URL,
 } from './constants';
+
+type ReportData = [...ReportContractParams, string[], number[], string[]];
 
 export const generateWallet = () => Wallet.generate().getAddressString();
 
@@ -161,10 +168,10 @@ export async function loadReportManager(
 		}
 	);
 
-	const reportBlockBuffer = await getReportBlockBuffer();
+	const reportTimeBuffer = 60; // seconds
 	const reportManagerContract = await upgrades.deployProxy(
 		reportManager,
-		[nodeManagerContract.address, reportBlockBuffer],
+		[nodeManagerContract.address, reportTimeBuffer],
 		{ unsafeAllowLinkedLibraries: true }
 	);
 	return reportManagerContract;
@@ -178,7 +185,7 @@ export async function generateReportData({
 	blockheight: number;
 	signer: SignerWithAddress;
 	bundleId: string;
-}): Promise<[...ReportContractParams, string[], string[]]> {
+}): Promise<ReportData> {
 	const nodeAddress = signer.address;
 	const signers = await hEthers.getSigners();
 	const consumer = signers[CONSUMER_INDEX].address.toLowerCase();
@@ -215,10 +222,22 @@ export async function generateReportData({
 
 	// ---- Include signatures in the report
 	const reportHash = SystemReport.toContractHash(reportContractParams);
-	const signature = await signer.signMessage(ethers.utils.arrayify(reportHash));
-	const reportData: [...ReportContractParams, string[], string[]] = [
+	const timestamp = Date.now();
+	const signature = await signer.signMessage(
+		solidityKeccak256(
+			['bytes'],
+			[
+				new Uint8Array([
+					...ethers.utils.arrayify(reportHash),
+					...ethers.utils.arrayify(timestamp),
+				]),
+			]
+		)
+	);
+	const reportData: ReportData = [
 		...reportContractParams,
 		[nodeAddress],
+		[timestamp],
 		[signature],
 	];
 

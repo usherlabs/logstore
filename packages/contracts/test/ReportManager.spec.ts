@@ -70,24 +70,7 @@ describe('ReportManager', async function () {
 
 		const responseTx = await reportManagerContract
 			.connect(sampleNode)
-			.functions.report(
-				reportData[0],
-				reportData[1],
-				reportData[2],
-				reportData[3],
-				reportData[4],
-				reportData[5],
-				reportData[6],
-				reportData[7],
-				reportData[8],
-				reportData[9],
-				reportData[10],
-				reportData[11],
-				reportData[12],
-				reportData[13],
-				reportData[14],
-				reportData[15]
-			);
+			.functions.report(...reportData);
 
 		// validate the string emmitted by the contract is correct
 		const { data: contractReportData } = await generateReportHash({
@@ -110,7 +93,7 @@ describe('ReportManager', async function () {
 
 		const responseTx = reportManagerContract
 			.connect(sampleNode)
-			.functions.report(...Object.values(reportData));
+			.functions.report(...reportData);
 
 		await expect(responseTx).to.be.revertedWith(
 			CUSTOM_EXCEPTIONS.STAKE_REQUIRED
@@ -145,7 +128,7 @@ describe('ReportManager', async function () {
 		// send a report
 		const responseTx = reportManagerContract
 			.connect(sampleNode)
-			.functions.report(...Object.values(reportData));
+			.functions.report(...reportData);
 
 		await expect(responseTx).to.be.revertedWith(
 			CUSTOM_EXCEPTIONS.QUORUM_NOT_MET
@@ -191,7 +174,7 @@ describe('ReportManager', async function () {
 
 		await reportManagerContract
 			.connect(currentNode)
-			.functions.report(...Object.values(reportData));
+			.functions.report(...reportData);
 		//  ---- set the right contracts for the nodemanager contract
 		const [preReportProcessBalance] = await token.functions.balanceOf(
 			nodeManagerContract.address

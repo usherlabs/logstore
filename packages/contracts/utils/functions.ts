@@ -95,25 +95,25 @@ export async function writeJSONToFileOutside(
 	fs.access(filePath, fs.constants.F_OK, (err) => {
 		if (err) {
 			// If the file does not exist, create it.
-			fs.writeFile(filePath, JSON.stringify(jsonData), (err) => {
-				if (err) {
-					console.error(err);
+			fs.writeFile(filePath, JSON.stringify(jsonData), (err2) => {
+				if (err2) {
+					console.error(err2);
 					return;
 				}
 				console.log(`JSON addresses data written to ${filePath}`);
 			});
 		} else {
 			// If the file already exists, append the JSON data to it.
-			fs.readFile(filePath, (err, data) => {
-				if (err) {
-					console.error(err);
+			fs.readFile(filePath, (err2, data) => {
+				if (err2) {
+					console.error(err2);
 					return;
 				}
 				const existingData = JSON.parse(data.toString());
 				const newData = Object.assign(existingData, jsonData);
-				fs.writeFile(filePath, JSON.stringify(newData, null, 2), (err) => {
-					if (err) {
-						console.error(err);
+				fs.writeFile(filePath, JSON.stringify(newData, null, 2), (err3) => {
+					if (err3) {
+						console.error(err3);
 						return;
 					}
 					console.log(`JSON addresses data appended to ${filePath}`);
@@ -136,12 +136,6 @@ export const getBlockTime = async () => {
 	avgBlockTime = avgBlockTime / 10;
 
 	return avgBlockTime;
-};
-
-export const getReportBlockBuffer = async () => {
-	const blockTime = await getBlockTime();
-	const reportBlockBuffer = Math.ceil(30000 / blockTime); // The number of blocks to wait between each reporter starting from the height of the report.
-	return reportBlockBuffer;
 };
 
 // const winstonToAr = (

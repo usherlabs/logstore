@@ -13,7 +13,7 @@ import {VerifySignature} from "./lib/VerifySignature.sol";
 import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 
 contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
-    uint256 public constant QUORUM_PRECISION = 10 ** 10;
+    uint256 public constant MATH_PRECISION = 10 ** 10;
 
     event ReportAccepted(string id);
     event Logger(bool isMet);
@@ -57,19 +57,19 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         _;
     }
 
-    uint256 public reportBlockBuffer;
+    uint256 public reportTimeBuffer;
     string internal lastReportId;
     mapping(address => uint256) internal reputationOf;
     mapping(string => Report) internal reports;
     LogStoreNodeManager private _nodeManager;
 
-    function initialize(address _owner, uint256 _reportBlockBuffer) public initializer {
+    function initialize(address _owner, uint256 _reportTimeBuffer) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
 
         _nodeManager = LogStoreNodeManager(_owner);
-        reportBlockBuffer = _reportBlockBuffer;
+        reportTimeBuffer = _reportTimeBuffer;
 
         transferOwnership(_owner);
     }
@@ -122,21 +122,29 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         address[][] calldata delegateNodes,
         int256[][] calldata delegateNodeChanges,
         int256 treasurySupplyChange,
-        // Arrays of addresses and signatures for verification
+        // Arrays of addresses, proofTimestamos, and signatures for verification of reporter & report data
         address[] calldata addresses,
+        uint256[] calldata proofTimestamps,
         bytes[] calldata signatures
     ) public onlyStaked {
+        require(reports[id]._processed == false, "error_reportAlreadyProcessed");
         require(blockHeight <= block.number && blockHeight > reports[lastReportId].height, "error_invalidReport");
+        require(
+            addresses.length * 3 == addresses.length + proofTimestamps.length + signatures.length,
+            "error_invalidProofs"
+        );
         require(quorumIsMet(addresses), "error_quorumNotMet");
 
         // validate that the appropriate reporters can submit reports based on the current block
         address[] memory orderedReportersList = getReporters();
+        uint256 meanProofTimestampWithPrecision = aggregateTimestamps(proofTimestamps);
         for (uint256 i = 0; i < orderedReportersList.length; i++) {
-            if (orderedReportersList[i] == msg.sender) {
+            if (orderedReportersList[i] == _msgSender()) {
                 // Ensure that the current block number > report generation block height + reporter block buffer
                 // Give the leading reporter a head-start to hydrate the report from foreign sources
                 require(
-                    block.number > i * reportBlockBuffer + (i > 0 ? reportBlockBuffer : 0) + blockHeight,
+                    block.timestamp * MATH_PRECISION >
+                        (i * reportTimeBuffer * MATH_PRECISION) + meanProofTimestampWithPrecision,
                     "error_invalidReporter"
                 );
                 break;
@@ -312,7 +320,10 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         // Verify signatures
         bool accepted = true;
         for (uint256 i = 0; i < addresses.length; i++) {
-            bool verified = VerifySignature.verify(addresses[i], reportHash, signatures[i]);
+            bytes32 proofHash = keccak256(
+                abi.encodePacked(bytes.concat(reportHash, abi.encodePacked(proofTimestamps[i])))
+            );
+            bool verified = VerifySignature.verify(addresses[i], proofHash, signatures[i]);
             if (verified != true) {
                 accepted = false;
                 break;
@@ -328,8 +339,8 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         // Adjust reputation of reporters
         bool leadReporterAdjusted = false;
         for (uint256 i = 0; i < orderedReportersList.length; i++) {
-            if (msg.sender == orderedReportersList[i]) {
-                reputationOf[msg.sender] += 10;
+            if (_msgSender() == orderedReportersList[i]) {
+                reputationOf[_msgSender()] += 10;
                 leadReporterAdjusted = true;
             } else if (leadReporterAdjusted == false) {
                 reputationOf[orderedReportersList[i]] -= reputationOf[orderedReportersList[i]] >= 5
@@ -349,12 +360,12 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
     function quorumIsMet(address[] memory submittedNodes) public view returns (bool isMet) {
         uint256 count;
         address[] memory existingNodes = _nodeManager.nodeAddresses();
-        uint256 minCount = (existingNodes.length * QUORUM_PRECISION) / 2;
+        uint256 minCount = (existingNodes.length * MATH_PRECISION) / 2;
 
         for (uint256 i = 0; i < existingNodes.length; i++) {
             for (uint256 j = 0; j < submittedNodes.length; j++) {
                 if (existingNodes[i] == submittedNodes[j]) {
-                    count += 1 * QUORUM_PRECISION;
+                    count += 1 * MATH_PRECISION;
                     break;
                 }
             }
@@ -363,5 +374,17 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                 break;
             }
         }
+    }
+
+    /**
+     * Accepts an array of timestamps and evaluates the mean timestamp with precision
+     */
+    function aggregateTimestamps(uint256[] memory timestamps) public pure returns (uint256) {
+        uint256 sum;
+        for (uint256 i = 0; i < timestamps.length; i++) {
+            sum += timestamps[i] * MATH_PRECISION;
+        }
+        uint256 mean = sum / timestamps.length;
+        return mean;
     }
 }

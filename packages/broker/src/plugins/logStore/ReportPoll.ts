@@ -64,6 +64,7 @@ export class ReportPoll {
 		this.runProcess();
 	}
 
+	// Called on each proof reception
 	private runProcess(isFinal: boolean = false) {
 		if (!this.report) {
 			if (isFinal) {
