@@ -38,7 +38,7 @@ export class ReportSeralizerV1 extends ReportSerializer {
 		if (payload.events) {
 			events = {
 				queries: payload.events.queries,
-				storage: payload.events.queries.map((p) => ({
+				storage: payload.events.storage.map((p) => ({
 					...p,
 					id: hexUtils.strToHex(p.id),
 				})),
@@ -86,7 +86,7 @@ export class ReportSeralizerV1 extends ReportSerializer {
 		if (payload.events) {
 			events = {
 				queries: payload.events.queries,
-				storage: payload.events.queries.map((p) => ({
+				storage: payload.events.storage.map((p) => ({
 					...p,
 					id: hexUtils.hexToStr(p.id),
 				})),
@@ -115,41 +115,12 @@ export class ReportSeralizerV1 extends ReportSerializer {
 	}
 
 	toJSON(payload: IReportV1 | IReportV1Serialized): string {
-		let report = payload as IReportV1;
-		if (payload.s === true) {
-			report = this.deserialize(payload as IReportV1Serialized);
+		let report = payload as IReportV1Serialized;
+		if (payload.s !== true) {
+			report = this.serialize(payload as IReportV1);
 		}
-		const nodes: Record<string, bigint> = {};
-		Object.entries(report.nodes).forEach(([address, value]) => {
-			nodes[address] = value.toBigInt();
-		});
 
-		const delegates: Record<string, Record<string, bigint>> = {};
-		Object.entries(report.delegates).forEach(([delAddress, records]) => {
-			if (typeof delegates[delAddress] === 'undefined') {
-				delegates[delAddress] = {};
-			}
-			Object.entries(records).forEach(([nodeAddress, value]) => {
-				delegates[delAddress][nodeAddress] = value.toBigInt();
-			});
-		});
-
-		const json = {
-			...report,
-			treasury: report.treasury.toBigInt(),
-			streams: report.streams.map((p) => ({
-				...p,
-				capture: p.capture.toBigInt(),
-			})),
-			consumers: report.consumers.map((p) => ({
-				...p,
-				capture: p.capture.toBigInt(),
-			})),
-			nodes,
-			delegates,
-		};
-
-		return JSON.stringify(json);
+		return JSON.stringify(report);
 	}
 
 	toContract(payload: IReportV1 | IReportV1Serialized): ReportContractParams {
@@ -182,6 +153,7 @@ export class ReportSeralizerV1 extends ReportSerializer {
 		const params: ReportContractParams = [
 			report.id,
 			report.height,
+			treasurySupplyChange,
 			streams,
 			writeCaptureAmounts,
 			writeBytes,
@@ -193,7 +165,6 @@ export class ReportSeralizerV1 extends ReportSerializer {
 			delegates,
 			delegateNodes,
 			delegateNodeChanges,
-			treasurySupplyChange,
 		];
 
 		return params;

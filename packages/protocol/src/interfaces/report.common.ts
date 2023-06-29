@@ -9,6 +9,8 @@ export type ReportContractParams = [
 	string,
 	// blockHeight
 	number,
+	// treasurySupplyChange,
+	bigint,
 	// streams
 	string[],
 	// writeCaptureAmounts
@@ -30,9 +32,7 @@ export type ReportContractParams = [
 	// delegateNodes,
 	string[][],
 	// delegateNodeChanges,
-	bigint[][],
-	// treasurySupplyChange,
-	bigint
+	bigint[][]
 ];
 
 // export type ReportContractParams = [

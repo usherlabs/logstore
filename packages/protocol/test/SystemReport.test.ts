@@ -63,58 +63,6 @@ const PAYLOAD: IReportV1 = {
 	},
 };
 
-const PAYLOAD_JSON = `{
-  "s": false,
-  "v": 1,
-  "id": "1687874606",
-  "height": 1295,
-  "treasury": 0,
-  "streams": [
-    {
-      "id": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/heartbeat",
-      "capture": 49462093025057900000000000,
-      "bytes": 49542
-    }
-  ],
-  "consumers": [
-    {
-      "id": "0x3c9ef7f26d7c1de4e67580cdb26a10f9b9a8b8c8",
-      "capture": 222839997642262000000000,
-      "bytes": 4464
-    }
-  ],
-  "nodes": {
-    "0x5e98df807C09a91557D8B3161f2D01852fb005B9": 49462093025057900000000000
-  },
-  "delegates": {
-    "0x5e98df807C09a91557D8B3161f2D01852fb005B9": {
-      "0x5e98df807C09a91557D8B3161f2D01852fb005B9": 49462093025057900000000000
-    }
-  },
-  "events": {
-    "queries": [
-      {
-        "id": "0x5e98df807C09a91557D8B3161f2D01852fb005B9",
-        "hash": "helloworld_query",
-        "size": 4464,
-        "query": {
-          "from": {
-            "timestamp": 91923091823
-          }
-        },
-        "consumer": "0x3c9ef7f26d7c1de4e67580cdb26a10f9b9a8b8c8"
-      }
-    ],
-    "storage": [
-      {
-        "id": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/heartbeat",
-        "hash": "helloworld_storage",
-        "size": 49542
-      }
-    ]
-  }
-}`;
-
 const PAYLOAD_SERIALIZED: IReportV1Serialized = {
 	s: true,
 	v: 1,
@@ -166,18 +114,18 @@ const PAYLOAD_SERIALIZED: IReportV1Serialized = {
 const PAYLOAD_CONTRACT = [
 	'1687874606',
 	1295,
-	0,
+	BigInt('0'),
 	['0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/heartbeat'],
-	[BigInt(49462093025057900000000000)],
+	[BigInt('49462093025057900000000000')],
 	[49542],
 	['0x3c9ef7f26d7c1de4e67580cdb26a10f9b9a8b8c8'],
-	[BigInt(222839997642262000000000)],
+	[BigInt('222839997642262000000000')],
 	[4464],
 	['0x5e98df807C09a91557D8B3161f2D01852fb005B9'],
-	[BigInt(49462093025057900000000000)],
+	[BigInt('49462093025057900000000000')],
 	['0x5e98df807C09a91557D8B3161f2D01852fb005B9'],
 	[['0x5e98df807C09a91557D8B3161f2D01852fb005B9']],
-	[[BigInt(49462093025057900000000000)]],
+	[[BigInt('49462093025057900000000000')]],
 ];
 
 describe('SystemReport', () => {
@@ -223,16 +171,20 @@ describe('SystemReport', () => {
 	});
 
 	describe('serialize', () => {
-		it('should produce serialize', () => {
-			console.log(systemReport.serialize());
-			assert.strictEqual(systemReport.serialize(), PAYLOAD_SERIALIZED);
+		it('should serialize the default payload', () => {
+			// console.log(systemReport.serialize());
+			assert.deepStrictEqual(systemReport.serialize(), PAYLOAD_SERIALIZED);
 		});
 		it('should produce contract JSON', () => {
-			assert.strictEqual(systemReport.toJSON(), PAYLOAD_JSON);
+			assert.deepStrictEqual(
+				systemReport.toJSON(),
+				JSON.stringify(PAYLOAD_SERIALIZED)
+			);
 		});
 		it('should produce contract params', () => {
-			console.log(systemReport.toContract());
-			assert.strictEqual(systemReport.toContract(), PAYLOAD_CONTRACT);
+			// console.log('systemReport.toContract', systemReport.toContract());
+			// console.log('PAYLOAD_CONTRACT', PAYLOAD_CONTRACT);
+			assert.deepStrictEqual(systemReport.toContract(), PAYLOAD_CONTRACT);
 		});
 	});
 
@@ -243,13 +195,16 @@ describe('SystemReport', () => {
 		});
 
 		it('should use seralized payload to produce deseralized payload', () => {
-			assert.strictEqual(systemReport2.deserialize(), PAYLOAD);
+			assert.deepStrictEqual(systemReport2.deserialize(), PAYLOAD);
 		});
 		it('should use deserialized payload to produce JSON', () => {
-			assert.strictEqual(systemReport2.toJSON(), PAYLOAD_JSON);
+			assert.deepStrictEqual(
+				systemReport2.toJSON(),
+				JSON.stringify(PAYLOAD_SERIALIZED)
+			);
 		});
 		it('should use deserialized payload to contract params', () => {
-			assert.strictEqual(systemReport2.toContract(), PAYLOAD_CONTRACT);
+			assert.deepStrictEqual(systemReport2.toContract(), PAYLOAD_CONTRACT);
 		});
 	});
 
