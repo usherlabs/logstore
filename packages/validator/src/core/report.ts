@@ -1,10 +1,8 @@
 import { sha256 } from '@kyvejs/protocol';
 import {
 	IReportV1,
-	QueryOptions,
 	ReportSerializerVersions,
 	SystemMessageType,
-	SystemReport,
 } from '@logsn/protocol';
 import { BigNumber } from 'ethers';
 
@@ -67,6 +65,44 @@ export class Report extends AbstractDataItem<IPrepared> {
 			stakeToken,
 			brokerNodes,
 		};
+	}
+
+	private sort(source: IReportV1): IReportV1 {
+		const result: IReportV1 = {
+			s: false,
+			v: ReportSerializerVersions.V1,
+			id: source.id,
+			height: source.height,
+			treasury: source.treasury,
+			streams: source.streams.sort((a, b) => a.id.localeCompare(b.id)),
+			consumers: source.consumers.sort((a, b) => a.id.localeCompare(b.id)),
+			nodes: {},
+			delegates: {},
+			events: {
+				queries: source.events.queries.sort((a, b) =>
+					a.hash.localeCompare(b.hash)
+				),
+				storage: source.events.storage.sort((a, b) =>
+					a.hash.localeCompare(b.hash)
+				),
+			},
+		};
+
+		const nodeKeys = Object.keys(source.nodes).sort((a, b) =>
+			a.localeCompare(b)
+		);
+		for (const key of nodeKeys) {
+			result.nodes[key] = source.nodes[key];
+		}
+
+		const delegateKeys = Object.keys(source.delegates).sort((a, b) =>
+			a.localeCompare(b)
+		);
+		for (const key of delegateKeys) {
+			result.delegates[key] = source.delegates[key];
+		}
+
+		return result;
 	}
 
 	public async generate(): Promise<IReportV1> {
@@ -268,7 +304,9 @@ export class Report extends AbstractDataItem<IPrepared> {
 			totalBytes += bytes;
 			return totalBytes;
 		}, 0);
-		const expense = await Arweave.getPrice(totalBytesStored, toKeyMs);
+		const expense = BigNumber.from(
+			await Arweave.getPrice(totalBytesStored, toKeyMs)
+		);
 		const expensePerByteStored = expense.div(totalBytesStored);
 		const writeFee = expensePerByteStored.mul(fees.writeMultiplier);
 		const writeTreasuryFee = writeFee
@@ -376,30 +414,30 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// ------------ FEE CONVERSION ------------
 		// Convert fees to stake token
 		for (const stream of report.streams) {
-			result.streams.push({
+			report.streams.push({
 				id: stream.id,
-				capture: await stakeToken.fromUSD(stream.capture, toKeyMs),
+				capture: await stakeToken.fromUSD(stream.capture.toNumber(), toKeyMs),
 				bytes: stream.bytes,
 			});
 		}
 		for (const consumer of report.consumers) {
-			result.consumers.push({
+			report.consumers.push({
 				id: consumer.id,
-				capture: await stakeToken.fromUSD(consumer.capture, toKeyMs),
+				capture: await stakeToken.fromUSD(consumer.capture.toNumber(), toKeyMs),
 				bytes: consumer.bytes,
 			});
 		}
 		for (const nodeKey of Object.keys(report.nodes)) {
-			result.nodes[nodeKey] = await stakeToken.fromUSD(
-				report.nodes[nodeKey],
+			report.nodes[nodeKey] = await stakeToken.fromUSD(
+				report.nodes[nodeKey].toNumber(),
 				toKeyMs
 			);
 		}
 		for (const delegateKey of Object.keys(report.delegates)) {
-			result.delegates[delegateKey] = {};
+			report.delegates[delegateKey] = {};
 			for (const nodeKey of Object.keys(report.delegates[delegateKey])) {
-				result.delegates[delegateKey][nodeKey] = await stakeToken.fromUSD(
-					report.delegates[delegateKey][nodeKey],
+				report.delegates[delegateKey][nodeKey] = await stakeToken.fromUSD(
+					report.delegates[delegateKey][nodeKey].toNumber(),
 					toKeyMs
 				);
 			}
@@ -407,8 +445,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// ------------ END FEE CONVERSION ------------
 		// -------------------------------------
 
-		core.logger.debug('Report Generated', result);
+		core.logger.debug('Report Generated', report);
 
-		return this.sort(result);
+		return this.sort(report);
 	}
 }
