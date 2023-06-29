@@ -11,7 +11,7 @@ export const convertFromUsd = async (
 	amount: number,
 	signer: Signer,
 	timestamp: number
-) => {
+): Promise<bigint> => {
 	const stakeTokenContract = LSAN__factory.connect(stakeTokenAddress, signer);
 	const stakeTokenSymbol = await stakeTokenContract.symbol();
 	const stakeTokenDecimals = await stakeTokenContract.decimals();
@@ -26,12 +26,10 @@ export const convertFromUsd = async (
 		logger.warn(`Cannot get price of ${stakeTokenSymbol} from RedStone`);
 	}
 	const amountInUSD = amount / price;
-	amount = Math.floor(
-		parseInt(
-			ethers.utils.parseUnits(`${amountInUSD}`, stakeTokenDecimals).toString(),
-			10
-		)
+	const resAmount = ethers.utils.parseUnits(
+		`${amountInUSD}`,
+		stakeTokenDecimals
 	);
 
-	return amount;
+	return resAmount.toBigInt();
 };

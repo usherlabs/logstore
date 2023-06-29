@@ -1,6 +1,9 @@
 import { LogStoreReportManager } from '@logsn/contracts';
-
-import { IReport } from '../types';
+import {
+	IReportV1,
+	ReportSerializerVersions,
+	SystemReport,
+} from '@logsn/protocol';
 
 export class ReportManager {
 	constructor(private _contract: LogStoreReportManager) {}
@@ -9,7 +12,7 @@ export class ReportManager {
 		return this._contract;
 	}
 
-	async getLastReport() {
+	async getLastReport(): Promise<SystemReport> {
 		const r = await this.contract.getLastReport();
 
 		const nodes = {};
@@ -25,7 +28,9 @@ export class ReportManager {
 			delegates[d.id.toString()] = dNodes;
 		});
 
-		const report: IReport = {
+		const report: IReportV1 = {
+			s: false,
+			v: ReportSerializerVersions.V1,
 			id: r.id,
 			height: r.height.toNumber(),
 			treasury: r.treasury,
@@ -43,6 +48,44 @@ export class ReportManager {
 			delegates,
 		};
 
-		return report;
+		return new SystemReport(report);
+	}
+
+	sort(source: IReportV1): IReportV1 {
+		const result: IReportV1 = {
+			s: false,
+			v: ReportSerializerVersions.V1,
+			id: source.id,
+			height: source.height,
+			treasury: source.treasury,
+			streams: source.streams.sort((a, b) => a.id.localeCompare(b.id)),
+			consumers: source.consumers.sort((a, b) => a.id.localeCompare(b.id)),
+			nodes: {},
+			delegates: {},
+			events: {
+				queries: source.events.queries.sort((a, b) =>
+					a.hash.localeCompare(b.hash)
+				),
+				storage: source.events.storage.sort((a, b) =>
+					a.hash.localeCompare(b.hash)
+				),
+			},
+		};
+
+		const nodeKeys = Object.keys(source.nodes).sort((a, b) =>
+			a.localeCompare(b)
+		);
+		for (const key of nodeKeys) {
+			result.nodes[key] = source.nodes[key];
+		}
+
+		const delegateKeys = Object.keys(source.delegates).sort((a, b) =>
+			a.localeCompare(b)
+		);
+		for (const key of delegateKeys) {
+			result.delegates[key] = source.delegates[key];
+		}
+
+		return result;
 	}
 }

@@ -5,11 +5,10 @@ import type {
 	QueryRequest,
 	QueryResponse,
 } from '@logsn/protocol';
+import { BigNumber } from 'ethers';
 
 import type { SystemListener, TimeIndexer } from '../threads';
 import type Validator from '../validator';
-
-export type { IReport, ReportEvent } from '@logsn/shared';
 
 export interface IRuntimeExtended extends IRuntime {
 	listener: SystemListener;
@@ -34,8 +33,8 @@ export interface IBrokerNode {
 	lastSeen: number;
 	next: string;
 	prev: string;
-	stake: number;
-	delegates: Record<string, number>;
+	stake: BigNumber;
+	delegates: Record<string, BigNumber>;
 }
 
 export type StreamrMessage = {
