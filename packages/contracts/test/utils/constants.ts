@@ -63,5 +63,6 @@ export const CUSTOM_EXCEPTIONS = {
 	QUORUM_NOT_MET: 'error_quorumNotMet',
 };
 
-export const REPORT_TIME_BUFFER = 100; // 100 milliseconds
+// Reconfigure this REPORT_TIME_BUFFER to evaluate how the Contract responds to Node report submissions.
+export const REPORT_TIME_BUFFER = 1000;
 // // 60 * 1000; // milliseconds;

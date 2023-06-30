@@ -72,6 +72,28 @@ describe('ReportManager', async function () {
 		expect(uniqueReports.length).to.be.equal(uniqueNodes.length);
 	});
 
+	it('ReportManager ---- Invalid Reporter Node cannot submit report', async function () {
+		const sampleNode = activeNodes[1];
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: sampleNode,
+		});
+
+		const { payload } = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
+
+		const responseTx = reportManagerContract
+			.connect(sampleNode)
+			.functions.report(...payload);
+
+		await expect(responseTx).to.be.revertedWith(
+			CUSTOM_EXCEPTIONS.INVALID_REPORTER
+		);
+	});
+
 	it('ReportManager ---- Staked Node can submit report', async function () {
 		const sampleNode = activeNodes[0];
 		const reportData = await generateReportData({
@@ -129,12 +151,11 @@ describe('ReportManager', async function () {
 			buffer: REPORT_TIME_BUFFER,
 		});
 
-		// await sleep(
-		// 	reporterIndex * REPORT_TIME_BUFFER +
-		// 		(blockTimestamp > meanTimestamp ? blockTimestamp - meanTimestamp : 0)
-		// );
-		// console.log('Slept until: ', Date.now());
-		// console.log('Slept until: ', Date.now());
+		if (reporterIndex * REPORT_TIME_BUFFER + meanTimestamp > meanTimestamp) {
+			console.log('Sleeping until signer can submit report...');
+			await sleep(reporterIndex * REPORT_TIME_BUFFER);
+			console.log('Slept until: ', Date.now());
+		}
 
 		const responseTx = await reportManagerContract
 			.connect(sampleNode)
@@ -142,28 +163,6 @@ describe('ReportManager', async function () {
 
 		const event = await fetchEventArgsFromTx(responseTx, 'ReportAccepted');
 		expect(event?.id).to.be.equal(reportData.report.id);
-	});
-
-	it('ReportManager ---- Invalid Reporter Node cannot submit report', async function () {
-		const sampleNode = activeNodes[1];
-		const reportData = await generateReportData({
-			bundleId: '75',
-			blockheight: blockHeight,
-			signer: sampleNode,
-		});
-
-		const { payload } = await generateContractReportPayload(
-			activeNodes,
-			reportData.systemReport
-		);
-
-		const responseTx = reportManagerContract
-			.connect(sampleNode)
-			.functions.report(...payload);
-
-		await expect(responseTx).to.be.revertedWith(
-			CUSTOM_EXCEPTIONS.INVALID_REPORTER
-		);
 	});
 
 	it('ReportManager ---- un-staked Node cannot submit report', async function () {

@@ -11,12 +11,18 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 import {LogStoreNodeManager} from "./NodeManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
 import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
+import {AdminUpgradeable} from "./admin/AdminUpgradeable.sol";
 
-contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract LogStoreReportManager is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    AdminUpgradeable,
+    ReentrancyGuardUpgradeable
+{
     uint256 public constant MATH_PRECISION = 10 ** 10;
 
     event ReportAccepted(string id);
-    event Logger(bool isMet);
 
     struct Consumer {
         address id;
@@ -58,24 +64,40 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
     }
 
     uint256 public reportTimeBuffer;
+    uint256 public reportTimeAcceptedDeviation;
     mapping(address => uint256) public reputationOf;
     string internal lastReportId;
     mapping(string => Report) internal reports;
     LogStoreNodeManager private _nodeManager;
 
-    function initialize(address _owner, uint256 _reportTimeBuffer) public initializer {
+    function initialize(
+        address _admin,
+        address _owner,
+        uint256 _reportTimeBuffer,
+        uint256 _reportTimeAcceptedDeviation
+    ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
 
         _nodeManager = LogStoreNodeManager(_owner);
         reportTimeBuffer = _reportTimeBuffer;
+        reportTimeAcceptedDeviation = _reportTimeAcceptedDeviation; // A variable taht
 
+        transferAdmin(_admin);
         transferOwnership(_owner);
     }
 
     /// @dev required by the OZ UUPS module
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    function _authorizeUpgrade(address) internal override onlyAdmin {}
+
+    function setReportTimeBuffer(uint256 _reportTimeBuffer) onlyAdmin {
+        reportTimeBuffer = _reportTimeBuffer;
+    }
+
+    function setReportTimeAcceptedDeviation(uint256 _reportTimeAcceptedDeviation) onlyAdmin {
+        reportTimeAcceptedDeviation = _reportTimeAcceptedDeviation;
+    }
 
     function getReport(string calldata id) public view returns (Report memory) {
         return reports[id];
@@ -211,18 +233,19 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
 
         // validate that the current reporter can submit the report based on the current block.timestamp and verified proofTimestamps
         address[] memory orderedReportersList = getReporters();
-        uint256 meanProofTimestampWithPrecision = aggregateTimestamps(proofTimestamps);
+
+        uint256(meanProofTimestampWithPrecision, badIndexes) = aggregateTimestamps(proofTimestamps);
         for (uint256 i = 0; i < orderedReportersList.length; i++) {
             if (orderedReportersList[i] == _msgSender()) {
                 // Ensure that the current block number > report generation block height + reporter block buffer
                 // Give the leading reporter a head-start to hydrate the report from foreign sources
                 // Ensure that block timestamp is in milliseconds before precision
-                uint256 blockTimestamp = block.timestamp * 1000 * MATH_PRECISION;
+                // uint256 blockTimestamp = block.timestamp * 1000 * MATH_PRECISION;
                 uint256 reporterUnlockTimestamp = i *
                     reportTimeBuffer *
                     MATH_PRECISION +
                     meanProofTimestampWithPrecision;
-                require(blockTimestamp > reporterUnlockTimestamp, "error_invalidReporter");
+                require(reporterUnlockTimestamp > meanProofTimestampWithPrecision, "error_invalidReporter"); // require that the reporter's unlock time > mean time of proofs
                 break;
             }
         }
@@ -286,12 +309,36 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
     /**
      * Accepts an array of timestamps and evaluates the mean timestamp with precision
      */
-    function aggregateTimestamps(uint256[] memory timestamps) public pure returns (uint256) {
+    function aggregateTimestamps(uint256[] memory timestamps) public pure returns (uint256, bool[]) {
         uint256 sum;
         for (uint256 i = 0; i < timestamps.length; i++) {
             sum += timestamps[i] * MATH_PRECISION;
         }
         uint256 mean = sum / timestamps.length;
-        return mean;
+
+        // Use the mean of the full pool of timestamps to evaluate massive deviations
+        bool badIndexes = new bool[](timestamps.length);
+        uint badIndexCount = 0;
+        sum = 0;
+        for (uint256 i = 0; i < timestamps.length; i++) {
+            uint256 preciseTs = timestamps[i] * MATH_PRECISION;
+            int256 deviation = abs(mean - preciseTs);
+            if (deviation > reportTimeAcceptedDeviation) {
+                badIndexes[i] = true;
+                badIndexCount++;
+            } else {
+                sum += preciseTs;
+            }
+        }
+        uint256 denom = timestamps.length - badIndexCount;
+        if (denom != 0) {
+            mean = sum / denom;
+        }
+
+        return (mean, badIndexes);
+    }
+
+    function abs(int x) private pure returns (int) {
+        return x >= 0 ? x : -x;
     }
 }

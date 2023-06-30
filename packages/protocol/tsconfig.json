@@ -101,5 +101,7 @@
 		"skipLibCheck": true,
 		"suppressImplicitAnyIndexErrors": true
 	},
-	"exclude": ["dist"]
+	"exclude": ["dist"],
+	"include": ["./test", "./src", "./scripts"],
+	"files": ["./hardhat.config.ts"]
 }
