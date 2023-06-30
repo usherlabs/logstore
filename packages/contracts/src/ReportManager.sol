@@ -142,8 +142,9 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             if (orderedReportersList[i] == _msgSender()) {
                 // Ensure that the current block number > report generation block height + reporter block buffer
                 // Give the leading reporter a head-start to hydrate the report from foreign sources
+                // Ensure that block timestamp is in milliseconds before precision
                 require(
-                    block.timestamp * MATH_PRECISION >
+                    block.timestamp * 1000 * MATH_PRECISION >
                         (i * reportTimeBuffer * MATH_PRECISION) + meanProofTimestampWithPrecision,
                     "error_invalidReporter"
                 );
@@ -315,15 +316,11 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             _processed: false
         });
 
-        bytes32 reportHash = keccak256(abi.encodePacked(rawHashParam));
-
         // Verify signatures
         bool accepted = true;
         for (uint256 i = 0; i < addresses.length; i++) {
-            bytes32 proofHash = keccak256(
-                abi.encodePacked(bytes.concat(reportHash, abi.encodePacked(proofTimestamps[i])))
-            );
-            bool verified = VerifySignature.verify(addresses[i], proofHash, signatures[i]);
+            bytes32 timeBasedOneTimeHash = keccak256(abi.encodePacked(rawHashParam, proofTimestamps[i]));
+            bool verified = VerifySignature.verify(addresses[i], timeBasedOneTimeHash, signatures[i]);
             if (verified != true) {
                 accepted = false;
                 break;

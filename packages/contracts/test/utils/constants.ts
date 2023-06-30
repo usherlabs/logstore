@@ -58,6 +58,10 @@ export const CUSTOM_EXCEPTIONS = {
 	INSUFFICIENT_DELEGATE_AMOUNT: 'error_insufficientDelegateAmount',
 	NONE_EXISTENT_NODE: 'error_invalidNode',
 	INVALID_REPORT: 'error_invalidReport',
+	INVALID_REPORTER: 'error_invalidReporter',
 	STAKE_REQUIRED: 'error_stakeRequired',
 	QUORUM_NOT_MET: 'error_quorumNotMet',
 };
+
+export const REPORT_TIME_BUFFER = 100; // 100 milliseconds
+// // 60 * 1000; // milliseconds;

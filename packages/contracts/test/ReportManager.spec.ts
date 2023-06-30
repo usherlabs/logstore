@@ -7,14 +7,15 @@ import {
 	CUSTOM_EXCEPTIONS,
 	NODE_MANAGER,
 	REPORT_MANAGER_EVENTS,
+	REPORT_TIME_BUFFER,
 	SAMPLE_STREAM_ID,
 	SAMPLE_WSS_URL,
 } from './utils/constants';
 import {
 	ApproveFundsForContract,
 	fetchEventArgsFromTx,
+	generateContractReportPayload,
 	generateReportData,
-	generateReportHash,
 	getDecimalBN,
 	getERC20Token,
 	getLatestBlockNumber,
@@ -22,6 +23,7 @@ import {
 	loadReportManager,
 	loadStoreManager,
 	setupNodeManager,
+	sleep,
 } from './utils/functions';
 
 describe('ReportManager', async function () {
@@ -68,17 +70,92 @@ describe('ReportManager', async function () {
 			signer: sampleNode,
 		});
 
+		const payload = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
+
+		const activeAddresses = [
+			// Dedupe the array of addresses
+			...new Set([
+				...NODE_MANAGER.INITIAL_NODES,
+				...activeNodes.map((n) => n.address),
+			]),
+		];
+
+		// console.log(
+		// 	'payload',
+		// 	payload[payload.length - 1],
+		// 	payload[payload.length - 2],
+		// 	payload[payload.length - 3]
+		// );
+		// console.log(
+		// 	`Calling Address ${sampleNode.address}`,
+		// 	'Payload Addresses:',
+		// 	payload[payload.length - 3],
+		// 	'Payload Timestamps:',
+		// 	payload[payload.length - 2],
+		// 	`Now: ${Date.now()}`
+		// );
+		// console.log(
+		// 	'activeNodes',
+		// 	activeNodes.map((n) => n.address)
+		// );
+
+		const [reporters] = await reportManagerContract.functions.getReporters();
+
+		const totalNodes = await nodeManagerContract.functions.totalNodes();
+		expect(
+			Number(totalNodes),
+			'Total nodes should equal activeNodes'
+		).to.be.equal(activeAddresses.length);
+		expect(
+			payload[payload.length - 1].length,
+			'expect signature length to be length of activeNodes'
+		).to.be.equal(activeNodes.length);
+
+		// ? Sleep for the report buffer time
+		// Find node in reporters list
+		const reporterIndex = reporters.findIndex(
+			(addr: string) => addr === sampleNode.address
+		);
+		console.log('Reporters Overview:', {
+			reporters,
+			reporter: sampleNode.address,
+			reporterIndex,
+			sleepTime: reporterIndex * REPORT_TIME_BUFFER,
+			buffer: REPORT_TIME_BUFFER,
+		});
+		await sleep(reporterIndex * REPORT_TIME_BUFFER + 5);
+
 		const responseTx = await reportManagerContract
 			.connect(sampleNode)
-			.functions.report(...reportData);
+			.functions.report(...payload);
 
-		// validate the string emmitted by the contract is correct
-		const { data: contractReportData } = await generateReportHash({
-			signer: sampleNode,
-			blockheight: blockHeight,
-		});
 		const event = await fetchEventArgsFromTx(responseTx, 'ReportAccepted');
-		expect(event?.id).to.be.equal(contractReportData.id);
+		expect(event?.id).to.be.equal(reportData.report.id);
+	});
+
+	it('ReportManager ---- Staked Node is an invalid reporter', async function () {
+		const sampleNode = activeNodes[1];
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: sampleNode,
+		});
+
+		const payload = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
+
+		const responseTx = await reportManagerContract
+			.connect(sampleNode)
+			.functions.report(...payload);
+
+		await expect(responseTx).to.be.revertedWith(
+			CUSTOM_EXCEPTIONS.INVALID_REPORTER
+		);
 	});
 
 	it('ReportManager ---- un-staked Node cannot submit report', async function () {
@@ -91,9 +168,14 @@ describe('ReportManager', async function () {
 			signer: sampleNode,
 		});
 
+		const payload = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
+
 		const responseTx = reportManagerContract
 			.connect(sampleNode)
-			.functions.report(...reportData);
+			.functions.report(...payload);
 
 		await expect(responseTx).to.be.revertedWith(
 			CUSTOM_EXCEPTIONS.STAKE_REQUIRED
@@ -107,6 +189,12 @@ describe('ReportManager', async function () {
 			blockheight: blockHeight,
 			signer: sampleNode,
 		});
+
+		// Produce a payload with a single signer
+		const payload = await generateContractReportPayload(
+			[sampleNode],
+			reportData.systemReport
+		);
 
 		// add more nodes to the network, such that requiredNodes > 1 and joinedNodes > 3
 		await Promise.all(
@@ -128,7 +216,7 @@ describe('ReportManager', async function () {
 		// send a report
 		const responseTx = reportManagerContract
 			.connect(sampleNode)
-			.functions.report(...reportData);
+			.functions.report(...payload);
 
 		await expect(responseTx).to.be.revertedWith(
 			CUSTOM_EXCEPTIONS.QUORUM_NOT_MET
@@ -145,10 +233,11 @@ describe('ReportManager', async function () {
 			blockheight: blockHeight,
 			signer: currentNode,
 		});
-		const { data: reportJson } = await generateReportHash({
-			signer: currentNode,
-			blockheight: blockHeight,
-		});
+		// Produce a payload with a single signer
+		const payload = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
 
 		// ---------------------------------------------- submit a report
 		// ---- stake for the user in both query manager and store manager
@@ -174,7 +263,7 @@ describe('ReportManager', async function () {
 
 		await reportManagerContract
 			.connect(currentNode)
-			.functions.report(...reportData);
+			.functions.report(...payload);
 		//  ---- set the right contracts for the nodemanager contract
 		const [preReportProcessBalance] = await token.functions.balanceOf(
 			nodeManagerContract.address
@@ -182,27 +271,27 @@ describe('ReportManager', async function () {
 		// ---- process the actual report
 		const processReportTx = await nodeManagerContract
 			.connect(currentNode)
-			.functions.processReport(reportData[0]);
+			.functions.processReport(reportData.report.id);
 		// ---------------------------------------------- submit a report
 		// ---------------------------------------------- verify the report
 		const event = await fetchEventArgsFromTx(
 			processReportTx,
 			REPORT_MANAGER_EVENTS.REPORT_PROCESSED
 		);
-		expect(event?.id).to.equal(reportData[0]);
+		expect(event?.id).to.equal(reportData.report.id);
 
 		// validate store manager capture funds
-		const consumerCapture = reportJson.streams[0].capture;
+		const consumerCapture = reportData.report.streams[0].capture;
 		const consumerBalance = await storeManagerContract.functions.balanceOf(
 			consumerSigner.address
 		);
 		const [consumerStreamBalance] =
 			await storeManagerContract.functions.storeBalanceOf(
 				consumerSigner.address,
-				reportData[2][0] // streams first element
+				reportData.report.streams[0]
 			);
 		const [streamStoreBalance] = await storeManagerContract.functions.stores(
-			reportData[2][0] // streams first element
+			reportData.report.streams[0]
 		);
 
 		const [storeManagertotalSupply] =
@@ -215,7 +304,7 @@ describe('ReportManager', async function () {
 		// validate store manager capture funds
 
 		// validate query manager capture function
-		const totalReadCapture = reportJson.consumers[0].capture;
+		const totalReadCapture = reportData.report.consumers[0].capture;
 		const [queryUserBalance] = await queryManagerContract.functions.balanceOf(
 			consumerSigner.address
 		);
@@ -227,16 +316,14 @@ describe('ReportManager', async function () {
 		// validate query manager capture function
 
 		// validate nodes
-		const nodeAddress = reportData[8][0]; // Nodes first element
-		const nodeAddressKey = nodeAddress.toLowerCase();
-		const allNodes: Record<string, number> = reportJson.nodes;
-		const allDelegates: Record<
-			string,
-			Record<string, number>
-		> = reportJson.delegates;
+		const nodeAddress = Object.keys(reportData.report.nodes); // Nodes first element
+		const nodeAddressKey = nodeAddress[0].toLowerCase();
+		const allNodes: Record<string, number> = reportData.report.nodes;
+		const allDelegates: Record<string, Record<string, number>> = reportData
+			.report.delegates;
 		const nodeIncrement = allNodes[nodeAddressKey];
 		const foundNode = await nodeManagerContract.functions.nodes(
-			reportData[8][0] // Nodes first element
+			nodeAddress[0].toLowerCase()
 		);
 		const initialNodeStake = getDecimalBN(10);
 		expect(+foundNode.stake).to.equal(+initialNodeStake.add(nodeIncrement));
@@ -255,7 +342,7 @@ describe('ReportManager', async function () {
 
 		// validate total supply
 		const treasurySupply = await nodeManagerContract.functions.treasurySupply();
-		expect(+treasurySupply).to.equal(+reportJson.treasury);
+		expect(+treasurySupply).to.equal(+reportData.report.treasury);
 		// validate total supply
 
 		// validate token balance has gone up by totalRead + totalWrite

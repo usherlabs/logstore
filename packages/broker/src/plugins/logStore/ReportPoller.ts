@@ -195,30 +195,8 @@ export class ReportPoller {
 		logger.info(
 			`Publishing proof of report ${poll.report.id} (hash: ${poll.hash})`
 		);
-		const brokerAddress = await this.signer.getAddress();
-		logger.info(`hashed report: ${poll.hash}`);
 
-		// ? Create a Timestamp for Proof Of Report - Compatible with On-Chain Verification
-		// Tried using Streamr Message Timestamp, but hash/signature mechanism is difficult to replicate on-chain
-		const timestamp = Date.now();
-
-		// ? sign the hash + timestamp
-		// Signatures verified on-chain require proofTimestamp relative to the signature to be concatenated to Contract Params Hash
-		const signature = await this.signer.signMessage(
-			new Uint8Array([
-				...ethers.utils.arrayify(poll.hash),
-				...ethers.utils.arrayify(timestamp),
-			])
-		);
-		logger.info(`signed report: ${signature}`);
-
-		// publish the report to the system stream
-		const proofOfReport = new ProofOfReport({
-			address: brokerAddress,
-			signature,
-			hash: poll.hash,
-			timestamp,
-		});
+		const proofOfReport = await poll.report.toProof(this.signer);
 		await this.logStoreClient.publish(
 			this.systemStream,
 			proofOfReport.serialize()

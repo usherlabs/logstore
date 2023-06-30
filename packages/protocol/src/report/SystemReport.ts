@@ -1,4 +1,6 @@
+import { Signer } from '@ethersproject/abstract-signer';
 import { BigNumber } from '@ethersproject/bignumber';
+import { arrayify } from '@ethersproject/bytes';
 import { keccak256 as solidityKeccak256 } from '@ethersproject/solidity';
 
 import { ReportSerializer } from '../abstracts/ReportSerializer';
@@ -8,6 +10,7 @@ import {
 	ReportSerializerVersions,
 } from '../interfaces/report.common';
 import { IReportV1, IReportV1Serialized } from '../interfaces/report.v1';
+import { ProofOfReport } from '../system/ProofOfReport';
 
 const serializerByVersion: Record<string, ReportSerializer> = {};
 
@@ -66,7 +69,36 @@ export class SystemReport {
 		return serializer.toContract(this.report);
 	}
 
-	static toContractHash(params: ReportContractParams): string {
+	// ? Produce a hash based on the time of the ProofOfReport
+	async toProof(
+		signer: Signer,
+		// ? Create a Timestamp for Proof Of Report - Compatible with On-Chain Verification
+		// Tried using Streamr Message Timestamp, but hash/signature mechanism is difficult to replicate on-chain
+		timestamp = Date.now()
+	): Promise<ProofOfReport> {
+		const toth = this.toHash(timestamp);
+		// ? sign the hash + timestamp
+		// Signatures verified on-chain require proofTimestamp relative to the signature to be concatenated to Contract Params Hash
+		const signature = await signer.signMessage(arrayify(toth));
+
+		return new ProofOfReport({
+			hash: this.toHash(),
+			address: await signer.getAddress(),
+			toth,
+			signature,
+			timestamp,
+		});
+	}
+
+	toHash(timestamp?: number) {
+		return SystemReport.toContractHash(this.toContract(), timestamp);
+	}
+
+	// ? Produce a deterministic hash based on the parameters provided to the on-chain env
+	static toContractHash(
+		params: ReportContractParams,
+		timestamp?: number
+	): string {
 		const [
 			,
 			,
@@ -105,9 +137,16 @@ export class SystemReport {
 		clonedParams[12] = hexDelegateNodeChanges;
 		clonedParams[13] = hexTreasurySupplyChange;
 
+		if (!timestamp) {
+			return solidityKeccak256(
+				['string'],
+				[JSON.stringify(clonedParams).toLowerCase()]
+			);
+		}
+
 		return solidityKeccak256(
-			['string'],
-			[JSON.stringify(clonedParams).toLowerCase()]
+			['string', 'string'],
+			[JSON.stringify(clonedParams).toLowerCase(), `${timestamp}`]
 		);
 	}
 
