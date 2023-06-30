@@ -11,13 +11,11 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 import {LogStoreNodeManager} from "./NodeManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
 import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
-import {AdminUpgradeable} from "./admin/AdminUpgradeable.sol";
 
 contract LogStoreReportManager is
     Initializable,
     UUPSUpgradeable,
     OwnableUpgradeable,
-    AdminUpgradeable,
     ReentrancyGuardUpgradeable
 {
     uint256 public constant MATH_PRECISION = 10 ** 10;
@@ -64,39 +62,30 @@ contract LogStoreReportManager is
     }
 
     uint256 public reportTimeBuffer;
-    uint256 public reportTimeAcceptedDeviation;
     mapping(address => uint256) public reputationOf;
     string internal lastReportId;
     mapping(string => Report) internal reports;
     LogStoreNodeManager private _nodeManager;
 
     function initialize(
-        address _admin,
         address _owner,
-        uint256 _reportTimeBuffer,
-        uint256 _reportTimeAcceptedDeviation
+        uint256 _reportTimeBuffer
     ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
 
         _nodeManager = LogStoreNodeManager(_owner);
-        reportTimeBuffer = _reportTimeBuffer;
-        reportTimeAcceptedDeviation = _reportTimeAcceptedDeviation; // A variable taht
+        reportTimeBuffer = _reportTimeBuffer * MATH_PRECISION;
 
-        transferAdmin(_admin);
         transferOwnership(_owner);
     }
 
     /// @dev required by the OZ UUPS module
-    function _authorizeUpgrade(address) internal override onlyAdmin {}
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    function setReportTimeBuffer(uint256 _reportTimeBuffer) onlyAdmin {
-        reportTimeBuffer = _reportTimeBuffer;
-    }
-
-    function setReportTimeAcceptedDeviation(uint256 _reportTimeAcceptedDeviation) onlyAdmin {
-        reportTimeAcceptedDeviation = _reportTimeAcceptedDeviation;
+    function setReportTimeBuffer(uint256 _reportTimeBuffer) public onlyOwner {
+        reportTimeBuffer = _reportTimeBuffer * MATH_PRECISION;
     }
 
     function getReport(string calldata id) public view returns (Report memory) {
@@ -144,7 +133,7 @@ contract LogStoreReportManager is
         address[][] calldata delegateNodes,
         int256[][] calldata delegateNodeChanges,
         int256 treasurySupplyChange,
-        // Arrays of addresses, proofTimestamos, and signatures for verification of reporter & report data
+        // Arrays of addresses, proofTimestamps, and signatures for verification of reporter & report data
         address[] calldata addresses,
         uint256[] calldata proofTimestamps,
         bytes[] calldata signatures
@@ -233,22 +222,10 @@ contract LogStoreReportManager is
 
         // validate that the current reporter can submit the report based on the current block.timestamp and verified proofTimestamps
         address[] memory orderedReportersList = getReporters();
-
-        uint256(meanProofTimestampWithPrecision, badIndexes) = aggregateTimestamps(proofTimestamps);
-        for (uint256 i = 0; i < orderedReportersList.length; i++) {
-            if (orderedReportersList[i] == _msgSender()) {
-                // Ensure that the current block number > report generation block height + reporter block buffer
-                // Give the leading reporter a head-start to hydrate the report from foreign sources
-                // Ensure that block timestamp is in milliseconds before precision
-                // uint256 blockTimestamp = block.timestamp * 1000 * MATH_PRECISION;
-                uint256 reporterUnlockTimestamp = i *
-                    reportTimeBuffer *
-                    MATH_PRECISION +
-                    meanProofTimestampWithPrecision;
-                require(reporterUnlockTimestamp > meanProofTimestampWithPrecision, "error_invalidReporter"); // require that the reporter's unlock time > mean time of proofs
-                break;
-            }
-        }
+        require(
+            _canReport(_msgSender(), orderedReportersList, proofTimestamps),
+            "error_invalidReporter"
+        );
 
         // once reporter is validated, accept the report
         Report memory currentReport = Report({
@@ -306,39 +283,45 @@ contract LogStoreReportManager is
         }
     }
 
+    function canReport(uint256[] memory proofTimestamps) public view returns (bool) {
+        address[] memory reporterList = getReporters();
+        return _canReport(_msgSender(), reporterList, proofTimestamps);
+    }
+
     /**
      * Accepts an array of timestamps and evaluates the mean timestamp with precision
      */
-    function aggregateTimestamps(uint256[] memory timestamps) public pure returns (uint256, bool[]) {
+    function aggregateTimestamps(uint256[] memory timestamps) public pure returns (uint256) {
         uint256 sum;
         for (uint256 i = 0; i < timestamps.length; i++) {
             sum += timestamps[i] * MATH_PRECISION;
         }
         uint256 mean = sum / timestamps.length;
+        return mean;
+    }
 
-        // Use the mean of the full pool of timestamps to evaluate massive deviations
-        bool badIndexes = new bool[](timestamps.length);
-        uint badIndexCount = 0;
-        sum = 0;
-        for (uint256 i = 0; i < timestamps.length; i++) {
-            uint256 preciseTs = timestamps[i] * MATH_PRECISION;
-            int256 deviation = abs(mean - preciseTs);
-            if (deviation > reportTimeAcceptedDeviation) {
-                badIndexes[i] = true;
-                badIndexCount++;
-            } else {
-                sum += preciseTs;
+    function _canReport(address reporter, address[] memory reporterList, uint256[] memory proofTimestamps) internal view returns (bool validReporter) {
+        // Use all timestamps - as the more consistent the mean is as an anchor, the better.
+        // Validators will subscibe to ProofOfReports to slash brokers that are working against the interests of the network.
+        uint256 meanProofTimestamp = aggregateTimestamps(proofTimestamps);
+        uint256 preciseBlockTs = blockTimestamp();
+        uint256 cycleTime = reportTimeBuffer * reporterList.length;
+        uint256 cycles = 1; // first cycle
+        while(preciseBlockTs > (cycles * cycleTime) + meanProofTimestamp) {
+                // Count the number of cycles from the mean to the current block.
+                cycles += 1;
+        }
+        for (uint256 i = 0; i < reporterList.length; i++) {
+            if (reporterList[i] == reporter) {
+                bool started = preciseBlockTs >= (i * reportTimeBuffer * cycles) + meanProofTimestamp;
+                bool ended = preciseBlockTs >= ((i + 1) * reportTimeBuffer * cycles) + meanProofTimestamp;
+                validReporter = started == true && ended == false;
+                break;
             }
         }
-        uint256 denom = timestamps.length - badIndexCount;
-        if (denom != 0) {
-            mean = sum / denom;
-        }
-
-        return (mean, badIndexes);
     }
 
-    function abs(int x) private pure returns (int) {
-        return x >= 0 ? x : -x;
-    }
+		function blockTimestamp() public view returns (uint256) {
+			return block.timestamp * 1000 * MATH_PRECISION;
+		}
 }

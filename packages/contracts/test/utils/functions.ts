@@ -264,6 +264,16 @@ export async function generateContractReportPayload(
 	return { payload, proofs };
 }
 
+export const proofsToMean = (proofs: ProofOfReport[]) => {
+	const proofTimestamps = proofs.map((p) => p.timestamp);
+	let meanTimestamp = proofTimestamps.reduce<number>((sum, curr) => {
+		sum += curr;
+		return sum;
+	}, 0);
+	meanTimestamp = meanTimestamp / proofTimestamps.length;
+	return meanTimestamp;
+};
+
 // pass in amount and it returns the big number representation of amount*10e18
 export function getDecimalBN(amount: number) {
 	if (amount < 0) throw 'amount < 0';
