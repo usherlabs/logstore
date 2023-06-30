@@ -294,6 +294,9 @@ export function generateRandomNumber(maxNumber: number) {
 export const getTimeStamp = async () =>
 	(await hEthers.provider.getBlock('latest')).timestamp;
 
+export const getTimeStampByBlock = async (block: number) =>
+	(await hEthers.provider.getBlock(block)).timestamp;
+
 export const getLatestBlockNumber = async () =>
 	(await hEthers.provider.getBlock('latest')).number;
 

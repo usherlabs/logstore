@@ -11,7 +11,7 @@ Commands:
     config              сonfigure connection to the DevNetwork
     deploy              deploy the DevNetwork from a remote git branch
     connect             connect the required ports from the DevNetwork
-    start               start the DevNetwokr
+    start               start the DevNetwork
     stop                stop the DevNetwork
     restart             stop and start the DevNetwork
 Examples:

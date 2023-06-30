@@ -1,8 +1,10 @@
+import { time } from '@nomicfoundation/hardhat-network-helpers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { Contract } from 'ethers';
 import { ethers } from 'hardhat';
 
+// import sinon from 'sinon';
 import {
 	CUSTOM_EXCEPTIONS,
 	NODE_MANAGER,
@@ -18,7 +20,7 @@ import {
 	generateReportData,
 	getDecimalBN,
 	getERC20Token,
-	getLatestBlockNumber,
+	getLatestBlockNumber, // getTimeStamp,
 	loadQueryManager,
 	loadReportManager,
 	loadStoreManager,
@@ -34,6 +36,28 @@ describe('ReportManager', async function () {
 	let nodeManagerContract: Contract;
 	let token: Contract;
 	let blockHeight: number;
+	let blockTimestamp: number;
+	// let clock: sinon.SinonFakeTimers;
+	const currentOnChainTime = Math.floor(Date.now() / 1000);
+
+	before(async () => {
+		// Monkey-patch timestamp to use current block timestmap as current date.now
+		// const ts = await getTimeStamp();
+		// blockTimestamp = ts * 1000;
+		// await time.setNextBlockTimestamp(currentOnChainTime);
+		await time.increaseTo(currentOnChainTime);
+		const blockNumber = await getLatestBlockNumber();
+		blockHeight = +blockNumber - 500;
+		// clock = sinon.useFakeTimers({
+		// 	now: blockTimestamp,
+		// 	shouldAdvanceTime: true,
+		// 	toFake: ['Date'],
+		// });
+	});
+
+	// after(() => {
+	// 	clock.restore();
+	// });
 
 	beforeEach(async () => {
 		[adminSigner, ...otherSigners] = await ethers.getSigners();
@@ -44,8 +68,6 @@ describe('ReportManager', async function () {
 			nodeManagerContract
 		);
 		token = await getERC20Token(adminSigner);
-		const blockNumber = await getLatestBlockNumber();
-		blockHeight = +blockNumber - 500;
 	});
 
 	it('ReportManager ---- Nodes are ordered by reputation', async function () {
@@ -102,15 +124,23 @@ describe('ReportManager', async function () {
 		// 	activeNodes.map((n) => n.address)
 		// );
 
+		const blockTimestampFromContract =
+			await reportManagerContract.functions.blockTimestamp();
 		const [reporters] = await reportManagerContract.functions.getReporters();
-
 		const totalNodes = await nodeManagerContract.functions.totalNodes();
+		const proofSignatures = payload[payload.length - 1] as string[];
+		const proofTimestamps = payload[payload.length - 2] as number[];
+		let meanTimestamp = proofTimestamps.reduce<number>((sum, curr) => {
+			sum += curr;
+			return sum;
+		}, 0);
+		meanTimestamp = meanTimestamp / proofTimestamps.length;
 		expect(
 			Number(totalNodes),
 			'Total nodes should equal activeNodes'
 		).to.be.equal(activeAddresses.length);
 		expect(
-			payload[payload.length - 1].length,
+			proofSignatures.length,
 			'expect signature length to be length of activeNodes'
 		).to.be.equal(activeNodes.length);
 
@@ -119,14 +149,24 @@ describe('ReportManager', async function () {
 		const reporterIndex = reporters.findIndex(
 			(addr: string) => addr === sampleNode.address
 		);
+
 		console.log('Reporters Overview:', {
+			blockTimestampFromContract: Number(
+				BigInt(blockTimestampFromContract) / BigInt(Math.pow(10, 10))
+			),
+			blockTimestamp,
+			proofTimestamps,
+			meanTimestamp,
 			reporters,
 			reporter: sampleNode.address,
 			reporterIndex,
 			sleepTime: reporterIndex * REPORT_TIME_BUFFER,
 			buffer: REPORT_TIME_BUFFER,
 		});
-		await sleep(reporterIndex * REPORT_TIME_BUFFER + 5);
+
+		await sleep(
+			reporterIndex * REPORT_TIME_BUFFER + (meanTimestamp - blockTimestamp)
+		);
 
 		const responseTx = await reportManagerContract
 			.connect(sampleNode)
@@ -136,7 +176,7 @@ describe('ReportManager', async function () {
 		expect(event?.id).to.be.equal(reportData.report.id);
 	});
 
-	it('ReportManager ---- Staked Node is an invalid reporter', async function () {
+	it('ReportManager ---- Invalid Reporter Node cannot submit report', async function () {
 		const sampleNode = activeNodes[1];
 		const reportData = await generateReportData({
 			bundleId: '75',
@@ -149,7 +189,7 @@ describe('ReportManager', async function () {
 			reportData.systemReport
 		);
 
-		const responseTx = await reportManagerContract
+		const responseTx = reportManagerContract
 			.connect(sampleNode)
 			.functions.report(...payload);
 

@@ -58,8 +58,8 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
     }
 
     uint256 public reportTimeBuffer;
+    mapping(address => uint256) public reputationOf;
     string internal lastReportId;
-    mapping(address => uint256) internal reputationOf;
     mapping(string => Report) internal reports;
     LogStoreNodeManager private _nodeManager;
 
@@ -144,8 +144,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
                 // Give the leading reporter a head-start to hydrate the report from foreign sources
                 // Ensure that block timestamp is in milliseconds before precision
                 require(
-                    block.timestamp * 1000 * MATH_PRECISION >
-                        (i * reportTimeBuffer * MATH_PRECISION) + meanProofTimestampWithPrecision,
+                    blockTimestamp() > (i * reportTimeBuffer * MATH_PRECISION) + meanProofTimestampWithPrecision,
                     "error_invalidReporter"
                 );
                 break;
@@ -383,5 +382,12 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         }
         uint256 mean = sum / timestamps.length;
         return mean;
+    }
+
+    /**
+     * Current block timestamp in milliseconds with precision since the epoch
+     */
+    function blockTimestamp() public view returns (uint256) {
+        return block.timestamp * 1000 * MATH_PRECISION;
     }
 }
