@@ -14,4 +14,9 @@ export abstract class ReportSerializer {
 	abstract toContract(
 		payload: IReport | IReportSerialized
 	): ReportContractParams;
+
+	abstract toHash(
+		payload: IReport | IReportSerialized,
+		timestamp?: number
+	): string;
 }

@@ -135,68 +135,26 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         );
         require(quorumIsMet(addresses), "error_quorumNotMet");
 
-        // validate that the appropriate reporters can submit reports based on the current block
-        address[] memory orderedReportersList = getReporters();
-        uint256 meanProofTimestampWithPrecision = aggregateTimestamps(proofTimestamps);
-        for (uint256 i = 0; i < orderedReportersList.length; i++) {
-            if (orderedReportersList[i] == _msgSender()) {
-                // Ensure that the current block number > report generation block height + reporter block buffer
-                // Give the leading reporter a head-start to hydrate the report from foreign sources
-                // Ensure that block timestamp is in milliseconds before precision
-                require(
-                    blockTimestamp() > (i * reportTimeBuffer * MATH_PRECISION) + meanProofTimestampWithPrecision,
-                    "error_invalidReporter"
-                );
-                break;
-            }
-        }
-
-        /* solhint-disable quotes */
-        string[14] memory hashElements;
-        hashElements[0] = string.concat('"', id, '"');
-        hashElements[1] = StringsUpgradeable.toString(blockHeight);
-        hashElements[13] = string.concat('"', StringsUpgradeable.toHexString(treasurySupplyChange), '"');
-
+        bytes memory pack;
         Stream[] memory rStreams = new Stream[](streams.length);
         for (uint256 i = 0; i < streams.length; i++) {
-            hashElements[2] = string.concat(hashElements[2], '"', streams[i], '"');
-            hashElements[3] = string.concat(
-                hashElements[3],
-                '"',
+            pack = abi.encodePacked(
+                pack,
+                streams[i],
                 StringsUpgradeable.toHexString(writeCaptureAmounts[i]),
-                '"'
+                writeBytes[i]
             );
-            hashElements[4] = string.concat(hashElements[4], StringsUpgradeable.toString(writeBytes[i]));
-            if (i != streams.length - 1) {
-                hashElements[2] = string.concat(hashElements[2], ",");
-                hashElements[3] = string.concat(hashElements[3], ",");
-                hashElements[4] = string.concat(hashElements[4], ",");
-            }
-
             rStreams[i] = Stream({id: streams[i], writeCapture: writeCaptureAmounts[i], writeBytes: writeBytes[i]});
         }
 
         Consumer[] memory rConsumers = new Consumer[](readConsumerAddresses.length);
         for (uint256 i = 0; i < readConsumerAddresses.length; i++) {
-            hashElements[5] = string.concat(
-                hashElements[5],
-                '"',
-                StringsUpgradeable.toHexString(readConsumerAddresses[i]),
-                '"'
-            );
-            hashElements[6] = string.concat(
-                hashElements[6],
-                '"',
+            pack = abi.encodePacked(
+                pack,
+                readConsumerAddresses[i],
                 StringsUpgradeable.toHexString(readCaptureAmounts[i]),
-                '"'
+                readBytes[i]
             );
-            hashElements[7] = string.concat(hashElements[7], StringsUpgradeable.toString(readBytes[i]));
-            if (i != readConsumerAddresses.length - 1) {
-                hashElements[5] = string.concat(hashElements[5], ",");
-                hashElements[6] = string.concat(hashElements[6], ",");
-                hashElements[7] = string.concat(hashElements[7], ",");
-            }
-
             rConsumers[i] = Consumer({
                 id: readConsumerAddresses[i],
                 readCapture: readCaptureAmounts[i],
@@ -206,103 +164,70 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
 
         Node[] memory rNodes = new Node[](nodes.length);
         for (uint256 i = 0; i < nodes.length; i++) {
-            hashElements[8] = string.concat(hashElements[8], '"', StringsUpgradeable.toHexString(nodes[i]), '"');
-            hashElements[9] = string.concat(hashElements[9], '"', StringsUpgradeable.toHexString(nodeChanges[i]), '"');
-            if (i != nodes.length - 1) {
-                hashElements[8] = string.concat(hashElements[8], ",");
-                hashElements[9] = string.concat(hashElements[9], ",");
-            }
-
+            pack = abi.encodePacked(pack, nodes[i], StringsUpgradeable.toHexString(nodeChanges[i]));
             rNodes[i] = Node({id: nodes[i], amount: nodeChanges[i]});
         }
 
         Delegate[] memory rDelegates = new Delegate[](delegates.length);
         for (uint256 i = 0; i < delegates.length; i++) {
-            hashElements[10] = string.concat(hashElements[10], '"', StringsUpgradeable.toHexString(delegates[i]), '"');
-            hashElements[11] = string.concat(hashElements[11], "[");
-            hashElements[12] = string.concat(hashElements[12], "[");
+            bytes memory dPack;
 
             Node[] memory rDelegateNodes = new Node[](delegateNodes[i].length);
             for (uint256 j = 0; j < delegateNodes[i].length; j++) {
-                hashElements[11] = string.concat(
-                    hashElements[11],
-                    '"',
-                    StringsUpgradeable.toHexString(delegateNodes[i][j]),
-                    '"'
+                dPack = abi.encodePacked(
+                    dPack,
+                    delegateNodes[i][j],
+                    StringsUpgradeable.toHexString(delegateNodeChanges[i][j])
                 );
-                hashElements[12] = string.concat(
-                    hashElements[12],
-                    '"',
-                    StringsUpgradeable.toHexString(delegateNodeChanges[i][j]),
-                    '"'
-                );
-                if (j != delegateNodes[i].length - 1) {
-                    hashElements[11] = string.concat(hashElements[11], ",");
-                    hashElements[12] = string.concat(hashElements[12], ",");
-                }
 
                 rDelegateNodes[j] = Node({id: delegateNodes[i][j], amount: delegateNodeChanges[i][j]});
             }
-            hashElements[11] = string.concat(hashElements[11], "]");
-            hashElements[12] = string.concat(hashElements[12], "]");
-            if (i != delegates.length - 1) {
-                hashElements[10] = string.concat(hashElements[10], ",");
-                hashElements[11] = string.concat(hashElements[11], ",");
-                hashElements[12] = string.concat(hashElements[12], ",");
-            }
+            pack = abi.encodePacked(pack, delegates[i], dPack);
 
             rDelegates[i] = Delegate({id: delegates[i], nodes: rDelegateNodes});
         }
 
-        string memory rawHashParam = string.concat(
-            "[",
-            // id
-            hashElements[0],
-            ",",
-            // blockHeight
-            hashElements[1],
-            ",[",
-            // stream Ids
-            hashElements[2],
-            "],[",
-            // writeCaptureAmounts
-            hashElements[3],
-            "],[",
-            // writeBytes
-            hashElements[4],
-            "],[",
-            // readConsumerAddresses
-            hashElements[5],
-            "],[",
-            // readCaptureAmounts
-            hashElements[6],
-            "],[",
-            // readBytes
-            hashElements[7],
-            "],[",
-            // nodes
-            hashElements[8],
-            "],[",
-            // nodeChanges
-            hashElements[9],
-            "],[",
-            // delegates
-            hashElements[10],
-            "],[",
-            // delegatesNodes
-            hashElements[11],
-            "],[",
-            // delegatesNodeChanges
-            hashElements[12],
-            "],",
-            // treasurySupplyChange
-            hashElements[13],
-            "]"
-        );
+        // Verify signatures
+        bool accepted = true;
+        for (uint256 i = 0; i < addresses.length; i++) {
+            bytes32 timeBasedOneTimeHash = keccak256(
+                abi.encodePacked(
+                    id,
+                    blockHeight,
+                    pack,
+                    StringsUpgradeable.toHexString(treasurySupplyChange),
+                    proofTimestamps[i]
+                )
+            );
+            bool verified = VerifySignature.verify(addresses[i], timeBasedOneTimeHash, signatures[i]);
+            if (verified != true) {
+                accepted = false;
+                break;
+            }
+        }
 
-        /* solhint-enable quotes */
+        // Require that all signatures provided are verified
+        require(accepted, "error_invalidReportSignatures");
 
-        // Consume report data
+        // validate that the current reporter can submit the report based on the current block.timestamp and verified proofTimestamps
+        address[] memory orderedReportersList = getReporters();
+        uint256 meanProofTimestampWithPrecision = aggregateTimestamps(proofTimestamps);
+        for (uint256 i = 0; i < orderedReportersList.length; i++) {
+            if (orderedReportersList[i] == _msgSender()) {
+                // Ensure that the current block number > report generation block height + reporter block buffer
+                // Give the leading reporter a head-start to hydrate the report from foreign sources
+                // Ensure that block timestamp is in milliseconds before precision
+                uint256 blockTimestamp = block.timestamp * 1000 * MATH_PRECISION;
+                uint256 reporterUnlockTimestamp = i *
+                    reportTimeBuffer *
+                    MATH_PRECISION +
+                    meanProofTimestampWithPrecision;
+                require(blockTimestamp > reporterUnlockTimestamp, "error_invalidReporter");
+                break;
+            }
+        }
+
+        // once reporter is validated, accept the report
         Report memory currentReport = Report({
             id: id,
             height: blockHeight,
@@ -314,20 +239,6 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             _reporter: _msgSender(),
             _processed: false
         });
-
-        // Verify signatures
-        bool accepted = true;
-        for (uint256 i = 0; i < addresses.length; i++) {
-            bytes32 timeBasedOneTimeHash = keccak256(abi.encodePacked(rawHashParam, proofTimestamps[i]));
-            bool verified = VerifySignature.verify(addresses[i], timeBasedOneTimeHash, signatures[i]);
-            if (verified != true) {
-                accepted = false;
-                break;
-            }
-        }
-
-        // Require that all signatures provided are verified
-        require(accepted, "error_invalidReportSignatures");
 
         reports[currentReport.id] = currentReport;
         lastReportId = currentReport.id;
@@ -382,12 +293,5 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         }
         uint256 mean = sum / timestamps.length;
         return mean;
-    }
-
-    /**
-     * Current block timestamp in milliseconds with precision since the epoch
-     */
-    function blockTimestamp() public view returns (uint256) {
-        return block.timestamp * 1000 * MATH_PRECISION;
     }
 }

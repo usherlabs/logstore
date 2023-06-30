@@ -1,14 +1,9 @@
 import { Signer } from '@ethersproject/abstract-signer';
-import { BigNumber } from '@ethersproject/bignumber';
 import { arrayify } from '@ethersproject/bytes';
-import { keccak256 as solidityKeccak256 } from '@ethersproject/solidity';
 
 import { ReportSerializer } from '../abstracts/ReportSerializer';
 import { ValidationError } from '../errors';
-import {
-	ReportContractParams,
-	ReportSerializerVersions,
-} from '../interfaces/report.common';
+import { ReportSerializerVersions } from '../interfaces/report.common';
 import { IReportV1, IReportV1Serialized } from '../interfaces/report.v1';
 import { ProofOfReport } from '../system/ProofOfReport';
 
@@ -84,70 +79,15 @@ export class SystemReport {
 		return new ProofOfReport({
 			hash: this.toHash(),
 			address: await signer.getAddress(),
-			toth,
+			toth, // Time-based one-time hash
 			signature,
 			timestamp,
 		});
 	}
 
 	toHash(timestamp?: number) {
-		return SystemReport.toContractHash(this.toContract(), timestamp);
-	}
-
-	// ? Produce a deterministic hash based on the parameters provided to the on-chain env
-	static toContractHash(
-		params: ReportContractParams,
-		timestamp?: number
-	): string {
-		const [
-			,
-			,
-			,
-			writeCaptureAmounts,
-			,
-			,
-			readCaptureAmounts,
-			,
-			,
-			nodeChanges,
-			,
-			,
-			delegateNodeChanges,
-			treasurySupplyChange,
-		] = params;
-		const hexTreasurySupplyChange =
-			BigNumber.from(treasurySupplyChange).toHexString();
-		const hexWriteCaptureAmounts = writeCaptureAmounts.map((v) =>
-			BigNumber.from(v).toHexString()
-		);
-		const hexReadCaptureAmounts = readCaptureAmounts.map((v) =>
-			BigNumber.from(v).toHexString()
-		);
-		const hexNodeChanges = nodeChanges.map((v) =>
-			BigNumber.from(v).toHexString()
-		);
-		const hexDelegateNodeChanges = delegateNodeChanges.map((delArr) =>
-			delArr.map((v) => BigNumber.from(v).toHexString())
-		);
-
-		const clonedParams = [...params];
-		clonedParams[3] = hexWriteCaptureAmounts;
-		clonedParams[6] = hexReadCaptureAmounts;
-		clonedParams[9] = hexNodeChanges;
-		clonedParams[12] = hexDelegateNodeChanges;
-		clonedParams[13] = hexTreasurySupplyChange;
-
-		if (!timestamp) {
-			return solidityKeccak256(
-				['string'],
-				[JSON.stringify(clonedParams).toLowerCase()]
-			);
-		}
-
-		return solidityKeccak256(
-			['string', 'string'],
-			[JSON.stringify(clonedParams).toLowerCase(), `${timestamp}`]
-		);
+		const serializer = SystemReport.getSerializer(this.version);
+		return serializer.toHash(this.report, timestamp);
 	}
 
 	static registerSerializer(

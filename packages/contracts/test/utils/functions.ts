@@ -261,7 +261,7 @@ export async function generateContractReportPayload(
 		payloadSignatures,
 	];
 
-	return payload;
+	return { payload, proofs };
 }
 
 // pass in amount and it returns the big number representation of amount*10e18

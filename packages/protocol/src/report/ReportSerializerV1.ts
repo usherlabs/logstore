@@ -1,4 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
+// import { hexConcat } from '@ethersproject/bytes';
+import {
+	keccak256 as solidityKeccak256,
+	pack as solidityPack,
+} from '@ethersproject/solidity';
 
 import { ReportSerializer } from '../abstracts/ReportSerializer';
 import {
@@ -168,6 +173,62 @@ export class ReportSeralizerV1 extends ReportSerializer {
 		];
 
 		return params;
+	}
+
+	// ? Produce a deterministic hash based on the parameters provided to the on-chain env
+	// Accepts a timestamp to produce an TOTH (Time-based One-time Hash)
+	toHash(payload: IReportV1 | IReportV1Serialized, timestamp?: number): string {
+		let report = payload as IReportV1Serialized;
+		if (payload.s !== true) {
+			report = this.serialize(payload as IReportV1);
+		}
+
+		let pack = '0x'; // bytes
+		report.streams.forEach((p) => {
+			const deserializedId = hexUtils.hexToStr(p.id);
+			pack = solidityPack(
+				['bytes', 'string', 'string', 'uint256'],
+				[pack, deserializedId, p.capture, p.bytes]
+			);
+		});
+		report.consumers.forEach((p) => {
+			pack = solidityPack(
+				['bytes', 'address', 'string', 'uint256'],
+				[pack, p.id, p.capture, p.bytes]
+			);
+		});
+		Object.entries(report.nodes).forEach(([id, nodeChange]) => {
+			pack = solidityPack(
+				['bytes', 'address', 'string'],
+				[pack, id, nodeChange]
+			);
+		});
+		Object.entries(report.delegates).forEach(([delId, delNodes]) => {
+			let dPack = '0x';
+			Object.entries(delNodes).forEach(([delNodeId, delNodeChange]) => {
+				dPack = solidityPack(
+					['bytes', 'address', 'string'],
+					[dPack, delNodeId, delNodeChange]
+				);
+			});
+			pack = solidityPack(['bytes', 'address', 'bytes'], [pack, delId, dPack]);
+		});
+
+		const types = [
+			'string', // id
+			'uint256', // height
+			'bytes',
+			'string', // treasury
+		];
+		const values = [report.id, report.height, pack, report.treasury];
+		if (timestamp) {
+			types.push('uint256');
+			values.push(timestamp);
+		}
+
+		const hash = solidityKeccak256(types, values);
+
+		return hash;
 	}
 }
 

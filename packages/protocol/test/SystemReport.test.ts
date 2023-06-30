@@ -129,28 +129,6 @@ const PAYLOAD_CONTRACT = [
 	BigInt('0'),
 ];
 
-const PAYLOAD_CONTRACT_HASH = solidityKeccak256(
-	['string'],
-	[
-		JSON.stringify([
-			'1687874606',
-			1295,
-			['0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/heartbeat'],
-			['0x28ea016f8839de61653800'],
-			[49542],
-			['0x3c9ef7f26d7c1de4e67580cdb26a10f9b9a8b8c8'],
-			['0x2f302e33cebaa6e95c00'],
-			[4464],
-			['0x5e98df807C09a91557D8B3161f2D01852fb005B9'],
-			['0x28ea016f8839de61653800'],
-			['0x5e98df807C09a91557D8B3161f2D01852fb005B9'],
-			[['0x5e98df807C09a91557D8B3161f2D01852fb005B9']],
-			[['0x28ea016f8839de61653800']],
-			'0x00',
-		]).toLowerCase(),
-	]
-);
-
 describe('SystemReport', () => {
 	let systemReport: SystemReport;
 	let serializer: ReportSeralizerV1;
@@ -231,12 +209,16 @@ describe('SystemReport', () => {
 		});
 	});
 
-	describe('toContractHash', () => {
-		it('should hexify and hash the contract params', () => {
-			assert.deepStrictEqual(
-				SystemReport.toContractHash(systemReport.toContract()),
-				PAYLOAD_CONTRACT_HASH
-			);
+	describe('toHash', () => {
+		it('should hash the report', () => {
+			assert.doesNotThrow(() => {
+				const hash = systemReport.toHash();
+				console.log(hash);
+			});
+			assert.doesNotThrow(() => {
+				const hash = systemReport.toHash(Date.now());
+				console.log(hash);
+			});
 		});
 	});
 

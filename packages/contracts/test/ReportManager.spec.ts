@@ -1,10 +1,9 @@
 import { time } from '@nomicfoundation/hardhat-network-helpers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { Contract } from 'ethers';
+import { BigNumber, Contract } from 'ethers';
 import { ethers } from 'hardhat';
 
-// import sinon from 'sinon';
 import {
 	CUSTOM_EXCEPTIONS,
 	NODE_MANAGER,
@@ -20,7 +19,8 @@ import {
 	generateReportData,
 	getDecimalBN,
 	getERC20Token,
-	getLatestBlockNumber, // getTimeStamp,
+	getLatestBlockNumber,
+	getTimeStamp,
 	loadQueryManager,
 	loadReportManager,
 	loadStoreManager,
@@ -37,27 +37,15 @@ describe('ReportManager', async function () {
 	let token: Contract;
 	let blockHeight: number;
 	let blockTimestamp: number;
-	// let clock: sinon.SinonFakeTimers;
 	const currentOnChainTime = Math.floor(Date.now() / 1000);
 
 	before(async () => {
 		// Monkey-patch timestamp to use current block timestmap as current date.now
-		// const ts = await getTimeStamp();
-		// blockTimestamp = ts * 1000;
-		// await time.setNextBlockTimestamp(currentOnChainTime);
 		await time.increaseTo(currentOnChainTime);
 		const blockNumber = await getLatestBlockNumber();
 		blockHeight = +blockNumber - 500;
-		// clock = sinon.useFakeTimers({
-		// 	now: blockTimestamp,
-		// 	shouldAdvanceTime: true,
-		// 	toFake: ['Date'],
-		// });
+		blockTimestamp = await getTimeStamp();
 	});
-
-	// after(() => {
-	// 	clock.restore();
-	// });
 
 	beforeEach(async () => {
 		[adminSigner, ...otherSigners] = await ethers.getSigners();
@@ -92,7 +80,7 @@ describe('ReportManager', async function () {
 			signer: sampleNode,
 		});
 
-		const payload = await generateContractReportPayload(
+		const { payload, proofs } = await generateContractReportPayload(
 			activeNodes,
 			reportData.systemReport
 		);
@@ -105,31 +93,10 @@ describe('ReportManager', async function () {
 			]),
 		];
 
-		// console.log(
-		// 	'payload',
-		// 	payload[payload.length - 1],
-		// 	payload[payload.length - 2],
-		// 	payload[payload.length - 3]
-		// );
-		// console.log(
-		// 	`Calling Address ${sampleNode.address}`,
-		// 	'Payload Addresses:',
-		// 	payload[payload.length - 3],
-		// 	'Payload Timestamps:',
-		// 	payload[payload.length - 2],
-		// 	`Now: ${Date.now()}`
-		// );
-		// console.log(
-		// 	'activeNodes',
-		// 	activeNodes.map((n) => n.address)
-		// );
-
-		const blockTimestampFromContract =
-			await reportManagerContract.functions.blockTimestamp();
 		const [reporters] = await reportManagerContract.functions.getReporters();
 		const totalNodes = await nodeManagerContract.functions.totalNodes();
-		const proofSignatures = payload[payload.length - 1] as string[];
-		const proofTimestamps = payload[payload.length - 2] as number[];
+		const proofSignatures = proofs.map((proof) => proof.signature);
+		const proofTimestamps = proofs.map((proof) => proof.timestamp);
 		let meanTimestamp = proofTimestamps.reduce<number>((sum, curr) => {
 			sum += curr;
 			return sum;
@@ -150,10 +117,8 @@ describe('ReportManager', async function () {
 			(addr: string) => addr === sampleNode.address
 		);
 
+		console.log('Proofs:', proofs);
 		console.log('Reporters Overview:', {
-			blockTimestampFromContract: Number(
-				BigInt(blockTimestampFromContract) / BigInt(Math.pow(10, 10))
-			),
 			blockTimestamp,
 			proofTimestamps,
 			meanTimestamp,
@@ -164,9 +129,12 @@ describe('ReportManager', async function () {
 			buffer: REPORT_TIME_BUFFER,
 		});
 
-		await sleep(
-			reporterIndex * REPORT_TIME_BUFFER + (meanTimestamp - blockTimestamp)
-		);
+		// await sleep(
+		// 	reporterIndex * REPORT_TIME_BUFFER +
+		// 		(blockTimestamp > meanTimestamp ? blockTimestamp - meanTimestamp : 0)
+		// );
+		// console.log('Slept until: ', Date.now());
+		// console.log('Slept until: ', Date.now());
 
 		const responseTx = await reportManagerContract
 			.connect(sampleNode)
@@ -184,7 +152,7 @@ describe('ReportManager', async function () {
 			signer: sampleNode,
 		});
 
-		const payload = await generateContractReportPayload(
+		const { payload } = await generateContractReportPayload(
 			activeNodes,
 			reportData.systemReport
 		);
@@ -208,7 +176,7 @@ describe('ReportManager', async function () {
 			signer: sampleNode,
 		});
 
-		const payload = await generateContractReportPayload(
+		const { payload } = await generateContractReportPayload(
 			activeNodes,
 			reportData.systemReport
 		);
@@ -231,7 +199,7 @@ describe('ReportManager', async function () {
 		});
 
 		// Produce a payload with a single signer
-		const payload = await generateContractReportPayload(
+		const { payload } = await generateContractReportPayload(
 			[sampleNode],
 			reportData.systemReport
 		);
@@ -274,7 +242,7 @@ describe('ReportManager', async function () {
 			signer: currentNode,
 		});
 		// Produce a payload with a single signer
-		const payload = await generateContractReportPayload(
+		const { payload } = await generateContractReportPayload(
 			activeNodes,
 			reportData.systemReport
 		);
@@ -358,8 +326,8 @@ describe('ReportManager', async function () {
 		// validate nodes
 		const nodeAddress = Object.keys(reportData.report.nodes); // Nodes first element
 		const nodeAddressKey = nodeAddress[0].toLowerCase();
-		const allNodes: Record<string, number> = reportData.report.nodes;
-		const allDelegates: Record<string, Record<string, number>> = reportData
+		const allNodes: Record<string, BigNumber> = reportData.report.nodes;
+		const allDelegates: Record<string, Record<string, BigNumber>> = reportData
 			.report.delegates;
 		const nodeIncrement = allNodes[nodeAddressKey];
 		const foundNode = await nodeManagerContract.functions.nodes(
@@ -386,7 +354,7 @@ describe('ReportManager', async function () {
 		// validate total supply
 
 		// validate token balance has gone up by totalRead + totalWrite
-		const totalIncrement = totalReadCapture + consumerCapture;
+		const totalIncrement = totalReadCapture.add(consumerCapture);
 		const [postReportProcessBalance] = await token.functions.balanceOf(
 			nodeManagerContract.address
 		);
