@@ -44,7 +44,7 @@ describe('ReportManager', async function () {
 		await time.increaseTo(currentOnChainTime);
 		const blockNumber = await getLatestBlockNumber();
 		blockHeight = +blockNumber - 500;
-		blockTimestamp = await getTimeStamp();
+		blockTimestamp = (await getTimeStamp()) * 1000;
 	});
 
 	beforeEach(async () => {

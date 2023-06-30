@@ -3,12 +3,16 @@
  */
 import '@nomicfoundation/hardhat-toolbox';
 import '@nomiclabs/hardhat-ethers';
+import '@nomiclabs/hardhat-etherscan';
 import '@openzeppelin/hardhat-upgrades';
 import '@typechain/hardhat';
 import { config as dotenvConfig } from 'dotenv';
 import 'hardhat-contract-sizer';
-import type { HardhatUserConfig } from 'hardhat/config';
-import type { MultiSolcUserConfig, NetworkUserConfig } from 'hardhat/types';
+// import type { HardhatUserConfig } from 'hardhat/config';
+import type {
+	// MultiSolcUserConfig,
+	NetworkUserConfig,
+} from 'hardhat/types';
 import snakeCase from 'lodash.snakecase';
 import { resolve } from 'path';
 
@@ -68,7 +72,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 	};
 }
 
-const config: HardhatUserConfig = {
+const config = {
 	defaultNetwork: 'hardhat',
 	// namedAccounts: {
 	// 	deployer: {
@@ -145,21 +149,13 @@ const config: HardhatUserConfig = {
 		outDir: 'types',
 		target: 'ethers-v5',
 	},
-};
-
-if (process.env.TESTING) {
-	(config.solidity as MultiSolcUserConfig).compilers = (
-		config.solidity as MultiSolcUserConfig
-	).compilers.map((compiler) => {
-		return {
-			...compiler,
-			outputSelection: {
+	outputSelection: process.env.TESTING
+		? {
 				'*': {
 					'*': ['storageLayout'],
 				},
-			},
-		};
-	});
-}
+		  }
+		: {},
+};
 
 export default config;
