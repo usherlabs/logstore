@@ -1,3 +1,4 @@
+import { callWithBackoffStrategy } from '@kyvejs/protocol';
 import { MessageMetadata } from '@logsn/client';
 import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
@@ -49,22 +50,37 @@ export class Item extends AbstractDataItem<IPrepared> {
 		}[] = [];
 		for (let i = 0; i < stores.length; i++) {
 			const store = stores[i];
-			const resp = await this.runtime.listener.client.query(
-				{
-					id: store.id,
+
+			await callWithBackoffStrategy(
+				async () => {
+					const resp = await this.runtime.listener.client.query(
+						{
+							id: store.id,
+						},
+						{
+							from: {
+								timestamp: fromTimestamp,
+							},
+							to: {
+								timestamp: toTimestamp,
+							},
+						}
+					);
+					for await (const msg of resp) {
+						messages.push({
+							content: msg.content,
+							metadata: omit(msg, 'content'),
+						});
+					}
 				},
 				{
-					from: {
-						timestamp: fromTimestamp,
-					},
-					to: {
-						timestamp: toTimestamp,
-					},
+					limitTimeoutMs: 5 * 60 * 1000,
+					increaseByMs: 10 * 1000,
+				},
+				(err, ctx) => {
+					this.core.logger.warn('Failed to get item', err, ctx);
 				}
 			);
-			for await (const msg of resp) {
-				messages.push({ content: msg.content, metadata: omit(msg, 'content') });
-			}
 		}
 
 		const messageId = (metadata: MessageMetadata): string => {
