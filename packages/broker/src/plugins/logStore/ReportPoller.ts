@@ -194,13 +194,31 @@ export class ReportPoller {
 
 	private async submitReport(poll: ReportPoll & { report: SystemReport }) {
 		const contractParams = poll.report.toContract();
-		logger.info(
-			`reportManagerContract.report params: ${JSON.stringify(contractParams)}`
-		);
 
 		const addressesParam = poll.proofs.map((proof) => proof.address);
 		const signaturesParam = poll.proofs.map((proof) => proof.signature);
 		const timestampsParam = poll.proofs.map((proof) => proof.timestamp);
+
+		// ! Do not use JSON.stringify with BigInt
+		logger.info(`reportManagerContract.report params:`, [
+			contractParams[0],
+			contractParams[1],
+			contractParams[2],
+			contractParams[3],
+			contractParams[4],
+			contractParams[5],
+			contractParams[6],
+			contractParams[7],
+			contractParams[8],
+			contractParams[9],
+			contractParams[10],
+			contractParams[11],
+			contractParams[12],
+			contractParams[13],
+			addressesParam,
+			timestampsParam,
+			signaturesParam,
+		]);
 
 		const submitReportTx = await this.reportManager.report(
 			contractParams[0],
