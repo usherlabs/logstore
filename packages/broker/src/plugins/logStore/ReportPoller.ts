@@ -100,19 +100,20 @@ export class ReportPoller {
 		// get important variables from contract
 		const allActiveNodes = await this.nodeManager.nodeAddresses();
 		logger.info(`${allActiveNodes.length} active nodes:${allActiveNodes}`);
-		const nodeCanReport = await this.reportManager.canReport(
-			poll.proofs.map((p) => p.timestamp)
-		);
-		logger.info(`Node ${nodeCanReport ? 'can' : 'cannot'} submit report`);
 		// everytime we get a new signature
 		// confirm if this node can submit a report
 		// and more than half the nodes have submitted
 		if (
-			nodeCanReport &&
 			poll.proofs.length >=
-				Math.ceil(allActiveNodes.length * REPORT_TRESHOLD_MULTIPLIER)
+			Math.ceil(allActiveNodes.length * REPORT_TRESHOLD_MULTIPLIER)
 		) {
-			return await this.submitReport(poll);
+			const nodeCanReport = await this.reportManager.canReport(
+				poll.proofs.map((p) => p.timestamp)
+			);
+			logger.info(`Node ${nodeCanReport ? 'can' : 'cannot'} submit report`);
+			if (nodeCanReport) {
+				return await this.submitReport(poll);
+			}
 		}
 	}
 
