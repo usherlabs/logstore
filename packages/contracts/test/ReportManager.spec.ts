@@ -7,8 +7,7 @@ import { ethers } from 'hardhat';
 import {
 	CUSTOM_EXCEPTIONS,
 	NODE_MANAGER,
-	REPORT_MANAGER_EVENTS,
-	REPORT_TIME_BUFFER,
+	REPORT_MANAGER_EVENTS, // REPORT_TIME_BUFFER,
 	SAMPLE_STREAM_ID,
 	SAMPLE_WSS_URL,
 } from './utils/constants';
@@ -19,14 +18,12 @@ import {
 	generateReportData,
 	getDecimalBN,
 	getERC20Token,
-	getLatestBlockNumber,
-	getTimeStamp,
+	getLatestBlockNumber, // getTimeStamp,
 	loadQueryManager,
 	loadReportManager,
 	loadStoreManager,
 	proofsToMean,
-	setupNodeManager,
-	sleep,
+	setupNodeManager, // sleep,
 } from './utils/functions';
 
 describe('ReportManager', async function () {
@@ -86,15 +83,55 @@ describe('ReportManager', async function () {
 		expect(+blockTimestamp2).to.be.equals(seconds * 1000 * Math.pow(10, 10));
 	});
 
+	it('ReportManager ---- Manage reporter data correctly', async function () {
+		const sampleNode = activeNodes[0];
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: sampleNode,
+		});
+
+		const { proofs } = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
+
+		const activeAddresses = [
+			// Dedupe the array of addresses
+			...new Set([
+				...NODE_MANAGER.INITIAL_NODES,
+				...activeNodes.map((n) => n.address),
+			]),
+		];
+
+		// const [reporters] = await reportManagerContract.functions.getReporters();
+		const totalNodes = await nodeManagerContract.functions.totalNodes();
+		const proofSignatures = proofs.map((proof) => proof.signature);
+		// const proofTimestamps = proofs.map((proof) => proof.timestamp);
+		// const meanTimestamp = proofsToMean(proofs);
+		expect(
+			Number(totalNodes),
+			'Total nodes should equal activeNodes'
+		).to.be.equal(activeAddresses.length);
+		expect(
+			proofSignatures.length,
+			'expect signature length to be length of activeNodes'
+		).to.be.equal(activeNodes.length);
+	});
+
+	/**
+	 * ------------------------------------------------------------------------------------------
+	 * ------------------------------------------------------------------------------------------
+	 * TEST REPORTER VALIDITY CHECK
+	 * ------------------------------------------------------------------------------------------
+	 * ------------------------------------------------------------------------------------------
+	 */
+
 	it('ReportManager ---- Node IS a valid reporter', async function () {
 		// Kick the initial reporter
 		await nodeManagerContract.functions.removeNodeAdmin(
 			NODE_MANAGER.INITIAL_NODES[0]
 		);
-		// Set next timestamp to now
-
-		// const [reporters] = await reportManagerContract.functions.getReporters();
-		// console.log('Reporters', reporters);
 
 		const sampleNode = activeNodes[0];
 		// get all reports
@@ -110,11 +147,6 @@ describe('ReportManager', async function () {
 		);
 		const proofTimestamps = proofs.map((proof) => proof.timestamp);
 		const meanTimestamp = proofsToMean(proofs);
-		// console.log('ReportManager ---- Node IS a valid reporter', {
-		// 	proofTimestamps,
-		// 	meanTimestamp,
-		// 	blockTimestamp: (await getTimeStamp()) * 1000,
-		// });
 
 		const meanToSeconds = Math.ceil(meanTimestamp / 1000); // current block ts is > start
 		const thisReportManagerContract = await loadReportManager(
@@ -140,9 +172,6 @@ describe('ReportManager', async function () {
 			{ withTime: seconds }
 		);
 
-		// const [reporters] = await reportManagerContract.functions.getReporters();
-		// console.log('Reporters', reporters);
-
 		const sampleNode = activeNodes[1];
 		// get all reports
 		const reportData = await generateReportData({
@@ -156,13 +185,6 @@ describe('ReportManager', async function () {
 			reportData.systemReport
 		);
 		const proofTimestamps = proofs.map((proof) => proof.timestamp);
-		// const meanTimestamp = proofsToMean(proofs);
-		// console.log('ReportManager ---- Node IS NOT a valid reporter', {
-		// 	proofTimestamps,
-		// 	meanTimestamp,
-		// 	blockTimestamp: (await getTimeStamp()) * 1000,
-		// 	now: Date.now(),
-		// });
 
 		// get all nodes
 		const [validReporter] = await thisReportManagerContract
@@ -179,8 +201,6 @@ describe('ReportManager', async function () {
 		);
 
 		const [reporters] = await reportManagerContract.functions.getReporters();
-
-		// Set next timestamp to now
 
 		const sampleNode = activeNodes[0];
 		// get all reports
@@ -249,159 +269,189 @@ describe('ReportManager', async function () {
 		expect(validReporter).to.be.equal(false);
 	});
 
-	// it('ReportManager ---- Invalid Reporter Node cannot submit report', async function () {
-	// 	const sampleNode = activeNodes[1];
-	// 	const reportData = await generateReportData({
-	// 		bundleId: '75',
-	// 		blockheight: blockHeight,
-	// 		signer: sampleNode,
-	// 	});
+	/**
+	 * ------------------------------------------------------------------------------------------
+	 * ------------------------------------------------------------------------------------------
+	 * TEST REPORT SUBMISSION
+	 * ------------------------------------------------------------------------------------------
+	 * ------------------------------------------------------------------------------------------
+	 */
 
-	// 	const { payload } = await generateContractReportPayload(
-	// 		activeNodes,
-	// 		reportData.systemReport
-	// 	);
+	it('ReportManager ---- Invalid Reporter Node cannot submit report', async function () {
+		const sampleNode = activeNodes[1];
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: sampleNode,
+		});
+		const { payload } = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
 
-	// 	const responseTx = reportManagerContract
-	// 		.connect(sampleNode)
-	// 		.functions.report(...payload);
+		const now = Date.now();
+		const seconds = Math.floor(now / 1000);
+		const thisReportManagerContract = await loadReportManager(
+			adminSigner,
+			nodeManagerContract,
+			{ withTime: seconds }
+		);
 
-	// 	await expect(responseTx).to.be.revertedWith(
-	// 		CUSTOM_EXCEPTIONS.INVALID_REPORTER
-	// 	);
-	// });
+		const responseTx = thisReportManagerContract
+			.connect(sampleNode)
+			.functions.report(...payload);
 
-	// it('ReportManager ---- Staked Node can submit report', async function () {
-	// 	const sampleNode = activeNodes[0];
-	// 	const reportData = await generateReportData({
-	// 		bundleId: '75',
-	// 		blockheight: blockHeight,
-	// 		signer: sampleNode,
-	// 	});
+		await expect(responseTx).to.be.revertedWith(
+			CUSTOM_EXCEPTIONS.INVALID_REPORTER
+		);
+	});
 
-	// 	const { payload, proofs } = await generateContractReportPayload(
-	// 		activeNodes,
-	// 		reportData.systemReport
-	// 	);
+	it('ReportManager ---- Staked Node can submit report', async function () {
+		// Kick the initial reporter
+		await nodeManagerContract.functions.removeNodeAdmin(
+			NODE_MANAGER.INITIAL_NODES[0]
+		);
 
-	// 	const activeAddresses = [
-	// 		// Dedupe the array of addresses
-	// 		...new Set([
-	// 			...NODE_MANAGER.INITIAL_NODES,
-	// 			...activeNodes.map((n) => n.address),
-	// 		]),
-	// 	];
+		const sampleNode = activeNodes[0];
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: sampleNode,
+		});
 
-	// 	const [reporters] = await reportManagerContract.functions.getReporters();
-	// 	const totalNodes = await nodeManagerContract.functions.totalNodes();
-	// 	const proofSignatures = proofs.map((proof) => proof.signature);
-	// 	const proofTimestamps = proofs.map((proof) => proof.timestamp);
-	// 	const meanTimestamp = proofsToMean(proofs);
-	// 	expect(
-	// 		Number(totalNodes),
-	// 		'Total nodes should equal activeNodes'
-	// 	).to.be.equal(activeAddresses.length);
-	// 	expect(
-	// 		proofSignatures.length,
-	// 		'expect signature length to be length of activeNodes'
-	// 	).to.be.equal(activeNodes.length);
+		// Create proofs are reporter contract load
+		const { payload, proofs } = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
+		const meanTimestamp = proofsToMean(proofs);
 
-	// 	// ? Sleep for the report buffer time
-	// 	// Find node in reporters list
-	// 	const reporterIndex = reporters.findIndex(
-	// 		(addr: string) => addr === sampleNode.address
-	// 	);
+		const seconds = Math.ceil(meanTimestamp / 1000);
+		const thisReportManagerContract = await loadReportManager(
+			adminSigner,
+			nodeManagerContract,
+			{ withTime: seconds }
+		);
 
-	// 	console.log('Proofs:', proofs);
-	// 	console.log('Reporters Overview:', {
-	// 		blockTimestamp,
-	// 		proofTimestamps,
-	// 		meanTimestamp,
-	// 		reporters,
-	// 		reporter: sampleNode.address,
-	// 		reporterIndex,
-	// 		sleepTime: reporterIndex * REPORT_TIME_BUFFER,
-	// 		buffer: REPORT_TIME_BUFFER,
-	// 	});
+		const responseTx = await thisReportManagerContract
+			.connect(sampleNode)
+			.functions.report(...payload);
 
-	// 	// if (reporterIndex * REPORT_TIME_BUFFER + meanTimestamp > meanTimestamp) {
-	// 	// 	console.log('Sleeping until signer can submit report...');
-	// 	// 	await sleep(reporterIndex * REPORT_TIME_BUFFER);
-	// 	// 	console.log('Slept until: ', Date.now());
-	// 	// }
+		const event = await fetchEventArgsFromTx(responseTx, 'ReportAccepted');
+		expect(event?.id).to.be.equal(reportData.report.id);
+	});
 
-	// 	const responseTx = await reportManagerContract
-	// 		.connect(sampleNode)
-	// 		.functions.report(...payload);
+	it('ReportManager ---- (Frontrunning Prevention) Only one reporter at a time', async function () {
+		// Kick the initial reporter
+		await nodeManagerContract.functions.removeNodeAdmin(
+			NODE_MANAGER.INITIAL_NODES[0]
+		);
 
-	// 	const event = await fetchEventArgsFromTx(responseTx, 'ReportAccepted');
-	// 	expect(event?.id).to.be.equal(reportData.report.id);
-	// });
+		const reporter1 = activeNodes[0];
+		const reporter2 = activeNodes[1];
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: reporter1,
+		});
 
-	// it('ReportManager ---- un-staked Node cannot submit report', async function () {
-	// 	// use the 15th because node 0-10 have been staked and we need an unstaked node
-	// 	const sampleNode = otherSigners[15];
+		const { payload, proofs } = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
 
-	// 	const reportData = await generateReportData({
-	// 		bundleId: '75',
-	// 		blockheight: blockHeight,
-	// 		signer: sampleNode,
-	// 	});
+		// const proofSignatures = proofs.map((proof) => proof.signature);
+		const meanTimestamp = proofsToMean(proofs);
+		const reportTimeBuffer = 10 * 1000;
 
-	// 	const { payload } = await generateContractReportPayload(
-	// 		activeNodes,
-	// 		reportData.systemReport
-	// 	);
+		const now = meanTimestamp + reportTimeBuffer; // Give second reporter authorisation
+		const seconds = Math.ceil(now / 1000);
+		const thisReportManagerContract = await loadReportManager(
+			adminSigner,
+			nodeManagerContract,
+			{ withTime: seconds, reportTimeBuffer }
+		);
 
-	// 	const responseTx = reportManagerContract
-	// 		.connect(sampleNode)
-	// 		.functions.report(...payload);
+		const responseTx1 = thisReportManagerContract
+			.connect(reporter1)
+			.functions.report(...payload);
 
-	// 	await expect(responseTx).to.be.revertedWith(
-	// 		CUSTOM_EXCEPTIONS.STAKE_REQUIRED
-	// 	);
-	// });
+		await expect(responseTx1).to.be.revertedWith(
+			CUSTOM_EXCEPTIONS.INVALID_REPORTER
+		);
 
-	// it('ReportManager ---- Staked Node can only submit report when quorum is met', async function () {
-	// 	const sampleNode = activeNodes[0];
-	// 	const reportData = await generateReportData({
-	// 		bundleId: '75',
-	// 		blockheight: blockHeight,
-	// 		signer: sampleNode,
-	// 	});
+		const responseTx2 = await thisReportManagerContract
+			.connect(reporter2)
+			.functions.report(...payload);
 
-	// 	// Produce a payload with a single signer
-	// 	const { payload } = await generateContractReportPayload(
-	// 		[sampleNode],
-	// 		reportData.systemReport
-	// 	);
+		const event = await fetchEventArgsFromTx(responseTx2, 'ReportAccepted');
+		expect(event?.id).to.be.equal(reportData.report.id);
+	});
 
-	// 	// add more nodes to the network, such that requiredNodes > 1 and joinedNodes > 3
-	// 	await Promise.all(
-	// 		otherSigners.map(async (signer) => {
-	// 			await nodeManagerContract.functions.whitelistApproveNode(
-	// 				signer.address
-	// 			);
-	// 			await ApproveFundsForContract(
-	// 				nodeManagerContract.address,
-	// 				getDecimalBN(10),
-	// 				signer
-	// 			);
-	// 			await nodeManagerContract
-	// 				.connect(signer)
-	// 				.functions.join(getDecimalBN(1), SAMPLE_WSS_URL);
-	// 		})
-	// 	);
+	it('ReportManager ---- un-staked Node cannot submit report', async function () {
+		// use the 15th because node 0-10 have been staked and we need an unstaked node
+		const sampleNode = otherSigners[15];
 
-	// 	// send a report
-	// 	const responseTx = reportManagerContract
-	// 		.connect(sampleNode)
-	// 		.functions.report(...payload);
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: sampleNode,
+		});
 
-	// 	await expect(responseTx).to.be.revertedWith(
-	// 		CUSTOM_EXCEPTIONS.QUORUM_NOT_MET
-	// 	);
-	// });
+		const { payload } = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
+
+		const responseTx = reportManagerContract
+			.connect(sampleNode)
+			.functions.report(...payload);
+
+		await expect(responseTx).to.be.revertedWith(
+			CUSTOM_EXCEPTIONS.STAKE_REQUIRED
+		);
+	});
+
+	it('ReportManager ---- Staked Node can only submit report when quorum is met', async function () {
+		const sampleNode = activeNodes[0];
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: sampleNode,
+		});
+
+		// Produce a payload with a single signer
+		const { payload } = await generateContractReportPayload(
+			[sampleNode],
+			reportData.systemReport
+		);
+
+		// add more nodes to the network, such that requiredNodes > 1 and joinedNodes > 3
+		await Promise.all(
+			otherSigners.map(async (signer) => {
+				await nodeManagerContract.functions.whitelistApproveNode(
+					signer.address
+				);
+				await ApproveFundsForContract(
+					nodeManagerContract.address,
+					getDecimalBN(10),
+					signer
+				);
+				await nodeManagerContract
+					.connect(signer)
+					.functions.join(getDecimalBN(1), SAMPLE_WSS_URL);
+			})
+		);
+
+		// send a report
+		const responseTx = reportManagerContract
+			.connect(sampleNode)
+			.functions.report(...payload);
+
+		await expect(responseTx).to.be.revertedWith(
+			CUSTOM_EXCEPTIONS.QUORUM_NOT_MET
+		);
+	});
 
 	// it('NodeManager ---- Node manager can process submitted report', async function () {
 	// 	const currentNode = activeNodes[0];

@@ -12,8 +12,6 @@ import {LogStoreNodeManager} from "./NodeManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
 import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     uint256 public constant MATH_PRECISION = 10 ** 10;
 
@@ -311,9 +309,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         // Use all timestamps - as the more consistent the mean is as an anchor, the better.
         // Validators will subscibe to ProofOfReports to slash brokers that are working against the interests of the network.
         uint256 meanProofTimestamp = aggregateTimestamps(proofTimestamps);
-        console.log(StringsUpgradeable.toString(meanProofTimestamp), "meanProofTimestamp");
         uint256 preciseBlockTs = blockTimestamp();
-        console.log(StringsUpgradeable.toString(preciseBlockTs), "preciseBlockTs");
         uint256 cycleTime = reportTimeBuffer * reporterList.length;
         uint256 cycle = 0; // first cycle
         while (preciseBlockTs >= ((cycle + 1) * cycleTime) + meanProofTimestamp) {
@@ -322,19 +318,13 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
             cycle += 1;
         }
         uint256 fromTime = (cycle * cycleTime) + meanProofTimestamp;
-        console.log(StringsUpgradeable.toString(cycle), "cycle");
+
         for (uint256 i = 0; i < reporterList.length; i++) {
             if (reporterList[i] == reporter) {
                 uint256 start = (i * reportTimeBuffer) + fromTime;
                 uint256 end = ((i + 1) * reportTimeBuffer) + fromTime;
-                console.log(StringsUpgradeable.toString(i), "reporterIndex: ");
-                console.log(StringsUpgradeable.toString(start), "start: ");
-                console.log(StringsUpgradeable.toString(end), "end: ");
-                // console.log("started: ", started ? 'true' : 'false');
-                // console.log("ended: ", ended ? 'true' : 'false');
-                // validReporter = started == true && ended == false;
+
                 validReporter = preciseBlockTs >= start && preciseBlockTs < end;
-                console.log(validReporter ? "T" : "F", "ValidReporter");
                 break;
             }
         }
