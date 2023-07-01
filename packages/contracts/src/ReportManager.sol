@@ -12,6 +12,8 @@ import {LogStoreNodeManager} from "./NodeManager.sol";
 import {VerifySignature} from "./lib/VerifySignature.sol";
 import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 
+import "hardhat/console.sol";
+
 contract LogStoreReportManager is
     Initializable,
     UUPSUpgradeable,
@@ -67,9 +69,14 @@ contract LogStoreReportManager is
     mapping(string => Report) internal reports;
     LogStoreNodeManager private _nodeManager;
 
+		// used for unit testing time-dependent code
+		// block.timestamp is a miner-dependent variable that progresses over time. accuracy of time isn't. simply it's guarantee of increment for each block.
+		uint256 private _test_block_timestamp;
+
     function initialize(
         address _owner,
-        uint256 _reportTimeBuffer
+        uint256 _reportTimeBuffer,
+				uint256 __test_block_timestamp
     ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
@@ -77,6 +84,7 @@ contract LogStoreReportManager is
 
         _nodeManager = LogStoreNodeManager(_owner);
         reportTimeBuffer = _reportTimeBuffer * MATH_PRECISION;
+				_test_block_timestamp = __test_block_timestamp * 1000 * MATH_PRECISION;
 
         transferOwnership(_owner);
     }
@@ -304,24 +312,37 @@ contract LogStoreReportManager is
         // Use all timestamps - as the more consistent the mean is as an anchor, the better.
         // Validators will subscibe to ProofOfReports to slash brokers that are working against the interests of the network.
         uint256 meanProofTimestamp = aggregateTimestamps(proofTimestamps);
+				console.log(StringsUpgradeable.toString(meanProofTimestamp), "meanProofTimestamp");
         uint256 preciseBlockTs = blockTimestamp();
-        uint256 cycleTime = reportTimeBuffer * reporterList.length;
+				console.log(StringsUpgradeable.toString(preciseBlockTs), "preciseBlockTs");
+        // uint256 cycleTime = reportTimeBuffer * reporterList.length;
         uint256 cycles = 1; // first cycle
-        while(preciseBlockTs > (cycles * cycleTime) + meanProofTimestamp) {
-                // Count the number of cycles from the mean to the current block.
-                cycles += 1;
-        }
+        // while(preciseBlockTs > (cycles * cycleTime) + meanProofTimestamp) {
+        //         // Count the number of cycles from the mean to the current block.
+        //         cycles += 1;
+        // }
+				console.log(StringsUpgradeable.toString(cycles),"cycles");
         for (uint256 i = 0; i < reporterList.length; i++) {
             if (reporterList[i] == reporter) {
-                bool started = preciseBlockTs >= (i * reportTimeBuffer * cycles) + meanProofTimestamp;
-                bool ended = preciseBlockTs >= ((i + 1) * reportTimeBuffer * cycles) + meanProofTimestamp;
-                validReporter = started == true && ended == false;
+                uint256 start = (i * reportTimeBuffer * cycles) + meanProofTimestamp;
+                uint256 end = ((i + 1) * reportTimeBuffer * cycles) + meanProofTimestamp;
+								console.log(StringsUpgradeable.toString(i), "reporterIndex: ");
+								console.log(StringsUpgradeable.toString(start), "start: ");
+								console.log(StringsUpgradeable.toString(end), "end: ");
+								// console.log("started: ", started ? 'true' : 'false');
+								// console.log("ended: ", ended ? 'true' : 'false');
+                // validReporter = started == true && ended == false;
+                validReporter = preciseBlockTs >= start && preciseBlockTs < end;
+								console.log(validReporter ? 'T' : 'F', "ValidReporter");
                 break;
             }
         }
     }
 
 		function blockTimestamp() public view returns (uint256) {
+			if(_test_block_timestamp > 0){
+				return _test_block_timestamp;
+			}
 			return block.timestamp * 1000 * MATH_PRECISION;
 		}
 }

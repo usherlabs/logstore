@@ -37,21 +37,6 @@ describe('ReportManager', async function () {
 	let nodeManagerContract: Contract;
 	let token: Contract;
 	let blockHeight: number;
-	let blockTimestamp: number;
-	const now = Date.now();
-
-	before(async () => {
-		const seconds = Math.floor(now / 1000);
-		[adminSigner, ...otherSigners] = await ethers.getSigners();
-		activeNodes = otherSigners.slice(0, 2);
-		nodeManagerContract = await setupNodeManager(adminSigner, activeNodes);
-		reportManagerContract = await loadReportManager(
-			adminSigner,
-			nodeManagerContract
-		);
-		await time.increaseTo(seconds);
-		blockTimestamp = await reportManagerContract.functions.blockTimestamp();
-	});
 
 	beforeEach(async () => {
 		const blockNumber = await getLatestBlockNumber();
@@ -62,7 +47,8 @@ describe('ReportManager', async function () {
 		nodeManagerContract = await setupNodeManager(adminSigner, activeNodes);
 		reportManagerContract = await loadReportManager(
 			adminSigner,
-			nodeManagerContract
+			nodeManagerContract,
+			{}
 		);
 		token = await getERC20Token(adminSigner);
 	});
@@ -83,8 +69,21 @@ describe('ReportManager', async function () {
 
 	it('ReportManager ---- Block timestamp is handled correctly', async function () {
 		// A test to ensure time.increaseTo actually works.
+		const now = Date.now();
 		const seconds = Math.floor(now / 1000);
+		await time.increaseTo(seconds);
+		const blockTimestamp =
+			await reportManagerContract.functions.blockTimestamp();
 		expect(+blockTimestamp).to.be.equals(seconds * 1000 * Math.pow(10, 10));
+
+		const thisReportManagerContract = await loadReportManager(
+			adminSigner,
+			nodeManagerContract,
+			{ withTime: seconds }
+		);
+		const blockTimestamp2 =
+			await thisReportManagerContract.functions.blockTimestamp();
+		expect(+blockTimestamp2).to.be.equals(seconds * 1000 * Math.pow(10, 10));
 	});
 
 	it('ReportManager ---- Node IS a valid reporter', async function () {
@@ -111,21 +110,36 @@ describe('ReportManager', async function () {
 		);
 		const proofTimestamps = proofs.map((proof) => proof.timestamp);
 		const meanTimestamp = proofsToMean(proofs);
-		console.log('ReportManager ---- Node IS a valid reporter', {
-			proofTimestamps,
-			meanTimestamp,
-			blockTimestamp: (await getTimeStamp()) * 1000,
-		});
+		// console.log('ReportManager ---- Node IS a valid reporter', {
+		// 	proofTimestamps,
+		// 	meanTimestamp,
+		// 	blockTimestamp: (await getTimeStamp()) * 1000,
+		// });
+
+		const meanToSeconds = Math.ceil(meanTimestamp / 1000); // current block ts is > start
+		const thisReportManagerContract = await loadReportManager(
+			adminSigner,
+			nodeManagerContract,
+			{ withTime: meanToSeconds }
+		);
 
 		// get all nodes
-		const validReporter = await reportManagerContract
+		const [validReporter] = await thisReportManagerContract
 			.connect(sampleNode)
 			.functions.canReport(proofTimestamps);
 
-		expect(Boolean(validReporter)).to.be.equal(true);
+		expect(validReporter).to.be.equal(true);
 	});
 
 	it('ReportManager ---- Node IS NOT a valid reporter', async function () {
+		const now = Date.now();
+		const seconds = Math.floor(now / 1000);
+		const thisReportManagerContract = await loadReportManager(
+			adminSigner,
+			nodeManagerContract,
+			{ withTime: seconds }
+		);
+
 		// const [reporters] = await reportManagerContract.functions.getReporters();
 		// console.log('Reporters', reporters);
 
@@ -142,20 +156,20 @@ describe('ReportManager', async function () {
 			reportData.systemReport
 		);
 		const proofTimestamps = proofs.map((proof) => proof.timestamp);
-		const meanTimestamp = proofsToMean(proofs);
-		console.log('ReportManager ---- Node IS NOT a valid reporter', {
-			proofTimestamps,
-			meanTimestamp,
-			blockTimestamp: (await getTimeStamp()) * 1000,
-			now: Date.now(),
-		});
+		// const meanTimestamp = proofsToMean(proofs);
+		// console.log('ReportManager ---- Node IS NOT a valid reporter', {
+		// 	proofTimestamps,
+		// 	meanTimestamp,
+		// 	blockTimestamp: (await getTimeStamp()) * 1000,
+		// 	now: Date.now(),
+		// });
 
 		// get all nodes
-		const validReporter = await reportManagerContract
+		const [validReporter] = await thisReportManagerContract
 			.connect(sampleNode)
 			.functions.canReport(proofTimestamps);
 
-		expect(Boolean(validReporter)).to.be.equal(false);
+		expect(validReporter).to.be.equal(false);
 	});
 
 	// it('ReportManager ---- Invalid Reporter Node cannot submit report', async function () {

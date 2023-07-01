@@ -161,7 +161,8 @@ export async function setupNodeManager(
 
 export async function loadReportManager(
 	adminAddress: SignerWithAddress,
-	nodeManagerContract: Contract
+	nodeManagerContract: Contract,
+	{ reportTimeBuffer = REPORT_TIME_BUFFER, withTime = 0 }
 ) {
 	await mintFundsToAddresses();
 	// deploy libs
@@ -181,7 +182,7 @@ export async function loadReportManager(
 
 	const reportManagerContract = await upgrades.deployProxy(
 		reportManager,
-		[nodeManagerContract.address, REPORT_TIME_BUFFER],
+		[nodeManagerContract.address, reportTimeBuffer, withTime],
 		{ unsafeAllowLinkedLibraries: true }
 	);
 	return reportManagerContract;
