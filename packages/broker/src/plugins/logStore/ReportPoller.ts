@@ -7,7 +7,7 @@ import {
 } from '@logsn/shared';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
-import { ethers, Signer, Wallet } from 'ethers';
+import { BigNumber, ethers, Signer, Wallet } from 'ethers';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
@@ -199,26 +199,32 @@ export class ReportPoller {
 		const signaturesParam = poll.proofs.map((proof) => proof.signature);
 		const timestampsParam = poll.proofs.map((proof) => proof.timestamp);
 
+		// TODO: Include signature verification pre-report submission to maximise odds of success
+
 		// ! Do not use JSON.stringify with BigInt
-		logger.info(`reportManagerContract.report params:`, [
-			contractParams[0],
-			contractParams[1],
-			contractParams[2],
-			contractParams[3],
-			contractParams[4],
-			contractParams[5],
-			contractParams[6],
-			contractParams[7],
-			contractParams[8],
-			contractParams[9],
-			contractParams[10],
-			contractParams[11],
-			contractParams[12],
-			contractParams[13],
-			addressesParam,
-			timestampsParam,
-			signaturesParam,
-		]);
+		logger.info(
+			`Submitting ReportManager.sol.report - Contract Params = ${JSON.stringify(
+				[
+					contractParams[0],
+					contractParams[1],
+					contractParams[2],
+					contractParams[3].map((v) => Number(v)),
+					contractParams[4],
+					contractParams[5],
+					contractParams[6].map((v) => Number(v)),
+					contractParams[7],
+					contractParams[8],
+					contractParams[9].map((v) => Number(v)),
+					contractParams[10],
+					contractParams[11],
+					contractParams[12].map((v) => v.map((v2) => Number(v2))),
+					Number(contractParams[13]),
+				]
+			)}, Addresses = ${addressesParam}, Signatures = ${signaturesParam}, Timestamps = ${timestampsParam}`
+		);
+		logger.info(
+			`Submitting ReportManager.sol.report - STREAM[0] = ${contractParams[2][0]}`
+		);
 
 		const submitReportTx = await this.reportManager.report(
 			contractParams[0],
