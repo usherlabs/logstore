@@ -163,14 +163,7 @@ export class ReportPoller {
 			logger.error('Report not found in bundle');
 			throw Error('Report not found in bundle');
 		}
-		const { r: reportJsonStr } = lastItem.value;
-		let reportJson;
-		try {
-			reportJson = JSON.parse(reportJsonStr);
-		} catch (e) {
-			logger.error('Could not JSON.parse serialized Report', { reportJsonStr });
-			throw e;
-		}
+		const { r: reportJson } = lastItem.value;
 		let systemReport: SystemReport;
 		try {
 			systemReport = new SystemReport(reportJson, reportJson.v);
