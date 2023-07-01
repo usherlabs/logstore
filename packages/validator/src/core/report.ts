@@ -301,10 +301,14 @@ export class Report extends AbstractDataItem<IPrepared> {
 			totalBytes += bytes;
 			return totalBytes;
 		}, 0);
-		const expense = BigNumber.from(
-			await Arweave.getPrice(totalBytesStored, toKeyMs)
-		);
-		const expensePerByteStored = expense.div(totalBytesStored);
+		let expense = BigNumber.from(0);
+		let expensePerByteStored = BigNumber.from(0);
+		if (totalBytesStored > 0) {
+			expense = BigNumber.from(
+				await Arweave.getPrice(totalBytesStored, toKeyMs)
+			);
+			expensePerByteStored = expense.div(totalBytesStored);
+		}
 		const writeFee = expensePerByteStored.mul(fees.writeMultiplier);
 		const writeTreasuryFee = writeFee
 			.sub(expensePerByteStored)
@@ -340,10 +344,10 @@ export class Report extends AbstractDataItem<IPrepared> {
 		});
 
 		// Determine read fees
-		const readFee =
-			totalBytesStored === 0
-				? BigNumber.from(0)
-				: writeFee.mul(fees.readMultiplier);
+		let readFee = BigNumber.from(0);
+		if (totalBytesStored > 0) {
+			readFee = writeFee.mul(fees.readMultiplier);
+		}
 		const readTreasuryFee = readFee.mul(fees.treasuryMultiplier);
 		const readNodeFee = readFee.sub(readTreasuryFee);
 
