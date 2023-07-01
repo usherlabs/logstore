@@ -192,10 +192,12 @@ export async function generateReportData({
 	blockheight,
 	signer,
 	bundleId = `${generateRandomNumber(100)}`,
+	withNegatives = false,
 }: {
 	blockheight: number;
 	signer: SignerWithAddress;
 	bundleId: string;
+	withNegatives?: boolean;
 }): Promise<ReportData> {
 	const nodeAddress = signer.address;
 	const signers = await hEthers.getSigners();
@@ -216,11 +218,11 @@ export async function generateReportData({
 			},
 		],
 		nodes: {
-			[nodeAddress]: BigNumber.from(30000),
+			[nodeAddress]: BigNumber.from(withNegatives ? -20000 : 30000),
 		},
 		delegates: {
 			[nodeAddress]: {
-				[nodeAddress]: BigNumber.from(40000),
+				[nodeAddress]: BigNumber.from(withNegatives ? -20000 : 40000),
 			},
 		},
 		treasury: BigNumber.from(50000),

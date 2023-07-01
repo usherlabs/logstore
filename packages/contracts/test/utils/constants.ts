@@ -32,16 +32,19 @@ export const NODE_MANAGER_EVENTS = {
 
 export const REPORT_MANAGER_EVENTS = {
 	REPORT_ACCEPTED: 'ReportAccepted',
-	REPORT_PROCESSED: 'ReportProcessed',
 };
 
 export const QUERY_MANAGER_EVENTS = {
 	DATA_QUERIED: 'DataQueried',
 	STAKE: 'Stake',
+	CAPTURE_OVERFLOW: 'CaptureOverflow',
+	SUPPLY_OVERFLOW: 'SupplyOverflow',
 };
 
 export const STORE_MANAGER_EVENTS = {
 	STORE_UPDATED: 'StoreUpdated',
+	CAPTURE_OVERFLOW: 'CaptureOverflow',
+	SUPPLY_OVERFLOW: 'SupplyOverflow',
 };
 
 export const NODE_WHITELIST_STATE = {

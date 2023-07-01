@@ -22,7 +22,14 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
     event NodeUpdated(address indexed nodeAddress, string metadata, bool indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
-    event StakeDelegateUpdated(address indexed delegate, address indexed node, uint amount, uint totalStake, uint totalDelegated, bool delegated);
+    event StakeDelegateUpdated(
+        address indexed delegate,
+        address indexed node,
+        uint amount,
+        uint totalStake,
+        uint totalDelegated,
+        bool delegated
+    );
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
@@ -59,7 +66,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     uint256 public stakeRequiredAmount;
     address public stakeTokenAddress;
     uint256 public totalNodes;
-		uint256 public startBlockNumber; // A block number for when the Log Store process starts
+    uint256 public startBlockNumber; // A block number for when the Log Store process starts
     mapping(address => Node) public nodes;
     mapping(address => WhitelistState) public whitelist;
     mapping(address => uint256) public balanceOf;
@@ -309,7 +316,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             isNew = true;
             if (headNode == address(0)) {
                 headNode = nodeAddress;
-								startBlockNumber = block.number;
+                startBlockNumber = block.number;
             } else {
                 nodes[tailNode].next = nodeAddress;
                 foundNode.prev = tailNode;
@@ -356,10 +363,10 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             nextNodeAddress = nodes[nextNodeAddress].next;
         }
 
-				// Reset startBlockNumber if all nodes are removed.
-				if(headNode == address(0)){
-					startBlockNumber = 0;
-				}
+        // Reset startBlockNumber if all nodes are removed.
+        if (headNode == address(0)) {
+            startBlockNumber = 0;
+        }
 
         emit NodeRemoved(nodeAddress);
     }

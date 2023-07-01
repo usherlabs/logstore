@@ -41,11 +41,12 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
     /// @param consumer address of the data consumer
     /// @param bytesProcessed number of bytes in the response
     function capture(address consumer, uint256 amount, uint256 bytesProcessed) public nonReentrant onlyOwner {
-        require(amount <= stakeToken.balanceOf(address(this)), "error_notEnoughStake");
         require(balanceOf[consumer] > 0, "error_invalidConsumerAddress");
 
+        uint256 amountToTransfer = amount;
         if (balanceOf[consumer] < amount) {
             emit CaptureOverflow(consumer, balanceOf[consumer], amount, amount - balanceOf[consumer]);
+            amountToTransfer = balanceOf[consumer];
             balanceOf[consumer] = 0;
         } else {
             balanceOf[consumer] -= amount;
@@ -57,7 +58,9 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
             totalSupply -= amount;
         }
 
-        bool success = stakeToken.transfer(msg.sender, amount);
+        require(amountToTransfer <= stakeToken.balanceOf(address(this)), "error_insufficientStake");
+
+        bool success = stakeToken.transfer(msg.sender, amountToTransfer);
         require(success == true, "error_unsuccessfulCapture");
 
         emit DataQueried(consumer, amount, bytesProcessed);
