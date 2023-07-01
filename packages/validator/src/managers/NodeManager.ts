@@ -15,7 +15,7 @@ export class NodeManager {
 
 	async getBrokerNodes(
 		blockNumber?: number,
-		minStakeRequirement?: number
+		minStakeRequirement?: BigNumber
 	): Promise<Array<IBrokerNode>> {
 		// get all the node addresses
 		const nodeAddresses = await this.contract.nodeAddresses({
@@ -114,7 +114,7 @@ export class NodeManager {
 			stakeTokenAddress,
 			stakeTokenSymbol,
 			stakeTokenDecimals,
-			+minStakeRequirement,
+			minStakeRequirement,
 			this.contract.signer
 		);
 

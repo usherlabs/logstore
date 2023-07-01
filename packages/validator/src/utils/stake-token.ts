@@ -9,13 +9,12 @@ export class StakeToken {
 		public address: string,
 		public symbol: string,
 		public decimals: number,
-		public minRequirement: number,
+		public minRequirement: BigNumber,
 		public signer: Signer
 	) {}
 
 	public async init() {
 		this.tokenContract = LSAN__factory.connect(this.address, this.signer);
-		// this.price = await this.getPrice(Date.now());
 	}
 
 	public async getPrice(timestamp: number) {
@@ -31,10 +30,6 @@ export class StakeToken {
 		usdValue: number,
 		timestamp: number
 	): Promise<BigNumber> {
-		// if (!this.price) {
-		// 	throw new Error('Price has not been initiated');
-		// }
-
 		const price = await this.getPrice(timestamp);
 
 		return ethers.utils.parseUnits(
