@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 
 const logger = new Logger(module);
 
-const POLL_TIME = 60 * 1000;
+const POLL_TIME = 30 * 1000;
 
 interface ReportPollOptions {
 	reportOrProof: SystemReport | ProofOfReport;

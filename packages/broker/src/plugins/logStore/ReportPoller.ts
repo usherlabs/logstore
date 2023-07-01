@@ -73,7 +73,7 @@ export class ReportPoller {
 				return;
 			}
 
-			const hash = SystemReport.toContractHash(systemReport.toContract());
+			const hash = systemReport.toHash();
 			let poll = this.polls[hash];
 			if (poll) {
 				poll.assignReport(systemReport);
@@ -100,17 +100,8 @@ export class ReportPoller {
 		// get important variables from contract
 		const allActiveNodes = await this.nodeManager.nodeAddresses();
 		logger.info(`${allActiveNodes.length} active nodes:${allActiveNodes}`);
-		const blockBuffer = (
-			await this.reportManager.reportBlockBuffer()
-		).toNumber();
-		const orderedReporters = await this.reportManager.getReporters();
-		logger.info(`nodes ordered:${orderedReporters}`);
-
-		// check if this node can submit a report
-		const nodeCanReport = await this.nodeCanSubmitReport(
-			poll.report,
-			orderedReporters,
-			blockBuffer
+		const nodeCanReport = await this.reportManager.canReport(
+			poll.proofs.map((p) => p.timestamp)
 		);
 		logger.info(`Node ${nodeCanReport ? 'can' : 'cannot'} submit report`);
 		// everytime we get a new signature
@@ -205,30 +196,6 @@ export class ReportPoller {
 			`Proof of report ${poll.report.id} published to system stream`,
 			proofOfReport
 		);
-	}
-
-	private async nodeCanSubmitReport(
-		report: SystemReport,
-		reportersList: Array<string>,
-		blockBuffer: number
-	) {
-		const brokerAddress = await this.signer.getAddress();
-		const nodeIndex = reportersList.findIndex(
-			(address) => address.toLowerCase() === brokerAddress.toLowerCase()
-		);
-		const blockNumber = (await this.signer.provider?.getBlockNumber()) || 0;
-		logger.info(
-			`Blocknumber:${blockNumber}; ReportHeight: ${report.height}; NodeIndex:${nodeIndex}; blockBuffer:${blockBuffer}; reporters:${reportersList}; broker: ${brokerAddress}`
-		);
-		// use this condition to determine if a node is capable of submitting a report
-		// same logic smart contract uses to determine who can or cannot submit
-		const condition =
-			blockNumber >
-			nodeIndex * blockBuffer +
-				(nodeIndex > 0 ? blockBuffer : 0) +
-				report.height;
-
-		return condition;
 	}
 
 	private async submitReport(poll: ReportPoll & { report: SystemReport }) {
