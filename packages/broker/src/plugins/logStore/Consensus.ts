@@ -12,6 +12,8 @@ import { Signer } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
 
+const CONSENSUS_TIMEOUT = 30 * 1000; // 30 seconds
+
 const logger = new Logger(module);
 
 export type Consensus = {
@@ -45,12 +47,11 @@ export const getConsensus = async (
 	systemStream: Stream,
 	data: Readable
 ): Promise<Consensus[]> => {
-	const CONSENSUS_TIMEOUT = 10 * 1000; // 10 seconds
-	const CONSENSUS_THRESHOLD = (await nodeManager.totalNodes()).toNumber();
-
+	let awaitingResponses = (await nodeManager.totalNodes()).toNumber();
+	const consesnusThreshold = Math.ceil(awaitingResponses / 2);
 	const { size, hash } = await hashResponse(queryRequest.requestId, data);
 	const signature = await signer.signMessage(hash);
-	const consensus: Consensus[] = [];
+	const consensuses: Record<string, Consensus[]> = {};
 
 	return new Promise<Consensus[]>((resolve, reject) => {
 		let timeout: NodeJS.Timeout;
@@ -68,26 +69,35 @@ export const getConsensus = async (
 					return;
 				}
 
-				// TODO: Currently, rejects once an incorrect hash received. Will need to eventually update to manage a count of mismatches
-				// It should collect majority of hashes to reach a consesnsus.
-				if (queryResponse.size != size && queryResponse.hash != hash) {
-					clearTimeout(timeout);
-					sub.unsubscribe().then(() => {
-						reject('No consensus');
-					});
-					return;
+				if (!consensuses[queryResponse.hash]) {
+					consensuses[queryResponse.hash] = [];
 				}
 
-				consensus.push({
+				awaitingResponses--;
+				consensuses[queryResponse.hash].push({
 					hash: queryResponse.hash,
 					signer: metadata.publisherId,
 					signature: queryResponse.signature,
 				});
 
-				if (consensus.length >= CONSENSUS_THRESHOLD) {
+				// check if consensus reached
+				if (consensuses[queryResponse.hash].length >= consesnusThreshold) {
 					clearTimeout(timeout);
 					sub.unsubscribe().then(() => {
-						resolve(consensus);
+						resolve(consensuses[queryResponse.hash]);
+					});
+					return;
+				}
+
+				// check if consensus cannot be reached
+				const leadingResponses = Object.keys(consensuses)
+					.map((key) => consensuses[key].length)
+					.reduce((max, length) => Math.max(max, length), 0);
+
+				if (leadingResponses + awaitingResponses < consesnusThreshold) {
+					clearTimeout(timeout);
+					sub.unsubscribe().then(() => {
+						reject('No consensus');
 					});
 					return;
 				}
@@ -107,7 +117,6 @@ export const getConsensus = async (
 						}, CONSENSUS_TIMEOUT);
 					});
 
-				// ? On the query request, the Broker Node is required to emit a response so that validators can ensure it also is producing the correct response.
 				const queryResponse = new QueryResponse({
 					requestId: queryRequest.requestId,
 					size,
