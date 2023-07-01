@@ -172,6 +172,83 @@ describe('ReportManager', async function () {
 		expect(validReporter).to.be.equal(false);
 	});
 
+	it('ReportManager ---- Node IS a valid reporter after 4 cycles', async function () {
+		// Kick the initial reporter
+		await nodeManagerContract.functions.removeNodeAdmin(
+			NODE_MANAGER.INITIAL_NODES[0]
+		);
+
+		const [reporters] = await reportManagerContract.functions.getReporters();
+
+		// Set next timestamp to now
+
+		const sampleNode = activeNodes[0];
+		// get all reports
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: sampleNode,
+		});
+
+		const { proofs } = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
+		const proofTimestamps = proofs.map((proof) => proof.timestamp);
+		const meanTimestamp = proofsToMean(proofs);
+
+		const reportTimeBuffer = 10 * 1000;
+		const now = meanTimestamp + reportTimeBuffer * reporters.length * 4;
+		const seconds = Math.ceil(now / 1000);
+		const thisReportManagerContract = await loadReportManager(
+			adminSigner,
+			nodeManagerContract,
+			{ withTime: seconds, reportTimeBuffer }
+		);
+
+		// get all nodes
+		const [validReporter] = await thisReportManagerContract
+			.connect(sampleNode)
+			.functions.canReport(proofTimestamps);
+
+		expect(validReporter).to.be.equal(true);
+	});
+
+	it('ReportManager ---- Node IS NOT a valid reporter after 4 cycles', async function () {
+		const [reporters] = await reportManagerContract.functions.getReporters();
+
+		const sampleNode = activeNodes[1];
+		// get all reports
+		const reportData = await generateReportData({
+			bundleId: '75',
+			blockheight: blockHeight,
+			signer: sampleNode,
+		});
+
+		const { proofs } = await generateContractReportPayload(
+			activeNodes,
+			reportData.systemReport
+		);
+		const proofTimestamps = proofs.map((proof) => proof.timestamp);
+		const meanTimestamp = proofsToMean(proofs);
+
+		const reportTimeBuffer = 10 * 1000;
+		const now = meanTimestamp + reportTimeBuffer * reporters.length * 4;
+		const seconds = Math.ceil(now / 1000);
+		const thisReportManagerContract = await loadReportManager(
+			adminSigner,
+			nodeManagerContract,
+			{ withTime: seconds, reportTimeBuffer }
+		);
+
+		// get all nodes
+		const [validReporter] = await thisReportManagerContract
+			.connect(sampleNode)
+			.functions.canReport(proofTimestamps);
+
+		expect(validReporter).to.be.equal(false);
+	});
+
 	// it('ReportManager ---- Invalid Reporter Node cannot submit report', async function () {
 	// 	const sampleNode = activeNodes[1];
 	// 	const reportData = await generateReportData({

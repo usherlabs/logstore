@@ -237,7 +237,8 @@ export async function generateReportData({
 
 export async function generateContractReportPayload(
 	signers: SignerWithAddress[],
-	systemReport: SystemReport
+	systemReport: SystemReport,
+	{ now }: { now?: number } = {}
 ) {
 	const proofs: ProofOfReport[] = [];
 	const payloadAddresses = [];
@@ -245,10 +246,7 @@ export async function generateContractReportPayload(
 	const payloadSignatures = [];
 	for (let i = 0; i < signers.length; i++) {
 		// // Remove buffer from the current time when Proof is generated.
-		const proof = await systemReport.toProof(
-			signers[i]
-			// Date.now() - REPORT_TIME_BUFFER * 1000
-		);
+		const proof = await systemReport.toProof(signers[i], now);
 		proofs.push(proof);
 		payloadAddresses.push(proof.address);
 		payloadTimestamps.push(proof.timestamp);
