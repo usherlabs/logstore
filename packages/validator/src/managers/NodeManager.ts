@@ -41,7 +41,7 @@ export class NodeManager {
 					lastSeen: nodeDetail.lastSeen.toNumber(),
 					next: nodeDetail.next,
 					prev: nodeDetail.prev,
-					stake: +nodeDetail.stake,
+					stake: nodeDetail.stake,
 					delegates: allDelegates,
 				};
 			})
@@ -51,7 +51,7 @@ export class NodeManager {
 		const brokerNodes = detailedAllNodes.filter(
 			({ stake }) =>
 				typeof minStakeRequirement !== 'undefined' &&
-				stake >= minStakeRequirement
+				stake.gte(minStakeRequirement)
 		);
 
 		return brokerNodes;
@@ -66,7 +66,7 @@ export class NodeManager {
 	async getDelegates(
 		nodeAddress: string,
 		toBlockNumber: number
-	): Promise<Record<string, number>> {
+	): Promise<Record<string, BigNumber>> {
 		const delegatesEvent = await this.contract.queryFilter(
 			this.contract.filters.StakeDelegateUpdated(
 				null,
@@ -82,15 +82,14 @@ export class NodeManager {
 
 		const eventDetails = delegatesEvent.map(({ args }) => ({
 			delegate: args.delegate,
-			amount:
-				args.delegated === true ? Number(args.amount) : -Number(args.amount),
+			amount: args.delegated === true ? args.amount : args.amount.mul(-1),
 		}));
 
 		return eventDetails.reduce((accumulator, curr) => {
 			if (accumulator[curr.delegate] === undefined) {
-				accumulator[curr.delegate] = 0;
+				accumulator[curr.delegate] = BigNumber.from(0);
 			} else {
-				accumulator[curr.delegate] += curr.amount;
+				accumulator[curr.delegate].add(curr.amount);
 			}
 			return accumulator;
 		}, {});

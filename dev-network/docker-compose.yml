@@ -50,8 +50,8 @@ services:
       dockerfile: ./Dockerfile.nginx
     restart: always
     ports:
-      - '80:80'
-      - '443:443'
+      # - '80:80'
+      # - '443:443'
       - '8801:8801'
       - '1317:1317'
       - '26657:26657'
