@@ -744,7 +744,7 @@ importers:
         version: 5.7.0
       '@ethersproject/providers':
         specifier: ^5.7.2
-        version: 5.7.2
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@logsn/protocol':
         specifier: workspace:^
         version: link:../protocol
@@ -813,7 +813,7 @@ importers:
         version: 1.0.2
       ethers:
         specifier: ^5.7.2
-        version: 5.7.2
+        version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       hardhat:
         specifier: ^2.16.1
         version: 2.16.1(ts-node@10.9.1)(typescript@4.9.5)
@@ -1043,6 +1043,9 @@ importers:
       commander:
         specifier: ^10.0.0
         version: 10.0.0
+      decimal.js:
+        specifier: ^10.4.3
+        version: 10.4.3
       ethers:
         specifier: ^5
         version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
@@ -3363,33 +3366,6 @@ packages:
     dependencies:
       '@ethersproject/logger': 5.7.0
 
-  /@ethersproject/providers@5.7.2:
-    resolution: {integrity: sha512-g34EWZ1WWAVgr4aptGlVBF8mhl3VWjv+8hoAnzStu8Ah22VHBsuGzP17eb6xDVRzw895G4W7vvx60lFFur/1Rg==}
-    dependencies:
-      '@ethersproject/abstract-provider': 5.7.0
-      '@ethersproject/abstract-signer': 5.7.0
-      '@ethersproject/address': 5.7.0
-      '@ethersproject/base64': 5.7.0
-      '@ethersproject/basex': 5.7.0
-      '@ethersproject/bignumber': 5.7.0
-      '@ethersproject/bytes': 5.7.0
-      '@ethersproject/constants': 5.7.0
-      '@ethersproject/hash': 5.7.0
-      '@ethersproject/logger': 5.7.0
-      '@ethersproject/networks': 5.7.1
-      '@ethersproject/properties': 5.7.0
-      '@ethersproject/random': 5.7.0
-      '@ethersproject/rlp': 5.7.0
-      '@ethersproject/sha2': 5.7.0
-      '@ethersproject/strings': 5.7.0
-      '@ethersproject/transactions': 5.7.0
-      '@ethersproject/web': 5.7.1
-      bech32: 1.1.4
-      ws: 7.4.6
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
   /@ethersproject/providers@5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10):
     resolution: {integrity: sha512-g34EWZ1WWAVgr4aptGlVBF8mhl3VWjv+8hoAnzStu8Ah22VHBsuGzP17eb6xDVRzw895G4W7vvx60lFFur/1Rg==}
     dependencies:
@@ -4814,7 +4790,7 @@ packages:
     resolution: {integrity: sha512-oL8vJcnk0Bx/onl+TgQOQ1t/534GKFaEG17fZmwtPFeH8S5soiBYPCLUrvANOl4sCp9elYxIMzIiTtMtNNN8EQ==}
     engines: {node: '>=14'}
     dependencies:
-      '@ethersproject/providers': 5.7.2
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@nomicfoundation/ethereumjs-common': 4.0.1
       '@nomicfoundation/ethereumjs-tx': 5.0.1
       '@nomicfoundation/ethereumjs-util': 9.0.1
@@ -4865,7 +4841,7 @@ packages:
     engines: {node: '>=14'}
     dependencies:
       '@chainsafe/ssz': 0.9.4
-      '@ethersproject/providers': 5.7.2
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@nomicfoundation/ethereumjs-common': 4.0.1
       '@nomicfoundation/ethereumjs-rlp': 5.0.1
       '@nomicfoundation/ethereumjs-util': 9.0.1
@@ -4960,7 +4936,7 @@ packages:
       typescript: '>=4.5.0'
     dependencies:
       '@ethersproject/abi': 5.7.0
-      '@ethersproject/providers': 5.7.2
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@nomicfoundation/hardhat-chai-matchers': 1.0.5(@nomiclabs/hardhat-ethers@2.2.2)(chai@4.3.7)(ethers@5.7.2)(hardhat@2.16.1)
       '@nomicfoundation/hardhat-network-helpers': 1.0.7(hardhat@2.16.1)
       '@nomiclabs/hardhat-ethers': 2.2.2(ethers@5.7.2)(hardhat@2.16.1)
@@ -5967,7 +5943,7 @@ packages:
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/bytes': 5.7.0
-      '@ethersproject/providers': 5.7.2
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       ethers: 5.7.2
       lodash: 4.17.21
       ts-essentials: 7.0.3(typescript@4.9.5)
@@ -5986,7 +5962,7 @@ packages:
       typechain: ^8.1.1
     dependencies:
       '@ethersproject/abi': 5.7.0
-      '@ethersproject/providers': 5.7.2
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@typechain/ethers-v5': 10.2.0(@ethersproject/abi@5.7.0)(@ethersproject/bytes@5.7.0)(@ethersproject/providers@5.7.2)(ethers@5.7.2)(typechain@8.1.1)(typescript@4.9.5)
       ethers: 5.7.2
       fs-extra: 9.1.0
@@ -9762,7 +9738,6 @@ packages:
 
   /decimal.js@10.4.3:
     resolution: {integrity: sha512-VBBaLc1MgL5XpzgIP7ny5Z6Nx3UrRkIViUkPUdtl9aya5amy3De1gsUUSB1g3+3sExYNjCAsAznmukyxCb1GRA==}
-    dev: true
 
   /decode-uri-component@0.2.2:
     resolution: {integrity: sha512-FqUYQ+8o158GyGTrMFJms9qh3CqTKvAqgqsTnkLI8sKu0028orqBhxNMFkFen0zGyg6epACD32pjVk58ngIErQ==}
@@ -10976,7 +10951,7 @@ packages:
       '@ethersproject/networks': 5.7.1
       '@ethersproject/pbkdf2': 5.7.0
       '@ethersproject/properties': 5.7.0
-      '@ethersproject/providers': 5.7.2
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       '@ethersproject/random': 5.7.0
       '@ethersproject/rlp': 5.7.0
       '@ethersproject/sha2': 5.7.0
@@ -12198,7 +12173,7 @@ packages:
       typescript: 4.9.5
       undici: 5.22.1
       uuid: 8.3.2
-      ws: 7.5.9
+      ws: 7.5.9(bufferutil@4.0.7)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -13980,7 +13955,7 @@ packages:
       whatwg-encoding: 2.0.0
       whatwg-mimetype: 3.0.0
       whatwg-url: 10.0.0
-      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       xml-name-validator: 4.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -17517,7 +17492,7 @@ packages:
     dependencies:
       jszip: 3.10.1
       tmp: 0.2.1
-      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -18130,7 +18105,7 @@ packages:
       qs: 6.11.2
       streamr-client: 8.1.0-beta.0(@ethersproject/hash@5.7.0)
       uuid: 8.3.2
-      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      ws: 8.13.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
     transitivePeerDependencies:
       - '@ethersproject/hash'
       - '@react-native-async-storage/async-storage'
@@ -19395,7 +19370,6 @@ packages:
     requiresBuild: true
     dependencies:
       node-gyp-build: 4.6.0
-    dev: false
 
   /utf8@3.0.0:
     resolution: {integrity: sha512-E8VjFIQ/TyQgp+TZfS6l8yp/xWppSAHzidGiRrqe4bK4XP9pTRyKFgGJpO3SN7zdX4DeomTrwaseCHovfpFcqQ==}
@@ -20030,18 +20004,6 @@ packages:
       signal-exit: 3.0.7
     dev: true
 
-  /ws@7.4.6:
-    resolution: {integrity: sha512-YmhHDO4MzaDLB+M9ym/mDA5z0naX8j7SIlT8f8z+I0VtzsRbekxEutHSme7NPS2qE8StCYQNUnfWdXta/Yu85A==}
-    engines: {node: '>=8.3.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: ^5.0.2
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
   /ws@7.4.6(bufferutil@4.0.7)(utf-8-validate@5.0.10):
     resolution: {integrity: sha512-YmhHDO4MzaDLB+M9ym/mDA5z0naX8j7SIlT8f8z+I0VtzsRbekxEutHSme7NPS2qE8StCYQNUnfWdXta/Yu85A==}
     engines: {node: '>=8.3.0'}
@@ -20072,19 +20034,6 @@ packages:
       bufferutil: 4.0.7
       utf-8-validate: 6.0.3
     dev: false
-
-  /ws@7.5.9:
-    resolution: {integrity: sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==}
-    engines: {node: '>=8.3.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: ^5.0.2
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-    dev: true
 
   /ws@7.5.9(bufferutil@4.0.7)(utf-8-validate@5.0.10):
     resolution: {integrity: sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==}
@@ -20130,7 +20079,6 @@ packages:
     dependencies:
       bufferutil: 4.0.7
       utf-8-validate: 6.0.3
-    dev: false
 
   /xml-name-validator@4.0.0:
     resolution: {integrity: sha512-ICP2e+jsHvAj2E2lIHxa5tjXRlKDJo4IdvPvCXbXQGdzSfmSpNVyIKMvoZHjDY9DP0zV17iI85o90vRFXNccRw==}

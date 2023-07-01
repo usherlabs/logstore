@@ -14,7 +14,10 @@ export class Arweave {
 		return this._arweaveClient;
 	}
 
-	public static async getPrice(byteSize: number, timestamp: number) {
+	public static async getPrice(
+		byteSize: number,
+		timestamp: number
+	): Promise<number> {
 		const atomicPriceInWinston = await this.arweaveClient.transactions.getPrice(
 			byteSize
 		);

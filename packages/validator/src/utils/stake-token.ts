@@ -30,6 +30,7 @@ export class StakeToken {
 		usdValue: number,
 		timestamp: number
 	): Promise<BigNumber> {
+		// Price is of stake token in USD
 		const price = await this.getPrice(timestamp);
 
 		return ethers.utils.parseUnits(

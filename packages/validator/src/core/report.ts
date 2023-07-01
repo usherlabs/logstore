@@ -1,16 +1,12 @@
 import { sha256 } from '@kyvejs/protocol';
-import {
-	IReportV1,
-	ReportSerializerVersions,
-	SystemMessageType,
-	SystemReport,
-} from '@logsn/protocol';
-import { BigNumber } from 'ethers';
+import { SystemMessageType, SystemReport } from '@logsn/protocol';
+import Decimal from 'decimal.js';
 
 import { Managers } from '../managers';
-import { IBrokerNode } from '../types';
+import { IBrokerNode, IValidatorReport } from '../types';
 import { Arweave } from '../utils/arweave';
 import { fetchQueryResponseConsensus } from '../utils/helpers';
+import { ReportUtils } from '../utils/report';
 import { StakeToken } from '../utils/stake-token';
 import { AbstractDataItem } from './abstract';
 
@@ -68,40 +64,6 @@ export class Report extends AbstractDataItem<IPrepared> {
 		};
 	}
 
-	private sort(source: IReportV1): IReportV1 {
-		const result: IReportV1 = {
-			...source,
-			nodes: {},
-			delegates: {},
-			streams: source.streams.sort((a, b) => a.id.localeCompare(b.id)),
-			consumers: source.consumers.sort((a, b) => a.id.localeCompare(b.id)),
-			events: {
-				queries: source.events.queries.sort((a, b) =>
-					a.hash.localeCompare(b.hash)
-				),
-				storage: source.events.storage.sort((a, b) =>
-					a.hash.localeCompare(b.hash)
-				),
-			},
-		};
-
-		const nodeKeys = Object.keys(source.nodes).sort((a, b) =>
-			a.localeCompare(b)
-		);
-		for (const key of nodeKeys) {
-			result.nodes[key] = source.nodes[key];
-		}
-
-		const delegateKeys = Object.keys(source.delegates).sort((a, b) =>
-			a.localeCompare(b)
-		);
-		for (const key of delegateKeys) {
-			result.delegates[key] = source.delegates[key];
-		}
-
-		return result;
-	}
-
 	public async generate(): Promise<SystemReport> {
 		const { fromKey, toKey, blockNumber, brokerNodes, stakeToken } =
 			this.prepared;
@@ -117,12 +79,10 @@ export class Report extends AbstractDataItem<IPrepared> {
 		const toKeyMs = toKey * 1000;
 
 		// Establish the report
-		const report: IReportV1 = {
-			s: false,
-			v: ReportSerializerVersions.V1,
+		const report: IValidatorReport = {
 			id: keyStr,
 			height: blockNumber,
-			treasury: BigNumber.from(0),
+			treasury: new Decimal(0),
 			streams: [],
 			consumers: [],
 			nodes: {},
@@ -134,15 +94,19 @@ export class Report extends AbstractDataItem<IPrepared> {
 		};
 
 		if (keyStr === '0') {
-			return new SystemReport(report, ReportSerializerVersions.V1);
+			return ReportUtils.finalise(report);
 		}
 
 		// ------------ SETUP UTILS ------------
 		// This method works by distributing a total captured fee amount to a set of nodes.
 		// The report yields a difference in node's balance (positive or negative) to apply to the balance on-chain
 		// ie. If the report indicates a node value is X, then increment the balance by X, otherwise if value is -Y, then decrement the balance by Y
+		// ------------ SETUP UTILS ------------
+		// This method works by distributing a total captured fee amount to a set of nodes.
+		// The report yields a difference in node's balance (positive or negative) to apply to the balance on-chain
+		// ie. If the report indicates a node value is X, then increment the balance by X, otherwise if value is -Y, then decrement the balance by Y
 		const rewardNodes = (
-			amount: BigNumber,
+			amount: Decimal,
 			recipients: string[],
 			penalise: boolean
 		) => {
@@ -153,7 +117,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			const bystanders = brokerNodes
 				.map((b) => b.id)
 				.filter((id) => !recipients.includes(id));
-			let rewardPerRecipient = BigNumber.from(0);
+			let rewardPerRecipient = new Decimal(0);
 			if (penalise) {
 				// base reward per node + rewards deducted from bystanders shared between recipients
 				rewardPerRecipient = amountPerNode.add(
@@ -167,11 +131,11 @@ export class Report extends AbstractDataItem<IPrepared> {
 				const bNode = brokerNodes[j];
 
 				if (typeof report.nodes[bNode.id] !== 'number') {
-					report.nodes[bNode.id] = BigNumber.from(0);
+					report.nodes[bNode.id] = new Decimal(0);
 				}
 
 				// Add change in balance to node stake
-				let balanceDifference = BigNumber.from(0);
+				let balanceDifference = new Decimal(0);
 				if (recipients.includes(bNode.id)) {
 					balanceDifference = rewardPerRecipient;
 				} else if (penalise && bystanders.includes(bNode.id)) {
@@ -182,13 +146,15 @@ export class Report extends AbstractDataItem<IPrepared> {
 				// Distributed incremented fee across delegates of node proportional to their stake distribution
 				const delegates = Object.entries(bNode.delegates);
 				for (let l = 0; l < delegates.length; l++) {
-					const [delegateAddr, delegateAmount] = delegates[l];
-					const delegatePortion = delegateAmount.div(bNode.stake);
+					const [delegateAddr, delegateAmountBN] = delegates[l];
+					const delegateAmount = new Decimal(delegateAmountBN.toHexString());
+					const bNodeStake = new Decimal(bNode.stake.toHexString());
+					const delegatePortion = delegateAmount.div(bNodeStake);
 					if (typeof report.delegates[delegateAddr] === 'undefined') {
 						report.delegates[delegateAddr] = {};
 					}
 					if (typeof report.delegates[delegateAddr][bNode.id] !== 'number') {
-						report.delegates[delegateAddr][bNode.id] = BigNumber.from(0);
+						report.delegates[delegateAddr][bNode.id] = new Decimal(0);
 					}
 					report.delegates[delegateAddr][bNode.id] = report.delegates[
 						delegateAddr
@@ -301,12 +267,12 @@ export class Report extends AbstractDataItem<IPrepared> {
 			totalBytes += bytes;
 			return totalBytes;
 		}, 0);
-		let expense = BigNumber.from(0);
-		let expensePerByteStored = BigNumber.from(0);
+		let expense = new Decimal(0);
+		let expensePerByteStored = new Decimal(0);
 		if (totalBytesStored > 0) {
-			expense = BigNumber.from(
-				await Arweave.getPrice(totalBytesStored, toKeyMs)
-			);
+			const usdValue = await Arweave.getPrice(totalBytesStored, toKeyMs);
+			const expenseBN = await stakeToken.fromUSD(usdValue, toKeyMs);
+			expense = new Decimal(expenseBN.toHexString());
 			expensePerByteStored = expense.div(totalBytesStored);
 		}
 		const writeFee = expensePerByteStored.mul(fees.writeMultiplier);
@@ -344,7 +310,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		});
 
 		// Determine read fees
-		let readFee = BigNumber.from(0);
+		let readFee = new Decimal(0);
 		if (totalBytesStored > 0) {
 			readFee = writeFee.mul(fees.readMultiplier);
 		}
@@ -412,54 +378,10 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// ------------ END QUERIES ------------
 		// -------------------------------------
 
-		// ------------ FEE CONVERSION ------------
-		// Convert fees to stake token
-		for (const stream of report.streams) {
-			report.streams.push({
-				id: stream.id,
-				capture: await stakeToken.fromUSD(stream.capture.toNumber(), toKeyMs),
-				bytes: stream.bytes,
-			});
-		}
-		for (const consumer of report.consumers) {
-			report.consumers.push({
-				id: consumer.id,
-				capture: await stakeToken.fromUSD(consumer.capture.toNumber(), toKeyMs),
-				bytes: consumer.bytes,
-			});
-		}
-		for (const nodeKey of Object.keys(report.nodes)) {
-			report.nodes[nodeKey] = await stakeToken.fromUSD(
-				report.nodes[nodeKey].toNumber(),
-				toKeyMs
-			);
-		}
-		for (const delegateKey of Object.keys(report.delegates)) {
-			report.delegates[delegateKey] = {};
-			for (const nodeKey of Object.keys(report.delegates[delegateKey])) {
-				report.delegates[delegateKey][nodeKey] = await stakeToken.fromUSD(
-					report.delegates[delegateKey][nodeKey].toNumber(),
-					toKeyMs
-				);
-			}
-		}
-
-		report.treasury = await stakeToken.fromUSD(
-			report.treasury.toNumber(),
-			toKeyMs
-		);
-		// ------------ END FEE CONVERSION ------------
-		// -------------------------------------
-
-		const sortedReport = this.sort(report);
+		const sortedReport = ReportUtils.sort(report);
 
 		core.logger.debug('Report Generated', sortedReport);
 
-		const systemReport = new SystemReport(
-			sortedReport,
-			ReportSerializerVersions.V1
-		);
-
-		return systemReport;
+		return ReportUtils.finalise(report);
 	}
 }
