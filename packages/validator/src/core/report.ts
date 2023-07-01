@@ -3,6 +3,7 @@ import {
 	IReportV1,
 	ReportSerializerVersions,
 	SystemMessageType,
+	SystemReport,
 } from '@logsn/protocol';
 import { BigNumber } from 'ethers';
 
@@ -69,15 +70,11 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 	private sort(source: IReportV1): IReportV1 {
 		const result: IReportV1 = {
-			s: false,
-			v: ReportSerializerVersions.V1,
-			id: source.id,
-			height: source.height,
-			treasury: source.treasury,
-			streams: source.streams.sort((a, b) => a.id.localeCompare(b.id)),
-			consumers: source.consumers.sort((a, b) => a.id.localeCompare(b.id)),
+			...source,
 			nodes: {},
 			delegates: {},
+			streams: source.streams.sort((a, b) => a.id.localeCompare(b.id)),
+			consumers: source.consumers.sort((a, b) => a.id.localeCompare(b.id)),
 			events: {
 				queries: source.events.queries.sort((a, b) =>
 					a.hash.localeCompare(b.hash)
@@ -105,7 +102,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		return result;
 	}
 
-	public async generate(): Promise<IReportV1> {
+	public async generate(): Promise<SystemReport> {
 		const { fromKey, toKey, blockNumber, brokerNodes, stakeToken } =
 			this.prepared;
 
@@ -137,7 +134,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		};
 
 		if (keyStr === '0') {
-			return report;
+			return new SystemReport(report, ReportSerializerVersions.V1);
 		}
 
 		// ------------ SETUP UTILS ------------
@@ -450,8 +447,15 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// ------------ END FEE CONVERSION ------------
 		// -------------------------------------
 
-		core.logger.debug('Report Generated', report);
+		const sortedReport = this.sort(report);
 
-		return this.sort(report);
+		core.logger.debug('Report Generated', sortedReport);
+
+		const systemReport = new SystemReport(
+			sortedReport,
+			ReportSerializerVersions.V1
+		);
+
+		return systemReport;
 	}
 }
