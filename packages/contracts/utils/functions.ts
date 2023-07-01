@@ -123,30 +123,6 @@ export async function writeJSONToFileOutside(
 	});
 }
 
-export const getBlockTime = async () => {
-	const lastBlock = await hre.ethers.provider.getBlock('latest');
-	let lastBlockTimestamp = lastBlock.timestamp;
-	let avgBlockTime = 0;
-	for (let i = 1; i < 11; i++) {
-		const block = await hre.ethers.provider.getBlock(lastBlock.number - i);
-		const diff = (lastBlockTimestamp - block.timestamp) * 1000;
-		avgBlockTime += diff;
-		lastBlockTimestamp = block.timestamp;
-	}
-	avgBlockTime = avgBlockTime / 10;
-
-	return avgBlockTime;
-};
-
-// const winstonToAr = (
-// 	winstonString: string,
-// 	{ formatted = false, decimals = 12, trim = true } = {}
-// ) => {
-// 	const number =  this.stringToBigNum(winstonString, decimals).shiftedBy(-12);
-
-// 	return formatted ? number.toFormat(decimals) : number.toFixed(decimals);
-// }
-
 export const getWeiPerByte = async () => {
 	const mb = 1000000;
 	// ? Arweave's fetch is experimental and causes a bug when used inside of DevNetwork
