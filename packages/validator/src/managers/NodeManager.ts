@@ -3,6 +3,7 @@ import { LogStoreNodeManager, LSAN__factory } from '@logsn/contracts';
 
 import { overrideStartBlockNumber } from '../env-config';
 import { IBrokerNode } from '../types';
+import { Slogger } from '../utils/slogger';
 import { StakeToken } from '../utils/stake-token';
 
 export class NodeManager {
@@ -29,7 +30,7 @@ export class NodeManager {
 				});
 				const allDelegates = await this.getDelegates(nodeAddress, blockNumber);
 
-				console.log('DEBUG: Delegates for Node Address', {
+				Slogger.instance.debug('Delegates for Node Address', {
 					allDelegates,
 					nodeAddress,
 				});
@@ -80,19 +81,20 @@ export class NodeManager {
 			toBlockNumber
 		);
 
-		const eventDetails = delegatesEvent.map(({ args }) => ({
-			delegate: args.delegate,
-			amount: args.delegated === true ? args.amount : args.amount.mul(-1),
-		}));
+		const delegates: Record<string, BigNumber> = {};
+		delegatesEvent.forEach(({ args }) => {
+			const { delegate } = args;
+			const amount =
+				args.delegated === true ? args.amount : args.amount.mul(-1);
 
-		return eventDetails.reduce((accumulator, curr) => {
-			if (accumulator[curr.delegate] === undefined) {
-				accumulator[curr.delegate] = BigNumber.from(0);
+			if (delegates[delegate] === undefined) {
+				delegates[delegate] = BigNumber.from(0);
 			} else {
-				accumulator[curr.delegate].add(curr.amount);
+				delegates[delegate].add(amount);
 			}
-			return accumulator;
-		}, {});
+		});
+
+		return delegates;
 	}
 
 	async getStakeToken(blockNumber?: number): Promise<StakeToken> {
