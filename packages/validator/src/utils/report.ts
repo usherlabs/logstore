@@ -1,8 +1,9 @@
 import {
-	IReportV1Serialized,
+	IReportV1,
 	ReportSerializerVersions,
 	SystemReport,
 } from '@logsn/protocol';
+import { BigNumber } from 'ethers';
 
 import { IValidatorReport } from '../types';
 
@@ -45,30 +46,30 @@ export class ReportUtils {
 		const nodes = {};
 		const delegates = {};
 		for (const nodeKey of Object.keys(source.nodes)) {
-			nodes[nodeKey] = source.nodes[nodeKey].round().toHex();
+			nodes[nodeKey] = BigNumber.from(source.nodes[nodeKey].round().toHex());
 		}
 		for (const delegateKey of Object.keys(source.delegates)) {
 			delegates[delegateKey] = {};
 			for (const nodeKey of Object.keys(source.delegates[delegateKey])) {
-				delegates[delegateKey][nodeKey] = source.delegates[delegateKey][nodeKey]
-					.round()
-					.toHex();
+				delegates[delegateKey][nodeKey] = BigNumber.from(
+					source.delegates[delegateKey][nodeKey].round().toHex()
+				);
 			}
 		}
 
-		const finalReport: IReportV1Serialized = {
-			s: true,
+		const finalReport: IReportV1 = {
+			s: false,
 			v: ReportSerializerVersions.V1,
 			id: source.id,
 			height: source.height,
-			treasury: source.treasury.round().toHex(),
+			treasury: BigNumber.from(source.treasury.round().toHex()),
 			streams: source.streams.map((v) => ({
 				...v,
-				capture: v.capture.round().toHex(),
+				capture: BigNumber.from(v.capture.round().toHex()),
 			})),
 			consumers: source.consumers.map((v) => ({
 				...v,
-				capture: v.capture.round().toHex(),
+				capture: BigNumber.from(v.capture.round().toHex()),
 			})),
 			nodes,
 			delegates,

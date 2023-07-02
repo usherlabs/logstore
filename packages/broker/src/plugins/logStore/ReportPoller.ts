@@ -200,6 +200,12 @@ export class ReportPoller {
 		const timestampsParam = poll.proofs.map((proof) => proof.timestamp);
 
 		// ! Do not use JSON.stringify with BigInt
+		const { events: _, ...serializedReport } = poll.report.serialize();
+		logger.info(
+			`Submitting ReportManager.sol.report - Serialized Report (no events) = ${JSON.stringify(
+				serializedReport
+			)}`
+		);
 		logger.info(
 			`Submitting ReportManager.sol.report - Contract Params = ${JSON.stringify(
 				[
@@ -219,9 +225,6 @@ export class ReportPoller {
 					Number(contractParams[13]),
 				]
 			)}, Addresses = ${addressesParam}, Signatures = ${signaturesParam}, Timestamps = ${timestampsParam}`
-		);
-		logger.info(
-			`Submitting ReportManager.sol.report - STREAM[0] = ${contractParams[2][0]}`
 		);
 
 		const submitReportTx = await this.reportManager.report(
