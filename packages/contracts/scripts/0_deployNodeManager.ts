@@ -15,7 +15,7 @@ function createPK(index: number, prefix: string) {
 }
 
 const SAFE_ADDRESS: string =
-	'0x468e80b73192998C565cFF53B1Dc02a12d5685c4' as const; // for MATIC Only
+	process.env.SAFE_ADDRESS || '0x468e80b73192998C565cFF53B1Dc02a12d5685c4'; // for MATIC Only
 // const forceLSANToken = process.env.FORCE_LSAN_TOKEN === 'true';
 
 async function main() {
