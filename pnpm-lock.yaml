@@ -999,7 +999,7 @@ importers:
     dependencies:
       '@graphprotocol/graph-cli':
         specifier: ^0.46.1
-        version: 0.46.1(@types/node@18.15.10)(typescript@4.9.5)
+        version: 0.46.1(@types/node@18.15.10)(node-fetch@2.6.12)(typescript@4.9.5)
       '@graphprotocol/graph-ts':
         specifier: ^0.29.3
         version: 0.29.3
@@ -3546,7 +3546,7 @@ packages:
     resolution: {integrity: sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==}
     optional: true
 
-  /@graphprotocol/graph-cli@0.46.1(@types/node@18.15.10)(typescript@4.9.5):
+  /@graphprotocol/graph-cli@0.46.1(@types/node@18.15.10)(node-fetch@2.6.12)(typescript@4.9.5):
     resolution: {integrity: sha512-594BiH2m9gThP1xdvxguVzvVlOb1KzJyVdh2F4dV78NPfMRFY2fe1nakmadKcewc72VVLXNgfdBu/J4IPfo0eg==}
     engines: {node: '>=14'}
     hasBin: true
@@ -3566,7 +3566,7 @@ packages:
       gluegun: github.com/edgeandnode/gluegun/b34b9003d7bf556836da41b57ef36eb21570620a(debug@4.3.4)
       graphql: 15.5.0
       immutable: 4.2.1
-      ipfs-http-client: 55.0.0
+      ipfs-http-client: 55.0.0(node-fetch@2.6.12)
       jayson: 4.0.0
       js-yaml: 3.14.1
       prettier: 1.19.1
@@ -8514,7 +8514,7 @@ packages:
   /borsh@0.6.0:
     resolution: {integrity: sha512-sl5k89ViqsThXQpYa9XDtz1sBl3l1lI313cFUY1HKr+wvMILnb+58xpkqTNrYbelh99dY7K8usxoCusQmqix9Q==}
     dependencies:
-      bn.js: 5.2.0
+      bn.js: 5.2.1
       bs58: 4.0.1
       text-encoding-utf-8: 1.0.2
     dev: false
@@ -9998,7 +9998,7 @@ packages:
     dependencies:
       path-type: 4.0.0
 
-  /dns-over-http-resolver@1.2.3:
+  /dns-over-http-resolver@1.2.3(node-fetch@2.6.12):
     resolution: {integrity: sha512-miDiVSI6KSNbi4SVifzO/reD8rMnxgrlnkrlkugOLQpWQTe2qMdHsZp5DmfKjxNE+/T3VAAYLQUZMv9SMr6+AA==}
     dependencies:
       debug: 4.3.4(supports-color@8.1.1)
@@ -12688,19 +12688,19 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-core-types@0.9.0:
+  /ipfs-core-types@0.9.0(node-fetch@2.6.12):
     resolution: {integrity: sha512-VJ8vJSHvI1Zm7/SxsZo03T+zzpsg8pkgiIi5hfwSJlsrJ1E2v68QPlnLshGHUSYw89Oxq0IbETYl2pGTFHTWfg==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
       interface-datastore: 6.1.1
-      multiaddr: 10.0.1
+      multiaddr: 10.0.1(node-fetch@2.6.12)
       multiformats: 9.9.0
     transitivePeerDependencies:
       - node-fetch
       - supports-color
     dev: false
 
-  /ipfs-core-utils@0.13.0:
+  /ipfs-core-utils@0.13.0(node-fetch@2.6.12):
     resolution: {integrity: sha512-HP5EafxU4/dLW3U13CFsgqVO5Ika8N4sRSIb/dTg16NjLOozMH31TXV0Grtu2ZWo1T10ahTzMvrfT5f4mhioXw==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
@@ -12709,7 +12709,7 @@ packages:
       browser-readablestream-to-it: 1.0.3
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0
+      ipfs-core-types: 0.9.0(node-fetch@2.6.12)
       ipfs-unixfs: 6.0.9
       ipfs-utils: 9.0.14
       it-all: 1.0.6
@@ -12717,8 +12717,8 @@ packages:
       it-peekable: 1.0.3
       it-to-stream: 1.0.0
       merge-options: 3.0.4
-      multiaddr: 10.0.1
-      multiaddr-to-uri: 8.0.0
+      multiaddr: 10.0.1(node-fetch@2.6.12)
+      multiaddr-to-uri: 8.0.0(node-fetch@2.6.12)
       multiformats: 9.9.0
       nanoid: 3.3.6
       parse-duration: 1.1.0
@@ -12760,7 +12760,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-http-client@55.0.0:
+  /ipfs-http-client@55.0.0(node-fetch@2.6.12):
     resolution: {integrity: sha512-GpvEs7C7WL9M6fN/kZbjeh4Y8YN7rY8b18tVWZnKxRsVwM25cIFrRI8CwNt3Ugin9yShieI3i9sPyzYGMrLNnQ==}
     engines: {node: '>=14.0.0', npm: '>=3.0.0'}
     dependencies:
@@ -12771,13 +12771,13 @@ packages:
       any-signal: 2.1.2
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0
-      ipfs-core-utils: 0.13.0
+      ipfs-core-types: 0.9.0(node-fetch@2.6.12)
+      ipfs-core-utils: 0.13.0(node-fetch@2.6.12)
       ipfs-utils: 9.0.14
       it-first: 1.0.7
       it-last: 1.0.6
       merge-options: 3.0.4
-      multiaddr: 10.0.1
+      multiaddr: 10.0.1(node-fetch@2.6.12)
       multiformats: 9.9.0
       native-abort-controller: 1.0.4(abort-controller@3.0.0)
       parse-duration: 1.1.0
@@ -15111,11 +15111,11 @@ packages:
       msgpackr-extract: 3.0.2
     dev: false
 
-  /multiaddr-to-uri@8.0.0:
+  /multiaddr-to-uri@8.0.0(node-fetch@2.6.12):
     resolution: {integrity: sha512-dq4p/vsOOUdVEd1J1gl+R2GFrXJQH8yjLtz4hodqdVbieg39LvBOdMQRdQnfbg5LSM/q1BYNVf5CBbwZFFqBgA==}
     deprecated: This module is deprecated, please upgrade to @multiformats/multiaddr-to-uri
     dependencies:
-      multiaddr: 10.0.1
+      multiaddr: 10.0.1(node-fetch@2.6.12)
     transitivePeerDependencies:
       - node-fetch
       - supports-color
@@ -15131,11 +15131,11 @@ packages:
       - supports-color
     dev: false
 
-  /multiaddr@10.0.1:
+  /multiaddr@10.0.1(node-fetch@2.6.12):
     resolution: {integrity: sha512-G5upNcGzEGuTHkzxezPrrD6CaIHR9uo+7MwqhNVcXTs33IInon4y7nMiGxl2CY5hG7chvYQUQhz5V52/Qe3cbg==}
     deprecated: This module is deprecated, please upgrade to @multiformats/multiaddr
     dependencies:
-      dns-over-http-resolver: 1.2.3
+      dns-over-http-resolver: 1.2.3(node-fetch@2.6.12)
       err-code: 3.0.1
       is-ip: 3.1.0
       multiformats: 9.9.0
