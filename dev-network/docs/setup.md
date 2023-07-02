@@ -4,7 +4,7 @@
 
 1. Install and start Docker service.
 
-2. Clone `streamr-docker-dev` repo: `git clone git@github.com:streamr-dev/streamr-docker-dev.git`, change into that directory `cd streamr-docker-dev`
+2. Clone `streamr-docker-dev` repo: `git clone https://github.com/usherlabs/streamr-docker-dev.git`, change into that directory `cd streamr-docker-dev`
 
 3. Add `streamr-docker-dev` into a suitable directory in your PATH (run from repository root), e.g.:
 

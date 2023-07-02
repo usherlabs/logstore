@@ -2,7 +2,7 @@
 
 ## Development environment
 
-1. Setup the **Streamr development environment** follwing its [instructions](https://github.com/streamr-dev/streamr-docker-dev/blob/master/README.md#setting-up).
+1. Setup the **Streamr development environment** follwing its [instructions](https://github.com/usherlabs/streamr-docker-dev/blob/master/README.md#setting-up).
 2. Start **Streamr development environment**
    ```bash
    streamr-docker-dev start --wait
