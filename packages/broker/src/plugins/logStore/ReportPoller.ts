@@ -199,8 +199,6 @@ export class ReportPoller {
 		const signaturesParam = poll.proofs.map((proof) => proof.signature);
 		const timestampsParam = poll.proofs.map((proof) => proof.timestamp);
 
-		// TODO: Include signature verification pre-report submission to maximise odds of success
-
 		// ! Do not use JSON.stringify with BigInt
 		logger.info(
 			`Submitting ReportManager.sol.report - Contract Params = ${JSON.stringify(

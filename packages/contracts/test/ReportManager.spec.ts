@@ -45,7 +45,7 @@ describe('ReportManager', async function () {
 	});
 
 	describe('Setup', () => {
-		it('Nodes are ordered by reputation', async function () {
+		it('Nodes become a part of the reporter list', async function () {
 			// get all reports
 			const [reporters] = await reportManagerContract.functions.getReporters();
 
@@ -341,6 +341,32 @@ describe('ReportManager', async function () {
 				REPORT_MANAGER_EVENTS.REPORT_ACCEPTED
 			);
 			expect(event?.id).to.be.equal(reportData.report.id);
+
+			// ? Tests for reputation management
+			const [reporters] =
+				await thisReportManagerContract.functions.getReporters();
+			const reputations = await Promise.all(
+				reporters.map(async (r: string) => {
+					const rep = await thisReportManagerContract.functions.reputationOf(r);
+					return +rep;
+				})
+			);
+			expect(
+				reporters[0],
+				'Post Report Reputation: Reporter 0 have lead reporting role'
+			).to.be.equal(sampleNode.address);
+			expect(
+				reputations[0],
+				'Post Report Reputation: Reporter 0 to have reputation of 10'
+			).to.be.equal(10);
+			expect(
+				reporters[1],
+				'Post Report Reputation: Reporter 1 to be second reporter'
+			).to.be.equal(activeNodes[1].address);
+			expect(
+				reputations[1],
+				'Post Report Reputation: Reporter 1 to reputation of 1'
+			).to.be.equal(1);
 		});
 
 		it('(Frontrunning Prevention) Only one reporter at a time', async function () {
@@ -391,6 +417,34 @@ describe('ReportManager', async function () {
 				REPORT_MANAGER_EVENTS.REPORT_ACCEPTED
 			);
 			expect(event?.id).to.be.equal(reportData.report.id);
+
+			// ? Tests for reputation management
+			const [reporters] =
+				await thisReportManagerContract.functions.getReporters();
+			const reputation1 =
+				await thisReportManagerContract.functions.reputationOf(
+					reporter1.address
+				);
+			const reputation2 =
+				await thisReportManagerContract.functions.reputationOf(
+					reporter2.address
+				);
+			expect(
+				reporters[0],
+				'Post Report Reputation: Reporter 0 have second reporting role'
+			).to.be.equal(reporter2.address);
+			expect(
+				+reputation2,
+				'Post Report Reputation: Reporter 0 to have reputation of 1'
+			).to.be.equal(10);
+			expect(
+				reporters[1],
+				'Post Report Reputation: Reporter 1 to be lead reporter'
+			).to.be.equal(reporter1.address);
+			expect(
+				+reputation1,
+				'Post Report Reputation: Reporter 1 (original Lead Reporter) to be penalised with reputation of 0'
+			).to.be.equal(0);
 		});
 
 		it('un-staked Node cannot submit report', async function () {

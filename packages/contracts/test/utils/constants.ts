@@ -62,6 +62,7 @@ export const CUSTOM_EXCEPTIONS = {
 	NONE_EXISTENT_NODE: 'error_invalidNode',
 	INVALID_REPORT: 'error_invalidReport',
 	INVALID_REPORTER: 'error_invalidReporter',
+	CONSENSUS_NOT_MET: 'error_consensusNotMet',
 	STAKE_REQUIRED: 'error_stakeRequired',
 	QUORUM_NOT_MET: 'error_quorumNotMet',
 };
