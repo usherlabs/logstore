@@ -5,6 +5,8 @@
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",
 	"private": false,
+	"types": "./dist/index.d.ts",
+	"main": "./dist/index.js",
 	"files": [
 		"./dist",
 		"./address.json",
