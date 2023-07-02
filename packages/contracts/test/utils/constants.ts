@@ -32,16 +32,19 @@ export const NODE_MANAGER_EVENTS = {
 
 export const REPORT_MANAGER_EVENTS = {
 	REPORT_ACCEPTED: 'ReportAccepted',
-	REPORT_PROCESSED: 'ReportProcessed',
 };
 
 export const QUERY_MANAGER_EVENTS = {
 	DATA_QUERIED: 'DataQueried',
 	STAKE: 'Stake',
+	CAPTURE_OVERFLOW: 'CaptureOverflow',
+	SUPPLY_OVERFLOW: 'SupplyOverflow',
 };
 
 export const STORE_MANAGER_EVENTS = {
 	STORE_UPDATED: 'StoreUpdated',
+	CAPTURE_OVERFLOW: 'CaptureOverflow',
+	SUPPLY_OVERFLOW: 'SupplyOverflow',
 };
 
 export const NODE_WHITELIST_STATE = {
@@ -58,6 +61,12 @@ export const CUSTOM_EXCEPTIONS = {
 	INSUFFICIENT_DELEGATE_AMOUNT: 'error_insufficientDelegateAmount',
 	NONE_EXISTENT_NODE: 'error_invalidNode',
 	INVALID_REPORT: 'error_invalidReport',
+	INVALID_REPORTER: 'error_invalidReporter',
+	CONSENSUS_NOT_MET: 'error_consensusNotMet',
 	STAKE_REQUIRED: 'error_stakeRequired',
 	QUORUM_NOT_MET: 'error_quorumNotMet',
 };
+
+// Reconfigure this REPORT_TIME_BUFFER to evaluate how the Contract responds to Node report submissions.
+export const REPORT_TIME_BUFFER = 1000;
+// // 60 * 1000; // milliseconds;

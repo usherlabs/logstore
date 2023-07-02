@@ -1,12 +1,12 @@
-import { formLogStoreSystemStreamId, Stream } from '@logsn/client';
+import {
+	formLogStoreSystemStreamId,
+	MessageMetadata,
+	Stream,
+} from '@logsn/client';
 import {
 	ProofOfMessageStored,
-	QueryFromOptions,
-	QueryLastOptions,
-	QueryRangeOptions,
+	ProofOfReport,
 	QueryRequest,
-	QueryResponse,
-	QueryType,
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
@@ -14,21 +14,15 @@ import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 import { keccak256 } from 'ethers/lib/utils';
-import { Readable } from 'stream';
 
 // import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
-import { hashResponse } from './Consensus';
 import { createDataQueryEndpoint } from './dataQueryEndpoint';
-import {
-	LogStore,
-	MAX_SEQUENCE_NUMBER_VALUE,
-	MIN_SEQUENCE_NUMBER_VALUE,
-	startCassandraLogStore,
-} from './LogStore';
+import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
-import { ReportPoller } from './Report';
+import { handeQueryRequest } from './messageHandlers/handeQueryRequest';
+import { ReportPoller } from './ReportPoller';
 
 const logger = new Logger(module);
 
@@ -76,90 +70,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			)
 		);
 
-		await this.logStoreClient.subscribe(
-			systemStream,
-			async (content, metadata) => {
-				// Do not process own messages
-				if (metadata.publisherId === (await this.logStoreClient.getAddress())) {
-					return;
-				}
-
-				logger.trace(
-					'Received LogStoreQuery, content: %s metadata: %s',
-					content,
-					metadata
-				);
-
-				const queryMessage = SystemMessage.deserialize(content);
-				if (queryMessage.messageType === SystemMessageType.QueryRequest) {
-					const queryRequest = queryMessage as QueryRequest;
-					logger.trace('Deserialized queryRequest: %s', queryRequest);
-
-					let readableStream: Readable;
-					switch (queryRequest.queryType) {
-						case QueryType.Last: {
-							const { last } = queryRequest.queryOptions as QueryLastOptions;
-
-							readableStream = this.logStore!.requestLast(
-								queryRequest.streamId,
-								queryRequest.partition,
-								last
-							);
-							break;
-						}
-						case QueryType.From: {
-							const { from, publisherId } =
-								queryRequest.queryOptions as QueryFromOptions;
-
-							readableStream = this.logStore!.requestFrom(
-								queryRequest.streamId,
-								queryRequest.partition,
-								from.timestamp,
-								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
-								publisherId
-							);
-							break;
-						}
-						case QueryType.Range: {
-							const { from, publisherId, to, msgChainId } =
-								queryRequest.queryOptions as QueryRangeOptions;
-
-							readableStream = this.logStore!.requestRange(
-								queryRequest.streamId,
-								queryRequest.partition,
-								from.timestamp,
-								from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
-								to.timestamp,
-								to.sequenceNumber || MAX_SEQUENCE_NUMBER_VALUE,
-								publisherId,
-								msgChainId
-							);
-							break;
-						}
-						default:
-							throw new Error('Unknown QueryType');
-					}
-
-					const { size, hash } = await hashResponse(
-						queryRequest.requestId,
-						readableStream
-					);
-
-					const queryResponse = new QueryResponse({
-						requestId: queryRequest.requestId,
-						size,
-						hash,
-						signature: await this.signer.signMessage(hash),
-					});
-					await this.logStoreClient.publish(
-						systemStream,
-						queryResponse.serialize()
-					);
-				}
-			}
-		);
-
-		// start the report polling process
 		const abortController = new AbortController();
 		const poller = new ReportPoller(
 			this.brokerConfig,
@@ -167,8 +77,41 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.signer,
 			systemStream
 		);
+
+		await this.logStoreClient.subscribe(
+			systemStream,
+			async (content: any, metadata: MessageMetadata) => {
+				const queryMessage = SystemMessage.deserialize(content);
+				switch (queryMessage.messageType) {
+					case SystemMessageType.QueryRequest: {
+						const queryRequest = queryMessage as QueryRequest;
+						logger.trace(
+							'Received LogStoreQuery, content: %s metadata: %s',
+							content,
+							metadata
+						);
+						await handeQueryRequest(
+							this.logStore!,
+							this.logStoreClient,
+							this.signer,
+							systemStream,
+							logger,
+							queryRequest,
+							metadata
+						);
+						break;
+					}
+					case SystemMessageType.ProofOfReport: {
+						const proofOfReport = queryMessage as ProofOfReport;
+						await poller.processProofOfReport(proofOfReport);
+						break;
+					}
+				}
+			}
+		);
+
+		// start the report polling process
 		poller.start(abortController.signal);
-		// poller.processNewReport(reportData);
 
 		const metricsContext = (
 			await this.logStoreClient!.getNode()

@@ -107,6 +107,7 @@ export class LogStoreRegistry {
 		);
 	}
 
+	// TODO: Log Store doesn't actually add Streams to storage directly via the Client...
 	private initStreamAssignmentEventListener(
 		clientEvent: keyof LogStoreClientEvents,
 		contractEvent: string,

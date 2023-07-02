@@ -4,7 +4,6 @@ import hre from 'hardhat';
 import {
 	getNodeManagerInputParameters,
 	getQueryManagerInputParameters,
-	getReportBlockBuffer,
 	getStoreManagerInputParameters,
 	getWeiPerByte,
 	writeJSONToFileOutside,
@@ -94,7 +93,7 @@ async function main() {
 
 	// --------------------------- deploy the report manager contract --------------------------- //
 	// Get block time of chain id
-	const reportBlockBuffer = await getReportBlockBuffer();
+	const reportTimeBuffer = 60 * 1000;
 	const Lib = await hre.ethers.getContractFactory('VerifySignature');
 	const lib = await Lib.deploy();
 	await lib.deployed();
@@ -109,7 +108,7 @@ async function main() {
 	);
 	const reportManagerContract = await hre.upgrades.deployProxy(
 		reportManager,
-		[nodeManagerAddress, reportBlockBuffer],
+		[nodeManagerAddress, reportTimeBuffer, 0],
 		{
 			unsafeAllowLinkedLibraries: true,
 		}
@@ -118,7 +117,7 @@ async function main() {
 	const { address: reportManagerAddress } = reportManagerContract;
 	console.log(`LogStoreReportManager deployed to ${reportManagerAddress}`, {
 		nodeManagerAddress,
-		reportBlockBuffer,
+		reportTimeBuffer,
 	});
 	// --------------------------- deploy the query manager contract --------------------------- //
 
@@ -127,7 +126,8 @@ async function main() {
 		const token = await tokenManager.attach(stakeTokenAddress);
 
 		const wallets: string[] = [];
-		const MINT_AMOUNT = '1000000000000000000000000';
+
+		const MINT_AMOUNT = '1000000000000000000000000000000000000';
 		const ACCOUNT_PK_PREFIX = '';
 		const BROKER_PK_PREFIX = 'bb';
 		const VALIDATOR_PK_PREFIX = 'cc';

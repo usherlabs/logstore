@@ -1,6 +1,6 @@
 import { LSAN__factory } from '@logsn/contracts';
 import { getTokenPrice } from '@logsn/shared';
-import { Contract, ethers, Signer } from 'ethers';
+import { BigNumber, Contract, ethers, Signer } from 'ethers';
 
 export class StakeToken {
 	// public price: number;
@@ -9,13 +9,12 @@ export class StakeToken {
 		public address: string,
 		public symbol: string,
 		public decimals: number,
-		public minRequirement: number,
+		public minRequirement: BigNumber,
 		public signer: Signer
 	) {}
 
 	public async init() {
 		this.tokenContract = LSAN__factory.connect(this.address, this.signer);
-		// this.price = await this.getPrice(Date.now());
 	}
 
 	public async getPrice(timestamp: number) {
@@ -27,24 +26,17 @@ export class StakeToken {
 		return tokenPrice;
 	}
 
-	public async fromUSD(usdValue: number, timestamp: number) {
-		// if (!this.price) {
-		// 	throw new Error('Price has not been initiated');
-		// }
-
+	public async fromUSD(
+		usdValue: number,
+		timestamp: number
+	): Promise<BigNumber> {
+		// Price is of stake token in USD
 		const price = await this.getPrice(timestamp);
 
-		return Math.floor(
-			parseInt(
-				ethers.utils
-					.parseUnits(
-						// reduce precision to max allowed to prevent errors
-						`${(usdValue / price).toPrecision(15)}`,
-						this.decimals
-					)
-					.toString(),
-				10
-			)
+		return ethers.utils.parseUnits(
+			// reduce precision to max allowed to prevent errors
+			`${(usdValue / price).toPrecision(15)}`,
+			this.decimals
 		);
 	}
 }

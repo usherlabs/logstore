@@ -131,8 +131,9 @@ export default class Runtime implements IRuntimeExtended {
 			lastItem.key
 		);
 		await report.prepare();
-		const reportData = await report.generate();
-		const reportHash = sha256(Buffer.from(JSON.stringify(reportData)));
+		const systemReport = await report.generate();
+		const reportData = systemReport.serialize();
+		const reportHash = sha256(Buffer.from(JSON.stringify(reportData))); // use sha256 of entire report to include "events".
 
 		lastItem.value.r = reportData;
 		return lastItem.key + '_' + reportHash;
