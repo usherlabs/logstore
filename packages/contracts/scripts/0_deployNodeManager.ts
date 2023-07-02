@@ -108,7 +108,7 @@ async function main() {
 	);
 	const reportManagerContract = await hre.upgrades.deployProxy(
 		reportManager,
-		[nodeManagerAddress, reportTimeBuffer, 0],
+		[signer.address, nodeManagerAddress, reportTimeBuffer, 0],
 		{
 			unsafeAllowLinkedLibraries: true,
 		}

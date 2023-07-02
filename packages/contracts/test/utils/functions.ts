@@ -66,7 +66,7 @@ export async function loadNodeManager(adminAddress: SignerWithAddress) {
 
 export async function loadQueryManager(
 	signer: SignerWithAddress,
-	adminAddress: undefined | string = undefined
+	parentAddress: string
 ) {
 	await mintFundsToAddresses();
 	const queryManager = await hEthers.getContractFactory(
@@ -74,7 +74,8 @@ export async function loadQueryManager(
 		signer
 	);
 	const queryManagerContract = await upgrades.deployProxy(queryManager, [
-		adminAddress || signer.address,
+		signer.address,
+		parentAddress,
 		NODE_MANAGER.STAKE_TOKEN,
 	]);
 	// approve all accounts so all can stake
@@ -105,15 +106,13 @@ export async function mintFundsToAddresses() {
 
 export async function loadStoreManager(
 	signer: SignerWithAddress,
-	adminAddress: undefined | string = undefined
+	parentAddress: string
 ) {
 	await mintFundsToAddresses();
-	const queryManager = await hEthers.getContractFactory(
-		'LogStoreManager',
-		signer
-	);
-	const storeManagerContract = await upgrades.deployProxy(queryManager, [
-		adminAddress || signer.address,
+	const manager = await hEthers.getContractFactory('LogStoreManager', signer);
+	const storeManagerContract = await upgrades.deployProxy(manager, [
+		signer.address,
+		parentAddress,
 		NODE_MANAGER.STAKE_TOKEN,
 		FAKE_STREAMR_REGISTRY,
 	]);
@@ -160,8 +159,8 @@ export async function setupNodeManager(
 }
 
 export async function loadReportManager(
-	adminAddress: SignerWithAddress,
-	nodeManagerContract: Contract,
+	signer: SignerWithAddress,
+	parentAddress: string,
 	{ reportTimeBuffer = REPORT_TIME_BUFFER, withTime = 0 }
 ) {
 	await mintFundsToAddresses();
@@ -173,7 +172,7 @@ export async function loadReportManager(
 	const reportManager = await hEthers.getContractFactory(
 		'LogStoreReportManager',
 		{
-			signer: adminAddress,
+			signer,
 			libraries: {
 				VerifySignature: lib.address,
 			},
@@ -182,7 +181,7 @@ export async function loadReportManager(
 
 	const reportManagerContract = await upgrades.deployProxy(
 		reportManager,
-		[nodeManagerContract.address, reportTimeBuffer, withTime],
+		[signer.address, parentAddress, reportTimeBuffer, withTime],
 		{ unsafeAllowLinkedLibraries: true }
 	);
 	return reportManagerContract;

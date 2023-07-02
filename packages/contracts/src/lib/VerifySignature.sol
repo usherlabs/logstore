@@ -17,6 +17,10 @@ How to Sign and Verify
 
 library VerifySignature {
     function verify(address signer, bytes32 message, bytes memory signature) public pure returns (bool) {
+        if (signature.length != 65) {
+            return false;
+        }
+
         (bytes32 r, bytes32 s, uint8 v) = splitSignature(signature);
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(message);
 

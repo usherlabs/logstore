@@ -12,6 +12,7 @@ import {
 	fetchEventArgsFromTx,
 	getDecimalBN,
 	getERC20Token,
+	loadNodeManager,
 	loadStoreManager,
 } from './utils/functions';
 
@@ -22,7 +23,11 @@ describe('StoreManager', async function () {
 
 	beforeEach(async () => {
 		[adminSigner, ...otherSigners] = await ethers.getSigners();
-		storeManagerContract = await loadStoreManager(adminSigner);
+		const nodeManagerContract = await loadNodeManager(adminSigner);
+		storeManagerContract = await loadStoreManager(
+			adminSigner,
+			nodeManagerContract.address
+		);
 	});
 
 	describe('Stake', async function () {

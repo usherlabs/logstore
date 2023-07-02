@@ -62,31 +62,47 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         _;
     }
 
+    modifier onlyParent() {
+        require(_msgSender() == parent, "error_onlyParent");
+        _;
+    }
+
     uint256 public reportTimeBuffer;
     mapping(address => uint256) public reputationOf;
     string internal lastReportId;
     mapping(string => Report) internal reports;
     mapping(string => Proof[]) internal reportProofs;
     LogStoreNodeManager private _nodeManager;
+    address internal parent;
 
     // used for unit testing time-dependent code
     // block.timestamp is a miner-dependent variable that progresses over time. accuracy of time isn't. simply it's guarantee of increment for each block.
     uint256 private _test_block_timestamp;
 
-    function initialize(address _owner, uint256 _reportTimeBuffer, uint256 __test_block_timestamp) public initializer {
+    function initialize(
+        address owner_,
+        address parent_,
+        uint256 reportTimeBuffer_,
+        uint256 __test_block_timestamp
+    ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
 
-        _nodeManager = LogStoreNodeManager(_owner);
-        reportTimeBuffer = _reportTimeBuffer * MATH_PRECISION;
+        reportTimeBuffer = reportTimeBuffer_ * MATH_PRECISION;
         _test_block_timestamp = __test_block_timestamp * 1000 * MATH_PRECISION;
 
-        transferOwnership(_owner);
+        setParent(parent_);
+        transferOwnership(owner_);
     }
 
     /// @dev required by the OZ UUPS module
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    function setParent(address _parent) public onlyOwner {
+        parent = _parent;
+        _nodeManager = LogStoreNodeManager(_parent);
+    }
 
     function setReportTimeBuffer(uint256 _reportTimeBuffer) public onlyOwner {
         reportTimeBuffer = _reportTimeBuffer * MATH_PRECISION;
@@ -121,7 +137,7 @@ contract LogStoreReportManager is Initializable, UUPSUpgradeable, OwnableUpgrade
         }
     }
 
-    function processReport(string calldata id) public onlyOwner {
+    function processReport(string calldata id) public onlyParent {
         reports[id]._processed = true;
     }
 

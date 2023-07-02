@@ -39,7 +39,7 @@ describe('ReportManager', async function () {
 		nodeManagerContract = await setupNodeManager(adminSigner, activeNodes);
 		reportManagerContract = await loadReportManager(
 			adminSigner,
-			nodeManagerContract,
+			nodeManagerContract.address,
 			{}
 		);
 	});
@@ -70,7 +70,7 @@ describe('ReportManager', async function () {
 
 			const thisReportManagerContract = await loadReportManager(
 				adminSigner,
-				nodeManagerContract,
+				nodeManagerContract.address,
 				{ withTime: seconds }
 			);
 			const blockTimestamp2 =
@@ -148,7 +148,7 @@ describe('ReportManager', async function () {
 			const meanToSeconds = Math.ceil(meanTimestamp / 1000); // current block ts is > start
 			const thisReportManagerContract = await loadReportManager(
 				adminSigner,
-				nodeManagerContract,
+				nodeManagerContract.address,
 				{ withTime: meanToSeconds }
 			);
 
@@ -165,7 +165,7 @@ describe('ReportManager', async function () {
 			const seconds = Math.floor(now / 1000);
 			const thisReportManagerContract = await loadReportManager(
 				adminSigner,
-				nodeManagerContract,
+				nodeManagerContract.address,
 				{ withTime: seconds }
 			);
 
@@ -219,7 +219,7 @@ describe('ReportManager', async function () {
 			const seconds = Math.ceil(now / 1000);
 			const thisReportManagerContract = await loadReportManager(
 				adminSigner,
-				nodeManagerContract,
+				nodeManagerContract.address,
 				{ withTime: seconds, reportTimeBuffer }
 			);
 
@@ -254,7 +254,7 @@ describe('ReportManager', async function () {
 			const seconds = Math.ceil(now / 1000);
 			const thisReportManagerContract = await loadReportManager(
 				adminSigner,
-				nodeManagerContract,
+				nodeManagerContract.address,
 				{ withTime: seconds, reportTimeBuffer }
 			);
 
@@ -292,7 +292,7 @@ describe('ReportManager', async function () {
 			const seconds = Math.floor(now / 1000);
 			const thisReportManagerContract = await loadReportManager(
 				adminSigner,
-				nodeManagerContract,
+				nodeManagerContract.address,
 				{ withTime: seconds }
 			);
 
@@ -328,7 +328,7 @@ describe('ReportManager', async function () {
 			const seconds = Math.ceil(meanTimestamp / 1000);
 			const thisReportManagerContract = await loadReportManager(
 				adminSigner,
-				nodeManagerContract,
+				nodeManagerContract.address,
 				{ withTime: seconds }
 			);
 
@@ -396,7 +396,7 @@ describe('ReportManager', async function () {
 			const seconds = Math.ceil(now / 1000);
 			const thisReportManagerContract = await loadReportManager(
 				adminSigner,
-				nodeManagerContract,
+				nodeManagerContract.address,
 				{ withTime: seconds, reportTimeBuffer }
 			);
 
