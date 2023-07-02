@@ -16,12 +16,18 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
     event CaptureOverflow(address consumer, uint stake, uint capture, uint overflow);
     event SupplyOverflow(uint supply, uint capture, uint overflow);
 
+    modifier onlyParent() {
+        require(_msgSender() == parent, "error_onlyParent");
+        _;
+    }
+
     uint256 public totalSupply;
     address public stakeTokenAddress;
     mapping(address => uint256) public balanceOf; // map of addresses and their total balanace
     IERC20Upgradeable internal stakeToken;
+    address internal parent;
 
-    function initialize(address owner_, address stakeTokenAddress_) public initializer {
+    function initialize(address owner_, address parent_, address stakeTokenAddress_) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
@@ -29,18 +35,23 @@ contract LogStoreQueryManager is Initializable, UUPSUpgradeable, OwnableUpgradea
         require(stakeTokenAddress_ != address(0), "error_badTrackerData");
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         stakeTokenAddress = stakeTokenAddress_;
+        setParent(parent_);
         transferOwnership(owner_);
     }
 
     /// @dev required by the OZ UUPS module
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
+    function setParent(address _parent) public onlyOwner {
+        parent = _parent;
+    }
+
     /// Capture funds for a given query
     /// Only the LogStore Contract can call the capture method
     /// @param amount amount of tokens to capture
     /// @param consumer address of the data consumer
     /// @param bytesProcessed number of bytes in the response
-    function capture(address consumer, uint256 amount, uint256 bytesProcessed) public nonReentrant onlyOwner {
+    function capture(address consumer, uint256 amount, uint256 bytesProcessed) public nonReentrant onlyParent {
         require(balanceOf[consumer] > 0, "error_invalidConsumerAddress");
 
         uint256 amountToTransfer = amount;

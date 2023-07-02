@@ -47,9 +47,11 @@ export async function getStoreManagerInputParameters(
 ) {
 	// define important params
 	const chainId = await getChainId();
+	const [adminAccount] = await getAccounts();
 	// define actual parameters
 	const initialParameters = {
-		owner: nodeManagerAddress,
+		owner: adminAccount.address,
+		parent: nodeManagerAddress,
 		stakeToken: STAKE_TOKEN_CONTRACTS[chainId],
 		streamrRegistryAddress: STREAMR_REGISTRY_ADDRESS[chainId],
 	};
@@ -67,9 +69,11 @@ export async function getQueryManagerInputParameters(
 ) {
 	// define important params
 	const chainId = await getChainId();
+	const [adminAccount] = await getAccounts();
 	// define actual parameters
 	const initialParameters = {
-		owner: nodeManagerAddress,
+		owner: adminAccount.address,
+		parent: nodeManagerAddress,
 		stakeToken: STAKE_TOKEN_CONTRACTS[chainId],
 	};
 	// validations of variable parameters

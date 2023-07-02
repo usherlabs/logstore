@@ -67,7 +67,7 @@ describe('ProcessReport (ReportManager x NodeManager)', async function () {
 		const seconds = Math.ceil(now / 1000);
 		const reportManagerContract = await loadReportManager(
 			adminSigner,
-			nodeManagerContract,
+			nodeManagerContract.address,
 			{ withTime: seconds, reportTimeBuffer }
 		);
 
@@ -93,6 +93,7 @@ describe('ProcessReport (ReportManager x NodeManager)', async function () {
 		nodeManagerContract.registerQueryManager(queryManagerContract.address);
 		nodeManagerContract.registerReportManager(reportManagerContract.address);
 
+		// console.log('Proofs:', proofs);
 		const reportSubmitResponseTx = await reportManagerContract
 			.connect(currentNode)
 			.functions.report(...payload);
@@ -228,7 +229,7 @@ describe('ProcessReport (ReportManager x NodeManager)', async function () {
 		const seconds = Math.ceil(now / 1000);
 		const reportManagerContract = await loadReportManager(
 			adminSigner,
-			nodeManagerContract,
+			nodeManagerContract.address,
 			{ withTime: seconds, reportTimeBuffer }
 		);
 
@@ -388,7 +389,7 @@ describe('ProcessReport (ReportManager x NodeManager)', async function () {
 		const seconds = Math.ceil(now / 1000);
 		const reportManagerContract = await loadReportManager(
 			adminSigner,
-			nodeManagerContract,
+			nodeManagerContract.address,
 			{ withTime: seconds, reportTimeBuffer }
 		);
 

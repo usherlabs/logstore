@@ -18,6 +18,11 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
     event CaptureOverflow(string store, uint stake, uint capture, uint overflow);
     event SupplyOverflow(uint supply, uint capture, uint overflow);
 
+    modifier onlyParent() {
+        require(_msgSender() == parent, "error_onlyParent");
+        _;
+    }
+
     uint256 public totalSupply;
     address public stakeTokenAddress;
     mapping(string => uint256) public stores; // map of stores and their total balance
@@ -26,9 +31,11 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
     mapping(address => mapping(string => uint256)) public storeBalanceOf; // map of addresses and the stores they're staked in
     IERC20Upgradeable internal stakeToken;
     IStreamRegistry internal streamrRegistry;
+    address internal parent;
 
     function initialize(
         address owner_,
+        address parent_,
         address stakeTokenAddress_,
         address streamrRegistryAddress_
     ) public initializer {
@@ -40,18 +47,23 @@ contract LogStoreManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, 
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
         stakeTokenAddress = stakeTokenAddress_;
 
+        setParent(parent_);
         transferOwnership(owner_);
     }
 
     /// @dev required by the OZ UUPS module
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
+    function setParent(address _parent) public onlyOwner {
+        parent = _parent;
+    }
+
     function exists(string calldata streamId) public view returns (bool) {
         return stores[streamId] > 0;
     }
 
     // Only the LogStore Contract can call the capture method
-    function capture(string memory streamId, uint256 amount, uint256 bytesStored) public nonReentrant onlyOwner {
+    function capture(string memory streamId, uint256 amount, uint256 bytesStored) public nonReentrant onlyParent {
         require(stores[streamId] > 0, "error_invalidStreamId");
 
         // Prevent overflow errors On-Chain
