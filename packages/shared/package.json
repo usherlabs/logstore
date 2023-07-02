@@ -19,6 +19,7 @@
 	"dependencies": {
 		"@ethersproject/providers": "^5",
 		"@logsn/contracts": "workspace:^",
+		"@logsn/protocol": "workspace:^",
 		"ethers": "^5.7.0",
 		"inquirer": "^8.1.1",
 		"redstone-api": "^0.4.11",

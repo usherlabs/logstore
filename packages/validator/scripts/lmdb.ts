@@ -57,20 +57,16 @@ const db2 = createDB('query-response', cachePath) as ResponseDB;
 	await db1.put(1, 'hello');
 	await db2.put(2, 'world');
 
-	const c = db1
-		.getRange
-		// {
-		// start: 0,
-		// end: 5,
-		// }
-		();
-	const c2 = db2
-		.getRange
-		// {
-		// start: 0,
-		// end: 5,
-		// }
-		();
+	const c = db1.getRange({
+		start: -5,
+		end: 5,
+	});
+	// ();
+	const c2 = db2.getRange({
+		start: -5,
+		end: 5,
+	});
+	// ();
 
 	for (const v of c) {
 		console.log('db1:', v);

@@ -4,6 +4,7 @@ RUN printf "#!/bin/sh\n\
   wget -q -O /dev/null localhost:1984/mint/8X1er8Bngza6g9dbndOgkWBFO93KkK8LeK8MXLCA3vk/1000000000000000 \n\
   wget -q -O /dev/null localhost:1984/mint/SByfG2malxPboIymaaBtwiv3wkV-YJsNuT71IiDdm6A/1000000000000000 \n\
   wget -q -O /dev/null localhost:1984/mint/Zcbf1xCblnJZRGhH-2XqJOzx1xbKNKS3ZVXfg5WaAGY/1000000000000000 \n\
+  wget -q -O /dev/null localhost:1984/mint/k-qfLEc0DCPQwUZPTFDDye61CDfJ9nRPy9W0XQtL4yg/1000000000000000 \n\
   "\
   > mint.sh
 

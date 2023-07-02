@@ -3,6 +3,7 @@ import { LogStoreNodeManager, LSAN__factory } from '@logsn/contracts';
 
 import { overrideStartBlockNumber } from '../env-config';
 import { IBrokerNode } from '../types';
+import { Slogger } from '../utils/slogger';
 import { StakeToken } from '../utils/stake-token';
 
 export class NodeManager {
@@ -14,7 +15,7 @@ export class NodeManager {
 
 	async getBrokerNodes(
 		blockNumber?: number,
-		minStakeRequirement?: number
+		minStakeRequirement?: BigNumber
 	): Promise<Array<IBrokerNode>> {
 		// get all the node addresses
 		const nodeAddresses = await this.contract.nodeAddresses({
@@ -29,7 +30,7 @@ export class NodeManager {
 				});
 				const allDelegates = await this.getDelegates(nodeAddress, blockNumber);
 
-				console.log('DEBUG: Delegates for Node Address', {
+				Slogger.instance.debug('Delegates for Node Address', {
 					allDelegates,
 					nodeAddress,
 				});
@@ -41,7 +42,7 @@ export class NodeManager {
 					lastSeen: nodeDetail.lastSeen.toNumber(),
 					next: nodeDetail.next,
 					prev: nodeDetail.prev,
-					stake: +nodeDetail.stake,
+					stake: nodeDetail.stake,
 					delegates: allDelegates,
 				};
 			})
@@ -51,7 +52,7 @@ export class NodeManager {
 		const brokerNodes = detailedAllNodes.filter(
 			({ stake }) =>
 				typeof minStakeRequirement !== 'undefined' &&
-				stake >= minStakeRequirement
+				stake.gte(minStakeRequirement)
 		);
 
 		return brokerNodes;
@@ -66,7 +67,7 @@ export class NodeManager {
 	async getDelegates(
 		nodeAddress: string,
 		toBlockNumber: number
-	): Promise<Record<string, number>> {
+	): Promise<Record<string, BigNumber>> {
 		const delegatesEvent = await this.contract.queryFilter(
 			this.contract.filters.StakeDelegateUpdated(
 				null,
@@ -80,20 +81,20 @@ export class NodeManager {
 			toBlockNumber
 		);
 
-		const eventDetails = delegatesEvent.map(({ args }) => ({
-			delegate: args.delegate,
-			amount:
-				args.delegated === true ? Number(args.amount) : -Number(args.amount),
-		}));
+		const delegates: Record<string, BigNumber> = {};
+		delegatesEvent.forEach(({ args }) => {
+			const { delegate } = args;
+			const amount =
+				args.delegated === true ? args.amount : args.amount.mul(-1);
 
-		return eventDetails.reduce((accumulator, curr) => {
-			if (accumulator[curr.delegate] === undefined) {
-				accumulator[curr.delegate] = 0;
+			if (delegates[delegate] === undefined) {
+				delegates[delegate] = BigNumber.from(0);
 			} else {
-				accumulator[curr.delegate] += curr.amount;
+				delegates[delegate].add(amount);
 			}
-			return accumulator;
-		}, {});
+		});
+
+		return delegates;
 	}
 
 	async getStakeToken(blockNumber?: number): Promise<StakeToken> {
@@ -113,7 +114,7 @@ export class NodeManager {
 			stakeTokenAddress,
 			stakeTokenSymbol,
 			stakeTokenDecimals,
-			+minStakeRequirement,
+			minStakeRequirement,
 			this.contract.signer
 		);
 

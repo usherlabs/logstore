@@ -13,6 +13,7 @@
 		"incremental": true,
 		"sourceMap": true,
 		"stripInternal": true,
+		"skipLibCheck": true,
 		"useUnknownInCatchVariables": false,
 		"strictBindCallApply": true
 	},

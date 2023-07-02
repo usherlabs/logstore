@@ -14,7 +14,9 @@
 		"sourceMap": true,
 		"stripInternal": true,
 		"useUnknownInCatchVariables": false,
-		"strictBindCallApply": true
+		"strictBindCallApply": true,
+		"suppressImplicitAnyIndexErrors": true
 	},
-	"lib": ["DOM"]
+	"lib": ["DOM"],
+	"exclude": ["node_modules", "dist"]
 }

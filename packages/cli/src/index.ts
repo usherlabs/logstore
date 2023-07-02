@@ -12,7 +12,7 @@ import { ethers } from 'ethers';
 import os from 'os';
 
 import { appPackageName, appVersion } from './env-config';
-import { allowanceConfirm, logger } from './utils';
+import { allowanceConfirm, getLogStoreClient, logger } from './utils';
 
 // define main program
 const program = new Command();
@@ -23,11 +23,11 @@ program
 	.version(appVersion)
 	.option('-h, --host <string>', 'Polygon/EVM Node RPC Endpoint')
 	.option('-w, --wallet <string>', 'Wallet private key')
-	.option(
-		'-n, --network <string>',
-		`Network to interact with. ie. Local, Dev, Testnet, Mainnet`,
-		'Dev'
-	)
+	// .option(
+	// 	'-n, --network <string>',
+	// 	`Network to interact with. ie. Local, Dev, Testnet, Mainnet`,
+	// 	'Mainnet'
+	// )
 	.option('-d, --debug', 'Show debug logs')
 	.hook('preAction', (thisCommand) => {
 		const { wallet: walletPrivateKey, host } = options;
@@ -38,6 +38,7 @@ program
 			throw new Error('Host RPC Endpoint cannot be empty');
 		}
 
+		logger.settings.minLevel = 3;
 		if (thisCommand.opts().debug) {
 			logger.settings.minLevel = 0;
 		}
@@ -64,14 +65,14 @@ program
 			.description('Mint LSAN tokens for the Log Store Network.')
 			.argument(
 				'<amount>',
-				'Amount in Wei to stake into the Query Manager Contract. Ensure funds are available for queries to the Log Store Network.'
+				'Amount of Native Blockchain Currency (in Wei) to exchange for LSAN. Note that 10 MATIC = 1000000000000000000 Wei'
 			)
 			.option(
 				'-u, --usd',
 				'Pass in an amount in USD which will automatically convert to the appropriate amount of token to stake.'
 			)
 			.action(async (amt: string, cmdOptions: { usd: boolean }) => {
-				const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
+				let amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
 				logger.debug('Command Params: ', { amount, ...options, ...cmdOptions });
 
 				try {
@@ -79,8 +80,6 @@ program
 					const signer = new ethers.Wallet(options.wallet, provider);
 
 					const tokenManagerContract = await getTokenManagerContract(signer);
-
-					let amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
 
 					if (cmdOptions.usd) {
 						amount = await convertFromUsd(
@@ -212,6 +211,23 @@ program
 				}
 			)
 	);
+
+program
+	.command('create-stream')
+	.description(
+		'Create Streamr stream to start storing data transported over the stream.'
+	)
+	.argument('<name>', 'Streamr stream name - ie. your_id/stream_name.')
+	.action(async (name: string) => {
+		// const provider = new ethers.providers.JsonRpcProvider(options.host);
+		// const signer = new ethers.Wallet(options.wallet, provider);
+		const client = getLogStoreClient(options.wallet);
+		const stream = await client.createStream({
+			// id: name.charAt(0) === '/' ? name : `/${name}`,
+			id: name,
+		});
+		logger.info(stream);
+	});
 
 program.configureHelp({
 	showGlobalOptions: true,

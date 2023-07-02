@@ -1,10 +1,12 @@
 import { sha256 } from '@kyvejs/protocol';
-import { SystemMessageType } from '@logsn/protocol';
+import { SystemMessageType, SystemReport } from '@logsn/protocol';
+import Decimal from 'decimal.js';
 
 import { Managers } from '../managers';
-import { IBrokerNode, IReport } from '../types';
+import { IBrokerNode, IValidatorReport } from '../types';
 import { Arweave } from '../utils/arweave';
 import { fetchQueryResponseConsensus } from '../utils/helpers';
+import { ReportUtils } from '../utils/report';
 import { StakeToken } from '../utils/stake-token';
 import { AbstractDataItem } from './abstract';
 
@@ -19,18 +21,21 @@ interface IPrepared {
 export class Report extends AbstractDataItem<IPrepared> {
 	prepared: IPrepared;
 
-	override async load(managers: Managers, startBlockNumber: number) {
-		const { core, key } = this;
-
-		const startBlock = await managers.getBlock(startBlockNumber);
-		const lastReport = await managers.report.getLastReport();
-		// The from key will default to the startBlockNumber
-		let fromKey = startBlock.timestamp;
-		if ((lastReport || {})?.id) {
-			fromKey = parseInt(lastReport.id, 10);
-		}
-		const toKey = parseInt(key, 10);
+	override async load(managers: Managers) {
+		const { core, fromKey: fromKeyStr, toKey: toKeyStr } = this;
+		const fromKey = parseInt(fromKeyStr, 10);
+		const toKey = parseInt(toKeyStr, 10);
 		core.logger.debug('Report Range: ', { fromKey, toKey });
+
+		if (toKey === 0) {
+			return {
+				fromKey: 0,
+				toKey: 0,
+				blockNumber: 0,
+				stakeToken: undefined,
+				brokerNodes: [],
+			};
+		}
 
 		// Get all state from Smart Contract up to the current key (where key = block at a timestamp)
 		// We do this by using the key (timestamp) to determine the most relevant block
@@ -59,25 +64,25 @@ export class Report extends AbstractDataItem<IPrepared> {
 		};
 	}
 
-	public async generate(): Promise<IReport> {
+	public async generate(): Promise<SystemReport> {
 		const { fromKey, toKey, blockNumber, brokerNodes, stakeToken } =
 			this.prepared;
 
 		const {
 			core,
 			runtime: { listener },
-			key,
+			toKey: keyStr,
 			config: { fees },
 		} = this;
 
-		const toKeyMs = toKey * 1000;
 		const fromKeyMs = fromKey * 1000;
+		const toKeyMs = toKey * 1000;
 
 		// Establish the report
-		const report: IReport = {
-			id: key,
+		const report: IValidatorReport = {
+			id: keyStr,
 			height: blockNumber,
-			treasury: 0,
+			treasury: new Decimal(0),
 			streams: [],
 			consumers: [],
 			nodes: {},
@@ -88,60 +93,72 @@ export class Report extends AbstractDataItem<IPrepared> {
 			},
 		};
 
+		if (keyStr === '0') {
+			return ReportUtils.finalise(report);
+		}
+
+		// ------------ SETUP UTILS ------------
+		// This method works by distributing a total captured fee amount to a set of nodes.
+		// The report yields a difference in node's balance (positive or negative) to apply to the balance on-chain
+		// ie. If the report indicates a node value is X, then increment the balance by X, otherwise if value is -Y, then decrement the balance by Y
 		// ------------ SETUP UTILS ------------
 		// This method works by distributing a total captured fee amount to a set of nodes.
 		// The report yields a difference in node's balance (positive or negative) to apply to the balance on-chain
 		// ie. If the report indicates a node value is X, then increment the balance by X, otherwise if value is -Y, then decrement the balance by Y
 		const rewardNodes = (
-			amount: number,
+			amount: Decimal,
 			recipients: string[],
 			penalise: boolean
 		) => {
 			// ? All nodes managing all streams right now
 			// -- In the future, we would determine the Broker Sub-network relevant to the stream
 
-			const amountPerNode = amount / brokerNodes.length;
+			const amountPerNode = amount.div(brokerNodes.length);
 			const bystanders = brokerNodes
 				.map((b) => b.id)
 				.filter((id) => !recipients.includes(id));
-			let rewardPerRecipient = 0;
+			let rewardPerRecipient = new Decimal(0);
 			if (penalise) {
-				rewardPerRecipient =
-					amountPerNode +
-					(amountPerNode * bystanders.length) / recipients.length; // base reward per node + rewards deducted from bystanders shared between recipients
+				// base reward per node + rewards deducted from bystanders shared between recipients
+				rewardPerRecipient = amountPerNode.add(
+					amountPerNode.mul(bystanders.length).div(recipients.length)
+				);
 			} else {
-				rewardPerRecipient = amount / recipients.length;
+				rewardPerRecipient = amount.div(recipients.length);
 			}
 
 			for (let j = 0; j < brokerNodes.length; j++) {
 				const bNode = brokerNodes[j];
 
-				if (typeof report.nodes[bNode.id] !== 'undefined') {
-					report.nodes[bNode.id] = 0;
+				if (typeof report.nodes[bNode.id] !== 'number') {
+					report.nodes[bNode.id] = new Decimal(0);
 				}
 
 				// Add change in balance to node stake
-				let balanceDifference = 0;
+				let balanceDifference = new Decimal(0);
 				if (recipients.includes(bNode.id)) {
 					balanceDifference = rewardPerRecipient;
 				} else if (penalise && bystanders.includes(bNode.id)) {
-					balanceDifference = -amountPerNode;
+					balanceDifference = amountPerNode.mul(-1);
 				}
-				report.nodes[bNode.id] += balanceDifference;
+				report.nodes[bNode.id] = report.nodes[bNode.id].add(balanceDifference);
 
 				// Distributed incremented fee across delegates of node proportional to their stake distribution
 				const delegates = Object.entries(bNode.delegates);
 				for (let l = 0; l < delegates.length; l++) {
-					const [delegateAddr, delegateAmount] = delegates[l];
-					const delegatePortion = delegateAmount / bNode.stake;
-					if (!report.delegates[delegateAddr]) {
+					const [delegateAddr, delegateAmountBN] = delegates[l];
+					const delegateAmount = new Decimal(delegateAmountBN.toHexString());
+					const bNodeStake = new Decimal(bNode.stake.toHexString());
+					const delegatePortion = delegateAmount.div(bNodeStake);
+					if (typeof report.delegates[delegateAddr] === 'undefined') {
 						report.delegates[delegateAddr] = {};
 					}
 					if (typeof report.delegates[delegateAddr][bNode.id] !== 'number') {
-						report.delegates[delegateAddr][bNode.id] = 0;
+						report.delegates[delegateAddr][bNode.id] = new Decimal(0);
 					}
-					report.delegates[delegateAddr][bNode.id] +=
-						delegatePortion * balanceDifference;
+					report.delegates[delegateAddr][bNode.id] = report.delegates[
+						delegateAddr
+					][bNode.id].add(balanceDifference.mul(delegatePortion));
 				}
 			}
 		};
@@ -208,8 +225,9 @@ export class Report extends AbstractDataItem<IPrepared> {
 			// ? Fees are determined after the report has been populated by the event data
 			const contributingPublishers = [];
 			for (let j = 0; j < storeKeys.length; j++) {
-				const [key, valueIndex] = storeKeys[j];
-				const event = storeCache.get(key)[valueIndex];
+				const [cacheKey, valueIndex] = storeKeys[j];
+				const cacheValues = storeCache.get(cacheKey);
+				const event = cacheValues[valueIndex];
 				if (!event) continue;
 
 				// Now, we're iterating over each specific proofOfMessageStored event published by each Broker on the Broker Network
@@ -249,30 +267,35 @@ export class Report extends AbstractDataItem<IPrepared> {
 			totalBytes += bytes;
 			return totalBytes;
 		}, 0);
-		const expensePerByteStored = await Arweave.getPrice(
-			totalBytesStored,
-			toKeyMs
-		);
-		const writeFee = fees.writeMultiplier * expensePerByteStored;
-		const writeTreasuryFee =
-			fees.treasuryMultiplier * (writeFee - expensePerByteStored); // multiplier on the margin
-		const writeNodeFee = writeFee - writeTreasuryFee;
+		let expense = new Decimal(0);
+		let expensePerByteStored = new Decimal(0);
+		if (totalBytesStored > 0) {
+			const usdValue = await Arweave.getPrice(totalBytesStored, toKeyMs);
+			const expenseBN = await stakeToken.fromUSD(usdValue, toKeyMs);
+			expense = new Decimal(expenseBN.toHexString());
+			expensePerByteStored = expense.div(totalBytesStored);
+		}
+		const writeFee = expensePerByteStored.mul(fees.writeMultiplier);
+		const writeTreasuryFee = writeFee
+			.sub(expensePerByteStored)
+			.mul(fees.treasuryMultiplier); // multiplier on the margin
+		const writeNodeFee = writeFee.sub(writeTreasuryFee);
 
 		// Hydrate the report with storage data
 		for (let i = 0; i < streamsMapEntries.length; i++) {
 			const [streamId, { bytes, contributors }] = streamsMapEntries[i];
 
-			const capture = writeFee * bytes;
+			const capture = writeFee.mul(bytes);
 			report.streams.push({
 				id: streamId,
 				capture,
 				bytes,
 			});
-			report.treasury += writeTreasuryFee * bytes;
+			report.treasury = report.treasury.add(writeTreasuryFee.mul(bytes));
 
 			// Deduct from Node based on the bytes missed.
 			// Use identification of publishers that validly contributed storage events to determine if current broker node was apart of that cohort.
-			rewardNodes(writeNodeFee * bytes, contributors, true);
+			rewardNodes(writeNodeFee.mul(bytes), contributors, true);
 		}
 		// ------------ END STORAGE ------------
 		// -------------------------------------
@@ -287,12 +310,12 @@ export class Report extends AbstractDataItem<IPrepared> {
 		});
 
 		// Determine read fees
-		const readFee =
-			totalBytesStored === 0
-				? 0
-				: fees.readMultiplier * (writeFee / totalBytesStored);
-		const readTreasuryFee = readFee * fees.treasuryMultiplier;
-		const readNodeFee = readFee - readTreasuryFee;
+		let readFee = new Decimal(0);
+		if (totalBytesStored > 0) {
+			readFee = writeFee.mul(fees.readMultiplier);
+		}
+		const readTreasuryFee = readFee.mul(fees.treasuryMultiplier);
+		const readNodeFee = readFee.sub(readTreasuryFee);
 
 		for (const { value: cacheValue } of queryRequestCachedItems) {
 			if (!cacheValue) continue;
@@ -328,11 +351,10 @@ export class Report extends AbstractDataItem<IPrepared> {
 					hash,
 					size,
 				});
+				const captureAmount = readFee.mul(size);
 				const existingConsumerIndex = report.consumers.findIndex(
 					(c) => c.id === content.consumerId
 				);
-
-				const captureAmount = readFee * size;
 				if (existingConsumerIndex < 0) {
 					report.consumers.push({
 						id: content.consumerId,
@@ -340,48 +362,26 @@ export class Report extends AbstractDataItem<IPrepared> {
 						bytes: size,
 					});
 				} else {
-					report.consumers[existingConsumerIndex].capture += captureAmount;
+					report.consumers[existingConsumerIndex].capture =
+						report.consumers[existingConsumerIndex].capture.add(captureAmount);
 					report.consumers[existingConsumerIndex].bytes += size;
 				}
-				report.treasury += readTreasuryFee * size;
+				report.treasury = report.treasury.add(readTreasuryFee.mul(size));
 
 				// Only apply fees to nodes that have contributed to the conensus response
 				const contributors = queryResponseHashMap[consensusHash].map(
 					(msg) => msg.metadata.publisherId
 				);
-				rewardNodes(readNodeFee * size, contributors, false);
+				rewardNodes(readNodeFee.mul(size), contributors, false);
 			}
 		}
 		// ------------ END QUERIES ------------
 		// -------------------------------------
 
-		// ------------ FEE CONVERSION ------------
-		// Convert fees to stake token
-		report.treasury = await stakeToken.fromUSD(report.treasury, toKeyMs);
-		report.streams.forEach(async (s) => {
-			s.capture = await stakeToken.fromUSD(s.capture, toKeyMs);
-			return s;
-		});
-		report.consumers.forEach(async (c) => {
-			c.capture = await stakeToken.fromUSD(c.capture, toKeyMs);
-			return c;
-		});
-		Object.keys(report.nodes).forEach(async (n) => {
-			report.nodes[n] = await stakeToken.fromUSD(report.nodes[n], toKeyMs);
-		});
-		Object.keys(report.delegates).forEach((d) => {
-			Object.keys(report.delegates[d]).forEach(async (n) => {
-				report.delegates[d][n] = await stakeToken.fromUSD(
-					report.delegates[d][n],
-					toKeyMs
-				);
-			});
-		});
-		// ------------ END FEE CONVERSION ------------
-		// -------------------------------------
+		const sortedReport = ReportUtils.sort(report);
 
-		core.logger.debug('Report Generated', report);
+		core.logger.debug('Report Generated', sortedReport);
 
-		return report;
+		return ReportUtils.finalise(report);
 	}
 }

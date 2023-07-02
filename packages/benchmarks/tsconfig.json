@@ -1,23 +1,18 @@
 {
 	"$schema": "https://json.schemastore.org/tsconfig",
-	"display": "Validator",
+	"display": "Benchmarks",
 	"compilerOptions": {
-		"module": "commonjs",
+		"module": "ES2020",
 		"target": "es2015",
 		"moduleResolution": "node",
 		"rootDir": ".",
+		"types": ["vitest/importMeta"],
 		"outDir": "__benchmarks__",
 		"allowSyntheticDefaultImports": true,
 		"importHelpers": true,
 		"alwaysStrict": true,
+		"strict": true,
 		"sourceMap": true,
-		"noFallthroughCasesInSwitch": true,
-		"noImplicitReturns": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"noImplicitAny": false,
-		"noImplicitThis": false,
-		"strictNullChecks": false,
 		"forceConsistentCasingInFileNames": true,
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
@@ -25,10 +20,7 @@
 		"baseUrl": "."
 	},
 	"exclude": ["node_modules", "build", "dist"],
-	"include": ["**/*.ts", "./index.d.ts"],
-	"ts-node": {
-		"require": ["tsconfig-paths/register"]
-	},
+	"include": ["**/*.ts"],
 	"references": [
 		{
 			"path": "../client/tsconfig.node.json"

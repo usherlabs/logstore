@@ -68,18 +68,19 @@ export default class Runtime implements IRuntimeExtended {
 		};
 	}
 
-	// ? Producing data items here is include automatic management of local bundles, and proposed bundles.
+	// * Data items are produced here for the bundle in local cache. The local bundle is then used for voting on proposed bundles, and creating new bundle proposals?
 	async getDataItem(core: Validator, key: string): Promise<DataItem> {
-		// Ensure that the Time Index is ready
-		await this.time.ready();
-
 		const keyInt = parseInt(key, 10);
+		if (!keyInt) {
+			return { key, value: { m: [] } };
+		}
 
 		if (keyInt > this.time.latestTimestamp) {
 			return null;
 		}
 
-		const item = new Item(core, this, this.config, key);
+		// -------- Produce the Data Item --------
+		const item = new Item(core, this, this.config, key, key);
 		await item.prepare();
 		const messages = await item.generate();
 
@@ -119,15 +120,36 @@ export default class Runtime implements IRuntimeExtended {
 		core: Validator,
 		bundle: DataItem[]
 	): Promise<string> {
+		const firstItem = bundle.at(0);
 		const lastItem = bundle.at(-1);
 		core.logger.info(`Create Report: ${lastItem.key}`);
-		const report = new Report(core, this, this.config, lastItem.key);
+		const report = new Report(
+			core,
+			this,
+			this.config,
+			firstItem.key,
+			lastItem.key
+		);
 		await report.prepare();
-		const reportData = await report.generate();
-		const reportHash = sha256(Buffer.from(JSON.stringify(reportData)));
+		const systemReport = await report.generate();
+		const reportData = systemReport.serialize();
+		const reportHash = sha256(Buffer.from(JSON.stringify(reportData))); // use sha256 of entire report to include "events".
 
 		lastItem.value.r = reportData;
 		return lastItem.key + '_' + reportHash;
+	}
+
+	async startKey() {
+		const startTs = await Managers.withSources<string>(
+			this.config.sources,
+			async (managers) => {
+				const startBlock = await managers.getBlock(
+					await managers.node.getStartBlockNumber()
+				);
+				return startBlock.timestamp.toString();
+			}
+		);
+		return startTs;
 	}
 
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
@@ -136,16 +158,7 @@ export default class Runtime implements IRuntimeExtended {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			const startTs = await Managers.withSources<string>(
-				this.config.sources,
-				async (managers) => {
-					const res = await managers.getBlock(
-						await managers.node.getStartBlockNumber()
-					);
-					return res.timestamp.toString();
-				}
-			);
-			return startTs;
+			return await this.startKey();
 		}
 
 		keyInt++;

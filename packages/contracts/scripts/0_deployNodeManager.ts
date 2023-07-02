@@ -4,7 +4,6 @@ import hre from 'hardhat';
 import {
 	getNodeManagerInputParameters,
 	getQueryManagerInputParameters,
-	getReportBlockBuffer,
 	getStoreManagerInputParameters,
 	getWeiPerByte,
 	writeJSONToFileOutside,
@@ -94,7 +93,7 @@ async function main() {
 
 	// --------------------------- deploy the report manager contract --------------------------- //
 	// Get block time of chain id
-	const reportBlockBuffer = await getReportBlockBuffer();
+	const reportTimeBuffer = 60 * 1000;
 	const Lib = await hre.ethers.getContractFactory('VerifySignature');
 	const lib = await Lib.deploy();
 	await lib.deployed();
@@ -109,7 +108,7 @@ async function main() {
 	);
 	const reportManagerContract = await hre.upgrades.deployProxy(
 		reportManager,
-		[nodeManagerAddress, reportBlockBuffer],
+		[nodeManagerAddress, reportTimeBuffer, 0],
 		{
 			unsafeAllowLinkedLibraries: true,
 		}
@@ -118,23 +117,25 @@ async function main() {
 	const { address: reportManagerAddress } = reportManagerContract;
 	console.log(`LogStoreReportManager deployed to ${reportManagerAddress}`, {
 		nodeManagerAddress,
-		reportBlockBuffer,
+		reportTimeBuffer,
 	});
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //
 	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
-		const tokenManager = await hre.ethers.getContractFactory('LSAN');
 		const token = await tokenManager.attach(stakeTokenAddress);
 
 		const wallets: string[] = [];
-		const MINT_AMOUNT = '1000000000000000000000000';
+
+		const MINT_AMOUNT = '1000000000000000000000000000000000000';
 		const ACCOUNT_PK_PREFIX = '';
 		const BROKER_PK_PREFIX = 'bb';
 		const VALIDATOR_PK_PREFIX = 'cc';
+		const HEARTBEAT_PK =
+			'1111111111111111111111111111111111111111111111111111111111111111';
 		const NUM_ACCOUNTS = 100;
 		const NUM_BROKERS = 3;
-		const NUM_VALIDATORS = 3;
+		const NUM_VALIDATORS = 4;
 		const NUM_ACCOUNTS_IN_BATCH = 100;
 
 		console.log();
@@ -178,8 +179,6 @@ async function main() {
 				);
 			}
 		}
-
-		const [signer] = await hre.ethers.getSigners();
 
 		console.log();
 		console.log(
@@ -256,6 +255,19 @@ async function main() {
 				);
 			}
 		}
+
+		console.log();
+		console.log(
+			`Minting native token and LSAN to the Heartbeat account with Primary Key: ${HEARTBEAT_PK}`
+		);
+		const address = new Wallet(HEARTBEAT_PK).address;
+
+		const tx = {
+			to: address,
+			value: hre.ethers.utils.parseEther('1'),
+		};
+		await (await signer.sendTransaction(tx)).wait();
+		await (await token.mintTokens(address, MINT_AMOUNT)).wait();
 	}
 	// --------------------------- mint dev token to the test accounts ------------------------- //
 

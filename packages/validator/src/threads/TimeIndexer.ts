@@ -1,4 +1,5 @@
 import { sha256, sleep } from '@kyvejs/protocol';
+import { spawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import fse from 'fs-extra';
 import type { RootDatabase } from 'lmdb';
@@ -22,9 +23,9 @@ type DB = RootDatabase<
 >;
 
 const CONFIRMATIONS = 128 as const; // The number of confirmations/blocks required to determine finality.
-const SCAN_BUFFER = 10000 as const; // The time a find/scan will use to evaluate the indexed block
+const SCAN_BUFFER = 10 as const; // The time (in seconds) a find/scan will use to evaluate the indexed block
 const DEFAULT_DB_VALUE = { b: 0, s: [] };
-const POLL_INTERVAL = 10 as const; // The time in seconds to delay between the latest index and the next
+const POLL_INTERVAL = 10 as const; // The time (in seconds) to delay between the latest index and the next
 const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
 
 /**
@@ -38,6 +39,7 @@ const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
 export class TimeIndexer {
 	protected _cachePath: string;
 	private _db!: DB;
+	private _running: boolean = false;
 	private _ready: boolean = false;
 	private _latestTimestamp: number;
 	private _childProcesses: ChildProcess[] = [];
@@ -61,6 +63,8 @@ export class TimeIndexer {
 	}
 
 	public async start(): Promise<void> {
+		this._running = true;
+
 		try {
 			await fse.remove(this._cachePath);
 
@@ -121,6 +125,7 @@ export class TimeIndexer {
 	}
 
 	public stop() {
+		this._running = false;
 		this._childProcesses.forEach((child) => {
 			child.kill();
 		});
@@ -205,106 +210,152 @@ export class TimeIndexer {
 		const readyChecks = sources.map(() => false);
 
 		for (let i = 0; i < sources.length; i++) {
-			const source = sources[i];
-			const saveFilename = `last_synced_block_${sha256(
-				Buffer.from(source)
-			)}.txt`;
-			const savefile = path.join(this._cachePath, saveFilename);
-			const managers = new Managers(source);
-			await managers.init();
-			const latestBlock =
-				(await managers.provider.getBlockNumber()) - CONFIRMATIONS;
-			const fromBlock = startBlock || latestBlock;
+			const run = async (source: string) => {
+				const saveFilename = `last_synced_block_${sha256(
+					Buffer.from(source)
+				)}.txt`;
+				const savefile = path.join(this._cachePath, saveFilename);
+				await fse.remove(savefile);
+				const managers = new Managers(source);
+				await managers.init();
+				const latestBlock =
+					(await managers.provider.getBlockNumber()) - CONFIRMATIONS;
+				const fromBlock = startBlock || latestBlock;
 
-			const child = shell.exec(
-				`ethereumetl stream -s ${fromBlock} -e block -p ${source} -l ${savefile} --period-seconds ${POLL_INTERVAL} -b ${BATCH_SIZE} --lag ${CONFIRMATIONS}`,
-				{ async: true, silent: true, fatal: true }
-			);
-			this._childProcesses.push(child);
+				const child = spawn(shell.which('ethereumetl').toString(), [
+					'stream',
+					'-s',
+					fromBlock.toString(),
+					'-e',
+					'block',
+					'-p',
+					source,
+					'-l',
+					savefile,
+					'--period-seconds',
+					POLL_INTERVAL.toString(),
+					'-b',
+					BATCH_SIZE.toString(),
+					'--lag',
+					CONFIRMATIONS.toString(),
+				]);
 
-			this.logger.debug(`TimeIndexer (${source}) PID:`, child.pid);
+				this._childProcesses.push(child);
 
-			// let isReady = false
+				this.logger.debug(`TimeIndexer (${source}) PID:`, child.pid);
 
-			child.stderr.on('data', (data) => {
-				if (data.includes(`[INFO]`)) {
-					// Skip logs that aren't root of command
-					if (data.includes(`Nothing to sync`)) {
-						this.logger.info(`TimeIndexer (${source}):`, data);
+				child.stderr.on('data', (buff) => {
+					const data = buff.toString();
+					if (data.includes(`[INFO]`)) {
+						// Skip logs that aren't root of command
+						if (data.includes(`Nothing to sync`)) {
+							this.logger.info(`TimeIndexer (${source}):`, data);
 
-						// Once there is nothing to sync, the TimeIndex is considered Ready
-						readyChecks[i] = true;
-						if (!readyChecks.includes(false)) {
-							this._ready = true;
+							// Once there is nothing to sync, the TimeIndex is considered Ready
+							readyChecks[i] = true;
+							if (!readyChecks.includes(false)) {
+								this._ready = true;
+							}
+						} else if (
+							data.includes(`Writing last synced block`) ||
+							data.includes(`Current block`)
+						) {
+							this.logger.debug(`TimeIndexer (${source}):`, data);
 						}
-					} else if (
-						data.includes(`Writing last synced block`) ||
-						data.includes(`Current block`)
-					) {
-						this.logger.debug(`TimeIndexer (${source}):`, data);
+					} else {
+						this.logger.error(`TimeIndexer (${source}):`, data);
+						throw new Error('TimeIndexer Error');
 					}
-				} else {
-					this.logger.error(`TimeIndexer (${source}):`, data);
-					throw new Error('TimeIndexer Error');
-				}
-			});
+				});
 
-			child.stdout.on('data', async (data) => {
-				let block: number;
-				let timestamp: number;
-				try {
-					if (data.includes(`"type": "block"`)) {
-						const json = JSON.parse(data);
-						block = json.number;
-						timestamp = json.timestamp;
-					}
-				} catch (e) {
-					// ...
-				}
-				if (block && timestamp) {
-					await db.transaction(() => {
-						const value = db.get(timestamp) || DEFAULT_DB_VALUE;
-						if (value.b === 0 && value.s.length === 0) {
-							return db.put(timestamp, { b: block, s: [source] });
-						} else if (value.b !== block) {
-							this.logger.error(
-								`TimeIndexer (${source}): Sources returned different results`,
-								{
-									databaseValue: value,
-									newValue: {
-										source,
-										block,
-										timestamp,
-									},
+				let buffer: string = '';
+				child.stdout.on('data', async (buff) => {
+					const data = buff.toString();
+					buffer += data.toString();
+					const entries = buffer.split('\n');
+					buffer = entries.splice(-1)[0];
+
+					for (const entry of entries) {
+						let block: number;
+						let timestamp: number;
+						try {
+							if (entry.includes(`"type": "block"`)) {
+								const json = JSON.parse(entry);
+								block = parseInt(json.number);
+								timestamp = parseInt(json.timestamp);
+							}
+						} catch (e) {
+							// ...
+						}
+
+						if (block && timestamp) {
+							await db.transaction(() => {
+								const value = db.get(timestamp) || DEFAULT_DB_VALUE;
+								if (value.b === 0 && value.s.length === 0) {
+									return db.put(timestamp, { b: block, s: [source] });
+								} else if (value.b !== block) {
+									this.logger.error(
+										`TimeIndexer (${source}): Sources returned different results`,
+										{
+											databaseValue: value,
+											newValue: {
+												source,
+												block,
+												timestamp,
+											},
+										}
+									);
+									throw new Error(`Sources returned different results`);
+								} else {
+									return db.put(timestamp, {
+										b: block,
+										s: [...value.s, source],
+									});
 								}
-							);
-							throw new Error(`Sources returned different results`);
-						} else {
-							return db.put(timestamp, {
-								b: block,
-								s: [...value.s, source],
 							});
+
+							this.logger.debug(
+								`TimeIndexer (${source}): Indexed ${
+									db.get(timestamp).b
+								} at time ${timestamp}`
+							);
+							const blocksIndexedSinceStart = block - fromBlock;
+							if (
+								blocksIndexedSinceStart % 100 === 0 &&
+								blocksIndexedSinceStart > 0
+							) {
+								this.logger.info(
+									`TimeIndexer (${source}): Indexed ${blocksIndexedSinceStart} blocks`
+								);
+							}
+
+							this._latestTimestamp = timestamp;
+						} else {
+							// Log message here to indicate that there was an output by the process' stdout -- but that nothing was indexed.
+							this.logger.debug(
+								`TimeIndexer (${source}): Data received on process stdout but nothing indexed!`,
+								data
+							);
 						}
-					});
-
-					this.logger.debug(
-						`TimeIndexer (${source}): Indexed ${
-							db.get(timestamp).b
-						} at time ${timestamp}`
-					);
-					const blocksIndexedSinceStart = block - fromBlock;
-					if (
-						blocksIndexedSinceStart % 100 === 0 &&
-						blocksIndexedSinceStart > 0
-					) {
-						this.logger.info(
-							`TimeIndexer (${source}): Indexed ${blocksIndexedSinceStart} blocks`
-						);
 					}
+				});
 
-					this._latestTimestamp = timestamp;
-				}
-			});
+				child.on('exit', async (code) => {
+					this.logger.debug(
+						`TimeIndexer (${source}) exited with code: ${code}`
+					);
+					if (this._running) {
+						this.logger.debug(`TimeIndexer (${source}) restarting...`);
+						this._childProcesses[i] = await run(source);
+						readyChecks[i] = false;
+						this._ready = false;
+					}
+				});
+
+				return child;
+			};
+
+			this._childProcesses[i] = await run(sources[i]);
 		}
 	}
 }

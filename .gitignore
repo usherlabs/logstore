@@ -37,6 +37,7 @@ ipfs
 notes.txt
 .logstore-*
 last_synced_block.txt
+docker-compose.local.yml
 
 # debug
 npm-debug.log*

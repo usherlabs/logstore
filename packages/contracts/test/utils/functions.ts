@@ -1,19 +1,37 @@
+import {
+	IReportV1,
+	ProofOfReport,
+	ReportContractParams,
+	ReportSerializerVersions,
+	SystemReport,
+} from '@logsn/protocol';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import Wallet from 'ethereumjs-wallet';
 import { BigNumber, Contract, ContractTransaction, ethers } from 'ethers';
 import { ethers as hEthers, upgrades } from 'hardhat';
 
-import { getReportBlockBuffer } from '../../utils/functions';
 import ERC20 from './abi/ERC20.json';
 import {
 	// CONSUMER_ADDRESS,
 	CONSUMER_INDEX,
 	FAKE_STREAMR_REGISTRY,
 	NODE_MANAGER,
+	REPORT_TIME_BUFFER,
 	SAMPLE_STREAM_ID,
 	SAMPLE_WSS_URL,
 } from './constants';
-import { ReportData } from './types';
+
+type ContractReportPayload = [
+	...ReportContractParams,
+	string[],
+	number[],
+	string[]
+];
+type ReportData = {
+	report: IReportV1;
+	systemReport: SystemReport;
+	reportContractParams: ReportContractParams;
+};
 
 export const generateWallet = () => Wallet.generate().getAddressString();
 
@@ -143,7 +161,8 @@ export async function setupNodeManager(
 
 export async function loadReportManager(
 	adminAddress: SignerWithAddress,
-	nodeManagerContract: Contract
+	nodeManagerContract: Contract,
+	{ reportTimeBuffer = REPORT_TIME_BUFFER, withTime = 0 }
 ) {
 	await mintFundsToAddresses();
 	// deploy libs
@@ -161,10 +180,9 @@ export async function loadReportManager(
 		}
 	);
 
-	const reportBlockBuffer = await getReportBlockBuffer();
 	const reportManagerContract = await upgrades.deployProxy(
 		reportManager,
-		[nodeManagerContract.address, reportBlockBuffer],
+		[nodeManagerContract.address, reportTimeBuffer, withTime],
 		{ unsafeAllowLinkedLibraries: true }
 	);
 	return reportManagerContract;
@@ -174,78 +192,88 @@ export async function generateReportData({
 	blockheight,
 	signer,
 	bundleId = `${generateRandomNumber(100)}`,
+	withNegatives = false,
 }: {
 	blockheight: number;
 	signer: SignerWithAddress;
 	bundleId: string;
+	withNegatives?: boolean;
 }): Promise<ReportData> {
 	const nodeAddress = signer.address;
 	const signers = await hEthers.getSigners();
 	const consumer = signers[CONSUMER_INDEX].address.toLowerCase();
-	const reportdata: ReportData = {
-		bundleId,
-		blockheight: blockheight,
-		streams: [SAMPLE_STREAM_ID],
-		writeCaptureAmounts: [10000],
-		writeBytes: [5],
-		readConsumerAddress: [consumer],
-		readCaptureAmounts: [20000],
-		readBytes: [6],
-		nodes: [nodeAddress],
-		nodeChanges: [30000],
-		delegates: [nodeAddress],
-		delegateNodes: [[nodeAddress]],
-		delegateNodeChanges: [[40000]],
-		treasurySupplyChange: 50000,
-		address: [nodeAddress],
-	};
-
-	// ---- Include signatures in the report
-	const { reportHash } = await generateReportHash({ signer, blockheight });
-	const signature = await signer.signMessage(ethers.utils.arrayify(reportHash));
-	reportdata['signatures'] = [signature];
-
-	return reportdata;
-}
-
-// @todo make the addresses variable too so it will pass on other people's system
-export async function generateReportHash({
-	signer,
-	blockheight,
-}: {
-	signer: SignerWithAddress;
-	blockheight: number;
-}) {
-	// so any change in values there should be reflected here
-	const nodeAddress = signer.address;
-	const signers = await hEthers.getSigners();
-	const consumer = signers[CONSUMER_INDEX].address.toLowerCase();
-
-	const reportJson = {
-		id: '75',
-		height: `${blockheight}`,
-		treasury: '50000',
-		streams: [{ id: SAMPLE_STREAM_ID, capture: 10000, bytes: 5 }],
+	const report: IReportV1 = {
+		s: false,
+		v: ReportSerializerVersions.V1,
+		id: bundleId,
+		height: blockheight,
+		streams: [
+			{ id: SAMPLE_STREAM_ID, capture: BigNumber.from(10000), bytes: 5 },
+		],
 		consumers: [
 			{
-				id: consumer.toLowerCase(),
-				capture: 20000,
+				id: consumer,
+				capture: BigNumber.from(20000),
 				bytes: 6,
 			},
 		],
-		nodes: { [nodeAddress.toLowerCase()]: 30000 },
+		nodes: {
+			[nodeAddress]: BigNumber.from(withNegatives ? -20000 : 30000),
+		},
 		delegates: {
-			[nodeAddress.toLowerCase()]: {
-				[nodeAddress.toLowerCase()]: 40000,
+			[nodeAddress]: {
+				[nodeAddress]: BigNumber.from(withNegatives ? -20000 : 40000),
 			},
 		},
+		treasury: BigNumber.from(50000),
 	};
-	const reportHash = ethers.utils.solidityKeccak256(
-		['string'],
-		[JSON.stringify(reportJson)]
-	);
-	return { reportHash, data: reportJson };
+	const systemReport = new SystemReport(report);
+	const reportContractParams: ReportContractParams = systemReport.toContract();
+
+	return {
+		report,
+		systemReport,
+		reportContractParams,
+	};
 }
+
+export async function generateContractReportPayload(
+	signers: SignerWithAddress[],
+	systemReport: SystemReport,
+	{ now }: { now?: number } = {}
+) {
+	const proofs: ProofOfReport[] = [];
+	const payloadAddresses = [];
+	const payloadTimestamps = [];
+	const payloadSignatures = [];
+	for (let i = 0; i < signers.length; i++) {
+		// // Remove buffer from the current time when Proof is generated.
+		const proof = await systemReport.toProof(signers[i], now);
+		proofs.push(proof);
+		payloadAddresses.push(proof.address);
+		payloadTimestamps.push(proof.timestamp);
+		payloadSignatures.push(proof.signature);
+	}
+
+	const payload: ContractReportPayload = [
+		...systemReport.toContract(),
+		payloadAddresses,
+		payloadTimestamps,
+		payloadSignatures,
+	];
+
+	return { payload, proofs };
+}
+
+export const proofsToMean = (proofs: ProofOfReport[]) => {
+	const proofTimestamps = proofs.map((p) => p.timestamp);
+	let meanTimestamp = proofTimestamps.reduce<number>((sum, curr) => {
+		sum += curr;
+		return sum;
+	}, 0);
+	meanTimestamp = meanTimestamp / proofTimestamps.length;
+	return meanTimestamp;
+};
 
 // pass in amount and it returns the big number representation of amount*10e18
 export function getDecimalBN(amount: number) {
@@ -277,7 +305,13 @@ export function generateRandomNumber(maxNumber: number) {
 export const getTimeStamp = async () =>
 	(await hEthers.provider.getBlock('latest')).timestamp;
 
+export const getTimeStampByBlock = async (block: number) =>
+	(await hEthers.provider.getBlock(block)).timestamp;
+
 export const getLatestBlockNumber = async () =>
 	(await hEthers.provider.getBlock('latest')).number;
 
 export const range = (count: number) => [...new Array(count).keys()];
+
+export const sleep = (timeout: number) =>
+	new Promise((resolve) => setTimeout(resolve, timeout));

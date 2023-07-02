@@ -22,6 +22,7 @@ services:
     hostname: logstore-arweave
     image: logstore-arweave
     build:
+      context: '.'
       dockerfile: ./Dockerfile.arweave
     restart: always
     ports:
@@ -34,6 +35,7 @@ services:
     hostname: logstore-kyve
     image: logstore-kyve
     build:
+      context: '.'
       dockerfile: ./Dockerfile.kyve
     restart: always
     networks:
@@ -44,6 +46,7 @@ services:
     hostname: logstore-nginx
     image: logstore-nginx
     build:
+      context: '.'
       dockerfile: ./Dockerfile.nginx
     restart: always
     ports:
@@ -137,8 +140,8 @@ services:
       - type: bind
         source: ../packages/broker/configs/docker-1.env.json
         target: /home/node/.logstore/config/default.json
-    environment:
-      BROKER_METADATA: '{ "http": "http://logstore-broker-1:7771" }'
+    env_file:
+      - ./assets/broker/.env.broker-1
     depends_on:
       logstore-base:
         condition: service_completed_successfully
@@ -166,8 +169,8 @@ services:
       - type: bind
         source: ../packages/broker/configs/docker-2.env.json
         target: /home/node/.logstore/config/default.json
-    environment:
-      BROKER_METADATA: '{ "http": "http://logstore-broker-2:7772" }'
+    env_file:
+      - ./assets/broker/.env.broker-2
     depends_on:
       logstore-base:
         condition: service_completed_successfully
@@ -195,8 +198,8 @@ services:
       - type: bind
         source: ../packages/broker/configs/docker-3.env.json
         target: /home/node/.logstore/config/default.json
-    environment:
-      BROKER_METADATA: '{ "http": "http://logstore-broker-3:7773" }'
+    env_file:
+      - ./assets/broker/.env.broker-3
     depends_on:
       logstore-base:
         condition: service_completed_successfully
@@ -282,6 +285,56 @@ services:
         condition: service_completed_successfully
       logstore-broker-3:
         condition: service_started
+
+  logstore-validator-4:
+    container_name: logstore-validator-4
+    hostname: logstore-validator-4
+    image: logstore-validator
+    build:
+      context: ../
+      dockerfile: ./dev-network/Dockerfile.validator
+    restart: always
+    networks:
+      - streamr-network
+    volumes:
+      - type: bind
+        source: ./assets/validator/start-in-docker.sh
+        target: /usr/local/bin/start-in-docker
+    env_file:
+      - ./assets/validator/.env.validator-4
+    depends_on:
+      logstore-base:
+        condition: service_completed_successfully
+      logstore-kyve:
+        condition: service_started
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
+      logstore-broker-3:
+        condition: service_started
+
+  logstore-heartbeat:
+    container_name: logstore-heartbeat
+    hostname: logstore-heartbeat
+    image: logstore-heartbeat
+    build:
+      context: ../
+      dockerfile: ./dev-network/Dockerfile.heartbeat
+    restart: always
+    networks:
+      - streamr-network
+    env_file:
+      - ./assets/heartbeat/.env.heartbeat
+    volumes:
+      - type: bind
+        source: ./assets/heartbeat/start-in-docker.sh
+        target: /usr/local/bin/start-in-docker
+    depends_on:
+      logstore-base:
+        condition: service_completed_successfully
+      logstore-deploy-subgraph:
+        condition: service_completed_successfully
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
 
 networks:
   streamr-network:

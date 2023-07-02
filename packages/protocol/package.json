@@ -6,15 +6,15 @@
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "SEE LICENSE IN ./LICENSE",
 	"private": false,
-	"types": "./dist/types/src/exports.d.ts",
-	"main": "./dist/src/exports.js",
+	"types": "./dist/types/exports.d.ts",
+	"main": "./dist/exports.js",
 	"files": [
 		"./dist"
 	],
 	"scripts": {
-		"build": "del ./dist && tsc",
+		"build": "del ./dist && tsc --build ./tsconfig.release.json",
 		"format": "prettier --write .",
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "jest"
 	},
 	"devDependencies": {
 		"@tsconfig/node16": "^1.0.3",
@@ -29,5 +29,11 @@
 		"sinon": "^15.0.2",
 		"ts-jest": "^29.0.5",
 		"typescript": "^4.9.5"
+	},
+	"dependencies": {
+		"@ethersproject/abstract-signer": "^5.7.0",
+		"@ethersproject/bignumber": "^5.7.0",
+		"@ethersproject/bytes": "^5.7.0",
+		"@ethersproject/solidity": "^5.7.0"
 	}
 }

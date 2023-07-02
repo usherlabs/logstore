@@ -1,8 +1,10 @@
+import LogStoreClient from '@logsn/client';
 import { allowanceConfirmFn } from '@logsn/shared';
 import inquirer from 'inquirer';
 import { Logger } from 'tslog';
 
 export const logger = new Logger();
+let logstore: LogStoreClient;
 
 export const allowanceConfirm: allowanceConfirmFn = async (
 	currentAllowance: bigint,
@@ -24,4 +26,15 @@ export const allowanceConfirm: allowanceConfirmFn = async (
 		process.exit(0);
 	}
 	return true;
+};
+
+export const getLogStoreClient = ({ key }) => {
+	if (!logstore) {
+		logstore = new LogStoreClient({
+			auth: {
+				privateKey: key,
+			},
+		});
+	}
+	return logstore;
 };

@@ -13,23 +13,21 @@ import path from 'path';
 import type { Logger } from 'tslog';
 
 import { getEvmPrivateKey, useStreamrTestConfig } from '../env-config';
-import type { StreamrMessage } from '../types';
+import type {
+	ProofOfMessageStoredMessage,
+	QueryRequestMessage,
+	QueryResponseMessage,
+} from '../types';
 import { Database } from '../utils/database';
 
 // -------------> usual storage of QueryRequest and POS in listener cache
 // timestamp(number)|requestId(string) => [{content, metadata},{content, metadata}]
 type ProofOfMessageStoredDatabase = RootDatabase<
-	Array<Omit<StreamrMessage, 'content'> & { content: ProofOfMessageStored }>,
+	Array<ProofOfMessageStoredMessage>,
 	number
 >;
-type QueryRequestDatabase = RootDatabase<
-	Array<Omit<StreamrMessage, 'content'> & { content: QueryRequest }>,
-	number
->;
-type QueryResponseDatabase = RootDatabase<
-	Array<Omit<StreamrMessage, 'content'> & { content: QueryResponse }>,
-	string
->;
+type QueryRequestDatabase = RootDatabase<Array<QueryRequestMessage>, number>;
+type QueryResponseDatabase = RootDatabase<Array<QueryResponseMessage>, string>;
 type DB = {
 	[SystemMessageType.ProofOfMessageStored]: ProofOfMessageStoredDatabase;
 	[SystemMessageType.QueryRequest]: QueryRequestDatabase;
@@ -132,6 +130,7 @@ export class SystemListener {
 	}
 
 	private async onMessage(
+		// eslint-disable-next-line
 		content: any,
 		metadata: MessageMetadata
 	): Promise<void> {

@@ -1,10 +1,10 @@
 import assert from 'assert';
 import sinon from 'sinon';
 
+import { Serializer } from '../src/abstracts/Serializer';
 import UnsupportedTypeError from '../src/errors/UnsupportedTypeError';
 import UnsupportedVersionError from '../src/errors/UnsupportedVersionError';
 import ValidationError from '../src/errors/ValidationError';
-import { Serializer } from '../src/Serializer';
 import { SystemMessage, SystemMessageType } from '../src/system';
 
 const VERSION = 123;
