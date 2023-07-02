@@ -62,6 +62,7 @@
 		"@types/lodash.snakecase": "^4.1.7",
 		"@types/mocha": "^10.0.1",
 		"@types/node": "^18.15.10",
+		"alchemy-sdk": "^2.9.1",
 		"arweave": "^1.13.7",
 		"axios": "^1.4.0",
 		"chai": "^4.3.7",

@@ -1,8 +1,6 @@
-import ArweaveClient from 'arweave';
-import axios from 'axios';
 import { task } from 'hardhat/config';
-import redstone from 'redstone-api';
 
+import { LSAN__factory } from '../';
 import ContractAddresses from '../address.json';
 
 task('admin:price', 'Admin: Get price of LSAN per byte')
@@ -45,41 +43,19 @@ task('admin:price', 'Admin: Get price of LSAN per byte')
 		}
 
 		try {
-			// const [signer] = await hre.ethers.getSigners();
+			const [signer] = await hre.ethers.getSigners();
 			const chainIdIndex = `${chainId}` as keyof typeof ContractAddresses;
 			const { tokenManagerAddress: lsanTokenAddress } = ContractAddresses[
 				chainIdIndex
 			] as any;
 			console.log('LSAN Token Address:', lsanTokenAddress);
 
-			console.log(`Fetching price of ${realBytes} bytes`);
-
-			const mb = 1000000;
-			// ? Arweave's fetch is experimental and causes a bug when used inside of DevNetwork
-			const { data: winston } = await axios.get(
-				`https://arweave.net/price/1000`
-			);
-			const arweave = new ArweaveClient({
-				host: 'arweave.net',
-				protocol: 'https',
-			});
-			// Get price from Arweave
-			const priceInAr = arweave.ar.winstonToAr(winston);
-			// Get AR and Matic price
-			const arPrice = await redstone.getPrice('AR');
-			const maticPrice = await redstone.getPrice('MATIC');
-			// Get AR / Matic
-			const priceOfArInMatic = arPrice.value / maticPrice.value;
-			const maticPerByte = (priceOfArInMatic * +priceInAr) / mb;
-			const weiPerByte = hre.ethers.utils.parseUnits(maticPerByte.toFixed(18));
+			const tokenContract = LSAN__factory.connect(lsanTokenAddress, signer);
+			const lsanPerByte = await tokenContract.price();
+			console.log();
+			console.log(`LSAN per byte: ${lsanPerByte}`);
 			console.log(
-				`MATIC: ${hre.ethers.utils.formatEther(weiPerByte)} per byte`
-			);
-			console.log(`MATIC (WEI): ${weiPerByte.toString()} per byte`);
-			console.log(
-				`MATIC (WEI): ${weiPerByte
-					.mul(realBytes)
-					.toString()} for ${realBytes} bytes`
+				`LSAN for ${b} ${group || 'bytes'}: ${lsanPerByte.mul(b).toString()}`
 			);
 		} catch (e) {
 			console.error(e);
