@@ -8,6 +8,9 @@
 	"private": false,
 	"types": "./dist/types/exports.d.ts",
 	"main": "./dist/exports.js",
+	"files": [
+		"./dist"
+	],
 	"scripts": {
 		"build": "del ./dist && tsc --build ./tsconfig.release.json",
 		"format": "prettier --write .",
