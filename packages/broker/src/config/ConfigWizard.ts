@@ -123,10 +123,10 @@ export const getConfig = (privateKey: string): any => {
 	};
 
 	// TODO: For development purpose we use CONFIG_TEST. Have to be removed when go to prod.
-	config.client = {
-		...CONFIG_TEST,
-		auth: {},
-	};
+	// config.client = {
+	// 	...CONFIG_TEST,
+	// 	auth: {},
+	// };
 
 	config.client.auth.privateKey = privateKey;
 
