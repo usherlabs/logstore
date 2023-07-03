@@ -1,13 +1,13 @@
+import { cloneDeep } from 'lodash';
+import 'reflect-metadata';
+import { container as rootContainer } from 'tsyringe';
 import {
 	MessageListener,
 	MessageStream,
 	Stream,
 	StreamDefinition,
 	StreamrClient,
-} from '@streamr-client';
-import { cloneDeep } from 'lodash';
-import 'reflect-metadata';
-import { container as rootContainer } from 'tsyringe';
+} from '~streamr-client';
 
 import {
 	createStrictConfig,

@@ -36,7 +36,7 @@
 		"@babel/runtime-corejs3": "^7.16.3",
 		"@logsn/contracts": "workspace:^",
 		"@logsn/shared": "workspace:^",
-		"@streamr-client": "file:../../node_artifacts/fork-streamr-client-8.1.0.tgz",
+		"~streamr-client": "file:../../node_artifacts/fork-streamr-client-8.1.0.tgz",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/bytes": "^5.7.0",

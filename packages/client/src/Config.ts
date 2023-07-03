@@ -1,10 +1,10 @@
 import type { ConnectionInfo } from '@ethersproject/web';
-import { PrivateKeyAuthConfig } from '@streamr-client';
 import Ajv, { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import cloneDeep from 'lodash/cloneDeep';
 // import type { BigNumber } from '@ethersproject/bignumber';
 import { MarkOptional } from 'ts-essentials';
+import { PrivateKeyAuthConfig } from '~streamr-client';
 
 import CONFIG_SCHEMA from './config.schema.json';
 import { LogStoreClientConfig } from './LogStoreClientConfig';

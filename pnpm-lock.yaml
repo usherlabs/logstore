@@ -488,9 +488,6 @@ importers:
       '@logsn/shared':
         specifier: workspace:^
         version: link:../shared
-      '@streamr-client':
-        specifier: file:../../node_artifacts/fork-streamr-client-8.1.0.tgz
-        version: file:node_artifacts/fork-streamr-client-8.1.0.tgz(@ethersproject/hash@5.7.0)
       '@streamr/network-node':
         specifier: ^8.1.0
         version: 8.1.0
@@ -587,6 +584,9 @@ importers:
       uuid:
         specifier: ^9.0.0
         version: 9.0.0
+      ~streamr-client:
+        specifier: file:../../node_artifacts/fork-streamr-client-8.1.0.tgz
+        version: file:node_artifacts/fork-streamr-client-8.1.0.tgz(@ethersproject/hash@5.7.0)
     devDependencies:
       '@babel/core':
         specifier: ^7.16.0
