@@ -1,3 +1,4 @@
+import Decimal from 'decimal.js';
 import { task } from 'hardhat/config';
 
 import { getTaskConfig } from './utils';
@@ -42,10 +43,22 @@ task('admin:price', 'Admin: Get price of LSAN per byte')
 
 		try {
 			const lsanPerByte = await tokenContract.price();
+			const lsanPerByteD = new Decimal(lsanPerByte.toHexString());
+			const tokenDecimals = await tokenContract.decimals();
+			const lsanPerByteDecimal = lsanPerByteD.div(Math.pow(10, tokenDecimals));
 			console.log();
-			console.log(`LSAN per byte: ${lsanPerByte}`);
+			console.log(`LSAN (WEI) per byte: ${lsanPerByte.toString()}`);
 			console.log(
-				`LSAN for ${b} ${group || 'bytes'}: ${lsanPerByte.mul(b).toString()}`
+				`LSAN (WEI) for ${b} ${group || 'bytes'}: ${lsanPerByte
+					.mul(realBytes)
+					.toString()}`
+			);
+
+			console.log(`LSAN per byte: ${lsanPerByteDecimal.toFixed()}`);
+			console.log(
+				`LSAN for ${b} ${group || 'bytes'}: ${lsanPerByteDecimal
+					.mul(realBytes)
+					.toFixed()}`
 			);
 		} catch (e) {
 			console.error(e);
