@@ -298,7 +298,7 @@
 				"logStoreTheGraphUrl": {
 					"type": "string",
 					"format": "uri",
-					"default": "http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts"
+					"default": "https://thegraph.logstore.usher.so/subgraphs/name/logstore-dev/network-contracts"
 				},
 				"maxConcurrentCalls": {
 					"type": "number",
