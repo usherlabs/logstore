@@ -61,7 +61,8 @@ async function main() {
 
 	// --------------------------- deploy the store manager --------------------------- //
 	const storeManagerContractParams = await getStoreManagerInputParameters(
-		nodeManagerAddress
+		nodeManagerAddress,
+		stakeTokenAddress
 	);
 	const storeManagerArtifact = await hre.ethers.getContractFactory(
 		'LogStoreManager'
@@ -77,7 +78,8 @@ async function main() {
 
 	// --------------------------- deploy the query manager contract --------------------------- //
 	const queryManagerContractParams = await getQueryManagerInputParameters(
-		nodeManagerAddress
+		nodeManagerAddress,
+		stakeTokenAddress
 	);
 	const queryManagerArtifact = await hre.ethers.getContractFactory(
 		'LogStoreQueryManager'
