@@ -1,6 +1,6 @@
 {
 	"name": "@logsn/client",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "The Log Store Network Client",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
@@ -17,7 +17,7 @@
 		}
 	},
 	"scripts": {
-		"postbuild": "bash copy-package.sh && bash fix-esm.sh",
+		"postbuild": "bash copy-package.sh && bash fix-esm.sh && cpy ./node_artifacts ./dist/node_artifacts",
 		"format": "prettier --write .",
 		"test": "dotenv -e .env jest --",
 		"build": "tsc --build ./tsconfig.node.json",
@@ -34,9 +34,6 @@
 	"dependencies": {
 		"@babel/runtime": "^7.16.3",
 		"@babel/runtime-corejs3": "^7.16.3",
-		"@logsn/contracts": "workspace:^",
-		"@logsn/shared": "workspace:^",
-		"~streamr-client": "file:../../node_artifacts/fork-streamr-client-8.1.0.tgz",
 		"@ethersproject/abstract-signer": "^5.7.0",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/bytes": "^5.7.0",
@@ -47,6 +44,8 @@
 		"@ethersproject/wallet": "^5.7.0",
 		"@ethersproject/web": "^5.7.1",
 		"@lit-protocol/lit-node-client": "^2.1.114",
+		"@logsn/contracts": "workspace:^",
+		"@logsn/shared": "workspace:^",
 		"@streamr/network-node": "^8.1.0",
 		"@streamr/protocol": "^8.1.0",
 		"@streamr/utils": "^8.1.0",
@@ -78,7 +77,8 @@
 		"strict-event-emitter-types": "^2.0.0",
 		"ts-toolbelt": "^9.6.0",
 		"tsyringe": "^4.6.0",
-		"uuid": "^9.0.0"
+		"uuid": "^9.0.0",
+		"~streamr-client": "file:./node_artifacts/fork-streamr-client-8.1.0.tgz"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.16.0",
@@ -105,6 +105,7 @@
 		"babel-plugin-transform-typescript-metadata": "^0.3.2",
 		"chromedriver": "^113.0.0",
 		"concurrently": "^8.0.1",
+		"cpy-cli": "^5.0.0",
 		"dotenv-cli": "^7.2.1",
 		"dotenv-webpack": "^8.0.1",
 		"eslint": "^8.36.0",
