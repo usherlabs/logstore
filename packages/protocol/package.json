@@ -1,6 +1,6 @@
 {
 	"name": "@logsn/protocol",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "The Log Store Network Protocol",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
