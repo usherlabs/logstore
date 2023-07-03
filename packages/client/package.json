@@ -1,6 +1,6 @@
 {
 	"name": "@logsn/client",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"description": "The Log Store Network Client",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
@@ -17,7 +17,7 @@
 		}
 	},
 	"scripts": {
-		"postbuild": "bash copy-package.sh && bash fix-esm.sh && cpy ./node_artifacts ./dist/node_artifacts",
+		"postbuild": "bash copy-package.sh && bash fix-esm.sh && cpy ./node_artifacts ./dist",
 		"format": "prettier --write .",
 		"test": "dotenv -e .env jest --",
 		"build": "tsc --build ./tsconfig.node.json",

@@ -42,7 +42,7 @@
 		"chalk": "^4.1.2",
 		"tslog": "^4.8.2",
 		"commander": "^11.0.0",
-		"@streamr-client": "file:../../node_artifacts/fork-streamr-client-8.1.0.tgz"
+		"@streamr-client": "file:./node_artifacts/fork-streamr-client-8.1.0.tgz"
 	},
 	"devDependencies": {
 		"@types/benchmark": "^2.1.2",
