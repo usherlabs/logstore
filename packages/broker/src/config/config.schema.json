@@ -69,8 +69,8 @@
 			},
 			"required": ["id", "url", "pollInterval"],
 			"default": {
-				"id": "0",
-				"url": "http://logstore-kyve:1317",
+				"id": "26",
+				"url": "https://api-eu-1.korellia.kyve.network",
 				"pollInterval": 60000
 			}
 		},
