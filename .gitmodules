@@ -5,3 +5,4 @@
 [submodule "modules/arweave-js"]
 	path = modules/arweave-js
 	url = git@github.com:usherlabs/arweave-js.git
+	branch = logstore

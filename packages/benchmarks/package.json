@@ -32,8 +32,6 @@
 		"@logsn/contracts": "workspace:^",
 		"@logsn/protocol": "workspace:^",
 		"@logsn/shared": "workspace:^",
-		"@logsn/streamr-client": "file:../../modules/streamr-network/packages/client/dist",
-		"@streamr/network-tracker": "8.5.3",
 		"@streamr/test-utils": "^8.1.0",
 		"@streamr/utils": "^8.1.0",
 		"benchmark": "^2.1.4",

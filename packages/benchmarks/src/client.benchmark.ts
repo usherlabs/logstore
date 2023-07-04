@@ -1,4 +1,9 @@
-import { LogStoreClient, Message } from '@logsn/client';
+import {
+	LogStoreClient,
+	Message,
+	Stream,
+	StreamPermission,
+} from '@logsn/client';
 import { LogStoreManager, LogStoreQueryManager } from '@logsn/contracts';
 import {
 	getQueryManagerContract,
@@ -13,7 +18,6 @@ import { firstValueFrom, take, tap, toArray } from 'rxjs';
 import Bench from 'tinybench';
 import { Logger } from 'tslog';
 import { afterAll, beforeAll, describe, expect, it, Test } from 'vitest';
-import { Stream, StreamPermission } from '~streamr-client';
 
 // it's important to import CONFIG_TEST relatively, otherwise it won't work
 import { CONFIG_TEST } from '../../client/src/ConfigTest';

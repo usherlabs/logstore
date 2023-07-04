@@ -1,5 +1,5 @@
-import { StreamrClientEvents } from '@logsn/streamr-client';
 import EventEmitter3 from 'eventemitter3';
+import type { StreamrClientEvents } from 'streamr-client';
 import { Lifecycle, scoped } from 'tsyringe';
 
 import { LogStoreAssignmentEvent } from './registry/LogStoreRegistry';

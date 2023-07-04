@@ -1,10 +1,7 @@
 {
 	"extends": "../../tsconfig.node.json",
 	"compilerOptions": {
-		"paths": {
-			"@logsn/streamr-client": ["./modules/streamr/client/src/exports.ts"],
-			"@logsn/streamr-client/*": ["./modules/streamr/client/*"]
-		}
+		"lib": ["DOM"]
 	},
 	"include": [
 		"package.json",
@@ -12,10 +9,7 @@
 		"src/**/*.json",
 		"vendor/**/*",
 		"src/config.schema.json",
-		"./modules/streamr/client/src/**/*"
+		"index.d.ts"
 	],
-	"exclude": [
-		"src/exports-esm.mjs",
-		"./modules/streamr/client/src/**/BrowserPersistence.ts"
-	]
+	"exclude": ["src/exports-esm.mjs"]
 }

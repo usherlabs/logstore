@@ -1,4 +1,5 @@
 import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
+import type { Message, Stream, StreamPermission } from '@logsn/client';
 import { LogStoreManager, LogStoreQueryManager } from '@logsn/contracts';
 import {
 	getQueryManagerContract,
@@ -9,8 +10,6 @@ import {
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
-import type { Message } from '~streamr-client';
-import { Stream, StreamPermission } from '~streamr-client';
 
 import { createTestStream } from '../utils/test-stream';
 
