@@ -6,7 +6,6 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
-import { Stream, StreamPermission } from '@streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
 import _ from 'lodash';
@@ -14,6 +13,7 @@ import { firstValueFrom, take, tap, toArray } from 'rxjs';
 import Bench from 'tinybench';
 import { Logger } from 'tslog';
 import { afterAll, beforeAll, describe, expect, it, Test } from 'vitest';
+import { Stream, StreamPermission } from '~streamr-client';
 
 // it's important to import CONFIG_TEST relatively, otherwise it won't work
 import { CONFIG_TEST } from '../../client/src/ConfigTest';

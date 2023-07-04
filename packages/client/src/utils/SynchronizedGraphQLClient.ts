@@ -1,6 +1,6 @@
+import { Gate, LoggerFactory } from '@logsn/streamr-client';
 import { Logger, TimeoutError, wait, withTimeout } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
-import { Gate, LoggerFactory } from '~streamr-client';
 
 // import { ClientConfigInjectionToken, StrictStreamrClientConfig } from '../Config';
 import { GraphQLClient, GraphQLQuery } from './GraphQLClient';

@@ -1,11 +1,15 @@
 {
 	"name": "@logsn/client",
-	"version": "0.0.3",
+	"version": "0.0.3-rc.0",
 	"description": "The Log Store Network Client",
-	"repository": "https://github.com/usherlabs/logstore.git",
-	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
+	"author": "Ryan Soury <ryan@usher.so>, Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "Apache-2.0",
 	"private": false,
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/usherlabs/logstore.git",
+		"directory": "packages/client"
+	},
 	"types": "./dist/types/src/index.d.ts",
 	"main": "./dist/src/exports-commonjs.js",
 	"browser": "./dist/logstore-client.web.js",
@@ -16,8 +20,11 @@
 			"require": "./dist/src/exports-commonjs.js"
 		}
 	},
+	"files": [
+		"dist"
+	],
 	"scripts": {
-		"postbuild": "bash copy-package.sh && bash fix-esm.sh && cpy ./node_artifacts ./dist",
+		"postbuild": "bash copy-package.sh && bash fix-esm.sh",
 		"format": "prettier --write .",
 		"test": "dotenv -e .env jest --",
 		"build": "tsc --build ./tsconfig.node.json",
@@ -25,7 +32,7 @@
 		"build-production": "pnpm clean; NODE_ENV=production pnpm build && pnpm build-browser-production",
 		"build-browser-development": "NODE_ENV=development webpack --mode=development --progress",
 		"build-browser-production": "NODE_ENV=production webpack --mode=production --progress",
-		"clean": "jest --clearCache || true; rm -rf dist  *.tsbuildinfo node_modules/.cache || true",
+		"clean": "jest --clearCache || true; del dist  *.tsbuildinfo node_modules/.cache || true",
 		"test-browser": "pnpm build-browser-production && concurrently -k --success=first 'node ./test/browser/server.js' 'sleep 5 && nightwatch --headless --verbose --timeout=30000 --config=nightwatch.conf.js ./test/browser/browser.js'",
 		"test-exports": "cd test/exports && npm run link && tsc --noEmit --project ./tsconfig.json && npm test",
 		"browser": "node ./test/browser/server.js",
@@ -46,6 +53,7 @@
 		"@lit-protocol/lit-node-client": "^2.1.114",
 		"@logsn/contracts": "workspace:^",
 		"@logsn/shared": "workspace:^",
+		"@logsn/streamr-client": "file:node_artifacts/fork-streamr-client-8.1.0.tgz",
 		"@streamr/network-node": "^8.1.0",
 		"@streamr/protocol": "^8.1.0",
 		"@streamr/utils": "^8.1.0",
@@ -77,8 +85,7 @@
 		"strict-event-emitter-types": "^2.0.0",
 		"ts-toolbelt": "^9.6.0",
 		"tsyringe": "^4.6.0",
-		"uuid": "^9.0.0",
-		"~streamr-client": "file:./node_artifacts/fork-streamr-client-8.1.0.tgz"
+		"uuid": "^9.0.0"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.16.0",
@@ -106,6 +113,7 @@
 		"chromedriver": "^113.0.0",
 		"concurrently": "^8.0.1",
 		"cpy-cli": "^5.0.0",
+		"del-cli": "^5.0.0",
 		"dotenv-cli": "^7.2.1",
 		"dotenv-webpack": "^8.0.1",
 		"eslint": "^8.36.0",

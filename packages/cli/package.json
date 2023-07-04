@@ -5,6 +5,11 @@
 	"license": "GPL-3.0",
 	"description": "The Log Store Network CLI",
 	"private": false,
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/usherlabs/logstore.git",
+		"directory": "packages/cli"
+	},
 	"scripts": {
 		"build": "del dist && tsc",
 		"bin": "del out && pkg --no-bytecode --public-packages '*' --output out/logstore package.json",

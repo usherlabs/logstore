@@ -1,3 +1,9 @@
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+	LoggerFactory,
+	WebStreamToNodeStream,
+} from '@logsn/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
@@ -6,12 +12,6 @@ import fetch, { Response } from 'node-fetch';
 import split2 from 'split2';
 import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
-import {
-	Authentication,
-	AuthenticationInjectionToken,
-	LoggerFactory,
-	WebStreamToNodeStream,
-} from '~streamr-client';
 
 import { Consensus } from './Consensus';
 import { getVersionString } from './utils/utils';

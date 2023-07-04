@@ -2,8 +2,12 @@
 	"name": "@logsn/protocol",
 	"version": "0.0.2",
 	"description": "The Log Store Network Protocol",
-	"repository": "https://github.com/usherlabs/logstore.git",
-	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/usherlabs/logstore.git",
+		"directory": "packages/protocol"
+	},
+	"author": "Ryan Soury <ryan@usher.so>, Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "SEE LICENSE IN ./LICENSE",
 	"private": false,
 	"types": "./dist/types/exports.d.ts",

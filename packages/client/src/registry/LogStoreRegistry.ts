@@ -7,10 +7,6 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
-import { toStreamID } from '@streamr/protocol';
-import { Logger, toEthereumAddress } from '@streamr/utils';
-import { min } from 'lodash';
-import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
@@ -21,7 +17,11 @@ import {
 	Stream,
 	StreamIDBuilder,
 	waitForTx,
-} from '~streamr-client';
+} from '@logsn/streamr-client';
+import { toStreamID } from '@streamr/protocol';
+import { Logger, toEthereumAddress } from '@streamr/utils';
+import { min } from 'lodash';
+import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
 	LogStoreClientConfigInjectionToken,

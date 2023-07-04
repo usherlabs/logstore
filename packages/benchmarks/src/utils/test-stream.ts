@@ -1,5 +1,5 @@
-import { Stream, StreamMetadata } from '@streamr-client';
 import crypto from 'crypto';
+import { Stream, StreamMetadata } from '~streamr-client';
 
 // using relative otherwise won't work without messing with exports from client
 import { LogStoreClient } from '../../../client/src/LogStoreClient';

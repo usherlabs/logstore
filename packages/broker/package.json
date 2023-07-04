@@ -2,10 +2,14 @@
 	"name": "@logsn/broker",
 	"version": "0.0.1",
 	"description": "The Log Store Network Broker Node",
-	"repository": "https://github.com/usherlabs/logstore.git",
-	"author": "Ryan Soury <ryan@usher.so>",
+	"author": "Ryan Soury <ryan@usher.so>, Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "SEE LICENSE IN ./LICENSE",
 	"private": false,
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/usherlabs/logstore.git",
+		"directory": "packages/broker"
+	},
 	"bin": {
 		"logstore-broker": "./dist/bin/logstore-broker.js"
 	},

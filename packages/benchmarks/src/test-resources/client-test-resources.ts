@@ -6,11 +6,11 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
-import type { Message } from '@streamr-client';
-import { Stream, StreamPermission } from '@streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
+import type { Message } from '~streamr-client';
+import { Stream, StreamPermission } from '~streamr-client';
 
 import { createTestStream } from '../utils/test-stream';
 

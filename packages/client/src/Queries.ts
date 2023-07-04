@@ -1,6 +1,3 @@
-import { StreamPartIDUtils } from '@streamr/protocol';
-import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
-import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 import {
 	counting,
 	createSubscribePipeline,
@@ -13,7 +10,10 @@ import {
 	StreamrClientError,
 	StreamRegistryCached,
 	StrictStreamrClientConfig,
-} from '~streamr-client';
+} from '@logsn/streamr-client';
+import { StreamPartIDUtils } from '@streamr/protocol';
+import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
+import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
 import { LogStoreClientConfigInjectionToken } from './Config';
 import { HttpUtil } from './HttpUtil';
