@@ -1,4 +1,4 @@
-import { CONFIG_TEST as STREAMR_CONFIG_TEST } from 'streamr-client';
+import { CONFIG_TEST as STREAMR_CONFIG_TEST } from '@logsn/streamr-client';
 
 import { LogStoreClientConfig } from './LogStoreClientConfig';
 

@@ -1,8 +1,8 @@
 import type { ConnectionInfo } from '@ethersproject/web';
+import type { PrivateKeyAuthConfig } from '@logsn/streamr-client';
 import Ajv, { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import cloneDeep from 'lodash/cloneDeep';
-import type { PrivateKeyAuthConfig } from 'streamr-client';
 // import type { BigNumber } from '@ethersproject/bignumber';
 import { MarkOptional } from 'ts-essentials';
 

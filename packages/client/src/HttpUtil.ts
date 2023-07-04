@@ -1,8 +1,8 @@
-// import { WebStreamToNodeStream } from 'streamr-client/src/utils/WebStreamToNodeStream';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
 	LoggerFactory,
+	WebStreamToNodeStream,
 } from '@logsn/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
@@ -11,11 +11,9 @@ import { Base64 } from 'js-base64';
 import fetch, { Response } from 'node-fetch';
 import split2 from 'split2';
 import { Readable } from 'stream';
-// import { WebStreamToNodeStream as WebStreamToNodeStreamType } from 'streamr-client/types/src/utils/WebStreamToNodeStream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import { Consensus } from './Consensus';
-import { WebStreamToNodeStream } from './streamr/WebStreamToStreamNode';
 import { getVersionString } from './utils/utils';
 
 export enum ErrorCode {

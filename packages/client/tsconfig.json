@@ -7,11 +7,9 @@
 	"include": [
 		"package.json",
 		"src/**/*",
-		"src/**/*.js",
 		"test/**/*",
 		"vendor/**/*",
 		"src/**/*.json",
-		"src/config.schema.json",
-		"./node_modules/streamr-client/types/src/utils/WebStreamToNodeStream.d.ts"
+		"src/config.schema.json"
 	]
 }

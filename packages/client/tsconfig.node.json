@@ -1,15 +1,19 @@
 {
 	"extends": "../../tsconfig.node.json",
 	"compilerOptions": {
-		"lib": ["DOM"]
+		"outDir": "dist",
+		"declarationDir": "dist/types",
+		"lib": ["es2021", "dom"],
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"resolveJsonModule": true
 	},
 	"include": [
 		"package.json",
 		"src/**/*",
 		"src/**/*.json",
 		"vendor/**/*",
-		"src/config.schema.json",
-		"index.d.ts"
+		"src/config.schema.json"
 	],
 	"exclude": ["src/exports-esm.mjs"]
 }
