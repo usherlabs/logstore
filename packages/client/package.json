@@ -81,7 +81,6 @@
 		"split2": "^4.2.0",
 		"sqlite": "^4.1.2",
 		"sqlite3": "^5.1.6",
-		"streamr-client": "8.1.0",
 		"strict-event-emitter-types": "^2.0.0",
 		"ts-toolbelt": "^9.6.0",
 		"tsyringe": "^4.6.0",

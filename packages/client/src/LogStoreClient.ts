@@ -4,7 +4,6 @@ import type {
 	Stream,
 	StreamDefinition,
 } from '@logsn/streamr-client';
-import { StreamrClient } from '@logsn/streamr-client';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import { container as rootContainer } from 'tsyringe';
@@ -18,8 +17,9 @@ import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
 import { Queries, QueryOptions } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
+import { StreamrClientSingleton } from './StreamrClientSingleton';
 
-export class LogStoreClient extends StreamrClient {
+export class LogStoreClient extends StreamrClientSingleton.getClass() {
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;

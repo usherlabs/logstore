@@ -4,8 +4,5 @@
  * @packageDocumentation
  * @module LogStoreClient
  */
-import { LogStoreClient } from './LogStoreClient';
-
-export * from './exports';
-export default LogStoreClient;
+export * from './node/exports';
 // Note awful export wrappers in exports-commonjs.js & exports-esm.mjs
