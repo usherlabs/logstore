@@ -12,6 +12,7 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const { GitRevisionPlugin } = require('git-revision-webpack-plugin');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
+const { rimrafSync } = require('rimraf');
 
 const pkg = require('./package.json');
 
@@ -21,6 +22,19 @@ module.exports = (_, argv) => {
 	const isProduction =
 		argv.mode === 'production' || process.env.NODE_ENV === 'production';
 	const analyze = !!process.env.BUNDLE_ANALYSIS;
+
+	console.log(
+		`Force remove the 'node_modules' installed inside of the streamr-network submodule...`
+	);
+	rimrafSync('../../modules/streamr-network/node_modules');
+	rimrafSync('../../modules/streamr-network/packages/client/node_modules');
+	console.log(
+		`Submodule '../../modules/streamr-network/node_modules' deleted!`
+	);
+	console.log(
+		`Submodule '../../modules/streamr-network/packages/client/node_modules' deleted!`
+	);
+	console.log();
 
 	const commonConfig = {
 		// cache: {
