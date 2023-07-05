@@ -21,10 +21,6 @@ module.exports = (_, argv) => {
 	const isProduction =
 		argv.mode === 'production' || process.env.NODE_ENV === 'production';
 	const analyze = !!process.env.BUNDLE_ANALYSIS;
-	const streamrPath = path.join(
-		__dirname,
-		'../../modules/streamr-network/packages'
-	);
 
 	const commonConfig = {
 		// cache: {
@@ -94,58 +90,53 @@ module.exports = (_, argv) => {
 		resolve: {
 			alias: {
 				'@logsn/streamr-client': require.resolve(
-					path.join(streamrPath, 'client/src/exports-browser.ts')
+					'../../modules/streamr-network/packages/client/src/exports-browser.ts'
 				),
 				stream: 'readable-stream',
 				util: 'util',
 				http: require.resolve(
-					path.join(streamrPath, 'client/src/shim/http-https.ts')
+					'../../modules/streamr-network/packages/client/src/shim/http-https.ts'
 				),
 				'@ethersproject/wordlists': require.resolve(
 					'@ethersproject/wordlists/lib/browser-wordlists.js'
 				),
 				https: require.resolve(
-					path.join(streamrPath, 'client/src/shim/http-https.ts')
+					'../../modules/streamr-network/packages/client/src/shim/http-https.ts'
 				),
 				crypto: require.resolve('crypto-browserify'),
 				buffer: require.resolve('buffer/'),
 				'node-fetch': require.resolve(
-					path.join(streamrPath, 'client/src/shim/node-fetch.ts')
+					'../../modules/streamr-network/packages/client/src/shim/node-fetch.ts'
 				),
 				'@streamr/protocol': path.resolve(
-					path.join(streamrPath, 'protocol/src/exports.ts')
+					'../../modules/streamr-network/packages/protocol/src/exports.ts'
 				),
 				'@streamr/network-node': path.resolve(
-					path.join(streamrPath, 'network/src/exports-browser.ts')
+					'../../modules/streamr-network/packages/network/src/exports-browser.ts'
 				),
 				[path.join(
-					streamrPath,
-					'network/src/connection/webrtc/NodeWebRtcConnection.ts$'
+					__dirname,
+					'../../modules/streamr-network/packages/network/src/connection/webrtc/NodeWebRtcConnection.ts$'
 				)]: path.resolve(
-					streamrPath,
-					'network/src/connection/webrtc/BrowserWebRtcConnection.ts'
+					'../../modules/streamr-network/packages/network/src/connection/webrtc/BrowserWebRtcConnection.ts'
 				),
 				[path.join(
-					streamrPath,
-					'network/src/connection/ws/NodeClientWsEndpoint.ts$'
+					__dirname,
+					'../../modules/streamr-network/packages/network/src/connection/ws/NodeClientWsEndpoint.ts$'
 				)]: path.resolve(
-					streamrPath,
-					'network/src/connection/ws/BrowserClientWsEndpoint.ts'
+					'../../modules/streamr-network/packages/network/src/connection/ws/BrowserClientWsEndpoint.ts'
 				),
 				[path.join(
-					streamrPath,
-					'network/src/connection/ws/NodeClientWsConnection.ts$'
+					__dirname,
+					'../../modules/streamr-network/packages/network/src/connection/ws/NodeClientWsConnection.ts$'
 				)]: path.resolve(
-					streamrPath,
-					'network/src/connection/ws/BrowserClientWsConnection.ts'
+					'../../modules/streamr-network/packages/network/src/connection/ws/BrowserClientWsConnection.ts'
 				),
 				// swap out ServerPersistence for BrowserPersistence
 				[path.resolve(
-					streamrPath,
-					'client/src/utils/persistence/ServerPersistence.ts'
+					'../../modules/streamr-network/packages/client/src/utils/persistence/ServerPersistence.ts'
 				)]: path.resolve(
-					streamrPath,
-					'client/src/utils/persistence/BrowserPersistence.ts'
+					'../../modules/streamr-network/packages/client/src/utils/persistence/BrowserPersistence.ts'
 				),
 			},
 			fallback: {
@@ -174,8 +165,6 @@ module.exports = (_, argv) => {
 				: []),
 		],
 	});
-
-	console.log(clientConfig.resolve);
 
 	let clientMinifiedConfig;
 	if (isProduction) {
