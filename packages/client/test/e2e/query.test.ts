@@ -5,7 +5,7 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
-import { Stream, StreamPermission } from '@streamr-client';
+import { Stream, StreamPermission } from '@logsn/streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
 import { providers, Wallet } from 'ethers';

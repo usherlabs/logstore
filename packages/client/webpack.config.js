@@ -29,7 +29,7 @@ module.exports = (_, argv) => {
 		name: 'logstore-client',
 		mode: isProduction ? 'production' : 'development',
 		entry: {
-			'logstore-client': path.join(__dirname, 'src/web', 'exports.ts'),
+			'logstore-client': path.join(__dirname, 'src', 'exports-browser.ts'),
 		},
 		devtool: 'source-map',
 		output: {

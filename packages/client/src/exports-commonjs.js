@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 // CJS entrypoint.
-const LogStoreClientExports = require('./node/exports');
+const LogStoreClientExports = require('./exports');
 
 Object.assign(LogStoreClientExports.LogStore, LogStoreClientExports);
 
