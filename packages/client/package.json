@@ -25,6 +25,7 @@
 	],
 	"scripts": {
 		"postbuild": "bash copy-package.sh && bash fix-esm.sh",
+		"prepublishOnly": "pnpm build-production",
 		"format": "prettier --write .",
 		"test": "dotenv -e .env jest --",
 		"build": "tsc --build ./tsconfig.node.json",
