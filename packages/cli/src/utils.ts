@@ -1,4 +1,4 @@
-import LogStoreClient from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import { allowanceConfirmFn } from '@logsn/shared';
 import inquirer from 'inquirer';
 import { Logger } from 'tslog';
