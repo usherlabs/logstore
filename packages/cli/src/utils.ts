@@ -8,10 +8,6 @@ import { Logger } from 'tslog';
 export const logger = new Logger();
 let logstore: LogStoreClient;
 
-export const retryGasEstimate = {
-	gasPrice: ethers.BigNumber.from('191636167321'),
-};
-
 export const allowanceConfirm: allowanceConfirmFn = async (
 	currentAllowance: bigint,
 	requiredAllowance: bigint
@@ -64,24 +60,33 @@ export const bytesToMessage = (bytes: Decimal) => {
 };
 
 export const withRetry = async (
-	fn: (
-		gasEstimate?: typeof retryGasEstimate
-	) => Promise<ethers.ContractTransaction>
+	provider: ethers.providers.JsonRpcProvider,
+	fn: (estimate?: ethers.BigNumber) => Promise<ethers.ContractTransaction>
 ) => {
-	try {
-		const tx = await fn();
-		return tx;
-	} catch (e) {
-		logger.warn(
-			'Failed to submit first transaction. Retrying with a new gas estimate...'
-		);
+	let tx: ethers.ContractTransaction;
+	let estimate = await provider.getGasPrice();
+	let retryCount = 0;
+	while (!tx) {
 		try {
-			const tx = await fn(retryGasEstimate);
-			return tx;
-		} catch (e2) {
-			logger.error('Original Error:');
-			logger.error(e);
-			throw e2;
+			tx = await fn(estimate);
+			break;
+		} catch (e) {
+			logger.warn(
+				'Failed to submit transaction. Retrying with a new gas estimate...'
+			);
+			if (
+				e.message.match(
+					/replacement transaction underpriced|transaction gas price.*too low/i
+				)
+			) {
+				estimate = await provider.getGasPrice();
+				retryCount++;
+				estimate.add(100000 * retryCount);
+			} else {
+				throw e;
+			}
 		}
 	}
+
+	return tx;
 };

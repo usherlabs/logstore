@@ -233,17 +233,11 @@ program
 					)} in your Wallet UI.`
 				);
 			}
-			const tx = await withRetry((gasEstimate) => {
-				if (gasEstimate) {
-					return tokenManagerContract.mint({
-						value: BigInt(amount.toString()),
-					});
-				} else {
-					return tokenManagerContract.mint({
-						value: BigInt(amount.toString()),
-						gasPrice: gasEstimate.gasPrice,
-					});
-				}
+			const tx = await withRetry(provider, (gasPrice) => {
+				return tokenManagerContract.mint({
+					value: BigInt(amount.toString()),
+					gasPrice,
+				});
 			});
 			const receipt = await tx.wait();
 
@@ -328,14 +322,10 @@ program
 						const queryManagerContract = await getQueryManagerContract(signer);
 						logger.info(`Staking ${stakeAmount}...`);
 
-						const tx = await withRetry((gasEstimate) => {
-							if (gasEstimate) {
-								return queryManagerContract.stake(stakeAmount);
-							} else {
-								return queryManagerContract.stake(stakeAmount, {
-									gasPrice: gasEstimate.gasPrice,
-								});
-							}
+						const tx = await withRetry(provider, (gasPrice) => {
+							return queryManagerContract.stake(stakeAmount, {
+								gasPrice,
+							});
 						});
 						const receipt = await tx.wait();
 
@@ -432,14 +422,10 @@ program
 						);
 						const storeManagerContract = await getStoreManagerContract(signer);
 						logger.info(`Staking ${stakeAmount}...`);
-						const tx = await withRetry((gasEstimate) => {
-							if (gasEstimate) {
-								return storeManagerContract.stake(streamId, stakeAmount);
-							} else {
-								return storeManagerContract.stake(streamId, stakeAmount, {
-									gasPrice: gasEstimate.gasPrice,
-								});
-							}
+						const tx = await withRetry(provider, (gasPrice) => {
+							return storeManagerContract.stake(streamId, stakeAmount, {
+								gasPrice,
+							});
 						});
 						const receipt = await tx.wait();
 
