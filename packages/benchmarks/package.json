@@ -14,7 +14,6 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts",
-		"build": "tsx ./build.ts",
 		"benchmark": "vitest --config vitest.benchmark.config.ts",
 		"run-cli": "tsx ./src/cli/index.ts",
 		"clean": "del ./results ./dist"
