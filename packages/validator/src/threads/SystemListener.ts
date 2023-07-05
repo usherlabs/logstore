@@ -1,5 +1,5 @@
 // import chokidar from 'chokidar';
-import LogStoreClient, { CONFIG_TEST, MessageMetadata } from '@logsn/client';
+import { CONFIG_TEST, LogStoreClient, MessageMetadata } from '@logsn/client';
 import {
 	ProofOfMessageStored,
 	QueryRequest,

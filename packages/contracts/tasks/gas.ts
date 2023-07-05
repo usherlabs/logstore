@@ -1,4 +1,4 @@
-import { Alchemy, FeeData, Network } from 'alchemy-sdk';
+import { Alchemy, BigNumber, FeeData, Network } from 'alchemy-sdk';
 import { task } from 'hardhat/config';
 
 import { getTaskConfig } from './utils';
@@ -8,6 +8,7 @@ task('admin:gas', 'Admin: Fetch gas estimate from Alchemy').setAction(
 		const { chainId } = await getTaskConfig(hre);
 
 		let feeData: FeeData | null = null;
+		let gasPrice: BigNumber | null = null;
 		if (
 			chainId === 137 &&
 			process.env.POLYGON_MAINNET &&
@@ -24,8 +25,9 @@ task('admin:gas', 'Admin: Fetch gas estimate from Alchemy').setAction(
 			// Creates an Alchemy object instance with the config to use for making requests
 			const alchemy = new Alchemy(config);
 			feeData = await alchemy.core.getFeeData();
+			gasPrice = await alchemy.core.getGasPrice();
 		}
 
-		console.log(feeData);
+		console.log({ feeData, gasPrice });
 	}
 );

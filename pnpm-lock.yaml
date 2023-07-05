@@ -385,12 +385,21 @@ importers:
       commander:
         specifier: ^10.0.0
         version: 10.0.0
+      decimal.js:
+        specifier: ^10.4.3
+        version: 10.4.3
       ethers:
         specifier: ^5.7.0
         version: 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
       inquirer:
         specifier: ^8.1.1
         version: 8.1.1
+      jsonfile:
+        specifier: ^6.1.0
+        version: 6.1.0
+      mkdirp:
+        specifier: ^3.0.1
+        version: 3.0.1
       tslog:
         specifier: ^4.8.2
         version: 4.8.2
@@ -15003,6 +15012,12 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  /mkdirp@3.0.1:
+    resolution: {integrity: sha512-+NsyUUAZDmo6YVHzL/stxSu3t9YS1iljliy3BSDrXJ/dkn1KYdmtZODGGjLcc9XLgVVpH4KshHB8XmZgMhaBXg==}
+    engines: {node: '>=10'}
+    hasBin: true
+    dev: false
+
   /mlly@1.4.0:
     resolution: {integrity: sha512-ua8PAThnTwpprIaU47EPeZ/bPUVp2QYBbWMphUQpVdBI3Lgqzm5KZQ45Agm3YJedHXaIHl6pBGabaLSUPPSptg==}
     dependencies:
@@ -18008,6 +18023,7 @@ packages:
   /source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
+    requiresBuild: true
 
   /spawn-command@0.0.2-1:
     resolution: {integrity: sha512-n98l9E2RMSJ9ON1AKisHzz7V42VDiBQGY6PB1BwRglz99wpVsSuGzQ+jOi6lFXBGVTCrRpltvjm+/XA+tpeJrg==}

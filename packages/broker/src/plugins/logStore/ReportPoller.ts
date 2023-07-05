@@ -7,7 +7,7 @@ import {
 } from '@logsn/shared';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
-import { BigNumber, ethers, Signer, Wallet } from 'ethers';
+import { ethers, Signer, Wallet } from 'ethers';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
