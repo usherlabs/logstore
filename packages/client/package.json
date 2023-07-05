@@ -29,13 +29,12 @@
 		"test": "dotenv -e .env jest --",
 		"build": "tsc --build ./tsconfig.node.json",
 		"build-production": "pnpm clean; NODE_ENV=production pnpm build && pnpm build-browser-production",
-		"build-browser-development": "NODE_ENV=development webpack --mode=development --progress",
-		"build-browser-production": "NODE_ENV=production webpack --mode=production --progress",
+		"build-browser-development": "bash ./check-modules.sh && NODE_ENV=development webpack --mode=development --progress",
+		"build-browser-production": "bash ./check-modules.sh && NODE_ENV=production webpack --mode=production --progress",
 		"clean": "jest --clearCache || true; del dist  *.tsbuildinfo node_modules/.cache || true",
 		"test-browser": "pnpm build-browser-production && concurrently -k --success=first 'node ./test/browser/server.js' 'sleep 5 && nightwatch --headless --verbose --timeout=30000 --config=nightwatch.conf.js ./test/browser/browser.js'",
 		"test-exports": "cd test/exports && npm run link && tsc --noEmit --project ./tsconfig.json && npm test",
-		"browser": "node ./test/browser/server.js",
-		"modules": "bash ./create-modules.sh"
+		"browser": "node ./test/browser/server.js"
 	},
 	"dependencies": {
 		"@babel/runtime": "^7.16.3",
@@ -49,6 +48,7 @@
 		"@ethersproject/transactions": "^5.7.0",
 		"@ethersproject/wallet": "^5.7.0",
 		"@ethersproject/web": "^5.7.1",
+		"@ethersproject/wordlists": "^5.5.0",
 		"@lit-protocol/lit-node-client": "^2.1.114",
 		"@logsn/contracts": "workspace:^",
 		"@logsn/shared": "workspace:^",
@@ -58,6 +58,7 @@
 		"@streamr/utils": "^8.1.0",
 		"ajv": "^8.8.2",
 		"ajv-formats": "^2.1.1",
+		"crypto-browserify": "^3.12.0",
 		"env-paths": "2.2.1",
 		"ethers": "^5.4.7",
 		"eventemitter3": "^4.0.7",

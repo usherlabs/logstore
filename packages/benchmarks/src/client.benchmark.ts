@@ -1,9 +1,5 @@
-import {
-	LogStoreClient,
-	Message,
-	Stream,
-	StreamPermission,
-} from '@logsn/client';
+import type { Message, Stream, StreamPermission } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import { LogStoreManager, LogStoreQueryManager } from '@logsn/contracts';
 import {
 	getQueryManagerContract,
