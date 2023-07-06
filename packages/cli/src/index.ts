@@ -44,13 +44,15 @@ const readFeeMultiplier = 0.05; // See validator code. Should optimised to read 
 
 program
 	.name('Log Store CLI')
-	.description('Query and Store on the Log Store Network.')
+	.description(
+		'Store event/atomic data and then query by timestamp on the Log Store Network.'
+	)
 	.version(appVersion)
 	.option('-h, --host <string>', 'Polygon/EVM Node RPC Endpoint')
 	.option('-w, --wallet <string>', 'Wallet private key')
 	.option(
 		'-c, --config <string>',
-		'Path to configuration file. Default to ~/.logstore-cli/default.json'
+		'Path to configuration file. Defaults to ~/.logstore-cli/default.json'
 	)
 	.option('-d, --debug', 'Show debug logs')
 	.hook('preAction', async (thisCommand) => {
@@ -152,7 +154,7 @@ program
 			console.log(
 				`You should see ${ethers.utils.formatEther(
 					balance.toString()
-				)} in your Wallet UI.`
+				)} LSAN in your Wallet UI.`
 			);
 			const storageMsg = bytesToMessage(availableStorage);
 			const queriesMsg = bytesToMessage(availableQueries);
@@ -230,7 +232,7 @@ program
 				console.log(
 					`You should see ${ethers.utils.formatEther(
 						amount.toString()
-					)} in your Wallet UI.`
+					)} LSAN in your Wallet UI.`
 				);
 			}
 			const tx = await withRetry(provider, (gasPrice) => {
@@ -275,12 +277,17 @@ program
 					const availableStorage = b.div(price.mul(readFeeMultiplier));
 					console.log(`${b.toString()} LSAN staked on-chain for Queries.`);
 					console.log(
+						`This formats to ${ethers.utils.formatEther(
+							b.toString()
+						)} LSAN in a Wallet UI.`
+					);
+					console.log(
 						`${bytesToMessage(
 							availableStorage
 						)} of data is available for Queries.`
 					);
 				} catch (e) {
-					logger.info(chalk.red('Stake failed'));
+					logger.info(chalk.red('Query Balance Check failed'));
 					logger.error(e);
 				}
 			})
@@ -367,12 +374,17 @@ program
 					const availableStorage = b.div(price);
 					console.log(`${b.toString()} LSAN staked on-chain for Storage.`);
 					console.log(
+						`This formats to ${ethers.utils.formatEther(
+							b.toString()
+						)} LSAN in a Wallet UI.`
+					);
+					console.log(
 						`${bytesToMessage(
 							availableStorage
 						)} of data is available for Storage.`
 					);
 				} catch (e) {
-					logger.info(chalk.red('Stake failed'));
+					logger.info(chalk.red('Storage Balance Check failed'));
 					logger.error(e);
 				}
 			})
