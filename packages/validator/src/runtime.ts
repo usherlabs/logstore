@@ -44,6 +44,10 @@ export default class Runtime implements IRuntimeExtended {
 			throw new Error(`Config does not have any sources`);
 		}
 
+		config.sources = config.sources.filter(
+			(source) => !source.includes('polygon-bor.publicnode.com')
+		);
+
 		let chainId = null;
 		for (const source of config.sources) {
 			const provider = new JsonRpcProvider(source);
