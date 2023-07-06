@@ -53,14 +53,13 @@ export class Managers {
 		// eslint-disable-next-line
 		fn: (managers: Managers, source: string) => Promise<T>
 	): Promise<T> {
-		const results = [];
-		for (const source of sources) {
-			const managers = new Managers(source);
-			await managers.init();
-
-			const result = await fn(managers, source);
-			results.push(result);
-		}
+		const results = await Promise.all(
+			sources.map(async (source) => {
+				const managers = new Managers(source);
+				await managers.init();
+				return await fn(managers, source);
+			})
+		);
 
 		// check if results from the different sources match
 		if (
