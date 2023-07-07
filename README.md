@@ -1,5 +1,5 @@
-
 ![Log Store Banner](assets/readmes/logstore-cover.png)
+
 <div align="center">
    <a href="https://logstore.usher.so?ref=github">Website</a>
    <span> | </span>
@@ -20,83 +20,18 @@
 	</div>
 </div>
 
+<h4>Powered by</h4>
 <div>
-  <div>
-    <div>
-      <div>
-        <span>
-          <h4>Powered by</h4>
-        </span>
-      </div>
-    </div>
-  </div>
-  <div style="display: grid; grid-auto-flow: column; justify-content: start; gap: 0.5em;">
-    <div>
-      <div>
-        <a
-          href="https://docs.streamr.network/?ref=logstore"
-          target="_blank"
-          rel="noopener"
-        >
-          <img
-            width="48"
-            height="48"
-            src="https://logstore.usher.so/wp-content/uploads/2023/06/StreamrNetworkLogo.png"
-            alt=""
-            srcset="
-            https://logstore.usher.so/wp-content/uploads/2023/06/StreamrNetworkLogo.png         250w,
-            https://logstore.usher.so/wp-content/uploads/2023/06/StreamrNetworkLogo-150x150.png 150w
-          "
-            sizes="(max-width: 250px) 100vw, 250px"
-          />
-        </a>
-      </div>
-    </div>
-    <div>
-      <div>
-        <a
-          href="https://www.kyve.network/?ref=logstore"
-          target="_blank"
-          rel="noopener"
-        >
-          <img
-            width="48"
-            height="48"
-            src="https://logstore.usher.so/wp-content/uploads/2023/06/kyve-logo-300x300.png"
-            alt=""
-            srcset="
-            https://logstore.usher.so/wp-content/uploads/2023/06/kyve-logo-300x300.png 300w,
-            https://logstore.usher.so/wp-content/uploads/2023/06/kyve-logo-150x150.png 150w,
-            https://logstore.usher.so/wp-content/uploads/2023/06/kyve-logo.png         600w
-          "
-            sizes="(max-width: 300px) 100vw, 300px"
-          />
-        </a>
-      </div>
-    </div>
-    <div>
-      <div>
-        <a
-          href="https://www.arweave.org/?ref=logstore"
-          target="_blank"
-          rel="noopener"
-        >
-          <img
-            width="48"
-            height="48"
-            src="https://logstore.usher.so/wp-content/uploads/2023/06/arweave-icon-300x300.png"
-            alt=""
-            srcset="
-            https://logstore.usher.so/wp-content/uploads/2023/06/arweave-icon-300x300.png 300w,
-            https://logstore.usher.so/wp-content/uploads/2023/06/arweave-icon-150x150.png 150w,
-            https://logstore.usher.so/wp-content/uploads/2023/06/arweave-icon.png         404w
-          "
-            sizes="(max-width: 300px) 100vw, 300px"
-          />
-        </a>
-      </div>
-    </div>
-  </div>
+<a href="https://docs.streamr.network/?ref=logstore" target="_blank" rel="noopener">
+    <img align="left" width="48" height="48" src="https://logstore.usher.so/wp-content/uploads/2023/06/StreamrNetworkLogo.png" alt="Streamr Network" />
+</a>
+<a href="https://www.kyve.network/?ref=logstore" target="_blank" rel="noopener">
+    <img align="left" width="48" height="48" src="https://logstore.usher.so/wp-content/uploads/2023/06/kyve-logo-300x300.png" alt="KYVE" />
+</a>
+<a href="https://www.arweave.org/?ref=logstore" target="_blank" rel="noopener">
+    <img align="left" width="48" height="48" src="https://logstore.usher.so/wp-content/uploads/2023/06/arweave-icon-300x300.png" alt="Arweave" />
+</a>
+<br clear="left" />
 </div>
 
 # **Log Store: Decentralized Custom Data Management**
@@ -159,8 +94,7 @@ LSAN tokens are the fuel for the Log Store network. They are necessary to perfor
 - **Free & Limited LSAN Tokens:** Head over to the Usher Labs Discord Server and request free LSAN tokens. A limited amount of tokens can be distributed to you on a monthly basis.
 - **Mint LSAN Tokens:** LSAN tokens are minted using MATIC tokens. Use Log Store CLI to mint LSAN tokens to secure all the storage and query capacity you require.
 
-	💰 **[Minting LSAN Tokens](https://docs.logstore.usher.so/network/cli/mint-lsan)**
-
+  💰 **[Minting LSAN Tokens](https://docs.logstore.usher.so/network/cli/mint-lsan)**
 
 Note: The number of LSAN tokens minted is calculated based on storage costs to ensure fair compensation for using the decentralized network.
 
@@ -180,13 +114,13 @@ Log Store offers intuitive interfaces to streamline integration with your applic
 
 1. **SDK**: The Software Development Kit (SDK) is ideal for developers looking to integrate Log Store directly into their applications. By using the SDK, you can seamlessly stake tokens, store and query data within your software. Perfect to integrate into applications that require real-time data handling.
 
-	 💻 **[SDK Getting Started Guide](https://docs.logstore.usher.so/network/sdk/getting-started)**
+   💻 **[SDK Getting Started Guide](https://docs.logstore.usher.so/network/sdk/getting-started)**
 
 2. **CLI**: Enables interacting with Log Store through the terminal. It's an efficient way to mint and stake LSAN tokens, manage balances, and interact with the Log Store Network. Suitable for scripting and automation tasks.
 
-	 ⌨️ **[CLI Getting Started Guide](https://docs.logstore.usher.so/network/cli/getting-started)**
+   ⌨️ **[CLI Getting Started Guide](https://docs.logstore.usher.so/network/cli/getting-started)**
 
-3. **HTTP API — *Coming soon***: The HTTP API is suitable for applications that leverage languages not yet supported by our SDK or smart contracts that need to interact with Log Store over HTTP.
+3. **HTTP API — _Coming soon_**: The HTTP API is suitable for applications that leverage languages not yet supported by our SDK or smart contracts that need to interact with Log Store over HTTP.
 
 ## 🔧 Packages Overview
 
@@ -237,20 +171,22 @@ More scripts are present on package directories, specific to each use case.
 
 1. Setup the **Streamr development environment** follwing its [instructions](https://github.com/streamr-dev/streamr-docker-dev/blob/master/README.md#setting-up).
 2. Start **Streamr development environment**
-	 ```bash
-	 streamr-docker-dev start --wait
-	 ```
+   ````bash
+   	streamr-docker-dev start --wait
+   	```
+   ````
 3. Wait until all services are up and running.
 4. In the root of this repo run:
-	 ```bash
-	 docker compose upN
-	 ```
+   ````bash
+   	docker compose upN
+   	```
+   ````
 5. Deploy `StorageManager` contracts
-	 ```bash
-	 cd ./packages/contracts
-	 npx hardhat run ./scripts/deployStoreManager.ts --network streamr-dev
-	 ```
-
+   ````bash
+   	cd ./packages/contracts
+   	npx hardhat run ./scripts/deployStoreManager.ts --network streamr-dev
+   	```
+   ````
 
 ## **💡 What Can You Build?**
 
@@ -285,7 +221,6 @@ This program is free software: you can redistribute it and/or modify it under th
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
-You should have received a copy of the GNU Affero General Public License along with this program. If not, see https://www.gnu.org/licenses/agpl-3.0.
+You should have received a copy of the GNU Affero General Public License along with this program. If not, seehttps://www.gnu.org/licenses/agpl-3.0.
 
 Log Store is a collaborative effort, and we want to extend our gratitude to all contributors who have helped shape and improve the software.
-
