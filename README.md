@@ -60,8 +60,8 @@ Traditional data management systems are often centralized, creating a host of ch
 - **Efficiency**: High throughput and low latency are crucial in data transactions. Log Store is designed to provide an efficient environment for storing and querying data. Its dynamic pricing model ensures cost optimization, as the users fairly compensate network operators based on the services they utilize.
 - **Interoperability & Composability**: Time-series data composability in Log Store facilitates trustless decentralized ETL (Extract, Transform, Load) processes, enabling seamless data management across platforms.
 - **User Empowerment**: Log Store empowers users by granting them full control over their data. This autonomy eliminates the need for third-party services, enabling users to manage and query data according to their specific needs.
-- **Trustlessness & Permissionlessness**: Data is published in a trustless and permissionless time-series database, guaranteeing immutability and freedom from centralized interference.
-
+- **Trustlessness & Permissionlessness**: Data transmitted over streams/topics to be stored by the Log Store Network do not require anything more than token management and wallet authentication. Access management is cryptographically determined, and all data stored yields a time-series append-only event log.
+-
 ## **🔧 Architecture and Components**
 
 Log Store employs a multi-layered architecture to achieve decentralized, secure, and efficient custom-data management:
@@ -75,7 +75,7 @@ Learn in-depth by reading our 📘 [Log Store Network Primer](https://docs.logst
 
 ## **🔐 AlphaNet: The Foundation**
 
-AlphaNet serves as the foundational release of the Log Store Network. It enables the team behind the Log Store to permission Node Operator access while enables production access to data publishers and consumers.
+AlphaNet serves as the foundational release of the Log Store Network. It enables the team behind the Log Store to permission Node Operator access while enabling open access to data publishers and consumers.
 
 - **Compatibility**: AlphaNet is designed to be compatible with Streamr Network’s pub/sub topics, Polygon Blockchain’s MainNet, and Arweave’s storage environment. This compatibility ensures seamless integration and facilitates efficient data management.
 - **Acquiring LSAN Tokens**: To participate in AlphaNet, users need to acquire LSAN tokens by depositing MATIC into the Log Store AlphaNet ERC20 Smart Contract. These tokens are essential for transacting within the network. The next section will guide you better through it.
@@ -166,24 +166,6 @@ pnpm run build
 ```
 
 More scripts are present on package directories, specific to each use case.
-
-### Setting Up a Development Network
-
-1. Setup the **Streamr development environment** follwing its [instructions](https://github.com/streamr-dev/streamr-docker-dev/blob/master/README.md#setting-up).
-2. Start **Streamr development environment**
-   ```bash
-   	 streamr-docker-dev start --wait
-   ```
-3. Wait until all services are up and running.
-4. In the root of this repo run:
-   ```bash
-   	 docker compose upN
-   ```
-5. Deploy `StorageManager` contracts
-   ```bash
-   	 cd ./packages/contracts
-   	 npx hardhat run ./scripts/deployStoreManager.ts --network streamr-dev
-   ```
 
 ## **💡 What Can You Build?**
 
