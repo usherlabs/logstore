@@ -42,15 +42,15 @@ This monorepo is the home of the key components that maintain the Log Store Netw
 
 ## Table of Contents
 
-1. **[Key Features](#key-features-security-efficiency-and-empowerment-in-data-management)**
-2. **[Architecture and Components](#architecture-and-components)**
-3. **[AlphaNet: The Foundation](#alphanet-the-foundation)**
-4. **[Getting Started](#getting-started)**
-5. **[Interfaces and Tools](#interfaces-and-tools)**
-6. **[Packages Overview](#packages-overview)**
-7. **[What Can You Build?](#what-can-you-build)**
-8. **[Community and Support](#community-and-support)**
-9. **[License](#license)**
+1. **[Key Features](#-key-features-security-efficiency-and-empowerment-in-data-management)**
+2. **[Architecture and Components](#-architecture-and-components)**
+3. **[AlphaNet: The Foundation](#-alphanet-the-foundation)**
+4. **[Getting Started](#-getting-started)**
+5. **[Interfaces and Tools](#-interfaces-and-tools)**
+6. **[Packages Overview](#-packages-overview)**
+7. **[What Can You Build?](#-what-can-you-build)**
+8. **[Community and Support](#-community-and-support)**
+9. **[License](#-license)**
 
 ## ⭐ Key Features: Security, Efficiency, and Empowerment in Data Management
 
