@@ -203,3 +203,6 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program. If not, see https://www.gnu.org/licenses/gpl-3.0.
 
 Log Store is a collaborative effort, and we want to extend our gratitude to all contributors who have helped shape and improve the software.
+
+![UsherLabs Arg](./assets/readmes/usherlabs-art.png)
+![UsherLabs Footer](./assets/readmes/usherlabs-footer.png)
