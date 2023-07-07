@@ -61,7 +61,7 @@ Traditional data management systems are often centralized, creating a host of ch
 - **Interoperability & Composability**: Time-series data composability in Log Store facilitates trustless decentralized ETL (Extract, Transform, Load) processes, enabling seamless data management across platforms.
 - **User Empowerment**: Log Store empowers users by granting them full control over their data. This autonomy eliminates the need for third-party services, enabling users to manage and query data according to their specific needs.
 - **Trustlessness & Permissionlessness**: Data transmitted over streams/topics to be stored by the Log Store Network do not require anything more than token management and wallet authentication. Access management is cryptographically determined, and all data stored yields a time-series append-only event log.
--
+
 ## **🔧 Architecture and Components**
 
 Log Store employs a multi-layered architecture to achieve decentralized, secure, and efficient custom-data management:
