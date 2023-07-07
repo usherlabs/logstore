@@ -71,7 +71,7 @@ Log Store employs a multi-layered architecture to achieve decentralized, secure,
 - **Data Reporting**: The nodes within the Broker Network read data Reports produced by Validators from the decentralized data lake, then push reports to the Polygon Smart Contract. Log Store takes inspiration from Chainlink’s Off-Chain Reporting strategy to optimize gas costs and maintain decentralization. This ensures data is not only secure but also efficiently managed.
 - **Verifying Custom Data**: Log Store allows for programming checks on data validity. These checks ensure that the data is tamper-proof and immutable. This process may take place within a zero-party environment, further bolstering data integrity and security.
 
-Learn in-depth by reading our 📘 **[Log Store Network Primer](https://docs.logstore.usher.so/network/overview/primer).**
+Learn in-depth by reading our 📘 [Log Store Network Primer](https://docs.logstore.usher.so/network/overview/primer).
 
 ## **🔐 AlphaNet: The Foundation**
 
@@ -81,7 +81,7 @@ AlphaNet serves as the foundational release of the Log Store Network. It enables
 - **Acquiring LSAN Tokens**: To participate in AlphaNet, users need to acquire LSAN tokens by depositing MATIC into the Log Store AlphaNet ERC20 Smart Contract. These tokens are essential for transacting within the network. The next section will guide you better through it.
 - **Community Involvement**: AlphaNet thrives on community participation. Users are encouraged to engage with the network, share experiences, report bugs, and contribute to its enhancement. This collaborative approach is critical for refining and preparing the network for future releases.
 
-We’ve prepared 🚀 **[AlphaNet Overview](https://docs.logstore.usher.so/network/overview/alphanet)** to navigate you through our expectations for it.
+We’ve prepared 🚀 [AlphaNet Overview](https://docs.logstore.usher.so/network/overview/alphanet) to navigate you through our expectations for it.
 
 ## **👩‍💻 Getting Started**
 
@@ -106,7 +106,7 @@ Follow the instructions in the **[CLI documentation](https://docs.logstore.usher
 
 By minting and staking LSAN tokens, you are now ready to store and query data on the Log Store network, leveraging these exciting new capabilities into your software application.
 
-Want to know more? Head up to 🤔 **[Understanding LSAN Tokens](https://docs.logstore.usher.so/network/overview/lsan-token).**
+Want to know more? Head up to 🤔 [Understanding LSAN Tokens](https://docs.logstore.usher.so/network/overview/lsan-token).
 
 ## **🧰 Interfaces and Tools**
 
@@ -131,9 +131,9 @@ Here is an overview of the different packages:
 - **`benchmarks`** — Utils to measure the network efficiency
 - **`cli`** — A command-line tool for easy interaction with the Log Store Network.
 - **`client`** — A JavaScript library for simple and direct communication with the Log Store Network.
-- **`contracts`** — Smart contracts for secure participation and data management in the Log Store Network. See 🔗 **[Log Store Smart Contracts](https://docs.logstore.usher.so/network/overview/contracts)** for a helpful list of addresses.
+- **`contracts`** — Smart contracts for secure participation and data management in the Log Store Network. See 🔗 [Log Store Smart Contracts](https://docs.logstore.usher.so/network/overview/contracts) for a helpful list of addresses.
 - **`heartbeat`** — Periodically ensures connectivity and monitors the Log Store Network.
-- `**protocol**` — Defines the core communication standards for the Log Store Network.
+- **`protocol`** — Defines the core communication standards for the Log Store Network.
 - **`shared`** — Common utilities and resources for the Log Store Network.
 - **`subgraph`** — Indexes blockchain data for efficient querying of the Log Store Network.
 
@@ -174,19 +174,16 @@ More scripts are present on package directories, specific to each use case.
    ````bash
    	streamr-docker-dev start --wait
    	```
-   ````
 3. Wait until all services are up and running.
 4. In the root of this repo run:
    ````bash
    	docker compose upN
    	```
-   ````
 5. Deploy `StorageManager` contracts
    ````bash
    	cd ./packages/contracts
    	npx hardhat run ./scripts/deployStoreManager.ts --network streamr-dev
    	```
-   ````
 
 ## **💡 What Can You Build?**
 
@@ -194,7 +191,7 @@ In an ever-evolving technological landscape, the possibilities with Log Store ar
 
 With new doors opened to explore these powerful new mechanisms, we know we’re going to get our jaws dropped with many interesting ideas. Decentralized technology thrives with community engagement — let’s get excited about your ideas together.
 
-From DeFi to IoT, get inspired by reading a page about 🌐 **[Log Store Use Cases](https://docs.logstore.usher.so/use-cases)** we’ve prepared and share your ideas on our [Discord Server](https://go.usher.so/discord).
+From DeFi to IoT, get inspired by reading a page about 🌐 [Log Store Use Cases](https://docs.logstore.usher.so/use-cases) we’ve prepared and share your ideas on our [Discord Server](https://go.usher.so/discord).
 
 ## **🤝 Community and Support**
 
