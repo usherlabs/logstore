@@ -12,7 +12,7 @@
 <div align="center">
 	<div>
 		<span>
-			<a href="https://www.npmjs.com/package/prisma"><img src="https://img.shields.io/badge/-web3-blue" /></a>
+			<a href="#"><img src="https://img.shields.io/badge/-web3-blue" /></a>
 		</span>
 		<span>
 			<a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" /></a>
@@ -199,14 +199,14 @@ We believe that community is one of the most vital assets. Your insights, experi
 
 ### **Engage with Us**
 
-- Join our 🗨️ [Discord](https://www.notion.so/Implementation-09a9268b2d5046a1853e3e29252c3f72?pvs=21) channel to participate in discussions, ask questions, and share your experiences.
-- Follow us on 🐦 [Twitter](https://www.notion.so/Implementation-09a9268b2d5046a1853e3e29252c3f72?pvs=21) for the latest updates and announcements.
-- Check out our 🏡[GitHub repository](https://www.notion.so/Implementation-09a9268b2d5046a1853e3e29252c3f72?pvs=21) to contribute to the code or report issues.
+- Join our 🗨️ [Discord](https://go.usher.so/discord) channel to participate in discussions, ask questions, and share your experiences.
+- Follow us on 🐦 [Twitter](https://go.usher.so/twitter) for the latest updates and announcements.
+- Check out our 🏡[GitHub repository](https://github.com/usherlabs/logstore-mirror) to contribute to the code or report issues.
 
 ### **Get Support**
 
-- Have questions or need help? Visit our 📚 [Documentation](https://www.notion.so/Implementation-09a9268b2d5046a1853e3e29252c3f72?pvs=21) for in-depth guides and tutorials.
-- Encounter an issue? Please report it on our ⚠️[GitHub issues](https://www.notion.so/Implementation-09a9268b2d5046a1853e3e29252c3f72?pvs=21) page or reach out to our team through Discord.
+- Have questions or need help? Visit our 📚 [Documentation](https://docs.logstore.usher.so/) for in-depth guides and tutorials.
+- Encounter an issue? Please report it on our ⚠️[GitHub issues](https://github.com/usherlabs/logstore-mirror/issues) page or reach out to our team through Discord.
 
 Your involvement is not just welcome. It's essential! Help us create a robust, efficient, and secure decentralized data storage and retrieval ecosystem.
 
