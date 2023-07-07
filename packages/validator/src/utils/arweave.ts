@@ -1,4 +1,4 @@
-import ArweaveClient from 'arweave';
+import ArweaveClient from '@logsn/arweave';
 import redstone from 'redstone-api';
 
 export class Arweave {
@@ -14,7 +14,10 @@ export class Arweave {
 		return this._arweaveClient;
 	}
 
-	public static async getPrice(byteSize: number, timestamp: number) {
+	public static async getPrice(
+		byteSize: number,
+		timestamp: number
+	): Promise<number> {
 		const atomicPriceInWinston = await this.arweaveClient.transactions.getPrice(
 			byteSize
 		);

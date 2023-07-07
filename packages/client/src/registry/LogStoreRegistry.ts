@@ -17,7 +17,7 @@ import {
 	Stream,
 	StreamIDBuilder,
 	waitForTx,
-} from '@streamr-client';
+} from '@logsn/streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { min } from 'lodash';
@@ -107,6 +107,7 @@ export class LogStoreRegistry {
 		);
 	}
 
+	// TODO: Log Store doesn't actually add Streams to storage directly via the Client...
 	private initStreamAssignmentEventListener(
 		clientEvent: keyof LogStoreClientEvents,
 		contractEvent: string,

@@ -11,3 +11,4 @@ cache
 artifacts/build-info
 artifacts/contracts/**/*.dbg.json
 artifacts/src/**/*.dbg.json
+artifacts/hardhat/console.sol/**

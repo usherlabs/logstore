@@ -251,9 +251,9 @@ This contract is responsible for accepting and processing log reports from nodes
 
 ## Contract Functions
 
-### `initialize(address _owner)`
+### `initialize(address _owner, uin256 _reportTimeBuffer)`
 
-This function initialises the contract by setting the `_owner` parameter as the owner of the contract. It also initialises the `LogStoreNodeManager` contract and sets the `reportBlockBuffer` to 10.
+This function initialises the contract by setting the `_owner` parameter as the owner of the contract. It also initialises the `LogStoreNodeManager` contract and sets the `_reportTimeBuffer` to 60.
 
 Parameters:
 

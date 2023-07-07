@@ -19,3 +19,5 @@ packages/contracts/types
 packages/contracts/cache
 packages/contracts/artifacts/build-info
 packages/contracts/artifacts/contracts/**/*.dbg.json
+/modules
+/modules/**

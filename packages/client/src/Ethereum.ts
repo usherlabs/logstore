@@ -7,7 +7,7 @@ import type { Provider } from '@ethersproject/providers';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 import type { ConnectionInfo } from '@ethersproject/web';
-import { ChainConnectionInfo } from '@streamr-client';
+import type { ChainConnectionInfo } from '@logsn/streamr-client';
 
 import { StrictLogStoreClientConfig } from './Config';
 

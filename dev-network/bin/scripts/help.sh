@@ -11,7 +11,7 @@ Commands:
     config              сonfigure connection to the DevNetwork
     deploy              deploy the DevNetwork from a remote git branch
     connect             connect the required ports from the DevNetwork
-    start               start the DevNetwokr
+    start               start the DevNetwork
     stop                stop the DevNetwork
     restart             stop and start the DevNetwork
 Examples:
@@ -39,7 +39,7 @@ Subcommands:
 
     show                show connection configuration
 
-Usage: dev-network config set -i 10.0.0.1 -u ubuntu -i /home/ubuntu/.ssh/id_rsa.pub
+Usage: dev-network config set -i 10.0.0.1 -u ubuntu -f /home/ubuntu/.ssh/id_rsa.pub
 Usage: dev-network config show
 "
 }

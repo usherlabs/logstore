@@ -4,7 +4,6 @@ import hre from 'hardhat';
 import {
 	getNodeManagerInputParameters,
 	getQueryManagerInputParameters,
-	getReportBlockBuffer,
 	getStoreManagerInputParameters,
 	getWeiPerByte,
 	writeJSONToFileOutside,
@@ -16,7 +15,7 @@ function createPK(index: number, prefix: string) {
 }
 
 const SAFE_ADDRESS: string =
-	'0x468e80b73192998C565cFF53B1Dc02a12d5685c4' as const; // for MATIC Only
+	process.env.SAFE_ADDRESS || '0x468e80b73192998C565cFF53B1Dc02a12d5685c4'; // for MATIC Only
 // const forceLSANToken = process.env.FORCE_LSAN_TOKEN === 'true';
 
 async function main() {
@@ -62,7 +61,8 @@ async function main() {
 
 	// --------------------------- deploy the store manager --------------------------- //
 	const storeManagerContractParams = await getStoreManagerInputParameters(
-		nodeManagerAddress
+		nodeManagerAddress,
+		stakeTokenAddress
 	);
 	const storeManagerArtifact = await hre.ethers.getContractFactory(
 		'LogStoreManager'
@@ -78,7 +78,8 @@ async function main() {
 
 	// --------------------------- deploy the query manager contract --------------------------- //
 	const queryManagerContractParams = await getQueryManagerInputParameters(
-		nodeManagerAddress
+		nodeManagerAddress,
+		stakeTokenAddress
 	);
 	const queryManagerArtifact = await hre.ethers.getContractFactory(
 		'LogStoreQueryManager'
@@ -94,7 +95,7 @@ async function main() {
 
 	// --------------------------- deploy the report manager contract --------------------------- //
 	// Get block time of chain id
-	const reportBlockBuffer = await getReportBlockBuffer();
+	const reportTimeBuffer = 60 * 1000;
 	const Lib = await hre.ethers.getContractFactory('VerifySignature');
 	const lib = await Lib.deploy();
 	await lib.deployed();
@@ -109,7 +110,7 @@ async function main() {
 	);
 	const reportManagerContract = await hre.upgrades.deployProxy(
 		reportManager,
-		[nodeManagerAddress, reportBlockBuffer],
+		[signer.address, nodeManagerAddress, reportTimeBuffer, 0],
 		{
 			unsafeAllowLinkedLibraries: true,
 		}
@@ -118,7 +119,7 @@ async function main() {
 	const { address: reportManagerAddress } = reportManagerContract;
 	console.log(`LogStoreReportManager deployed to ${reportManagerAddress}`, {
 		nodeManagerAddress,
-		reportBlockBuffer,
+		reportTimeBuffer,
 	});
 	// --------------------------- deploy the query manager contract --------------------------- //
 
@@ -127,7 +128,8 @@ async function main() {
 		const token = await tokenManager.attach(stakeTokenAddress);
 
 		const wallets: string[] = [];
-		const MINT_AMOUNT = '1000000000000000000000000';
+
+		const MINT_AMOUNT = '1000000000000000000000000000000000000';
 		const ACCOUNT_PK_PREFIX = '';
 		const BROKER_PK_PREFIX = 'bb';
 		const VALIDATOR_PK_PREFIX = 'cc';

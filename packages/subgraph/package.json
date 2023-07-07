@@ -4,6 +4,11 @@
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"version": "0.0.1",
 	"description": "Subgraph definitions for the Log Store",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/usherlabs/logstore.git",
+		"directory": "packages/subgraph"
+	},
 	"scripts": {
 		"clean": "rm -rf build generated",
 		"codegen": "graph codegen",

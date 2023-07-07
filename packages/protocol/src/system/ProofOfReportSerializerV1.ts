@@ -1,4 +1,4 @@
-import { Serializer } from '../Serializer';
+import { Serializer } from '../abstracts/Serializer';
 import { ProofOfReport } from './ProofOfReport';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
 
@@ -11,17 +11,22 @@ export default class ProofOfReportSerializerV1 extends Serializer<ProofOfReport>
 			SystemMessageType.ProofOfReport,
 			message.address,
 			message.hash,
+			message.toth,
+			message.timestamp,
 			message.signature,
 		];
 	}
 
 	fromArray(arr: any[]): ProofOfReport {
-		const [version, _messageType, address, hash, signature] = arr;
+		const [version, _messageType, address, hash, toth, timestamp, signature] =
+			arr;
 
 		return new ProofOfReport({
 			version,
 			address,
 			hash,
+			toth,
+			timestamp,
 			signature,
 		});
 	}

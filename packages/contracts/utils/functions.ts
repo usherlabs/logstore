@@ -6,7 +6,8 @@ import hre from 'hardhat';
 import path from 'path';
 import redstone from 'redstone-api';
 
-import { STAKE_TOKEN_CONTRACTS, STREAMR_REGISTRY_ADDRESS } from './addresses';
+import ContractAddresses from '../address.json';
+import { STREAMR_REGISTRY_ADDRESS } from './addresses';
 
 export const getChainId = async () =>
 	await hre.ethers.provider
@@ -20,19 +21,15 @@ export const toBigDecimal = (amount: number, exponent = 18) => {
 	return ethers.BigNumber.from(`${amount}${'0'.repeat(exponent)}`);
 };
 
-export async function getNodeManagerInputParameters(
-	stakeTokenAddress?: string
-) {
+export async function getNodeManagerInputParameters(stakeTokenAddress: string) {
 	// define important params
 	const chainId = await getChainId();
 	const [adminAccount] = await getAccounts();
-	// validations of variable parameters
-	if (!STAKE_TOKEN_CONTRACTS[chainId]) throw `No token address for ${chainId}`;
 	// define the common parameters
 	const initialParameters = [
 		adminAccount.address,
 		false,
-		stakeTokenAddress || STAKE_TOKEN_CONTRACTS[chainId],
+		stakeTokenAddress,
 		toBigDecimal(1, 18),
 		STREAMR_REGISTRY_ADDRESS[chainId],
 		[],
@@ -43,14 +40,17 @@ export async function getNodeManagerInputParameters(
 }
 
 export async function getStoreManagerInputParameters(
-	nodeManagerAddress: string
+	nodeManagerAddress: string,
+	stakeTokenAddress: string
 ) {
 	// define important params
 	const chainId = await getChainId();
+	const [adminAccount] = await getAccounts();
 	// define actual parameters
 	const initialParameters = {
-		owner: nodeManagerAddress,
-		stakeToken: STAKE_TOKEN_CONTRACTS[chainId],
+		owner: adminAccount.address,
+		parent: nodeManagerAddress,
+		stakeToken: stakeTokenAddress,
 		streamrRegistryAddress: STREAMR_REGISTRY_ADDRESS[chainId],
 	};
 	// validations of variable parameters
@@ -63,14 +63,17 @@ export async function getStoreManagerInputParameters(
 }
 
 export async function getQueryManagerInputParameters(
-	nodeManagerAddress: string
+	nodeManagerAddress: string,
+	stakeTokenAddress: string
 ) {
 	// define important params
 	const chainId = await getChainId();
+	const [adminAccount] = await getAccounts();
 	// define actual parameters
 	const initialParameters = {
-		owner: nodeManagerAddress,
-		stakeToken: STAKE_TOKEN_CONTRACTS[chainId],
+		owner: adminAccount.address,
+		parent: nodeManagerAddress,
+		stakeToken: stakeTokenAddress,
 	};
 	// validations of variable parameters
 	if (!initialParameters.stakeToken) throw `No token address for ${chainId}`;
@@ -95,25 +98,25 @@ export async function writeJSONToFileOutside(
 	fs.access(filePath, fs.constants.F_OK, (err) => {
 		if (err) {
 			// If the file does not exist, create it.
-			fs.writeFile(filePath, JSON.stringify(jsonData), (err) => {
-				if (err) {
-					console.error(err);
+			fs.writeFile(filePath, JSON.stringify(jsonData), (err2) => {
+				if (err2) {
+					console.error(err2);
 					return;
 				}
 				console.log(`JSON addresses data written to ${filePath}`);
 			});
 		} else {
 			// If the file already exists, append the JSON data to it.
-			fs.readFile(filePath, (err, data) => {
-				if (err) {
-					console.error(err);
+			fs.readFile(filePath, (err2, data) => {
+				if (err2) {
+					console.error(err2);
 					return;
 				}
 				const existingData = JSON.parse(data.toString());
 				const newData = Object.assign(existingData, jsonData);
-				fs.writeFile(filePath, JSON.stringify(newData, null, 2), (err) => {
-					if (err) {
-						console.error(err);
+				fs.writeFile(filePath, JSON.stringify(newData, null, 2), (err3) => {
+					if (err3) {
+						console.error(err3);
 						return;
 					}
 					console.log(`JSON addresses data appended to ${filePath}`);
@@ -122,36 +125,6 @@ export async function writeJSONToFileOutside(
 		}
 	});
 }
-
-export const getBlockTime = async () => {
-	const lastBlock = await hre.ethers.provider.getBlock('latest');
-	let lastBlockTimestamp = lastBlock.timestamp;
-	let avgBlockTime = 0;
-	for (let i = 1; i < 11; i++) {
-		const block = await hre.ethers.provider.getBlock(lastBlock.number - i);
-		const diff = (lastBlockTimestamp - block.timestamp) * 1000;
-		avgBlockTime += diff;
-		lastBlockTimestamp = block.timestamp;
-	}
-	avgBlockTime = avgBlockTime / 10;
-
-	return avgBlockTime;
-};
-
-export const getReportBlockBuffer = async () => {
-	const blockTime = await getBlockTime();
-	const reportBlockBuffer = Math.ceil(30000 / blockTime); // The number of blocks to wait between each reporter starting from the height of the report.
-	return reportBlockBuffer;
-};
-
-// const winstonToAr = (
-// 	winstonString: string,
-// 	{ formatted = false, decimals = 12, trim = true } = {}
-// ) => {
-// 	const number =  this.stringToBigNum(winstonString, decimals).shiftedBy(-12);
-
-// 	return formatted ? number.toFormat(decimals) : number.toFixed(decimals);
-// }
 
 export const getWeiPerByte = async () => {
 	const mb = 1000000;

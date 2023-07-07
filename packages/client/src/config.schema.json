@@ -228,12 +228,12 @@
 				"logStoreNodeManagerChainAddress": {
 					"type": "string",
 					"format": "ethereum-address",
-					"default": "0x85ac4C8E780eae81Dd538053D596E382495f7Db9"
+					"default": "0x7AcA5FbE68664cf27f395c566CC73f72d1761a09"
 				},
 				"logStoreStoreManagerChainAddress": {
 					"type": "string",
 					"format": "ethereum-address",
-					"default": "0x8560200b8E7477FB09281A0566B50fa6E7a66a34"
+					"default": "0x697694AA5F4B50DE484029E0911759857e619130"
 				},
 				"mainChainRPCs": {
 					"anyOf": [
@@ -298,7 +298,7 @@
 				"logStoreTheGraphUrl": {
 					"type": "string",
 					"format": "uri",
-					"default": "http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts"
+					"default": "https://thegraph.logstore.usher.so/subgraphs/name/logstore-dev/network-contracts"
 				},
 				"maxConcurrentCalls": {
 					"type": "number",

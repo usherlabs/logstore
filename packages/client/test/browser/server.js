@@ -1,34 +1,34 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-const path = require('path')
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+const path = require('path');
 
-const express = require('express')
-const { KeyServer } = require('@streamr/test-utils')
+const express = require('express');
+const { KeyServer } = require('@streamr/test-utils');
 
-const app = express()
-const keyserver = new KeyServer()
+const app = express();
+const keyserver = new KeyServer();
 
 // viewed at http://localhost:8880
-app.use('/static', express.static(path.join(__dirname, '/../../dist')))
+app.use('/static', express.static(path.join(__dirname, '/../../dist')));
 
-let server
+let server;
 
 app.get('/stop', (_req, res) => {
-    res.end()
+	res.end();
 
-    if (server) {
-        console.info('Browser Test Server: Closed')
-        server.close()
-    }
-})
+	if (server) {
+		console.info('Browser Test Server: Closed');
+		server.close();
+	}
+});
 
 app.get('/', (_req, res) => {
-    res.sendFile(path.join(__dirname, 'browser.html'))
-})
+	res.sendFile(path.join(__dirname, 'browser.html'));
+});
 
 server = app.listen(8880, () => {
-    console.info('Browser Test Server: Listening on ', server.address())
-})
+	console.info('Browser Test Server: Listening on ', server.address());
+});
 
 server.once('close', () => {
-    keyserver?.destroy()
-})
+	keyserver?.destroy();
+});

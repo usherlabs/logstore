@@ -22,7 +22,14 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
     event NodeUpdated(address indexed nodeAddress, string metadata, bool indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
-    event StakeDelegateUpdated(address indexed delegate, address indexed node, uint amount, uint totalStake, uint totalDelegated, bool delegated);
+    event StakeDelegateUpdated(
+        address indexed delegate,
+        address indexed node,
+        uint amount,
+        uint totalStake,
+        uint totalDelegated,
+        bool delegated
+    );
     event NodeWhitelistApproved(address indexed nodeAddress);
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
@@ -59,7 +66,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     uint256 public stakeRequiredAmount;
     address public stakeTokenAddress;
     uint256 public totalNodes;
-		uint256 public startBlockNumber; // A block number for when the Log Store process starts
+    uint256 public startBlockNumber; // A block number for when the Log Store process starts
     mapping(address => Node) public nodes;
     mapping(address => WhitelistState) public whitelist;
     mapping(address => uint256) public balanceOf;
@@ -187,25 +194,28 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             }
         }
         for (uint256 i = 0; i < report.nodes.length; i++) {
-            int256 newNodeAmount = int(nodes[report.nodes[i].id].stake) + report.nodes[i].amount;
+            address reportNodeAddress = report.nodes[i].id;
+            int256 reportNodeAmountChange = report.nodes[i].amount;
+            int256 newNodeAmount = int(nodes[reportNodeAddress].stake) + reportNodeAmountChange;
             if (newNodeAmount > 0) {
-                nodes[report.nodes[i].id].stake = uint(newNodeAmount);
+                nodes[reportNodeAddress].stake = uint(newNodeAmount);
             } else {
-                nodes[report.nodes[i].id].stake = 0;
+                nodes[reportNodeAddress].stake = 0;
             }
-            _checkAndGrantAccess(report.nodes[i].id);
+            _checkAndGrantAccess(reportNodeAddress);
         }
         for (uint256 i = 0; i < report.delegates.length; i++) {
+            address reportDelegateAddress = report.delegates[i].id;
             for (uint256 j = 0; j < report.delegates[i].nodes.length; j++) {
                 address delegateNodeAddress = report.delegates[i].nodes[j].id;
                 int256 delegateNodeChange = report.delegates[i].nodes[j].amount;
 
-                int256 newDelegateAmount = int(delegatesOf[report.delegates[i].id][delegateNodeAddress]) +
+                int256 newDelegateAmount = int(delegatesOf[reportDelegateAddress][delegateNodeAddress]) +
                     delegateNodeChange;
                 if (newDelegateAmount > 0) {
-                    delegatesOf[report.delegates[i].id][delegateNodeAddress] = uint(newDelegateAmount);
+                    delegatesOf[reportDelegateAddress][delegateNodeAddress] = uint(newDelegateAmount);
                 } else {
-                    delegatesOf[report.delegates[i].id][delegateNodeAddress] = 0;
+                    delegatesOf[reportDelegateAddress][delegateNodeAddress] = 0;
                 }
             }
         }
@@ -306,7 +316,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             isNew = true;
             if (headNode == address(0)) {
                 headNode = nodeAddress;
-								startBlockNumber = block.number;
+                startBlockNumber = block.number;
             } else {
                 nodes[tailNode].next = nodeAddress;
                 foundNode.prev = tailNode;
@@ -353,10 +363,10 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             nextNodeAddress = nodes[nextNodeAddress].next;
         }
 
-				// Reset startBlockNumber if all nodes are removed.
-				if(headNode == address(0)){
-					startBlockNumber = 0;
-				}
+        // Reset startBlockNumber if all nodes are removed.
+        if (headNode == address(0)) {
+            startBlockNumber = 0;
+        }
 
         emit NodeRemoved(nodeAddress);
     }

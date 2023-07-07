@@ -1,7 +1,8 @@
 {
 	"extends": "./tsconfig.node.json",
 	"compilerOptions": {
-		"allowJs": true
+		"allowJs": true,
+		"types": ["jest", "node"]
 	},
 	"exclude": ["dist"],
 	"include": [

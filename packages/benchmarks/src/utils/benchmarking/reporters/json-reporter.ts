@@ -1,21 +1,18 @@
-import fs from "fs";
-import path from "path";
-import { promisify } from "util";
+import fs from 'fs';
+import path from 'path';
+import { Logger } from 'tslog';
+import { promisify } from 'util';
 
-
-
-import { OUTPUT_DIR } from "../../../environment-vars";
-import { isObject } from "../../utils";
-import { RawResultRecord } from "../result-types";
-import { Reporter } from "./reporter-types";
-import { Logger } from "tslog";
-
+import { OUTPUT_DIR } from '../../../environment-vars';
+import { isObject } from '../../utils';
+import { RawResultRecord } from '../result-types';
+import { Reporter } from './reporter-types';
 
 // UTILS
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 
-const logger = new Logger()
+const logger = new Logger();
 
 /**
  * Try to merge object to file. If doesn't exist, create a new file with this content
@@ -24,9 +21,9 @@ const logger = new Logger()
  */
 const aggregateOrCreateJsonFile = async (
 	obj: Record<string, unknown>,
-	path: string
+	filePath: string
 ) => {
-	const oldContent = await tryParseJsonFile(path);
+	const oldContent = await tryParseJsonFile(filePath);
 	// if old content isnt on correct format, let's reinitialize
 	const oldObj = isObject(oldContent) ? oldContent : {};
 	const newObj = { ...oldObj, ...obj } as RawResultRecord;
@@ -38,13 +35,13 @@ const aggregateOrCreateJsonFile = async (
 		return acc;
 	}, {} as RawResultRecord);
 
-	await writeFile(path, JSON.stringify(sortedResult, null, 2));
-	logger.info(`Saved results to ${path}`);
+	await writeFile(filePath, JSON.stringify(sortedResult, null, 2));
+	logger.info(`Saved results to ${filePath}`);
 };
 
-const tryParseJsonFile = async <T = unknown>(path: string) => {
+const tryParseJsonFile = async <T = unknown>(filePath: string) => {
 	try {
-		const file = await readFile(path, { encoding: 'utf-8' });
+		const file = await readFile(filePath, { encoding: 'utf-8' });
 		return JSON.parse(file) as T;
 	} catch (e) {
 		return undefined;

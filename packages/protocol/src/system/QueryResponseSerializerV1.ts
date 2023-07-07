@@ -1,4 +1,4 @@
-import { Serializer } from '../Serializer';
+import { Serializer } from '../abstracts/Serializer';
 import { QueryResponse } from './QueryResponse';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
 

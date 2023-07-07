@@ -1,4 +1,7 @@
-import { PrivateKeyAuthConfig } from '@logsn/client';
+import {
+	PrivateKeyAuthConfig,
+	validateConfig as validateClientConfig,
+} from '@logsn/client';
 import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
@@ -6,7 +9,9 @@ import {
 import { Command } from 'commander';
 import { ethers } from 'ethers';
 
+import BROKER_CONFIG_SCHEMA from '../config/config.schema.json';
 import { readConfigAndMigrateIfNeeded } from '../config/migration';
+import { validateConfig } from '../config/validateConfig';
 import {
 	amountArgument,
 	assumeYesOption,
@@ -33,7 +38,15 @@ export const joinCommand = new Command('join')
 					? parseFloat(amountStr)
 					: BigInt(amountStr);
 				const options = joinCommand.opts();
-				const config = readConfigAndMigrateIfNeeded(options.config);
+				const configWithoutDefaults = readConfigAndMigrateIfNeeded(
+					options.config
+				);
+
+				const config = validateConfig(
+					configWithoutDefaults,
+					BROKER_CONFIG_SCHEMA
+				);
+				validateClientConfig(config.client);
 
 				const privateKey = (config.client!.auth as PrivateKeyAuthConfig)
 					.privateKey;

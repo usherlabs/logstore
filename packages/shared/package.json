@@ -2,8 +2,12 @@
 	"name": "@logsn/shared",
 	"version": "0.0.1",
 	"description": "The Log Store Network Shared Library",
-	"repository": "https://github.com/usherlabs/logstore.git",
-	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/usherlabs/logstore.git",
+		"directory": "packages/shared"
+	},
+	"author": "Ryan Soury <ryan@usher.so>, Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "Apache-2.0",
 	"private": false,
 	"types": "./dist/types/exports.d.ts",
@@ -19,6 +23,7 @@
 	"dependencies": {
 		"@ethersproject/providers": "^5",
 		"@logsn/contracts": "workspace:^",
+		"@logsn/protocol": "workspace:^",
 		"ethers": "^5.7.0",
 		"inquirer": "^8.1.1",
 		"redstone-api": "^0.4.11",

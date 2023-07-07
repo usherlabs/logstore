@@ -9,7 +9,8 @@ import { getEvmPrivateKey } from './env-config';
 
 const HEARTBEAT_STREAM_ID = '/heartbeat';
 const HEARTBEAT_INTERVAL = 1 * 1000;
-const HEARTBEAT_STORE_STAKE: bigint = BigInt(1_000_000_000_000_000_000);
+const HEARTBEAT_STORE_STAKE: bigint =
+	BigInt(1_000_000_000_000_000_000_000_000_000_000);
 
 export class Heartbeat {
 	private client: LogStoreClient;
