@@ -9,12 +9,13 @@ export class StoreManager {
 	}
 
 	public async getStores(
-		blockNumber: number
+		fromBlockNumber: number,
+		toBlockNumber: number
 	): Promise<{ id: string; amount: BigNumber }[]> {
 		const storeUpdateEvents = await this.contract.queryFilter(
 			this.contract.filters.StoreUpdated(),
-			blockNumber,
-			blockNumber
+			fromBlockNumber,
+			toBlockNumber
 		);
 		const stores: { id: string; amount: BigNumber }[] = [];
 		storeUpdateEvents.forEach((e) => {
@@ -32,8 +33,8 @@ export class StoreManager {
 		});
 		const dataStoredEvents = await this.contract.queryFilter(
 			this.contract.filters.DataStored(),
-			blockNumber,
-			blockNumber
+			fromBlockNumber,
+			toBlockNumber
 		);
 		dataStoredEvents.forEach((e) => {
 			const storeId = e.args.store.toString();

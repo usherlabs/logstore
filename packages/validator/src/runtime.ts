@@ -10,6 +10,8 @@ import { SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
+export const KEY_STEP = 20;
+
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
 	public version = appVersion;
@@ -143,17 +145,32 @@ export default class Runtime implements IRuntimeExtended {
 		return lastItem.key + '_' + reportHash;
 	}
 
-	async startKey() {
-		const startTs = await Managers.withSources<string>(
-			this.config.sources,
-			async (managers) => {
-				const startBlock = await managers.getBlock(
-					await managers.node.getStartBlockNumber()
-				);
-				return startBlock.timestamp.toString();
-			}
-		);
-		return startTs;
+	private _statrBlockNumber: number;
+	async startBlockNumber(): Promise<number> {
+		if (!this._statrBlockNumber) {
+			this._statrBlockNumber = await Managers.withSources<number>(
+				this.config.sources,
+				async (managers) => {
+					return await managers.node.getStartBlockNumber();
+				}
+			);
+		}
+
+		return this._statrBlockNumber;
+	}
+
+	private _startKey: number;
+	async startKey(): Promise<number> {
+		if (!this._startKey) {
+			this._startKey = await Managers.withSources<number>(
+				this.config.sources,
+				async (managers) => {
+					return (await managers.getBlock(this._statrBlockNumber)).timestamp;
+				}
+			);
+		}
+
+		return this._startKey;
 	}
 
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
@@ -162,10 +179,15 @@ export default class Runtime implements IRuntimeExtended {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			return await this.startKey();
+			const startKey = await this.startKey();
+			return startKey.toString();
 		}
 
-		keyInt++;
+		keyInt += KEY_STEP;
+
+		// make the keys look pretty
+		keyInt -= keyInt % KEY_STEP;
+
 		return keyInt.toString();
 	}
 }
