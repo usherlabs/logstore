@@ -10,7 +10,7 @@ import { SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
-export const KEY_STEP = 20;
+export const KEY_STEP = 20 as const;
 
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
@@ -26,6 +26,8 @@ export default class Runtime implements IRuntimeExtended {
 	};
 	public listener: SystemListener;
 	public time: TimeIndexer;
+	private _startBlockNumber: number;
+	private _startKey: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
 		this.time = new TimeIndexer(homeDir, this.config, core.logger);
@@ -46,6 +48,7 @@ export default class Runtime implements IRuntimeExtended {
 			throw new Error(`Config does not have any sources`);
 		}
 
+		// TODO: Remove this source from the on-chain PoolConfig
 		config.sources = config.sources.filter(
 			(source) => !source.includes('polygon-bor.publicnode.com')
 		);
@@ -145,10 +148,9 @@ export default class Runtime implements IRuntimeExtended {
 		return lastItem.key + '_' + reportHash;
 	}
 
-	private _statrBlockNumber: number;
 	async startBlockNumber(): Promise<number> {
-		if (!this._statrBlockNumber) {
-			this._statrBlockNumber = await Managers.withSources<number>(
+		if (!this._startBlockNumber) {
+			this._startBlockNumber = await Managers.withSources<number>(
 				this.config.sources,
 				async (managers) => {
 					return await managers.node.getStartBlockNumber();
@@ -156,16 +158,15 @@ export default class Runtime implements IRuntimeExtended {
 			);
 		}
 
-		return this._statrBlockNumber;
+		return this._startBlockNumber;
 	}
 
-	private _startKey: number;
 	async startKey(): Promise<number> {
 		if (!this._startKey) {
 			this._startKey = await Managers.withSources<number>(
 				this.config.sources,
 				async (managers) => {
-					return (await managers.getBlock(this._statrBlockNumber)).timestamp;
+					return (await managers.getBlock(this._startBlockNumber)).timestamp;
 				}
 			);
 		}

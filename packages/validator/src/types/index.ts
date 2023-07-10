@@ -17,6 +17,7 @@ export interface IRuntimeExtended extends IRuntime {
 	time: TimeIndexer;
 	setupThreads?: (core: Validator, homeDir: string) => void;
 	startBlockNumber(): Promise<number>;
+	startKey(): Promise<number>;
 }
 
 export interface IConfig {
