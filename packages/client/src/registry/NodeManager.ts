@@ -5,7 +5,7 @@ import {
 	ContractFactory,
 	LoggerFactory,
 	queryAllReadonlyContracts,
-} from '@streamr-client';
+} from '@logsn/streamr-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { shuffle } from 'lodash';
 import { inject, Lifecycle, scoped } from 'tsyringe';

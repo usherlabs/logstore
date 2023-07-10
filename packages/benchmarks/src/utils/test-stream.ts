@@ -1,4 +1,4 @@
-import { Stream, StreamMetadata } from '@streamr-client';
+import type { Stream, StreamMetadata } from '@logsn/client';
 import crypto from 'crypto';
 
 // using relative otherwise won't work without messing with exports from client
