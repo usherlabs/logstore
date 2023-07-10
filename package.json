@@ -8,7 +8,7 @@
 	"license": "GPL-3.0",
 	"private": true,
 	"scripts": {
-		"modules": "git submodules init && git submodules update",
+		"modules": "git submodule init && git submodule update",
 		"clean": "del packages/*/node_modules packages/*/dist node_modules",
 		"build": "npx turbo run build --force",
 		"format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md,sol}\""
