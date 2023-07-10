@@ -164,11 +164,12 @@ export default class Runtime implements IRuntimeExtended {
 
 	async startKey(): Promise<number> {
 		if (!this._startKey) {
+			const startBlockNumber = await this.startBlockNumber();
 			// Re-fetch the start key from sources rather than from time-index, as time-index starts from last report id
 			this._startKey = await Managers.withSources<number>(
 				this.config.sources,
 				async (managers) => {
-					return (await managers.getBlock(this._startBlockNumber)).timestamp;
+					return (await managers.getBlock(startBlockNumber)).timestamp;
 				}
 			);
 		}
