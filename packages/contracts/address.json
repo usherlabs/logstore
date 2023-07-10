@@ -9,8 +9,8 @@
   "137": {
     "tokenManagerAddress": "0xAE6A9793b7CCD9e1F39064190CCFEcdeC377397b",
     "nodeManagerAddress": "0x7AcA5FbE68664cf27f395c566CC73f72d1761a09",
-    "storeManagerAddress": "0x697694AA5F4B50DE484029E0911759857e619130",
-    "queryManagerAddress": "0x27012966b1F6CFD4934631Fd22f5F07F7dE6a999",
+    "storeManagerAddress": "0x1DC9f6856a4C228D6B8A504824cB3A7a0f9D22C4",
+    "queryManagerAddress": "0x8055601bbB0Cc5a2dAcF4AEc489f90c3482DC563",
     "reportManagerAddress": "0x9271C1840E626596f709DaB166F534cE2c5a0e27"
   },
   "8997": {

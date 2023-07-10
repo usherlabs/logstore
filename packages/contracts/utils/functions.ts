@@ -6,7 +6,8 @@ import hre from 'hardhat';
 import path from 'path';
 import redstone from 'redstone-api';
 
-import { STAKE_TOKEN_CONTRACTS, STREAMR_REGISTRY_ADDRESS } from './addresses';
+import ContractAddresses from '../address.json';
+import { STREAMR_REGISTRY_ADDRESS } from './addresses';
 
 export const getChainId = async () =>
 	await hre.ethers.provider
@@ -20,19 +21,15 @@ export const toBigDecimal = (amount: number, exponent = 18) => {
 	return ethers.BigNumber.from(`${amount}${'0'.repeat(exponent)}`);
 };
 
-export async function getNodeManagerInputParameters(
-	stakeTokenAddress?: string
-) {
+export async function getNodeManagerInputParameters(stakeTokenAddress: string) {
 	// define important params
 	const chainId = await getChainId();
 	const [adminAccount] = await getAccounts();
-	// validations of variable parameters
-	if (!STAKE_TOKEN_CONTRACTS[chainId]) throw `No token address for ${chainId}`;
 	// define the common parameters
 	const initialParameters = [
 		adminAccount.address,
 		false,
-		stakeTokenAddress || STAKE_TOKEN_CONTRACTS[chainId],
+		stakeTokenAddress,
 		toBigDecimal(1, 18),
 		STREAMR_REGISTRY_ADDRESS[chainId],
 		[],
@@ -43,7 +40,8 @@ export async function getNodeManagerInputParameters(
 }
 
 export async function getStoreManagerInputParameters(
-	nodeManagerAddress: string
+	nodeManagerAddress: string,
+	stakeTokenAddress: string
 ) {
 	// define important params
 	const chainId = await getChainId();
@@ -52,7 +50,7 @@ export async function getStoreManagerInputParameters(
 	const initialParameters = {
 		owner: adminAccount.address,
 		parent: nodeManagerAddress,
-		stakeToken: STAKE_TOKEN_CONTRACTS[chainId],
+		stakeToken: stakeTokenAddress,
 		streamrRegistryAddress: STREAMR_REGISTRY_ADDRESS[chainId],
 	};
 	// validations of variable parameters
@@ -65,7 +63,8 @@ export async function getStoreManagerInputParameters(
 }
 
 export async function getQueryManagerInputParameters(
-	nodeManagerAddress: string
+	nodeManagerAddress: string,
+	stakeTokenAddress: string
 ) {
 	// define important params
 	const chainId = await getChainId();
@@ -74,7 +73,7 @@ export async function getQueryManagerInputParameters(
 	const initialParameters = {
 		owner: adminAccount.address,
 		parent: nodeManagerAddress,
-		stakeToken: STAKE_TOKEN_CONTRACTS[chainId],
+		stakeToken: stakeTokenAddress,
 	};
 	// validations of variable parameters
 	if (!initialParameters.stakeToken) throw `No token address for ${chainId}`;

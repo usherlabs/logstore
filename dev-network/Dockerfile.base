@@ -16,7 +16,6 @@ COPY --chown=node:node ./package.json ./
 COPY --chown=node:node ./pnpm-lock.yaml ./
 COPY --chown=node:node ./pnpm-workspace.yaml ./
 COPY --chown=node:node ./tsconfig.node.json ./
-COPY --chown=node:node ./node_artifacts/ ./node_artifacts/
 
 COPY --chown=node:node ./packages/contracts/package.json ./packages/contracts/
 COPY --chown=node:node ./packages/subgraph/package.json ./packages/subgraph/

@@ -1,0 +1,19 @@
+name: Public Mirror
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  mirroring:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: usherlabs/monorepo-package-mirror-action@main
+        with:
+          #          target_repo_url: https://github.com/outerlook/mirror-test-dest.git
+          target_repo_url: git@github.com:usherlabs/logstore-mirror.git
+          main_branch: master
+          ssh_private_key: ${{ secrets.SSH_MIRROR_PRIVATE_KEY }}

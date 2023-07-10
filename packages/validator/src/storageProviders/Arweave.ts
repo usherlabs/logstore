@@ -1,6 +1,6 @@
 import { BundleTag, IStorageProvider } from '@kyvejs/protocol';
-import ArweaveClient from 'arweave';
-import { JWKInterface } from 'arweave/node/lib/wallet';
+import ArweaveClient from '@logsn/arweave';
+import { JWKInterface } from '@logsn/arweave/node/lib/wallet';
 import axios from 'axios';
 
 export class Arweave implements IStorageProvider {
@@ -21,6 +21,9 @@ export class Arweave implements IStorageProvider {
 		return new ArweaveClient({
 			host: 'arweave.net',
 			protocol: 'https',
+			defaultResponseTypes: {
+				postTransaction: 'arraybuffer',
+			},
 		});
 	}
 

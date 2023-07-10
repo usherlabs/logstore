@@ -1,4 +1,9 @@
-import { LogStoreClient, Message } from '@logsn/client';
+import {
+	LogStoreClient,
+	Message,
+	Stream,
+	StreamPermission,
+} from '@logsn/client';
 import { LogStoreManager, LogStoreQueryManager } from '@logsn/contracts';
 import {
 	getQueryManagerContract,
@@ -6,7 +11,6 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
-import { Stream, StreamPermission } from '@streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
 import _ from 'lodash';

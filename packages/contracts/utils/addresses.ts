@@ -1,10 +1,3 @@
-export const STAKE_TOKEN_CONTRACTS: Record<string, string> = {
-	'5': '0xbAf0892F01B8d2F456A80172627A3F6EA0253C80', //for hardhat we use our predeplyed token
-	'8997': '0x62c82404c1937E27C92E24901979A4d9b1b9858e', //for streamr dev we use our predeplyed token
-	'137': '0x3a9A81d576d83FF21f26f325066054540720fC34', // for polygon data token
-	'80001': '0x3a9A81d576d83FF21f26f325066054540720fC34', // for mumbai random token cus no data deployed there
-};
-
 export const STREAMR_REGISTRY_ADDRESS: Record<string, string> = {
 	'5': '0xb7035e1572b3df33703f412f448691b36cc714ae', //for hardhat we use our mock token
 	'8997': '0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222',

@@ -1,4 +1,4 @@
-import { LoggerFactory, Stream, StreamMetadata } from '@streamr-client';
+import { LoggerFactory, Stream, StreamMetadata } from '@logsn/streamr-client';
 import crypto from 'crypto';
 
 import { LogStoreClient } from '../../src/LogStoreClient';
