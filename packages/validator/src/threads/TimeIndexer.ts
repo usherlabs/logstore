@@ -26,7 +26,7 @@ const CONFIRMATIONS = 128 as const; // The number of confirmations/blocks requir
 const SCAN_BUFFER = 10 as const; // The time (in seconds) a find/scan will use to evaluate the indexed block
 const DEFAULT_DB_VALUE = { b: 0, s: [] };
 const POLL_INTERVAL = 10 as const; // The time (in seconds) to delay between the latest index and the next
-const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
+const BATCH_SIZE = 100 as const; // How many blocks to batch in single request
 
 /**
  * Class to manage an index of blocks and their timestamps
