@@ -10,6 +10,8 @@ import { SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
+export const KEY_STEP = 20 as const;
+
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
 	public version = appVersion;
@@ -24,6 +26,8 @@ export default class Runtime implements IRuntimeExtended {
 	};
 	public listener: SystemListener;
 	public time: TimeIndexer;
+	private _startBlockNumber: number;
+	private _startKey: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
 		this.time = new TimeIndexer(homeDir, this.config, core.logger);
@@ -43,6 +47,11 @@ export default class Runtime implements IRuntimeExtended {
 		if (!config.sources.length) {
 			throw new Error(`Config does not have any sources`);
 		}
+
+		// TODO: Remove this source from the on-chain PoolConfig
+		config.sources = config.sources.filter(
+			(source) => !source.includes('polygon-bor.publicnode.com')
+		);
 
 		let chainId = null;
 		for (const source of config.sources) {
@@ -122,12 +131,13 @@ export default class Runtime implements IRuntimeExtended {
 	): Promise<string> {
 		const firstItem = bundle.at(0);
 		const lastItem = bundle.at(-1);
+		const bundleStartKey = (parseInt(firstItem.key, 10) - KEY_STEP).toString();
 		core.logger.info(`Create Report: ${lastItem.key}`);
 		const report = new Report(
 			core,
 			this,
 			this.config,
-			firstItem.key,
+			bundleStartKey,
 			lastItem.key
 		);
 		await report.prepare();
@@ -139,29 +149,47 @@ export default class Runtime implements IRuntimeExtended {
 		return lastItem.key + '_' + reportHash;
 	}
 
-	async startKey() {
-		const startTs = await Managers.withSources<string>(
-			this.config.sources,
-			async (managers) => {
-				const startBlock = await managers.getBlock(
-					await managers.node.getStartBlockNumber()
-				);
-				return startBlock.timestamp.toString();
-			}
-		);
-		return startTs;
+	async startBlockNumber(): Promise<number> {
+		if (!this._startBlockNumber) {
+			this._startBlockNumber = await Managers.withSources<number>(
+				this.config.sources,
+				async (managers) => {
+					return await managers.node.getStartBlockNumber();
+				}
+			);
+		}
+
+		return this._startBlockNumber;
+	}
+
+	async startKey(): Promise<number> {
+		if (!this._startKey) {
+			const startBlockNumber = await this.startBlockNumber();
+			// Re-fetch the start key from sources rather than from time-index, as time-index starts from last report id
+			this._startKey = await Managers.withSources<number>(
+				this.config.sources,
+				async (managers) => {
+					return (await managers.getBlock(startBlockNumber)).timestamp;
+				}
+			);
+		}
+
+		return this._startKey;
 	}
 
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.
 	// https://github.com/KYVENetwork/kyvejs/blob/main/common/protocol/src/methods/main/runCache.ts#L147
-	async nextKey(_: Validator, key: string): Promise<string> {
+	async nextKey(core: Validator, key: string): Promise<string> {
 		let keyInt = parseInt(key, 10);
 
 		if (!keyInt) {
-			return await this.startKey();
+			const startKey = await this.startKey();
+			core.logger.info(`Log Store Network Start key: ${startKey}`);
+			return startKey.toString();
 		}
 
-		keyInt++;
+		keyInt += KEY_STEP;
+
 		return keyInt.toString();
 	}
 }

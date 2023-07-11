@@ -41,16 +41,18 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// We do this by using the key (timestamp) to determine the most relevant block
 		// ? We need to get the closest block because it may not be the most recent block...
 		core.logger.debug('getBlockByTime...');
-		const blockNumber = await this.runtime.time.find(toKey);
+		const fromBlockNumber = await this.runtime.startBlockNumber();
+		const toBlockNumber = await this.runtime.time.find(toKey);
 		core.logger.debug('Block Number: ', {
-			blockNumber,
+			blockNumber: toBlockNumber,
 		});
 
 		// Now that we have the block that most closely resemble the current key
-		const stakeToken = await managers.node.getStakeToken(blockNumber);
+		const stakeToken = await managers.node.getStakeToken(toBlockNumber);
 		// Produce brokerNode list by starting at headNode and iterating over nodes.
 		const brokerNodes = await managers.node.getBrokerNodes(
-			blockNumber,
+			fromBlockNumber,
+			toBlockNumber,
 			stakeToken.minRequirement
 		);
 		core.logger.debug('Broker Nodes: ', brokerNodes);
@@ -58,7 +60,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		return {
 			fromKey,
 			toKey,
-			blockNumber,
+			blockNumber: toBlockNumber,
 			stakeToken,
 			brokerNodes,
 		};

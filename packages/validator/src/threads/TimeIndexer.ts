@@ -66,7 +66,7 @@ export class TimeIndexer {
 		this._running = true;
 
 		try {
-			await fse.remove(this._cachePath);
+			// await fse.remove(this._cachePath);
 
 			let startBlock = 0;
 			const dbPath = path.join(this._cachePath, 'cache');

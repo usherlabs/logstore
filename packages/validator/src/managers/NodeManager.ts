@@ -14,21 +14,26 @@ export class NodeManager {
 	}
 
 	async getBrokerNodes(
-		blockNumber?: number,
+		fromBlockNumber: number,
+		toBlockNumber: number,
 		minStakeRequirement?: BigNumber
 	): Promise<Array<IBrokerNode>> {
 		// get all the node addresses
 		const nodeAddresses = await this.contract.nodeAddresses({
-			blockTag: blockNumber,
+			blockTag: toBlockNumber,
 		});
 
 		// get more details for each node's address
 		const detailedAllNodes = await Promise.all(
 			nodeAddresses.map(async (nodeAddress) => {
 				const nodeDetail = await this.contract.nodes(nodeAddress, {
-					blockTag: blockNumber,
+					blockTag: toBlockNumber,
 				});
-				const allDelegates = await this.getDelegates(nodeAddress, blockNumber);
+				const allDelegates = await this.getDelegates(
+					nodeAddress,
+					fromBlockNumber,
+					toBlockNumber
+				);
 
 				Slogger.instance.debug('Delegates for Node Address', {
 					allDelegates,
@@ -66,6 +71,7 @@ export class NodeManager {
 	 */
 	async getDelegates(
 		nodeAddress: string,
+		fromBlockNumber: number,
 		toBlockNumber: number
 	): Promise<Record<string, BigNumber>> {
 		const delegatesEvent = await this.contract.queryFilter(
@@ -77,7 +83,7 @@ export class NodeManager {
 				null,
 				null
 			),
-			0,
+			fromBlockNumber,
 			toBlockNumber
 		);
 

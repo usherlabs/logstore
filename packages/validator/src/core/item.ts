@@ -4,6 +4,7 @@ import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
 
 import { Managers } from '../managers';
+import { KEY_STEP } from '../runtime';
 import { AbstractDataItem } from './abstract';
 
 interface IPrepared {
@@ -24,10 +25,11 @@ export class Item extends AbstractDataItem<IPrepared> {
 			return { stores: [] };
 		}
 
-		const block = await this.runtime.time.find(toKey);
+		const fromBlock = await this.runtime.startBlockNumber();
+		const toBlock = await this.runtime.time.find(toKey);
 
 		// Fetch full store list
-		const stores = await managers.store.getStores(block);
+		const stores = await managers.store.getStores(fromBlock, toBlock);
 
 		return {
 			stores,
@@ -41,8 +43,8 @@ export class Item extends AbstractDataItem<IPrepared> {
 
 		const keyInt = parseInt(key, 10);
 		// Range will be from last key (timestamp) to this key
+		const fromTimestamp = (keyInt - KEY_STEP) * 1000;
 		const toTimestamp = keyInt * 1000;
-		const fromTimestamp = toTimestamp - 1000;
 
 		const messages: {
 			content: unknown;
