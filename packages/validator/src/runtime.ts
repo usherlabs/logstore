@@ -10,7 +10,7 @@ import { SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
-export const KEY_STEP = 20 as const;
+export const KEY_STEP = 1 as const;
 
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
