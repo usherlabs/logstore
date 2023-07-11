@@ -1,10 +1,10 @@
 import { IStorageProvider } from '@kyvejs/protocol';
 
-import { Arweave } from './Arweave';
+import { ArweaveSplit } from './ArweaveSplit';
 
 export const storageProviderFactory = (
 	_storageProviderId: number,
 	storagePriv: string
 ): IStorageProvider => {
-	return new Arweave(storagePriv);
+	return new ArweaveSplit(storagePriv);
 };

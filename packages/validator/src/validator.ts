@@ -1,6 +1,7 @@
 import { Validator as KyveValidator } from '@kyvejs/protocol';
 
-import { storageProviderFactory } from './storageProviders';
+import { compressionFactory } from './reactors/compression';
+import { storageProviderFactory } from './reactors/storageProviders';
 import { IRuntimeExtended } from './types';
 import { Slogger } from './utils/slogger';
 
@@ -16,6 +17,7 @@ export async function validateDataAvailability(this: Validator): Promise<void> {
 }
 
 KyveValidator.storageProviderFactory = storageProviderFactory;
+KyveValidator.compressionFactory = compressionFactory;
 
 export default class Validator extends KyveValidator {
 	protected runtime!: IRuntimeExtended;

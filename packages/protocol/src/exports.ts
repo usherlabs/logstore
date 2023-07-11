@@ -13,3 +13,4 @@ export * from './interfaces/report.common';
 export * from './interfaces/report.v1';
 export * from './report/SystemReport';
 export * from './system';
+export * from './utils/hex';
