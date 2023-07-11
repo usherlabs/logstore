@@ -1,0 +1,8 @@
+[submodule "modules/streamr-network"]
+	path = modules/streamr-network
+	url = git@github.com:usherlabs/streamr-network.git
+	branch = logstore
+[submodule "modules/arweave-js"]
+	path = modules/arweave-js
+	url = git@github.com:usherlabs/arweave-js.git
+	branch = logstore

@@ -1,4 +1,4 @@
-import { StreamrClientConfig } from '@streamr-client';
+import type { StreamrClientConfig } from '@logsn/streamr-client';
 
 export interface LogStoreClientConfig extends StreamrClientConfig {
 	contracts?: StreamrClientConfig['contracts'] & {

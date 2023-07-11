@@ -1,10 +1,15 @@
 {
 	"name": "@logsn/cli",
-	"version": "0.0.1",
+	"version": "0.0.3",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",
 	"description": "The Log Store Network CLI",
 	"private": false,
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/usherlabs/logstore.git",
+		"directory": "packages/cli"
+	},
 	"scripts": {
 		"build": "del dist && tsc",
 		"bin": "del out && pkg --no-bytecode --public-packages '*' --output out/logstore package.json",
@@ -16,7 +21,7 @@
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts"
 	},
 	"bin": {
-		"logstore-cli": "./dist/bin/logstore-cli.js"
+		"logstore": "./dist/bin/logstore-cli.js"
 	},
 	"files": [
 		"./dist"
@@ -26,8 +31,11 @@
 		"@logsn/shared": "workspace:^",
 		"chalk": "^4.1.2",
 		"commander": "^10.0.0",
+		"decimal.js": "^10.4.3",
 		"ethers": "^5.7.0",
 		"inquirer": "^8.1.1",
+		"jsonfile": "^6.1.0",
+		"mkdirp": "^3.0.1",
 		"tslog": "^4.8.2"
 	},
 	"devDependencies": {

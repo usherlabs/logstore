@@ -1,4 +1,4 @@
-import ArweaveClient from 'arweave';
+import ArweaveClient from '@logsn/arweave';
 import redstone from 'redstone-api';
 
 export class Arweave {

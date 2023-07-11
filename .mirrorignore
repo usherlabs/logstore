@@ -1,0 +1,11 @@
+# Be aware: the mirrorignore parse isn't robust
+# file path format:
+# path/to/file.txt
+# directory path format:
+# path/to/dir or path/to/dir
+# spaces on files or folders isn't supported.
+# glob pattern isn't supported.
+
+packages/broker
+packages/validator
+.github/workflows/public-mirror.yml

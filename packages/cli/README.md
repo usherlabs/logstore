@@ -1,42 +1,60 @@
 # Logstore Cli
 
-Documentation for the Logstore CLI :
+The Log Store CLI is a command-line tool for querying and storing data on the Log Store Network.
 
-The Log Store CLI is a command-line tool for querying and storing data on the Log Store Network. It is built using Node.js and allows users to interact with the network via a set of commands.
+## Documentation
 
-The CLI supports the following command-line options:
+[👉 See full documentation of the Log Store CLI](https://docs.logstore.usher.so/network/cli/getting-started)
 
-- `h, --host <string>`: The RPC endpoint of the Polygon/EVM node to connect to (compulsory parameter).
-- `w, --wallet <string>`: The private key of the wallet to use for signing transactions (compulsory parameter).
-- `d, --debug`: Enables debug logging.
-- `u --usd`: Declares that the amount provided should be denominated in usd, defaults to wei if flag is not provided.
+## Installing the CLI
 
-The following commands are available to be used:
+The Log Store Client can be installed using `npm`, `pnpm` or `yarn`.
+Depending on your unique setup and configuration, you may need to use the sudo command.
 
-- `version`: Prints the runtime and protocol version information.
-- `query`: Manages Interaction with Log Store queries.
-  - `stake`: Stakes tokens into the Query Manager Contract to submit query requests to the Log Store Network.
-- `store`: Manages Log Stores.
-  - `stake`: Stakes tokens into the Store Manager Contract to store data transported over a stream into the decentralised storage network.
-
-## Example usage:
-
-1. Before the log store can be queried, some amount needs to be staked by the consumer, and it is done as follows:
-
-```
-$ pnpm start query stake --amount 1000000000000000000 --usd -h https://13.237.80.83:8546
-
+```bash
+npm i -g @logsn/cli
 ```
 
-This will stake 1 ETH worth of tokens into the Query Manager Contract.
+## Usage
 
-2. In order to enable data from a stream to be stored, some amount needs to be staked against that stream, and it can be accomplished by the command:
+The command `logstore help` returns a list of all commands and option flags.
+
+```shel
+Usage: Log Store CLI [options] [command]
+
+Query and Store on the Log Store Network.
+
+Options:
+  -V, --version            output the version number
+  -h, --host <string>      Polygon/EVM Node RPC Endpoint
+  -w, --wallet <string>    Wallet private key
+  -c, --config <string>    Path to configuration file. Default to ~/.logstore-cli/default.json
+  -d, --debug              Show debug logs
+  --help                   display help for command
+
+Commands:
+  version                  Print runtime and protocol version
+  init [options]           Creates a configuration file with default parameters
+  balance [options]        View the LSAN token balance in your wallet, and available storage to use.
+  mint [options] <amount>  Mint LSAN tokens for the Log Store Network
+  query                    Manage your Log Store Queries
+  store                    Manage your Log Stores
+  create-stream <name>     Create Streamr stream to start storing data transported over the stream.
+  help [command]           display help for command
+```
+
+## Examples
+
+1. Before the Log Store Network can be queried, some [amount of LSAN](https://docs.logstore.usher.so/network/cli/mint-lsan) needs to be staked:
 
 ```
-$ pnpm start store stake <streamId> --amount 1000000000000000000 -h http://13.237.80.83:8546 -w ...
+$ logstore query stake --amount 1000000000000000000 --usd -h https://polygon_rpc_url
 
 ```
 
-This will stake 1 ETH worth of tokens into the Store Manager Contract for the specified Stream ID.
+1. In order to enable data from a stream to be stored, some [amount of LSAN](https://docs.logstore.usher.so/network/cli/mint-lsan) needs to be staked against that Streamr Network stream/topic:
 
-`Note: Before using the CLI, you must have a valid wallet with sufficient funds and network access.`
+```
+$ logstore store stake <streamId> --amount 1000000000000000000 -h https://polygon_rpc_url -w ...
+
+```

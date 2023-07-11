@@ -1,10 +1,10 @@
-import {
+import type {
 	MessageListener,
 	MessageStream,
 	Stream,
 	StreamDefinition,
-	StreamrClient,
-} from '@streamr-client';
+} from '@logsn/streamr-client';
+import { StreamrClient } from '@logsn/streamr-client';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import { container as rootContainer } from 'tsyringe';

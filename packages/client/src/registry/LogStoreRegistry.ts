@@ -17,7 +17,7 @@ import {
 	Stream,
 	StreamIDBuilder,
 	waitForTx,
-} from '@streamr-client';
+} from '@logsn/streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { min } from 'lodash';
