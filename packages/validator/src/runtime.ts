@@ -50,7 +50,9 @@ export default class Runtime implements IRuntimeExtended {
 
 		// TODO: Remove this source from the on-chain PoolConfig
 		config.sources = config.sources.filter(
-			(source) => !source.includes('polygon-bor.publicnode.com')
+			(source) =>
+				!source.includes('polygon-bor.publicnode.com') &&
+				!source.includes('polygon-rpc.com')
 		);
 
 		let chainId = null;
