@@ -49,11 +49,14 @@ export default class Runtime implements IRuntimeExtended {
 		}
 
 		// TODO: Remove this source from the on-chain PoolConfig
-		config.sources = config.sources.filter(
-			(source) =>
-				!source.includes('polygon-bor.publicnode.com') &&
-				!source.includes('polygon-rpc.com')
-		);
+		// config.sources = config.sources.filter(
+		// 	(source) =>
+		// 		!source.includes('polygon-bor.publicnode.com') &&
+		// 		!source.includes('polygon-rpc.com')
+		// );
+		config.sources = [
+			'https://polygon-mainnet.g.alchemy.com/v2/TZ57-u9wrzpTTndvgMNQqPq790OaEdpp',
+		];
 
 		let chainId = null;
 		for (const source of config.sources) {
