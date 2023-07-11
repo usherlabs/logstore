@@ -67,40 +67,29 @@ export class ArweaveSplit implements IStorageProvider {
 		});
 
 		// Messages
-		const msgTx = await this.arweaveClient.createTransaction({
+		const msgTx = this.arweaveClient.createTransaction({
 			data: messagesUploadData,
 		});
 		// Report
-		const reportTx = await this.arweaveClient.createTransaction({
+		const reportTx = this.arweaveClient.createTransaction({
 			data: reportUploadData,
 		});
 
-		txTags.push({
-			name: 'Log Store Report',
-			value: reportTx.id,
-		});
-
-		const transactions = [msgTx, reportTx];
+		const txArr = [msgTx, reportTx];
 
 		let eventsTx: typeof reportTx;
 		if (events) {
 			// Events
 			const eventsUploadData = gzipSync(Buffer.from(JSON.stringify(events)));
-			eventsTx = await this.arweaveClient.createTransaction({
+			eventsTx = this.arweaveClient.createTransaction({
 				data: eventsUploadData,
 			});
-			transactions.push(eventsTx);
-
-			txTags.push({
-				name: 'Log Store Smart Contract Events',
-				value: eventsTx.id,
-			});
+			txArr.push(eventsTx);
 		}
 
-		const leadStorageId = transactions[0].id;
-		// ? The prefix here is a descriptor. It indicates that there is 1 messages tx, 1 report tx, and 1 events tx tagged to this Transaction.
-		// ? If we decide to split the messages tx up into smaller segments, then the descriptor will be ls_m1re:storage_id
-		const storageId = `ls_mr${events ? 'e' : ''}:${leadStorageId}`;
+		const transactions = await Promise.all(txArr);
+
+		const storageId = Base64.encode(transactions.join(','), true);
 
 		for (const tag of txTags) {
 			transactions.forEach((tx) => {
@@ -140,10 +129,16 @@ export class ArweaveSplit implements IStorageProvider {
 	}
 
 	async retrieveBundle(storageId: string, timeout: number) {
-		const { data: storageData } = await axios.get(
-			`https://arweave.net/${storageId}`,
-			{ responseType: 'arraybuffer', timeout }
-		);
+		const ids = Base64.decode(storageId).split(',');
+		const buffers: Buffer[] = [];
+		for (const id of ids) {
+			const { data } = await axios.get(`https://arweave.net/${id}`, {
+				responseType: 'arraybuffer',
+				timeout,
+			});
+			buffers.push(data);
+		}
+		const storageData = Buffer.concat(buffers);
 
 		return { storageId, storageData };
 	}
