@@ -47,11 +47,8 @@ type DB = RootDatabase<Events, BlockNumber>;
 export class EventsIndexer {
 	protected _cachePath: string;
 	private _db!: DB;
-	// private _running: boolean = false;
 	private _ready: boolean = false;
-	private _latestBlockNumber: number; // Latest indexed block number that may or may not be cold-stored
 	private _latestColdBlockNumber: number; // Latest block number that is cold-stored
-	private _startBlock: number;
 
 	constructor(
 		homeDir: string,
@@ -64,8 +61,15 @@ export class EventsIndexer {
 		this._cachePath = path.join(homeDir, '.logstore-events');
 	}
 
-	public get latestTimestamp() {
-		return this._latestBlockNumber;
+	public get latestBlockNumber() {
+		// ? If the index already exists, check it's latest data.
+		for (const { key } of this.db().getRange({
+			reverse: true,
+			limit: 1,
+		})) {
+			return key;
+		}
+		return this.startBlockNumber;
 	}
 
 	/**
@@ -77,24 +81,13 @@ export class EventsIndexer {
 	 */
 	public async start(): Promise<void> {
 		const dbPath = path.join(this._cachePath, 'cache');
-		this._db = Database.create('time-index', dbPath) as DB;
-
-		// ? If the index already exists, check it's latest data.
-		for (const { key, value } of this._db.getRange({
-			reverse: true,
-			limit: 1,
-		})) {
-			this.logger.debug(`Fetch last Events Index item - ${key}: ${value}`);
-			this._latestBlockNumber = key;
-		}
+		this._db = Database.create('events-index', dbPath) as DB;
 
 		this.logger.info('Starting EventsIndexer ...');
-
-		if (!this._startBlock) {
-			this._startBlock = this.startBlockNumber;
-		}
-
-		this.logger.info('EventsIndexer: Start Block Number: ', this._startBlock);
+		this.logger.info(
+			'EventsIndexer: Start Block Number: ',
+			this.startBlockNumber
+		);
 
 		await this.hydrate();
 		this._ready = true;
@@ -143,8 +136,9 @@ export class EventsIndexer {
 			}
 		}
 
-		if (toBlockNumber && toBlockNumber > this._latestBlockNumber) {
-			const fromBlockNumber = this._latestBlockNumber + 1;
+		const latestBlockNumber = this.latestBlockNumber;
+		if (toBlockNumber && toBlockNumber > latestBlockNumber) {
+			const fromBlockNumber = latestBlockNumber + 1;
 
 			const newEvents = await this.chain.use(async (source) => {
 				const collectedEvents: Events = {};
@@ -216,8 +210,6 @@ export class EventsIndexer {
 						await this.db().put(blockNumber, indexEvent);
 					}
 				}
-
-				this._latestBlockNumber = toBlockNumber;
 			}
 		}
 
@@ -229,10 +221,10 @@ export class EventsIndexer {
 	 */
 	public prepare(lock = false) {
 		const events: EventsByBlock[] = [];
-		// ? If the index already exists, check it's latest data.
+		// ? Start from the block number after the latest block number stored to cold store.
 		for (const { key, value } of this._db.getRange({
-			start: this._latestColdBlockNumber,
-			end: this._latestBlockNumber,
+			start:
+				this._latestColdBlockNumber > 0 ? this._latestColdBlockNumber + 1 : 0,
 		})) {
 			events.push({
 				k: key,
@@ -240,7 +232,7 @@ export class EventsIndexer {
 			});
 		}
 		if (lock) {
-			this._latestColdBlockNumber = this._latestBlockNumber;
+			this._latestColdBlockNumber = this.latestBlockNumber;
 		}
 		return events;
 	}
@@ -250,28 +242,6 @@ export class EventsIndexer {
 			throw new Error('Database is not initialised');
 		}
 		return this._db;
-	}
-
-	/**
-	 * Index events
-	 */
-	private async index(events: EventsByBlock[]) {
-		// ...
-		events.forEach((event) => {
-			if (event.k > this._latestBlockNumber) {
-				this._latestColdBlockNumber = event.k;
-			}
-		});
-	}
-
-	private async indexById(txId: string) {
-		const { data } = await axios.get(`https://arweave.net/${txId}`, {
-			responseType: 'arraybuffer',
-			timeout: 30000,
-		});
-		const raw = await gunzip(data);
-		const events = JSON.parse(raw.toString()) as EventsByBlock[];
-		await this.index(events);
 	}
 
 	/**
@@ -285,9 +255,10 @@ export class EventsIndexer {
 		let total = 0;
 		while (count < total || total === 0) {
 			const reqCounts = [];
-			let reqTotalSum = 0;
+			const reqTotals = [];
 			const reqNextKeys = [];
-			let eventsTxId;
+			const eventsTxIds = [];
+
 			for (let i = 0; i < this.kyve.length; i++) {
 				const client = this.kyve[i];
 				const results = await client.kyve.query.v1beta1.finalizedBundles({
@@ -303,10 +274,7 @@ export class EventsIndexer {
 				});
 
 				reqCounts.push(results.finalized_bundles.length);
-				// if (reqTotals.length < this.kyve.length) {
-				// 	reqTotals.push(parseInt(results.pagination.total, 10));
-				// }
-				reqTotalSum += parseInt(results.pagination.total, 10);
+				reqTotals.push(parseInt(results.pagination.total, 10));
 				reqNextKeys.push(results.pagination.next_key);
 
 				// Process results
@@ -316,29 +284,46 @@ export class EventsIndexer {
 					if (fb.storage_id.startsWith('v0:')) {
 						const encodedId = fb.storage_id.substring(3, fb.storage_id.length);
 						const txIds = Base64.decode(encodedId).split(',');
+						// ? For v0: decoded tx ids are comma separated, like so: messages,report,events
 						if (txIds.length > 2) {
-							eventsTxId = txIds.at(-1);
+							eventsTxIds.push(txIds.at(-1));
 						}
 					}
 				}
 			}
+
 			// Validate the different client results
-			let reqCountsSum = 0;
-			reqCounts.forEach((c) => {
-				reqCountsSum += c;
-			});
-			reqCounts.forEach((c) => {
-				if (reqCountsSum / this.kyve.length !== c) {
-					throw new Error('Receiving different results from Kyve LCD clients');
-				}
-			});
-			total = reqTotalSum / this.kyve.length;
+			if (
+				!reqCounts.every((n) => n === reqCounts[0]) ||
+				!reqTotals.every((n) => n === reqTotals[0]) ||
+				!eventsTxIds.every((id) => id === eventsTxIds[0])
+			) {
+				throw new Error('Receiving different results from Kyve LCD clients');
+			}
+			total = reqTotals[0];
 			count += reqCounts[0];
 
-			if (eventsTxId) {
-				// Fetch bundle from id and index
-				await this.indexById(eventsTxId);
+			if (eventsTxIds.length === 0) {
+				continue;
 			}
+
+			const txId = eventsTxIds[0];
+
+			// Fetch bundle from id and index
+			const { data } = await axios.get(`https://arweave.net/${txId}`, {
+				responseType: 'arraybuffer',
+				timeout: 30000,
+			});
+			const raw = await gunzip(data);
+			const events = JSON.parse(raw.toString()) as EventsByBlock[];
+			const db = this.db();
+			await db.transaction(() => {
+				for (const event of events) {
+					/* eslint-disable-next-line */
+					db.put(event.k, event.v);
+				}
+			});
+			this._latestColdBlockNumber = events.at(-1).k;
 		}
 	}
 }

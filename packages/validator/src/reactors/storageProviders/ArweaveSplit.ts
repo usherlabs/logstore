@@ -13,7 +13,7 @@ import { Base64 } from 'js-base64';
 import { gzip } from '../../utils/gzip';
 
 export class ArweaveSplit implements IStorageProvider {
-	public name = 'ArweaveSplit';
+	public name = 'LogStoreArweaveSplit';
 	public decimals = 12;
 
 	private readonly storagePriv: string;

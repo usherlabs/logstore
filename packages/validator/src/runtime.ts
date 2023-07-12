@@ -150,15 +150,32 @@ export default class Runtime implements IRuntimeExtended {
 		const firstItem = bundle.at(0);
 		const lastItem = bundle.at(-1);
 
+		const summary = [lastItem.key];
+
 		core.logger.info(`Create Report: ${lastItem.key}`);
 		const bundleStartKey = (parseInt(firstItem.key, 10) - KEY_STEP).toString();
 		const report = new Report(this, core.logger, bundleStartKey, lastItem.key);
 		const systemReport = await report.generate();
 		const reportData = systemReport.serialize();
-		const reportHash = sha256(Buffer.from(JSON.stringify(reportData))); // use sha256 of entire report to include "events".
-
+		const reportHash = sha256(Buffer.from(JSON.stringify(reportData))); // use sha256 of entire report to include report.events.
+		core.logger.debug(`Report hash generated: ${reportHash}`);
 		lastItem.value.r = reportData;
-		return lastItem.key + '_' + reportHash;
+		summary.push(reportHash);
+
+		core.logger.info(`Create Events: ${lastItem.key}`);
+		const eventsForColdStore = this.events.prepare(true);
+		if (eventsForColdStore.length > 0) {
+			core.logger.debug(
+				`${eventsForColdStore.length} events prepared for cold storage`
+			);
+			const eventsHash = sha256(
+				Buffer.from(JSON.stringify(eventsForColdStore))
+			);
+			lastItem.value.e = eventsForColdStore;
+			summary.push(eventsHash);
+		}
+
+		return summary.join('_');
 	}
 
 	async startKey(): Promise<number> {
