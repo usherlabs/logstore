@@ -10,7 +10,7 @@ import axios from 'axios';
 import { Base64 } from 'js-base64';
 
 import { gzip } from '../../utils/gzip';
-import { Slogger } from '../utils/slogger';
+import { Slogger } from '../../utils/slogger';
 
 export class ArweaveSplit implements IStorageProvider {
 	public name = 'LogStoreArweaveSplit';
