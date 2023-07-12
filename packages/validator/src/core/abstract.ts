@@ -1,5 +1,5 @@
 import { Managers } from '../managers';
-import type { IConfig, IRuntimeExtended } from '../types';
+import type { IRuntimeExtended } from '../types';
 import type Validator from '../validator';
 
 export abstract class AbstractDataItem<IPrepared> {
@@ -8,7 +8,6 @@ export abstract class AbstractDataItem<IPrepared> {
 	constructor(
 		protected core: Validator,
 		protected runtime: IRuntimeExtended,
-		protected config: IConfig,
 		protected fromKey: string,
 		protected toKey: string
 	) {}
@@ -16,9 +15,8 @@ export abstract class AbstractDataItem<IPrepared> {
 	abstract load(managers: Managers, source: string): Promise<IPrepared>;
 
 	public async prepare() {
-		const { config } = this;
 		this.prepared = await Managers.withSources<IPrepared>(
-			config.sources,
+			this.runtime.config.sources,
 			async (managers: Managers, source: string) => {
 				const outcome = await this.load(managers, source);
 				return outcome;

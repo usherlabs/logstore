@@ -98,7 +98,7 @@ export class TimeIndexer {
 				startBlock = value.b;
 			}
 
-			this.logger.info('Starting time indexer ...');
+			this.logger.info('Starting TimeIndexer ...');
 
 			if (startBlock === 0) {
 				startBlock = await Managers.withSources<number>(
@@ -114,7 +114,7 @@ export class TimeIndexer {
 				);
 			}
 
-			this.logger.info('Start Block Number: ', startBlock);
+			this.logger.info('TimeIndexer: Start Block Number: ', startBlock);
 
 			await this.etl(startBlock);
 		} catch (e) {

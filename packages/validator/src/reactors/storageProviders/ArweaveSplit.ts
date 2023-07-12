@@ -9,7 +9,8 @@ import ArweaveClient from '@logsn/arweave';
 import { JWKInterface } from '@logsn/arweave/node/lib/wallet';
 import axios from 'axios';
 import { Base64 } from 'js-base64';
-import { gunzipSync, gzipSync } from 'zlib';
+
+import { gzip } from '../../utils/gzip';
 
 export class ArweaveSplit implements IStorageProvider {
 	public name = 'ArweaveSplit';
@@ -52,8 +53,8 @@ export class ArweaveSplit implements IStorageProvider {
 		const events = lastItem['e'];
 		delete bundleData[bundleData.length - 1]['r'];
 		delete bundleData[bundleData.length - 1]['e'];
-		const messagesUploadData = gzipSync(bundleToBytes(bundleData));
-		const reportUploadData = gzipSync(Buffer.from(JSON.stringify(report)));
+		const messagesUploadData = await gzip(bundleToBytes(bundleData));
+		const reportUploadData = await gzip(Buffer.from(JSON.stringify(report)));
 
 		// if (tag.name === 'Content-Type') {
 		// 	value = 'application/gzip';
@@ -80,7 +81,7 @@ export class ArweaveSplit implements IStorageProvider {
 		let eventsTx: typeof reportTx;
 		if (events) {
 			// Events
-			const eventsUploadData = gzipSync(Buffer.from(JSON.stringify(events)));
+			const eventsUploadData = await gzip(Buffer.from(JSON.stringify(events)));
 			eventsTx = this.arweaveClient.createTransaction({
 				data: eventsUploadData,
 			});
@@ -89,7 +90,11 @@ export class ArweaveSplit implements IStorageProvider {
 
 		const transactions = await Promise.all(txArr);
 
-		const storageId = Base64.encode(transactions.join(','), true);
+		// ? The prefix is meant to provide context to the storageId.
+		// ? ie. for Now, we're using this Version 0 of this storage identifier protocol
+		const prefix = `v0:`;
+		const storageId =
+			prefix + Base64.encode(transactions.map((tx) => tx.id).join(','), true);
 
 		for (const tag of txTags) {
 			transactions.forEach((tx) => {

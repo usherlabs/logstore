@@ -4,7 +4,6 @@ import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
 
 import { Managers } from '../managers';
-import { KEY_STEP } from '../runtime';
 import { AbstractDataItem } from './abstract';
 
 interface IPrepared {
@@ -18,18 +17,17 @@ export class Item extends AbstractDataItem<IPrepared> {
 	prepared: IPrepared;
 
 	override async load(managers: Managers) {
-		const { toKey: key } = this;
+		const { toKey } = this;
 
-		const toKey = parseInt(key, 10);
-		if (toKey === 0) {
+		const toKeyInt = parseInt(toKey, 10);
+		if (toKeyInt === 0) {
 			return { stores: [] };
 		}
 
-		const fromBlock = await this.runtime.startBlockNumber();
-		const toBlock = await this.runtime.time.find(toKey);
+		const toBlock = await this.runtime.time.find(toKeyInt);
 
 		// Fetch full store list
-		const stores = await managers.store.getStores(fromBlock, toBlock);
+		const stores = await managers.store.getStores(toBlock);
 
 		return {
 			stores,
@@ -38,13 +36,14 @@ export class Item extends AbstractDataItem<IPrepared> {
 
 	// eslint-disable-next-line
 	public async generate(): Promise<any[]> {
-		const { toKey: key } = this;
+		const { toKey, fromKey } = this;
 		const { stores } = this.prepared;
 
-		const keyInt = parseInt(key, 10);
+		const toKeyInt = parseInt(toKey, 10);
+		const fromKeyInt = parseInt(fromKey, 10);
 		// Range will be from last key (timestamp) to this key
-		const fromTimestamp = (keyInt - KEY_STEP) * 1000;
-		const toTimestamp = keyInt * 1000;
+		const fromTimestamp = fromKeyInt * 1000;
+		const toTimestamp = toKeyInt * 1000;
 
 		const messages: {
 			content: unknown;

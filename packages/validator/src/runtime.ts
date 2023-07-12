@@ -6,7 +6,7 @@ import { Item } from './core/item';
 import { Report } from './core/report';
 import { appPackageName, appVersion } from './env-config';
 import { Managers } from './managers';
-import { SystemListener, TimeIndexer } from './threads';
+import { EventsIndexer, SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
@@ -26,7 +26,7 @@ export default class Runtime implements IRuntimeExtended {
 	};
 	public listener: SystemListener;
 	public time: TimeIndexer;
-	private _startBlockNumber: number;
+	public events: EventsIndexer;
 	private _startKey: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
@@ -36,9 +36,18 @@ export default class Runtime implements IRuntimeExtended {
 			this.config.systemStreamId,
 			core.logger
 		);
+		this.events = new EventsIndexer(
+			homeDir,
+			core.pool.id,
+			this.config,
+			core.lcd,
+			core.logger
+		);
+		Managers.withIndexer(this.events); // Register runtime instance of EventsIndexer for use in Managers.
 
 		await this.time.start();
 		await this.listener.start();
+		await this.events.start();
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {
@@ -89,7 +98,8 @@ export default class Runtime implements IRuntimeExtended {
 		}
 
 		// -------- Produce the Data Item --------
-		const item = new Item(core, this, this.config, key, key);
+		const fromKey = (keyInt - KEY_STEP).toString();
+		const item = new Item(core, this, fromKey, key);
 		await item.prepare();
 		const messages = await item.generate();
 
@@ -133,13 +143,7 @@ export default class Runtime implements IRuntimeExtended {
 		const lastItem = bundle.at(-1);
 		const bundleStartKey = (parseInt(firstItem.key, 10) - KEY_STEP).toString();
 		core.logger.info(`Create Report: ${lastItem.key}`);
-		const report = new Report(
-			core,
-			this,
-			this.config,
-			bundleStartKey,
-			lastItem.key
-		);
+		const report = new Report(core, this, bundleStartKey, lastItem.key);
 		await report.prepare();
 		const systemReport = await report.generate();
 		const reportData = systemReport.serialize();
@@ -149,22 +153,9 @@ export default class Runtime implements IRuntimeExtended {
 		return lastItem.key + '_' + reportHash;
 	}
 
-	async startBlockNumber(): Promise<number> {
-		if (!this._startBlockNumber) {
-			this._startBlockNumber = await Managers.withSources<number>(
-				this.config.sources,
-				async (managers) => {
-					return await managers.node.getStartBlockNumber();
-				}
-			);
-		}
-
-		return this._startBlockNumber;
-	}
-
 	async startKey(): Promise<number> {
 		if (!this._startKey) {
-			const startBlockNumber = await this.startBlockNumber();
+			const startBlockNumber = this.events.startBlock;
 			// Re-fetch the start key from sources rather than from time-index, as time-index starts from last report id
 			this._startKey = await Managers.withSources<number>(
 				this.config.sources,
