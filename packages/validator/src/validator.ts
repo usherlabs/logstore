@@ -27,9 +27,8 @@ export async function validateDataAvailability(this: Validator): Promise<void> {
 
 		let currentKeyMs = await getCurrentKeyMs();
 		while (
-			!this.runtime.listener.startTime
-			// !this.runtime.listener.startTime ||
-			// (currentKeyMs !== 0 && this.runtime.listener.startTime > currentKeyMs)
+			!this.runtime.listener.startTime ||
+			(currentKeyMs !== 0 && this.runtime.listener.startTime > currentKeyMs)
 		) {
 			if (!this.runtime.listener.startTime) {
 				this.logger.info(
