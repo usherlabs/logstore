@@ -28,6 +28,7 @@ import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
 import { Heartbeat } from './threads/Heartbeat';
 import { SystemRecovery } from './threads/SystemRecovery';
+import { EventsIndexer, SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
@@ -81,7 +82,7 @@ export default class Runtime implements IRuntimeExtended {
 	public heartbeat: Heartbeat;
 	public listener: SystemListener;
 	public time: TimeIndexer;
-	private _startBlockNumber: number;
+	public events: EventsIndexer;
 	private _startKey: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
@@ -155,10 +156,19 @@ export default class Runtime implements IRuntimeExtended {
 			messageMetricsSummary,
 			core.logger
 		);
+		this.events = new EventsIndexer(
+			homeDir,
+			core.pool.id,
+			this.config,
+			core.lcd,
+			core.logger
+		);
+		Managers.withIndexer(this.events); // Register runtime instance of EventsIndexer for use in Managers.
 
 		await this.heartbeat.start();
 		await this.time.start();
 		await this.listener.start();
+		await this.events.start();
 
 		setInterval(
 			() =>
@@ -244,7 +254,8 @@ export default class Runtime implements IRuntimeExtended {
 		}
 
 		// -------- Produce the Data Item --------
-		const item = new Item(core, this, this.config, key, key);
+		const fromKey = (keyInt - KEY_STEP).toString();
+		const item = new Item(core, this, fromKey, key);
 		await item.prepare();
 		const messages = await item.generate();
 
@@ -303,7 +314,6 @@ export default class Runtime implements IRuntimeExtended {
 		const report = new Report(
 			core,
 			this,
-			this.config,
 			firstItem.key,
 			lastItem.key
 		);
@@ -322,21 +332,9 @@ export default class Runtime implements IRuntimeExtended {
 		return lastItem.key + '_' + reportHash;
 	}
 
-	async startBlockNumber(): Promise<number> {
-		if (!this._startBlockNumber) {
-			this._startBlockNumber = await Managers.withSources<number>(
-				async (managers) => {
-					return await managers.node.getStartBlockNumber();
-				}
-			);
-		}
-
-		return this._startBlockNumber;
-	}
-
 	async startKey(): Promise<number> {
 		if (!this._startKey) {
-			const startBlockNumber = await this.startBlockNumber();
+			const startBlockNumber = this.events.startBlock;
 			// Re-fetch the start key from sources rather than from time-index, as time-index starts from last report id
 			this._startKey = await Managers.withSources<number>(async (managers) => {
 				return (await managers.getBlock(startBlockNumber)).timestamp;

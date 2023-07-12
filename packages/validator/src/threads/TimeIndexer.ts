@@ -94,7 +94,7 @@ export class TimeIndexer {
 				}
 			);
 
-			this.logger.info('Start Block Number: ', startBlock);
+			this.logger.info('TimeIndexer: Start Block Number: ', startBlock);
 
 			await this.etl(startBlock);
 		} catch (e) {
