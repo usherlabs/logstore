@@ -8,6 +8,7 @@ import {
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
 import { ethers, Signer, Wallet } from 'ethers';
+import { Base64 } from 'js-base64';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
@@ -143,11 +144,28 @@ export class ReportPoller {
 		const { data: response } = await axios.get(
 			`${this.poolConfig.url}/kyve/query/v1beta1/finalized_bundle/${this.poolConfig.id}/${bundleId}`
 		);
-		const arweaveStorageId = response.finalized_bundle.storage_id;
+		const storageId = response.finalized_bundle.storage_id;
+		let arweaveTxId = storageId;
+		if (storageId.startsWith('v0:')) {
+			const encodedId = storageId.substring(3, storageId.length);
+			const txIds = Base64.decode(encodedId).split(',');
+			// ? For v0: decoded tx ids are comma separated, like so: messages,report,events
+			if (typeof txIds[1] === 'undefined') {
+				logger.error(
+					`Report Transaction Id does not exist in Storage Id ${storageId}`,
+					{
+						bundleId,
+						txIds,
+					}
+				);
+				throw new Error(`Report Transaction Id does not exist in Storage Id`);
+			}
+			arweaveTxId = txIds[1];
+		}
 		// using the storage id, we fetch the information from arweave
 		// It should be noted that what is gotten is an array buffer since we expect the file to be zipped
 		const { data: gzippedData } = await axios.get(
-			`https://arweave.net/${arweaveStorageId}`,
+			`https://arweave.net/${arweaveTxId}`,
 			{
 				responseType: 'arraybuffer',
 			}
