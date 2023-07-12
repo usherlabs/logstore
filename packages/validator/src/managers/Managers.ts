@@ -14,11 +14,4 @@ export class Managers {
 		this.store = new StoreManager(chain, indexer);
 		this.report = new ReportManager(chain, indexer);
 	}
-
-	public async getBlock(blockNumber: number) {
-		return this.chain.use(async (source) => {
-			const block = await source.provider.getBlock(blockNumber);
-			return block;
-		});
-	}
 }

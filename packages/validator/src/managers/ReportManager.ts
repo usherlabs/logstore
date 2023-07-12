@@ -1,19 +1,23 @@
-import { LogStoreReportManager } from '@logsn/contracts';
 import {
 	IReportV1,
 	ReportSerializerVersions,
 	SystemReport,
 } from '@logsn/protocol';
 
-export class ReportManager {
-	constructor(private _contract: LogStoreReportManager) {}
+import type { ChainSources } from '../sources';
+import type { EventsIndexer } from '../threads';
 
-	public get contract() {
-		return this._contract;
-	}
+export class ReportManager {
+	constructor(
+		protected chain: ChainSources,
+		protected indexer: EventsIndexer
+	) {}
 
 	async getLastReport(): Promise<SystemReport> {
-		const r = await this.contract.getLastReport();
+		const r = await this.chain.use(async (source) => {
+			const contract = await source.contracts.report();
+			return await contract.getLastReport();
+		});
 
 		const nodes = {};
 		r.nodes.forEach((n) => {

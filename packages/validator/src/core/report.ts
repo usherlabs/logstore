@@ -1,103 +1,26 @@
 import { SystemReport } from '@logsn/protocol';
 import Decimal from 'decimal.js';
+import type { Logger } from 'tslog';
 
-import { Managers } from '../managers';
-import { StakeToken } from '../managers/stake-token';
-import { IBrokerNode, IValidatorReport } from '../types';
+import { IValidatorReport } from '../types';
+import type { IRuntimeExtended } from '../types';
 import { Arweave } from '../utils/arweave';
 import { fetchQueryResponseConsensus } from '../utils/helpers';
 import { ReportUtils } from '../utils/report';
-import { AbstractDataItem } from './abstract';
 
-interface IPrepared {
-	fromKey: number;
-	toKey: number;
-	blockNumber: number;
-	stakeToken: StakeToken;
-	brokerNodes: IBrokerNode[];
-}
+export class Report {
+	constructor(
+		protected runtime: IRuntimeExtended,
+		protected logger: Logger,
+		protected fromKey: string,
+		protected toKey: string
+	) {}
 
-export class Report extends AbstractDataItem<IPrepared> {
-	prepared: IPrepared;
-
-	override async load(managers: Managers) {
-		const { core, fromKey: fromKeyStr, toKey: toKeyStr } = this;
-		const fromKey = parseInt(fromKeyStr, 10);
-		const toKey = parseInt(toKeyStr, 10);
-		core.logger.debug('Report Range:', JSON.stringify({ fromKey, toKey }));
-
-		if (toKey === 0) {
-			return {
-				fromKey: 0,
-				toKey: 0,
-				blockNumber: 0,
-				stakeToken: undefined,
-				brokerNodes: [],
-			};
-		}
-
-		// Get all state from Smart Contract up to the current key (where key = block at a timestamp)
-		// We do this by using the key (timestamp) to determine the most relevant block
-		// ? We need to get the closest block because it may not be the most recent block...
-		core.logger.debug('getBlockByTime...');
-		const fromBlockNumber = await this.runtime.time.find(fromKey);
-		const toBlockNumber = await this.runtime.time.find(toKey);
-		core.logger.debug(
-			'Block Number:',
-			JSON.stringify({
-				blockNumber: toBlockNumber,
-			})
-		);
-
-		// Now that we have the block that most closely resemble the current key
-		const stakeToken = await managers.node.getStakeToken(toBlockNumber);
-		// Produce brokerNode list by starting at headNode and iterating over nodes.
-		const brokerNodes = await managers.node.getBrokerNodes(
-			fromBlockNumber,
-			toBlockNumber,
-			stakeToken.minRequirement
-		);
-		core.logger.debug('Broker Nodes:', JSON.stringify(brokerNodes));
-
-		return {
-			fromKey,
-			toKey,
-			blockNumber: toBlockNumber,
-			stakeToken,
-			brokerNodes,
-		};
-	}
-
-	public async generate(): Promise<SystemReport> {
-		const {
-			// TODO use again on 0.0.3 implementation
-			fromKey: _fromKey,
-			toKey: _toKey,
-			blockNumber,
-			// TODO use again on 0.0.3 implementation
-			brokerNodes: _brokerNodes,
-			stakeToken: _stakeToken,
-		} = this.prepared;
-
-		const {
-			core,
-			// TODO use again on 0.0.3 implementation
-			// runtime: {
-			// 	listener,
-			// 	config: { fees },
-			// },
-			toKey: keyStr,
-			// TODO use again on 0.0.3 implementation
-			// config: { fees },
-		} = this;
-
-		// const fromKeyMs = (fromKey - rollingConfig(fromKey).prev.keyStep) * 1000;
-		// const toKeyMs = toKey * 1000;
-
+	public scaffold(id: string, height: number): IValidatorReport {
 		// Establish the report
 		const report: IValidatorReport = {
-			id: keyStr,
-			height: blockNumber,
+			id,
+			height,
 			treasury: new Decimal(0),
 			streams: [],
 			consumers: [],
@@ -109,14 +32,56 @@ export class Report extends AbstractDataItem<IPrepared> {
 			},
 		};
 
-		if (keyStr === '0') {
-			return ReportUtils.finalise(report);
+		return report;
+	}
+
+	public async generate(): Promise<SystemReport> {
+		const {
+			fromKey,
+			toKey,
+			runtime: {
+				listener,
+				managers,
+				time,
+				config: { fees },
+			},
+		} = this;
+
+		// ------------ SCAFFOLD ------------
+		const fromKeyInt = parseInt(fromKey, 10);
+		const toKeyInt = parseInt(toKey, 10);
+		this.logger.debug('Report Range: ', { fromKey, toKey });
+
+		if (toKeyInt === 0) {
+			return ReportUtils.finalise(this.scaffold('', 0));
 		}
 
-		// ------------ SETUP UTILS ------------
-		// This method works by distributing a total captured fee amount to a set of nodes.
-		// The report yields a difference in node's balance (positive or negative) to apply to the balance on-chain
-		// ie. If the report indicates a node value is X, then increment the balance by X, otherwise if value is -Y, then decrement the balance by Y
+		// Get all state from Smart Contract up to the current key (where key = block at a timestamp)
+		// We do this by using the key (timestamp) to determine the most relevant block
+		// ? We need to get the closest block because it may not be the most recent block...
+		// const fromBlockNumber = await time.find(fromKey);
+		const toBlockNumber = await time.find(toKeyInt);
+		this.logger.debug('Block Number: ', {
+			blockNumber: toBlockNumber,
+		});
+
+		// Now that we have the block that most closely resemble the current key
+		const stakeToken = await managers.node.getStakeToken(toBlockNumber);
+		// Produce brokerNode list by starting at headNode and iterating over nodes.
+		const brokerNodes = await managers.node.getBrokerNodes(
+			toBlockNumber,
+			stakeToken.minRequirement
+		);
+		this.logger.debug('Broker Nodes: ', brokerNodes);
+
+		const fromKeyMs = fromKeyInt * 1000;
+		const toKeyMs = toKeyInt * 1000;
+
+		// Establish the report
+		const report = this.scaffold(toKey, toBlockNumber);
+
+		// ------------------------------------
+
 		// ------------ SETUP UTILS ------------
 		// This method works by distributing a total captured fee amount to a set of nodes.
 		// The report yields a difference in node's balance (positive or negative) to apply to the balance on-chain
@@ -188,6 +153,72 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// const currentMessages = this.getMessagesFromBroker({fromTimestamp, toTimestamp})
 		// const [validMessages, invalidMessages] = this.validateMessages(currentMessages)
 		// this.includeValidMessagesInformationOnReport({validMessages, invalidMessages})
+		// Use events in the listener cache to determine which events are valid.
+		const storeCache = listener.storeDb();
+		// a mapping of "contentHash => [[timestamp, valueIndex], [timestamp, valueIndex]]"
+		// With this mapping, we can determine which events in the storeCache pertain to the ProofOfMessageStored hash - and therefore which publishers/brokers contributed.
+		const storeHashKeyMap: Record<string, [number, number][]> = {};
+		const storeCachedItems = storeCache.getRange({
+			start: fromKeyMs,
+			end: toKeyMs,
+		});
+		// TODO: We may need to create a special cache for streamIds that are complete dropped during a given item cycle.
+		for (const { key: cacheKey, value: cacheValue } of storeCachedItems) {
+			if (!cacheValue) continue;
+			for (let i = 0; i < cacheValue.length; i++) {
+				const value = cacheValue[i];
+
+				const { content, metadata } = value;
+				if (!(content && metadata)) {
+					continue;
+				}
+
+				// verify that the publisher is also a broker node
+				// -- despite access management being handled within the Smart Contracts, it's wise to validate here too
+				const brokerNode = brokerNodes.find(
+					(n) => n.id.toLowerCase() === metadata.publisherId.toLowerCase()
+				);
+				if (typeof brokerNode === 'undefined') {
+					continue;
+				}
+
+				if (content?.messageType === SystemMessageType.ProofOfMessageStored) {
+					// * The content should be the same for all ProofOfStoredMessage messages received, for a given stored message.
+					// We use a hash to consolidate the messages received, whereby the value references the list of single events received each broker on the broker network
+					const h = sha256(Buffer.from(JSON.stringify(content)));
+					if (!storeHashKeyMap[h]) {
+						storeHashKeyMap[h] = [];
+					}
+					// The key here will referece a specific event within the store cache using the key/index
+					storeHashKeyMap[h].push([cacheKey, i]);
+				}
+			}
+		}
+		this.logger.debug('Storage HashKeyMap: ', storeHashKeyMap);
+
+		// Apply valid storage events to report
+		const streamsMap: Record<
+			string,
+			{ bytes: number; contributors: string[] }
+		> = {};
+		const storeHashKeyMapEntries = Object.entries(storeHashKeyMap);
+		for (let i = 0; i < storeHashKeyMapEntries.length; i++) {
+			const [, storeKeys] = storeHashKeyMapEntries[i];
+			// use only messages which have been processed(stored) by at least half the broker nodes
+			if (storeKeys.length < brokerNodes.length / 2) {
+				continue;
+			}
+
+			// Add consolidated events to report
+			// ? Fees are determined after the report has been populated by the event data
+			const contributingPublishers = [];
+			for (let j = 0; j < storeKeys.length; j++) {
+				const [cacheKey, valueIndex] = storeKeys[j];
+				const cacheValues = storeCache.get(cacheKey);
+				const event = cacheValues[valueIndex];
+				if (!event) continue;
+
+				// Now, we're iterating over each specific proofOfMessageStored event published by each Broker on the Broker Network
 
 		// FIXME:
 		//				Old way:
@@ -468,7 +499,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		const sortedReport = ReportUtils.sort(report);
 
-		core.logger.debug('Report Generated', JSON.stringify(sortedReport));
+		this.logger.debug('Report Generated', sortedReport);
 
 		return ReportUtils.finalise(report);
 	}

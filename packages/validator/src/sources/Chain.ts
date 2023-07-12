@@ -4,7 +4,8 @@
  * This class with abstract all on-chain interacts and wrap each interaction with an iteration and aggration.
  * This way the managers can aggregate data across indexers and direct chain sources
  */
-import { JsonRpcProvider, Provider } from '@ethersproject/providers';
+import { BigNumber } from '@ethersproject/bignumber';
+import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 import {
 	LogStoreManager,
@@ -18,7 +19,7 @@ import {
 } from '@logsn/shared';
 import { cloneDeep } from 'lodash';
 
-import { getEvmPrivateKey } from '../env-config';
+import { getEvmPrivateKey, overrideStartBlockNumber } from '../env-config';
 
 const clean = (value: object) => {
 	if (!value) return value;
@@ -69,6 +70,54 @@ export class ChainSources {
 				},
 			});
 		}
+	}
+
+	public get sources() {
+		return this._sources.map((s) => s.provider.connection.url);
+	}
+
+	public getProvider(source: string): JsonRpcProvider | null {
+		const chainSource = this._sources.find(
+			(s) => s.provider.connection.url === source
+		);
+		if (!chainSource) {
+			return null;
+		}
+		return chainSource.provider;
+	}
+
+	// ? For testing purposes, enable overriding startBlockNumber
+	async getStartBlockNumber(): Promise<number> {
+		let startBlockNumber;
+		if (overrideStartBlockNumber !== '0') {
+			BigNumber.from(overrideStartBlockNumber);
+		} else {
+			startBlockNumber = await this.use(async (source) => {
+				const contract = await source.contracts.node();
+				return await contract.startBlockNumber();
+			});
+		}
+		const n = startBlockNumber.toNumber();
+		if (n === 0) {
+			throw new Error(
+				'No Brokers Nodes are available on the network to validate'
+			);
+		}
+		return n;
+	}
+
+	public async getBlock(blockNumber: number) {
+		return this.use(async (source) => {
+			const block = await source.provider.getBlock(blockNumber);
+			return block;
+		});
+	}
+
+	public async getTimestampByBlock(blockNumber: number) {
+		return this.use(async (source) => {
+			const block = await source.provider.getBlock(blockNumber);
+			return block.timestamp;
+		});
 	}
 
 	/**

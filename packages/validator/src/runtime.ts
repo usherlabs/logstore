@@ -28,6 +28,7 @@ import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
 import { Heartbeat } from './threads/Heartbeat';
 import { SystemRecovery } from './threads/SystemRecovery';
+import { ChainSources } from './sources';
 import { EventsIndexer, SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
@@ -80,12 +81,18 @@ export default class Runtime implements IRuntimeExtended {
 		},
 	};
 	public heartbeat: Heartbeat;
+	public chain: ChainSources;
 	public listener: SystemListener;
 	public time: TimeIndexer;
 	public events: EventsIndexer;
+	public managers: Managers;
 	private _startKey: number;
+	private _startBlockNumber: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
+		this.chain = new ChainSources(this.config.sources);
+		const startBlock = await this.startBlockNumber();
+
 		this._homeDir = homeDir;
 
 		const clientConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
@@ -159,11 +166,19 @@ export default class Runtime implements IRuntimeExtended {
 		this.events = new EventsIndexer(
 			homeDir,
 			core.pool.id,
-			this.config,
+			startBlock,
+			this.chain,
 			core.lcd,
 			core.logger
 		);
-		Managers.withIndexer(this.events); // Register runtime instance of EventsIndexer for use in Managers.
+		this.time = new TimeIndexer(homeDir, startBlock, this.chain, core.logger);
+		this.listener = new SystemListener(
+			homeDir,
+			this.config.systemStreamId,
+			core.logger
+		);
+
+		this.managers = new Managers(this.chain, this.events);
 
 		await this.heartbeat.start();
 		await this.time.start();
@@ -255,8 +270,7 @@ export default class Runtime implements IRuntimeExtended {
 
 		// -------- Produce the Data Item --------
 		const fromKey = (keyInt - KEY_STEP).toString();
-		const item = new Item(core, this, fromKey, key);
-		await item.prepare();
+		const item = new Item(this, core.logger, fromKey, key);
 		const messages = await item.generate();
 
 		return {
@@ -310,14 +324,10 @@ export default class Runtime implements IRuntimeExtended {
 	): Promise<string> {
 		const firstItem = bundle.at(0);
 		const lastItem = bundle.at(-1);
+
 		core.logger.info(`Create Report: ${lastItem.key}`);
-		const report = new Report(
-			core,
-			this,
-			firstItem.key,
-			lastItem.key
-		);
-		await report.prepare();
+		const bundleStartKey = (parseInt(firstItem.key, 10) - KEY_STEP).toString();
+		const report = new Report(this, core.logger, bundleStartKey, lastItem.key);
 		const systemReport = await report.generate();
 		const reportData = systemReport.serialize();
 		const reportHash = sha256(Buffer.from(JSON.stringify(reportData))); // use sha256 of entire report to include "events".
@@ -334,14 +344,20 @@ export default class Runtime implements IRuntimeExtended {
 
 	async startKey(): Promise<number> {
 		if (!this._startKey) {
-			const startBlockNumber = this.events.startBlock;
-			// Re-fetch the start key from sources rather than from time-index, as time-index starts from last report id
-			this._startKey = await Managers.withSources<number>(async (managers) => {
-				return (await managers.getBlock(startBlockNumber)).timestamp;
-			});
+			this._startKey = await this.chain.getTimestampByBlock(
+				await this.startBlockNumber()
+			);
 		}
 
 		return this._startKey;
+	}
+
+	async startBlockNumber(): Promise<number> {
+		if (!this._startBlockNumber) {
+			this._startBlockNumber = await this.chain.getStartBlockNumber();
+		}
+
+		return this._startBlockNumber;
 	}
 
 	// nextKey is called before getDataItem, therefore the dataItemCounter will be max_bundle_size when report is due.

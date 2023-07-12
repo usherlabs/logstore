@@ -9,14 +9,20 @@ import type {
 import Decimal from 'decimal.js';
 import { BigNumber } from 'ethers';
 
-import type { SystemListener, TimeIndexer } from '../threads';
+import { Managers } from '../managers';
+import { ChainSources } from '../sources';
+import type { EventsIndexer, SystemListener, TimeIndexer } from '../threads';
 import type Validator from '../validator';
 
 export interface IRuntimeExtended extends IRuntime {
 	listener: SystemListener;
 	time: TimeIndexer;
 	setupThreads?: (core: Validator, homeDir: string) => Promise<void>;
+	chain: ChainSources;
+	events: EventsIndexer;
+	managers: Managers;
 	startKey(): Promise<number>;
+	startBlockNumber(): Promise<number>;
 }
 
 export interface IConfig {

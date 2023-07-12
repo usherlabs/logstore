@@ -8,8 +8,7 @@ import shell from 'shelljs';
 import type { Logger } from 'tslog';
 
 import { copyFromTimeIndex } from '../env-config';
-import { Managers } from '../managers';
-import { IConfig } from '../types';
+import { ChainSources } from '../sources';
 import { Database } from '../utils/database';
 
 type BlockNumber = number;
@@ -43,9 +42,9 @@ export class TimeIndexer {
 	private _childProcesses: ChildProcess[] = [];
 
 	constructor(
-		private startTimestamp: number,
 		homeDir: string,
-		protected config: IConfig,
+		protected startBlockNumber: number,
+		protected chain: ChainSources,
 		protected logger: Logger
 	) {
 		this._cachePath = path.join(homeDir, '.logstore-time');
@@ -67,6 +66,7 @@ export class TimeIndexer {
 		try {
 			await fse.remove(this._cachePath);
 
+			let startBlock = this.startBlockNumber;
 			const dbPath = path.join(this._cachePath, 'cache');
 
 			// ? For testing purposes
@@ -84,15 +84,19 @@ export class TimeIndexer {
 
 			this.logger.info('Starting time indexer ...');
 
-			const startBlock = await Managers.withSources<number>(
-				async (managers) => {
-					if (this.startTimestamp) {
-						return await managers.findBlock(this.startTimestamp);
-					} else {
-						return await managers.node.getStartBlockNumber();
-					}
+			this.logger.info('Starting TimeIndexer ...');
+
+			const lastReportHeight = await this.chain.use(async (source) => {
+				const contract = await source.contracts.report();
+				const lastReport = await contract.getLastReport();
+				if ((lastReport || {})?.id) {
+					return lastReport.height;
 				}
-			);
+				return null;
+			});
+			if (lastReportHeight) {
+				startBlock = lastReportHeight.toNumber();
+			}
 
 			this.logger.info('TimeIndexer: Start Block Number: ', startBlock);
 
@@ -138,9 +142,12 @@ export class TimeIndexer {
 	}
 
 	private async etl(startBlock?: number) {
-		const { sources } = this.config;
 		const db = this.db();
 		this.logger.debug(`Start ETL from block ${startBlock || `'latest'`} ...`);
+
+		const sources = this.chain.sources;
+
+		const readyChecks = sources.map(() => false);
 
 		for (let i = 0; i < sources.length; i++) {
 			const run = async (source: string) => {
@@ -149,10 +156,13 @@ export class TimeIndexer {
 				)}.txt`;
 				const savefile = path.join(this._cachePath, saveFilename);
 				await fse.remove(savefile);
-				const managers = new Managers(source);
-				await managers.init();
-				const latestBlock =
-					(await managers.provider.getBlockNumber()) - CONFIRMATIONS;
+
+				const provider = this.chain.getProvider(source);
+				if (!provider) {
+					throw new Error('Invalid source used to get Provider in TimeIndexer');
+				}
+
+				const latestBlock = (await provider.getBlockNumber()) - CONFIRMATIONS;
 				const fromBlock = startBlock || latestBlock;
 
 				const child = spawn(shell.which('ethereumetl').toString(), [
