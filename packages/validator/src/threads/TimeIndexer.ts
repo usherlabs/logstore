@@ -23,7 +23,6 @@ type DB = RootDatabase<
 >;
 
 const CONFIRMATIONS = 128 as const; // The number of confirmations/blocks required to determine finality.
-const SCAN_BUFFER = 10 as const; // The time (in seconds) a find/scan will use to evaluate the indexed block
 const DEFAULT_DB_VALUE = { b: 0, s: [] };
 const POLL_INTERVAL = 10 as const; // The time (in seconds) to delay between the latest index and the next
 const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
@@ -148,51 +147,16 @@ export class TimeIndexer {
 			return 0;
 		}
 
-		// If exact match, use it.
-		const res = db.get(timestamp) || DEFAULT_DB_VALUE;
+		// Search for the nearest block with timestamp greater than the given
+		const res =
+			db.getRange({ start: timestamp, limit: 1 }).asArray[0]?.value ||
+			DEFAULT_DB_VALUE;
+
 		if (res.b > 0 && res.s.length > 0) {
 			return res.b;
-		}
-		// Create an array of diffs - indicating how far the parameter timestamp is from the current value
-		const diffs = [];
-		for (const { key, value } of db.getRange({
-			start: timestamp - SCAN_BUFFER,
-			end: timestamp + SCAN_BUFFER,
-		})) {
-			if (key === timestamp) {
-				return value.b;
-			}
-			diffs.push({ diff: Math.abs(timestamp - key), ts: key, block: value.b });
-		}
-
-		this.logger.debug('Scan blocks with timestamp', {
-			timestamp,
-			diffs,
-		});
-
-		if (diffs.length === 0) {
+		} else {
 			throw new Error('Could not find time indexed blocks for timestamp');
 		}
-		// Sort by diff and value
-		diffs.sort((a, b) => {
-			if (a.diff < b.diff) {
-				return -1;
-			}
-			if (a.diff > b.diff) {
-				return 1;
-			}
-			if (a.diff === b.diff) {
-				if (a.block < b.block) {
-					return -1;
-				}
-				if (a.block < b.block) {
-					return 1;
-				}
-			}
-			return 0;
-		});
-
-		return diffs[0].block;
 	}
 
 	protected db() {
