@@ -17,11 +17,18 @@ import type Validator from '../validator';
 export interface IRuntimeExtended extends IRuntime {
 	listener: SystemListener;
 	time: TimeIndexer;
-	setupThreads?: (core: Validator, homeDir: string) => Promise<void>;
 	chain: ChainSources;
 	events: EventsIndexer;
 	managers: Managers;
+	setup?: (core: Validator, homeDir: string) => Promise<void>;
+	runThreads?: (core: Validator) => void;
+	ready?: (
+		core: Validator,
+		syncPoolState: () => Promise<void>
+	) => Promise<void>;
+
 	startKey(): Promise<number>;
+
 	startBlockNumber(): Promise<number>;
 }
 

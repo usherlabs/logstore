@@ -12,6 +12,7 @@ import {
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
 import { ethers, Signer, Wallet } from 'ethers';
+import { Base64 } from 'js-base64';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
@@ -142,13 +143,36 @@ export class ReportPoller {
 	}
 
 	// using the bundle id, fetch information about this bundle
-	public async fetchReportData(bundleId: number): Promise<SystemReport> {
-		const finalizedBundle = await this.kyvePool.fetchFinalizedBundle(bundleId);
-		const arweaveStorageId = finalizedBundle.storageId;
-		// using the storage id, we fetch the information from arweave
+	private async fetchReportData(bundleId: number): Promise<SystemReport> {
+		logger.info(`Fetching the bundle with id:${bundleId}`);
+		// fetch information about the bundle parameter passed in
+		const { data: response } = await axios.get(
+			`${this.poolConfig.url}/kyve/query/v1beta1/finalized_bundle/${this.poolConfig.id}/${bundleId}`
+		);
+		const storageId = response.finalized_bundle.storage_id;
+		let arweaveTxId = storageId;
+		const isTxSplit = storageId.startsWith('v0_');
+		if (isTxSplit) {
+			const encodedId = storageId.substring(3, storageId.length);
+			const txIds = Base64.decode(encodedId).split(',');
+			// ? For v0_ decoded tx ids are comma separated, like so: messages,report,events
+			if (typeof txIds[1] === 'undefined') {
+				logger.error(
+					`Report Transaction Id does not exist in Storage Id ${storageId}`,
+					{
+						bundleId,
+						txIds,
+					}
+				);
+				throw new Error(`Report Transaction Id does not exist in Storage Id`);
+			}
+			arweaveTxId = txIds[1];
+		}
+
+		// using the arweave transaction id, we fetch the information from arweave
 		// It should be noted that what is gotten is an array buffer since we expect the file to be zipped
 		const { data: gzippedData } = await axios.get(
-			`https://arweave.net/${arweaveStorageId}`,
+			`https://arweave.net/${arweaveTxId}`,
 			{
 				responseType: 'arraybuffer',
 			}
@@ -158,13 +182,20 @@ export class ReportPoller {
 		const unzippedJsonStringified = await decompressData(gzippedData);
 		const unzippedJson = JSON.parse(unzippedJsonStringified as string);
 
-		// get a report from the last item in the bundle
-		const lastItem = unzippedJson.at(-1);
-		if (!lastItem.value.r) {
-			logger.error('Report not found in bundle');
-			throw Error('Report not found in bundle');
+		// Add compatibiliy for base reports included into a single bundle, and v0 of Arweave transacton splitting
+		let reportJson;
+		if (isTxSplit) {
+			reportJson = unzippedJson;
+		} else {
+			// get a report from the last item in the bundle
+			const lastItem = unzippedJson.at(-1);
+			if (!lastItem.value.r) {
+				logger.error('Report not found in bundle');
+				throw Error('Report not found in bundle');
+			}
+			reportJson = lastItem.value.r;
 		}
-		const { r: reportJson } = lastItem.value;
+
 		let systemReport: SystemReport;
 		try {
 			systemReport = new SystemReport(reportJson, reportJson.v);

@@ -1,6 +1,7 @@
-import { ChainSources } from '@/sources';
 import { getTokenPrice } from '@logsn/shared';
 import { BigNumber, ethers } from 'ethers';
+
+import { ChainSources } from '../sources';
 
 export class StakeToken {
 	// public price: number;

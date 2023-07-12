@@ -1,9 +1,33 @@
 import { callWithBackoffStrategy } from '@kyvejs/protocol';
-import { MessageMetadata } from '@logsn/client';
-import { omit } from 'lodash';
 import type { Logger } from 'tslog';
 
 import type { IRuntimeExtended } from '../types';
+
+type BundleMessageMetadata = {
+	messageId: {
+		streamId: string;
+		streamPartition: number;
+		timestamp: number;
+		sequenceNumber: number;
+		publisherId: string;
+		msgChainId: string;
+	};
+	prevMsgRef: {
+		timestamp: number;
+		sequenceNumber: number;
+	} | null;
+	messageType: number;
+	contentType: number;
+	encryptionType: number;
+	groupKeyId: string | null;
+	serializedNewGroupKey: string | null;
+	signature: string;
+};
+
+export type BundleMessage = {
+	content: unknown;
+	metadata: BundleMessageMetadata;
+};
 
 export class Item {
 	constructor(
@@ -13,13 +37,15 @@ export class Item {
 		protected toKey: string
 	) {}
 
-	public messageId(metadata: MessageMetadata): string {
-		const { streamId, streamPartition, timestamp, sequenceNumber } = metadata;
+	public stringifiedMessageId = (
+		id: BundleMessageMetadata['messageId']
+	): string => {
+		const { streamId, streamPartition, timestamp, sequenceNumber } = id;
 		return `${streamId}/${streamPartition}/${timestamp}/${sequenceNumber}`;
-	}
+	};
 
 	// eslint-disable-next-line
-	public async generate(): Promise<any[]> {
+	public async generate(): Promise<BundleMessage[]> {
 		const { toKey, fromKey } = this;
 
 		const toKeyInt = parseInt(toKey, 10);
@@ -37,10 +63,7 @@ export class Item {
 		const fromTimestamp = fromKeyInt * 1000;
 		const toTimestamp = toKeyInt * 1000;
 
-		const messages: {
-			content: unknown;
-			metadata: MessageMetadata;
-		}[] = [];
+		const messages: BundleMessage[] = [];
 		for (let i = 0; i < stores.length; i++) {
 			const store = stores[i];
 
@@ -60,9 +83,16 @@ export class Item {
 						}
 					);
 					for await (const msg of resp) {
+						const {
+							metadata: { newGroupKey, id, ...metadata },
+						} = msg;
 						messages.push({
 							content: msg.content,
-							metadata: omit(msg, 'content'),
+							metadata: {
+								...metadata,
+								messageId: id,
+								serializedNewGroupKey: newGroupKey.serialize(),
+							},
 						});
 					}
 				},
@@ -77,8 +107,8 @@ export class Item {
 		}
 
 		const sortedMessages = messages.sort((a, b) => {
-			return this.messageId(a.metadata).localeCompare(
-				this.messageId(b.metadata)
+			return this.stringifiedMessageId(a.metadata.messageId).localeCompare(
+				this.stringifiedMessageId(b.metadata.messageId)
 			);
 		});
 

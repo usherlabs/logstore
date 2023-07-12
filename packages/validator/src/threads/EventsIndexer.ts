@@ -1,5 +1,5 @@
-import { sleep } from '@kyvejs/protocol';
-import type { KyveLCDClientType } from '@kyvejs/sdk';
+import { KyveLCDClientType } from '@kyvejs/sdk';
+import { QueryFinalizedBundlesResponse } from '@kyvejs/types/lcd/kyve/query/v1beta1/bundles';
 import type { StakeDelegateUpdatedEvent } from '@logsn/contracts/dist/src/NodeManager.sol/LogStoreNodeManager';
 import type {
 	DataStoredEvent,
@@ -10,6 +10,7 @@ import { Base64 } from 'js-base64';
 import type { RootDatabase } from 'lmdb';
 import { isEmpty, range } from 'lodash';
 import path from 'path';
+import { BehaviorSubject, filter, firstValueFrom } from 'rxjs';
 import type { Logger } from 'tslog';
 
 import type { ChainSources } from '../sources';
@@ -21,6 +22,15 @@ export enum EventSelect {
 	StakeDelegateUpdated,
 	DataStored,
 }
+
+const EventSelectKeys = Object.keys(EventSelect)
+	.map((key) => EventSelect[key])
+	.filter((value) => typeof value === 'string') as string[];
+const createEmptyEventSelect = () =>
+	EventSelectKeys.reduce((acc, curr) => {
+		acc[curr] = [];
+		return acc;
+	}, {});
 
 type BlockNumber = number;
 type Events = {
@@ -47,11 +57,8 @@ type DB = RootDatabase<Events, BlockNumber>;
 export class EventsIndexer {
 	protected _cachePath: string;
 	private _db!: DB;
-	// private _running: boolean = false;
-	private _ready: boolean = false;
-	private _latestBlockNumber: number; // Latest indexed block number that may or may not be cold-stored
+	private $ready = new BehaviorSubject(false);
 	private _latestColdBlockNumber: number; // Latest block number that is cold-stored
-	private _startBlock: number;
 
 	constructor(
 		homeDir: string,
@@ -64,8 +71,15 @@ export class EventsIndexer {
 		this._cachePath = path.join(homeDir, '.logstore-events');
 	}
 
-	public get latestTimestamp() {
-		return this._latestBlockNumber;
+	public get latestBlockNumber() {
+		// ? If the index already exists, check it's latest data.
+		for (const { key } of this.db().getRange({
+			reverse: true,
+			limit: 1,
+		})) {
+			return key;
+		}
+		return this.startBlockNumber;
 	}
 
 	/**
@@ -76,38 +90,86 @@ export class EventsIndexer {
 	 * @return  {Promise<void>}[return description]
 	 */
 	public async start(): Promise<void> {
-		const dbPath = path.join(this._cachePath, 'cache');
-		this._db = Database.create('time-index', dbPath) as DB;
-
-		// ? If the index already exists, check it's latest data.
-		for (const { key, value } of this._db.getRange({
-			reverse: true,
-			limit: 1,
-		})) {
-			this.logger.debug(`Fetch last Events Index item - ${key}: ${value}`);
-			this._latestBlockNumber = key;
-		}
-
-		this.logger.info('Starting EventsIndexer ...');
-
-		if (!this._startBlock) {
-			this._startBlock = this.startBlockNumber;
-		}
-
-		this.logger.info('EventsIndexer: Start Block Number: ', this._startBlock);
-
+		this.initializeDB();
+		this.logStartupInfo();
 		await this.hydrate();
-		this._ready = true;
+		this.markAsReady();
 	}
 
-	// Wait until the Indexer is ready
+	private initializeDB(): void {
+		const dbPath = path.join(this._cachePath, 'cache');
+		this._db = Database.create('events-index', dbPath) as DB;
+	}
+
+	private logStartupInfo(): void {
+		this.logger.info('Starting EventsIndexer ...');
+		this.logger.info(
+			'EventsIndexer: Start Block Number:',
+			this.startBlockNumber
+		);
+	}
+
+	private markAsReady(): void {
+		this.$ready.next(true);
+		this.logger.debug('EventsIndexer: Ready!');
+	}
+
+	// will return once ready
 	public async ready() {
-		while (true) {
-			if (this._ready) {
-				return true;
+		return firstValueFrom(this.$ready.pipe(filter((ready) => ready === true)));
+	}
+
+	private async queryClient(client: KyveLCDClientType, nextKey?: string) {
+		return await client.kyve.query.v1beta1.finalizedBundles({
+			pool_id: this.poolId,
+			pagination: {
+				key: nextKey,
+				limit: '200',
+				count_total: true,
+			},
+		});
+	}
+
+	private processResults(
+		results: Pick<QueryFinalizedBundlesResponse, 'finalized_bundles'>
+	) {
+		const eventsTxIds: string[] = [];
+		for (let j = 0; j < results.finalized_bundles.length; j++) {
+			const fb = results.finalized_bundles[j];
+			if (fb.storage_id.startsWith('v0_')) {
+				const encodedId = fb.storage_id.substring(3, fb.storage_id.length);
+				const txIds = Base64.decode(encodedId).split(',');
+				if (txIds.length > 2) {
+					eventsTxIds.push(txIds.at(-1));
+				}
 			}
-			await sleep(1000);
 		}
+		return eventsTxIds;
+	}
+
+	private validateClientResults(reqCounts: number[], reqTotals: number[]) {
+		if (
+			!reqCounts.every((n) => n === reqCounts[0]) ||
+			!reqTotals.every((n) => n === reqTotals[0])
+		) {
+			throw new Error('Receiving different results from Kyve LCD clients');
+		}
+	}
+
+	private async fetchAndProcessEvents(txId: string) {
+		const { data } = await axios.get(`https://arweave.net/${txId}`, {
+			responseType: 'arraybuffer',
+			timeout: 30000,
+		});
+		const raw = await gunzip(data);
+		const events = JSON.parse(raw.toString()) as EventsByBlock[];
+		const db = this.db();
+		await db.transaction(async () => {
+			for (const event of events) {
+				await db.put(event.k, event.v);
+			}
+		});
+		return events.at(-1).k;
 	}
 
 	/**
@@ -143,70 +205,35 @@ export class EventsIndexer {
 			}
 		}
 
-		if (toBlockNumber && toBlockNumber > this._latestBlockNumber) {
-			const fromBlockNumber = this._latestBlockNumber + 1;
+		const latestBlockNumber = this.latestBlockNumber;
+		if (toBlockNumber && toBlockNumber > latestBlockNumber) {
+			const fromBlockNumber = latestBlockNumber + 1;
 
 			const newEvents = await this.chain.use(async (source) => {
-				const collectedEvents: Events = {};
-				if (eventsToFilterFor.includes(EventSelect.StoreUpdated)) {
-					const contract = await source.contracts.store();
-					const events = await contract.queryFilter(
-						contract.filters.StoreUpdated(),
+				const events: Events = createEmptyEventSelect();
+				for (const eventType of eventsToFilterFor) {
+					events[eventType] = await queryContract(
+						source,
+						getContractName(eventType),
+						eventType,
 						fromBlockNumber,
 						toBlockNumber
 					);
-					if (!isEmpty(events)) {
-						collectedEvents.StoreUpdated = events;
-					}
 				}
-				if (eventsToFilterFor.includes(EventSelect.StakeDelegateUpdated)) {
-					const contract = await source.contracts.node();
-					const events = await contract.queryFilter(
-						contract.filters.StakeDelegateUpdated(),
-						fromBlockNumber,
-						toBlockNumber
-					);
-					if (!isEmpty(events)) {
-						collectedEvents.StakeDelegateUpdated = events;
-					}
-				}
-				if (eventsToFilterFor.includes(EventSelect.DataStored)) {
-					const contract = await source.contracts.store();
-					const events = await contract.queryFilter(
-						contract.filters.DataStored(),
-						fromBlockNumber,
-						toBlockNumber
-					);
-					if (!isEmpty(events)) {
-						collectedEvents.DataStored = events;
-					}
-				}
-
-				return collectedEvents;
+				return events;
 			});
+
 			if (!isEmpty(newEvents)) {
 				// Add new events to results.
 				const blockRange = range(fromBlockNumber, toBlockNumber + 1);
 				for (const blockNumber of blockRange) {
 					const indexEvent: Events = {};
-					const storeUpdatedEventsInBlock = newEvents.StoreUpdated.filter(
-						(ev) => ev.blockNumber === blockNumber
-					);
-					if (storeUpdatedEventsInBlock.length > 0) {
-						indexEvent.StoreUpdated = storeUpdatedEventsInBlock;
-					}
-					const stakeDelegateUpdatedEventsInBlock =
-						newEvents.StakeDelegateUpdated.filter(
-							(ev) => ev.blockNumber === blockNumber
+					for (const eventType of eventsToFilterFor) {
+						const eventsInBlock = filterEventsByType(
+							newEvents[eventType],
+							blockNumber
 						);
-					if (stakeDelegateUpdatedEventsInBlock.length > 0) {
-						indexEvent.StakeDelegateUpdated = stakeDelegateUpdatedEventsInBlock;
-					}
-					const dataStoredEventsInBlock = newEvents.DataStored.filter(
-						(ev) => ev.blockNumber === blockNumber
-					);
-					if (dataStoredEventsInBlock.length > 0) {
-						indexEvent.DataStored = dataStoredEventsInBlock;
+						updateIndexEvent(indexEvent, eventType, eventsInBlock);
 					}
 
 					if (!isEmpty(indexEvent)) {
@@ -216,8 +243,6 @@ export class EventsIndexer {
 						await this.db().put(blockNumber, indexEvent);
 					}
 				}
-
-				this._latestBlockNumber = toBlockNumber;
 			}
 		}
 
@@ -229,10 +254,10 @@ export class EventsIndexer {
 	 */
 	public prepare(lock = false) {
 		const events: EventsByBlock[] = [];
-		// ? If the index already exists, check it's latest data.
+		// ? Start from the block number after the latest block number stored to cold store.
 		for (const { key, value } of this._db.getRange({
-			start: this._latestColdBlockNumber,
-			end: this._latestBlockNumber,
+			start:
+				this._latestColdBlockNumber > 0 ? this._latestColdBlockNumber + 1 : 0,
 		})) {
 			events.push({
 				k: key,
@@ -240,7 +265,7 @@ export class EventsIndexer {
 			});
 		}
 		if (lock) {
-			this._latestColdBlockNumber = this._latestBlockNumber;
+			this._latestColdBlockNumber = this.latestBlockNumber;
 		}
 		return events;
 	}
@@ -253,92 +278,86 @@ export class EventsIndexer {
 	}
 
 	/**
-	 * Index events
-	 */
-	private async index(events: EventsByBlock[]) {
-		// ...
-		events.forEach((event) => {
-			if (event.k > this._latestBlockNumber) {
-				this._latestColdBlockNumber = event.k;
-			}
-		});
-	}
-
-	private async indexById(txId: string) {
-		const { data } = await axios.get(`https://arweave.net/${txId}`, {
-			responseType: 'arraybuffer',
-			timeout: 30000,
-		});
-		const raw = await gunzip(data);
-		const events = JSON.parse(raw.toString()) as EventsByBlock[];
-		await this.index(events);
-	}
-
-	/**
 	 * Fetch all storage ids that include indexed events.
 	 * Load all events into cache
 	 */
 	private async hydrate() {
-		this.logger.info('Hydrating Events Index...');
+		this.logger.info('EventsIndexer: Hydrating...');
 
 		let count = 0;
-		let total = 0;
-		while (count < total || total === 0) {
-			const reqCounts = [];
-			let reqTotalSum = 0;
-			const reqNextKeys = [];
-			let eventsTxId;
+		let total = -1;
+		const reqNextKeys: string[] = Array(this.kyve.length).fill(undefined);
+
+		while (count < total || total < 0) {
+			const reqCounts: number[] = [];
+			const reqTotals: number[] = [];
+			const eventsTxIds: string[] = [];
+
 			for (let i = 0; i < this.kyve.length; i++) {
 				const client = this.kyve[i];
-				const results = await client.kyve.query.v1beta1.finalizedBundles({
-					pool_id: this.poolId,
-					pagination: {
-						key:
-							typeof reqNextKeys[i] !== 'undefined'
-								? reqNextKeys[i]
-								: undefined,
-						limit: '200',
-						count_total: true,
-					},
-				});
+				const results = await this.queryClient(client, reqNextKeys[i]);
 
 				reqCounts.push(results.finalized_bundles.length);
-				// if (reqTotals.length < this.kyve.length) {
-				// 	reqTotals.push(parseInt(results.pagination.total, 10));
-				// }
-				reqTotalSum += parseInt(results.pagination.total, 10);
-				reqNextKeys.push(results.pagination.next_key);
-
-				// Process results
-				for (let j = 0; j <= results.finalized_bundles.length; j++) {
-					const fb = results.finalized_bundles[j];
-					// See ArweaveSplit Storage Provider for reference
-					if (fb.storage_id.startsWith('v0:')) {
-						const encodedId = fb.storage_id.substring(3, fb.storage_id.length);
-						const txIds = Base64.decode(encodedId).split(',');
-						if (txIds.length > 2) {
-							eventsTxId = txIds.at(-1);
-						}
-					}
-				}
+				reqTotals.push(parseInt(results.pagination.total, 10));
+				reqNextKeys[i] = results.pagination.next_key;
+				eventsTxIds.push(...this.processResults(results));
 			}
-			// Validate the different client results
-			let reqCountsSum = 0;
-			reqCounts.forEach((c) => {
-				reqCountsSum += c;
-			});
-			reqCounts.forEach((c) => {
-				if (reqCountsSum / this.kyve.length !== c) {
-					throw new Error('Receiving different results from Kyve LCD clients');
-				}
-			});
-			total = reqTotalSum / this.kyve.length;
+
+			this.validateClientResults(reqCounts, reqTotals);
+
+			total = reqTotals[0];
 			count += reqCounts[0];
+			this.logger.info(
+				`EventsIndexer: Hydrate - Total: ${total}, Count: ${count}`
+			);
 
-			if (eventsTxId) {
-				// Fetch bundle from id and index
-				await this.indexById(eventsTxId);
+			if (eventsTxIds.length === 0) {
+				continue;
 			}
+
+			const txId = eventsTxIds[0];
+			this._latestColdBlockNumber = await this.fetchAndProcessEvents(txId);
 		}
+
+		this.logger.info('EventsIndexer: Hydration complete!');
 	}
 }
+
+// Helper function to filter events by type
+const filterEventsByType = (eventList, eventType) => {
+	return eventList.filter((ev) => ev.blockNumber === eventType);
+};
+
+// Helper function to update the indexEvent object
+const updateIndexEvent = (indexEvent, eventType, eventsInBlock) => {
+	if (eventsInBlock.length > 0) {
+		indexEvent[eventType] = eventsInBlock;
+	}
+};
+
+// Helper function to query contract
+const queryContract = async (
+	source,
+	contractName,
+	filterName,
+	fromBlockNumber,
+	toBlockNumber
+) => {
+	const contract = await source.contracts[contractName]();
+	return await contract.queryFilter(
+		contract.filters[filterName](),
+		fromBlockNumber,
+		toBlockNumber
+	);
+};
+
+const getContractName = (eventType: EventSelect): string => {
+	const eventToContractMap = {
+		[EventSelect.StoreUpdated]: 'store',
+		[EventSelect.StakeDelegateUpdated]: 'node',
+		[EventSelect.DataStored]: 'store',
+	} satisfies {
+		[key in EventSelect]: string;
+	};
+	return eventToContractMap[eventType];
+};

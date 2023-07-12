@@ -54,7 +54,7 @@ export interface IChainSource {
 }
 
 export class ChainSources {
-	private _sources: IChainSource[];
+	private _sources: IChainSource[] = [];
 
 	constructor(sources: string[]) {
 		for (const source of sources) {

@@ -1,6 +1,6 @@
 import { sha256 } from '@kyvejs/protocol';
-import { spawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import fse from 'fs-extra';
 import type { RootDatabase } from 'lmdb';
 import path from 'path';
@@ -64,7 +64,7 @@ export class TimeIndexer {
 		this._running = true;
 
 		try {
-			await fse.remove(this._cachePath);
+			// await fse.remove(this._cachePath);
 
 			let startBlock = this.startBlockNumber;
 			const dbPath = path.join(this._cachePath, 'cache');
@@ -77,12 +77,24 @@ export class TimeIndexer {
 					throw new Error('Time Index to copy from does not exist');
 				}
 				const existingTimeIndex = path.join(copyFromTimeIndex, 'cache');
-				await fse.copySync(existingTimeIndex, dbPath);
+				fse.copySync(existingTimeIndex, dbPath);
 			}
 
 			this._db = Database.create('time-index', dbPath) as DB;
 
-			this.logger.info('Starting time indexer ...');
+			// ? If the index already exists, check it's latest data.
+			for (const { key, value } of this._db.getRange({
+				reverse: true,
+				limit: 1,
+			})) {
+				this.logger.debug(
+					`Fetch last Time Index item - ${key}: ${value.b} (${value.s.join(
+						','
+					)})`
+				);
+				this._latestTimestamp = key;
+				startBlock = value.b;
+			}
 
 			this.logger.info('Starting TimeIndexer ...');
 
@@ -143,11 +155,13 @@ export class TimeIndexer {
 
 	private async etl(startBlock?: number) {
 		const db = this.db();
-		this.logger.debug(`Start ETL from block ${startBlock || `'latest'`} ...`);
-
 		const sources = this.chain.sources;
 
-		const readyChecks = sources.map(() => false);
+		this.logger.debug(
+			`Start ETL from block ${
+				startBlock || `'latest'`
+			} with sources ${sources.join(', ')}...`
+		);
 
 		for (let i = 0; i < sources.length; i++) {
 			const run = async (source: string) => {

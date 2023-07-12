@@ -1,8 +1,8 @@
-import { gunzip as baseGunzip, gzip as baseGzip } from 'zlib';
+import { gunzip as baseGunzip, gzip as baseGzip, ZlibOptions } from 'zlib';
 
-export const gzip = (data: Buffer): Promise<Buffer> => {
+export const gzip = (data: Buffer, options?: ZlibOptions): Promise<Buffer> => {
 	return new Promise((resolve, reject) => {
-		baseGzip(data, (err, resData) => {
+		baseGzip(data, options, (err, resData) => {
 			if (err) {
 				return reject(err);
 			}
@@ -11,9 +11,12 @@ export const gzip = (data: Buffer): Promise<Buffer> => {
 	});
 };
 
-export const gunzip = (data: Buffer): Promise<Buffer> => {
+export const gunzip = (
+	data: Buffer,
+	options?: ZlibOptions
+): Promise<Buffer> => {
 	return new Promise((resolve, reject) => {
-		baseGunzip(data, (err, resData) => {
+		baseGunzip(data, options, (err, resData) => {
 			if (err) {
 				return reject(err);
 			}

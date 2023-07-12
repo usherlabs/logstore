@@ -1,5 +1,5 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { DataItem, sha256 } from '@kyvejs/protocol';
+import { DataItem, sha256, sleep } from '@kyvejs/protocol';
 import {
 	CONFIG_TEST,
 	LogStoreClient,
@@ -25,12 +25,12 @@ import {
 	MessageMetricsSummary,
 } from './shared/MessageMetricsSummary';
 import { rollingConfig } from './shared/rollingConfig';
-import { SystemListener, TimeIndexer } from './threads';
-import { Heartbeat } from './threads/Heartbeat';
-import { SystemRecovery } from './threads/SystemRecovery';
 import { ChainSources } from './sources';
 import { EventsIndexer, SystemListener, TimeIndexer } from './threads';
+import { Heartbeat } from './threads/Heartbeat';
+import { SystemRecovery } from './threads/SystemRecovery';
 import { IConfig, IRuntimeExtended } from './types';
+import { Slogger } from './utils/slogger';
 import Validator from './validator';
 
 const METRICS_SUBJECTS: MessageMetricsSubject[] = [
@@ -80,8 +80,8 @@ export default class Runtime implements IRuntimeExtended {
 			readMultiplier: 0.05, // 5% of the write. For comparison AWS Serverless DynamoDB read fees are 20% of the write fees, prorated to the nearest 4kb
 		},
 	};
-	public heartbeat: Heartbeat;
 	public chain: ChainSources;
+	public heartbeat: Heartbeat;
 	public listener: SystemListener;
 	public time: TimeIndexer;
 	public events: EventsIndexer;
@@ -89,10 +89,13 @@ export default class Runtime implements IRuntimeExtended {
 	private _startKey: number;
 	private _startBlockNumber: number;
 
-	async setupThreads(core: Validator, homeDir: string) {
-		this.chain = new ChainSources(this.config.sources);
-		const startBlock = await this.startBlockNumber();
+	async setup(core: Validator, homeDir: string) {
+		Slogger.register(core.logger);
+		core.logger.debug('Home Directory:', homeDir);
 
+		this.chain = new ChainSources(this.config.sources);
+
+		const startBlock = await this.startBlockNumber();
 		this._homeDir = homeDir;
 
 		const clientConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
@@ -145,7 +148,8 @@ export default class Runtime implements IRuntimeExtended {
 			recoveryStream,
 			signer,
 			messageMetricsSummary,
-			core.logger
+			core.logger,
+			this
 		);
 
 		let startKey = parseInt(core.pool.data.current_key, 10) || 0;
@@ -153,16 +157,6 @@ export default class Runtime implements IRuntimeExtended {
 			startKey -= rollingConfig(startKey).prev.keyStep;
 		}
 
-		this.time = new TimeIndexer(startKey, homeDir, this.config, core.logger);
-
-		this.listener = new SystemListener(
-			homeDir,
-			logStoreClient,
-			systemSubscriber,
-			recovery,
-			messageMetricsSummary,
-			core.logger
-		);
 		this.events = new EventsIndexer(
 			homeDir,
 			core.pool.id,
@@ -172,18 +166,17 @@ export default class Runtime implements IRuntimeExtended {
 			core.logger
 		);
 		this.time = new TimeIndexer(homeDir, startBlock, this.chain, core.logger);
+
 		this.listener = new SystemListener(
 			homeDir,
-			this.config.systemStreamId,
+			logStoreClient,
+			systemSubscriber,
+			recovery,
+			messageMetricsSummary,
 			core.logger
 		);
 
 		this.managers = new Managers(this.chain, this.events);
-
-		await this.heartbeat.start();
-		await this.time.start();
-		await this.listener.start();
-		await this.events.start();
 
 		setInterval(
 			() =>
@@ -192,6 +185,59 @@ export default class Runtime implements IRuntimeExtended {
 				),
 			METRICS_INTERVAL
 		);
+	}
+
+	async runThreads() {
+		await this.heartbeat.start();
+		await this.time.start();
+		await this.listener.start();
+		await this.events.start();
+	}
+
+	async ready(core: Validator, syncPoolState: () => Promise<void>) {
+		const getCurrentKeyMs = async () => {
+			/* eslint-disable */
+			const nextKey = core.pool.data!.current_key
+				? await this.nextKey(core, core.pool.data!.current_key)
+				: core.pool.data!.start_key;
+			/* eslint-enable */
+
+			return parseInt(nextKey, 10) * 1000;
+		};
+
+		const listenerHasValidData = async () => {
+			let currentKeyMs = await getCurrentKeyMs();
+			if (!currentKeyMs) {
+				// If the pool hasn't started yet, then this check can pass.
+				return;
+			}
+			// If the pool has started, then the currentKey > listener.startTime to proceed. ie. Listener should start before the start of the bundle.
+			while (
+				!this.listener.startTimestamp ||
+				this.listener.startTimestamp > currentKeyMs
+			) {
+				if (!this.listener.startTimestamp) {
+					core.logger.info(
+						'SystemListener is not started yet. Sleeping for 10 seconds...'
+					);
+					await sleep(10 * 1000);
+				} else {
+					const sleepMs = this.listener.startTimestamp - currentKeyMs + 1000;
+					core.logger.info(
+						`SystemListener.startTime (${
+							this.listener.startTimestamp
+						}) is greater than currentKeyMs (${currentKeyMs}). Sleeping for ${(
+							sleepMs / 1000
+						).toFixed(2)} seconds...`
+					);
+					await sleep(sleepMs);
+				}
+				await syncPoolState();
+				currentKeyMs = await getCurrentKeyMs();
+			}
+		};
+
+		await Promise.all([this.events.ready(), listenerHasValidData()]);
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {
@@ -225,8 +271,6 @@ export default class Runtime implements IRuntimeExtended {
 			throw new Error(`Config sources have invalid network chain identifier`);
 		}
 
-		await Managers.setSources(config.sources);
-
 		const isDevNetwork =
 			systemContracts.nodeManagerAddress ===
 			'0x85ac4C8E780eae81Dd538053D596E382495f7Db9';
@@ -259,17 +303,15 @@ export default class Runtime implements IRuntimeExtended {
 			return { key, value: { m: [] } };
 		}
 
-		if (
-			!this.time.latestTimestamp ||
-			keyInt > this.time.latestTimestamp ||
-			!this.listener.latestTimestamp ||
-			keyInt > this.listener.latestTimestamp / 1000
-		) {
+		if (keyInt > this.time.latestTimestamp) {
+			core.logger.info(
+				'Key is greater than last indexed block/timestamp. Failing prevalidation to retry...'
+			);
 			return null;
 		}
 
 		// -------- Produce the Data Item --------
-		const fromKey = (keyInt - KEY_STEP).toString();
+		const fromKey = (keyInt - rollingConfig(keyInt).prev.keyStep).toString();
 		const item = new Item(this, core.logger, fromKey, key);
 		const messages = await item.generate();
 
@@ -325,21 +367,38 @@ export default class Runtime implements IRuntimeExtended {
 		const firstItem = bundle.at(0);
 		const lastItem = bundle.at(-1);
 
+		const summary = [lastItem.key];
+
 		core.logger.info(`Create Report: ${lastItem.key}`);
-		const bundleStartKey = (parseInt(firstItem.key, 10) - KEY_STEP).toString();
-		const report = new Report(this, core.logger, bundleStartKey, lastItem.key);
+		const report = new Report(this, core.logger, firstItem.key, lastItem.key);
 		const systemReport = await report.generate();
 		const reportData = systemReport.serialize();
-		const reportHash = sha256(Buffer.from(JSON.stringify(reportData))); // use sha256 of entire report to include "events".
+		const reportHash = sha256(Buffer.from(JSON.stringify(reportData))); // use sha256 of entire report to include report.events.
+		core.logger.debug(`Report hash generated: ${reportHash}`);
 
 		lastItem.value.r = reportData;
+		summary.push(reportHash);
+
+		core.logger.info(`Create Events: ${lastItem.key}`);
+		const eventsForColdStore = this.events.prepare(true);
+		console.log(eventsForColdStore);
+		if (eventsForColdStore.length > 0) {
+			core.logger.debug(
+				`${eventsForColdStore.length} events prepared for cold storage`
+			);
+			const eventsHash = sha256(
+				Buffer.from(JSON.stringify(eventsForColdStore))
+			);
+			lastItem.value.e = eventsForColdStore;
+			summary.push(eventsHash);
+		}
 
 		await fse.outputFile(
 			`${this._homeDir}/bundles/${firstItem.key}-${lastItem.key}.json`,
 			JSON.stringify(bundle, null, 2)
 		);
 
-		return lastItem.key + '_' + reportHash;
+		return summary.join('_');
 	}
 
 	async startKey(): Promise<number> {

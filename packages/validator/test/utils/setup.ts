@@ -4,6 +4,7 @@ import {
 	ICacheProvider,
 	ICompression,
 	IStorageProvider,
+	Validator as KyveValidator,
 } from '@kyvejs/protocol';
 import { TestCacheProvider } from '@kyvejs/protocol/test/mocks/cache.mock';
 import { client } from '@kyvejs/protocol/test/mocks/client.mock';
@@ -14,6 +15,7 @@ import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import { QueryRequest, QueryResponse, QueryType } from '@logsn/protocol';
 import {
 	getNodeManagerContract,
+	getTokenManagerContract,
 	prepareStakeForNodeManager,
 } from '@logsn/shared';
 import { fastPrivateKey } from '@streamr/test-utils';
@@ -37,6 +39,9 @@ const {
 export const BROKER_NODE_PRIVATE_KEY =
 	process.env.BROKER_NODE_PRIVATE_KEY ||
 	('0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const);
+export const TEST_ADMIN_PRIVATE_KEY =
+	process.env.CONTRACT_OWNER_PRIVATE_KEY ??
+	('0x633a182fb8975f22aaad41e9008cb49a432e9fdfef37f151e9e7c54e96258ef9' as const);
 const MESSAGE_STORE_TIMEOUT = 9 * 1000;
 
 function sleep(ms: number) {
@@ -46,7 +51,7 @@ function sleep(ms: number) {
 let processExit: jest.Mock<never, never>;
 
 let v: Validator;
-let storageProvider: IStorageProvider;
+export let storageProvider: IStorageProvider;
 let cacheProvider: ICacheProvider;
 let compression: ICompression;
 let publisherClient: LogStoreClient;
@@ -60,7 +65,7 @@ export async function setupTests() {
 	// mock cache provider
 	cacheProvider = new TestCacheProvider();
 	jest
-		.spyOn(Validator, 'cacheProviderFactory')
+		.spyOn(KyveValidator, 'cacheProviderFactory')
 		.mockImplementation(() => cacheProvider);
 
 	v['cacheProvider'] = cacheProvider;
@@ -68,13 +73,13 @@ export async function setupTests() {
 	// mock storage provider
 	storageProvider = new TestNormalStorageProvider();
 	jest
-		.spyOn(Validator, 'storageProviderFactory')
+		.spyOn(KyveValidator, 'storageProviderFactory')
 		.mockImplementation(() => storageProvider);
 
 	// mock compression
 	compression = new TestNormalCompression();
 	jest
-		.spyOn(Validator, 'compressionFactory')
+		.spyOn(KyveValidator, 'compressionFactory')
 		.mockImplementation(() => compression);
 
 	// // mock archiveDebugBundle
@@ -91,7 +96,7 @@ export async function setupTests() {
 		jest
 			.spyOn(Logger.prototype, 'debug')
 			.mockImplementation((...args: unknown[]) => {
-				console.log(...args);
+				// console.log(...args);
 				return {} as ILogObject;
 			});
 	}
@@ -147,7 +152,9 @@ export async function setupTests() {
 	);
 	await provider.ready;
 	const signer = new Wallet(BROKER_NODE_PRIVATE_KEY, provider);
+	const adminSigner = new Wallet(TEST_ADMIN_PRIVATE_KEY, provider);
 	const nodeManagerContract = await getNodeManagerContract(signer);
+	const tokenAdminManager = await getTokenManagerContract(adminSigner);
 	const nodeAddresses = await nodeManagerContract.nodeAddresses();
 	const nodeExists = nodeAddresses.includes(signer.address);
 	const isStaked = await nodeManagerContract.isStaked(signer.address);
@@ -172,6 +179,10 @@ export async function setupTests() {
 				await nodeManagerContract.stakeAndDelegate(stakeAmount, signer.address)
 			).wait();
 		} else {
+			await tokenAdminManager
+				.addWhitelist(signer.address, nodeManagerContract.address)
+				.then((tx) => tx.wait());
+
 			console.log(`${signer.address} will join with ${stakeAmount.toString()}`);
 			await (
 				await nodeManagerContract.join(stakeAmount, '{ "hello": "world" }')
@@ -200,6 +211,7 @@ export async function setupTests() {
 			return byteSize * constantWinstonPerByte;
 		});
 
+	v[''];
 	return v;
 }
 
@@ -291,6 +303,8 @@ export const publishQueryMessages = async (
 		};
 		// publish single request to stream
 		const queryRequest = new QueryRequest({
+			seqNum: 1234,
+			version: 1,
 			requestId: `${idx}`,
 			consumerId: content.consumer,
 			streamId: content.id,
@@ -314,10 +328,14 @@ export const publishQueryMessages = async (
 			console.log(`Publishing query response message:`, idx);
 			// simulate and publish a response to this request
 			const queryResponse = new QueryResponse({
+				version: 1,
+				seqNum: 1234,
 				requestId: `${idx}`,
-				size: content.size,
-				hash: content.hash,
-				signature: `test_sig_of_broker_${jdx}`,
+				requestPublisherId: `${jdx}`,
+				hashMap: new Map([
+					['firstMessageId', 'firstMessageHash'],
+					['secondMessageId', 'secondMessageHash'],
+				]),
 			});
 
 			await publisherClient.publish(

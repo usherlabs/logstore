@@ -2,10 +2,8 @@ import { SystemReport } from '@logsn/protocol';
 import Decimal from 'decimal.js';
 import type { Logger } from 'tslog';
 
-import { IValidatorReport } from '../types';
 import type { IRuntimeExtended } from '../types';
-import { Arweave } from '../utils/arweave';
-import { fetchQueryResponseConsensus } from '../utils/helpers';
+import { IValidatorReport } from '../types';
 import { ReportUtils } from '../utils/report';
 
 export class Report {
@@ -40,15 +38,15 @@ export class Report {
 			fromKey,
 			toKey,
 			runtime: {
-				listener,
+				// listener,
 				managers,
 				time,
-				config: { fees },
+				// config: { fees },
 			},
 		} = this;
 
 		// ------------ SCAFFOLD ------------
-		const fromKeyInt = parseInt(fromKey, 10);
+		// const fromKeyInt = parseInt(fromKey, 10);
 		const toKeyInt = parseInt(toKey, 10);
 		this.logger.debug('Report Range: ', { fromKey, toKey });
 
@@ -60,7 +58,7 @@ export class Report {
 		// We do this by using the key (timestamp) to determine the most relevant block
 		// ? We need to get the closest block because it may not be the most recent block...
 		// const fromBlockNumber = await time.find(fromKey);
-		const toBlockNumber = await time.find(toKeyInt);
+		const toBlockNumber = time.find(toKeyInt);
 		this.logger.debug('Block Number: ', {
 			blockNumber: toBlockNumber,
 		});
@@ -74,8 +72,8 @@ export class Report {
 		);
 		this.logger.debug('Broker Nodes: ', brokerNodes);
 
-		const fromKeyMs = fromKeyInt * 1000;
-		const toKeyMs = toKeyInt * 1000;
+		// const fromKeyMs = fromKeyInt * 1000;
+		// const toKeyMs = toKeyInt * 1000;
 
 		// Establish the report
 		const report = this.scaffold(toKey, toBlockNumber);
@@ -154,71 +152,94 @@ export class Report {
 		// const [validMessages, invalidMessages] = this.validateMessages(currentMessages)
 		// this.includeValidMessagesInformationOnReport({validMessages, invalidMessages})
 		// Use events in the listener cache to determine which events are valid.
-		const storeCache = listener.storeDb();
-		// a mapping of "contentHash => [[timestamp, valueIndex], [timestamp, valueIndex]]"
-		// With this mapping, we can determine which events in the storeCache pertain to the ProofOfMessageStored hash - and therefore which publishers/brokers contributed.
-		const storeHashKeyMap: Record<string, [number, number][]> = {};
-		const storeCachedItems = storeCache.getRange({
-			start: fromKeyMs,
-			end: toKeyMs,
-		});
-		// TODO: We may need to create a special cache for streamIds that are complete dropped during a given item cycle.
-		for (const { key: cacheKey, value: cacheValue } of storeCachedItems) {
-			if (!cacheValue) continue;
-			for (let i = 0; i < cacheValue.length; i++) {
-				const value = cacheValue[i];
-
-				const { content, metadata } = value;
-				if (!(content && metadata)) {
-					continue;
-				}
-
-				// verify that the publisher is also a broker node
-				// -- despite access management being handled within the Smart Contracts, it's wise to validate here too
-				const brokerNode = brokerNodes.find(
-					(n) => n.id.toLowerCase() === metadata.publisherId.toLowerCase()
-				);
-				if (typeof brokerNode === 'undefined') {
-					continue;
-				}
-
-				if (content?.messageType === SystemMessageType.ProofOfMessageStored) {
-					// * The content should be the same for all ProofOfStoredMessage messages received, for a given stored message.
-					// We use a hash to consolidate the messages received, whereby the value references the list of single events received each broker on the broker network
-					const h = sha256(Buffer.from(JSON.stringify(content)));
-					if (!storeHashKeyMap[h]) {
-						storeHashKeyMap[h] = [];
-					}
-					// The key here will referece a specific event within the store cache using the key/index
-					storeHashKeyMap[h].push([cacheKey, i]);
-				}
-			}
-		}
-		this.logger.debug('Storage HashKeyMap: ', storeHashKeyMap);
-
-		// Apply valid storage events to report
-		const streamsMap: Record<
-			string,
-			{ bytes: number; contributors: string[] }
-		> = {};
-		const storeHashKeyMapEntries = Object.entries(storeHashKeyMap);
-		for (let i = 0; i < storeHashKeyMapEntries.length; i++) {
-			const [, storeKeys] = storeHashKeyMapEntries[i];
-			// use only messages which have been processed(stored) by at least half the broker nodes
-			if (storeKeys.length < brokerNodes.length / 2) {
-				continue;
-			}
-
-			// Add consolidated events to report
-			// ? Fees are determined after the report has been populated by the event data
-			const contributingPublishers = [];
-			for (let j = 0; j < storeKeys.length; j++) {
-				const [cacheKey, valueIndex] = storeKeys[j];
-				const cacheValues = storeCache.get(cacheKey);
-				const event = cacheValues[valueIndex];
-				if (!event) continue;
-
-				// Now, we're iterating over each specific proofOfMessageStored event published by each Broker on the Broker Network
+		// const storeCache = listener.db();
+		// // a mapping of "contentHash => [[timestamp, valueIndex], [timestamp, valueIndex]]"
+		// // With this mapping, we can determine which events in the storeCache pertain to the ProofOfMessageStored hash - and therefore which publishers/brokers contributed.
+		// const storeHashKeyMap: Record<string, [number, number][]> = {};
+		// const storeCachedItems = storeCache.getRange({
+		// 	start: fromKeyMs,
+		// 	end: toKeyMs,
+		// });
+		// // TODO: We may need to create a special cache for streamIds that are complete dropped during a given item cycle.
+		// for (const { key: cacheKey, value: cacheValue } of storeCachedItems) {
+		// 	if (!cacheValue) continue;
+		// 	for (let i = 0; i < cacheValue.length; i++) {
+		// 		const value = cacheValue[i];
+		//
+		// 		const { content, metadata } = value;
+		// 		if (!(content && metadata)) {
+		// 			continue;
+		// 		}
+		//
+		// 		// verify that the publisher is also a broker node
+		// 		// -- despite access management being handled within the Smart Contracts, it's wise to validate here too
+		// 		const brokerNode = brokerNodes.find(
+		// 			(n) => n.id.toLowerCase() === metadata.publisherId.toLowerCase()
+		// 		);
+		// 		if (typeof brokerNode === 'undefined') {
+		// 			continue;
+		// 		}
+		//
+		// 		// if (content?.messageType === SystemMessageType.ProofOfMessageStored) {
+		// 		// 	// * The content should be the same for all ProofOfStoredMessage messages received, for a given stored message.
+		// 		// 	// We use a hash to consolidate the messages received, whereby the value references the list of single events received each broker on the broker network
+		// 		// 	const h = sha256(Buffer.from(JSON.stringify(content)));
+		// 		// 	if (!storeHashKeyMap[h]) {
+		// 		// 		storeHashKeyMap[h] = [];
+		// 		// 	}
+		// 		// 	// The key here will referece a specific event within the store cache using the key/index
+		// 		// 	storeHashKeyMap[h].push([cacheKey, i]);
+		// 		// }
+		// 	}
+		// }
+		// this.logger.debug('Storage HashKeyMap: ', storeHashKeyMap);
+		//
+		// // Apply valid storage events to report
+		// const streamsMap: Record<
+		// 	string,
+		// 	{ bytes: number; contributors: string[] }
+		// > = {};
+		// const storeHashKeyMapEntries = Object.entries(storeHashKeyMap);
+		// for (let i = 0; i < storeHashKeyMapEntries.length; i++) {
+		// 	const [, storeKeys] = storeHashKeyMapEntries[i];
+		// 	// use only messages which have been processed(stored) by at least half the broker nodes
+		// 	if (storeKeys.length < brokerNodes.length / 2) {
+		// 		continue;
+		// 	}
+		//
+		// 	// Add consolidated events to report
+		// 	// ? Fees are determined after the report has been populated by the event data
+		// 	const contributingPublishers = [];
+		// 	for (let j = 0; j < storeKeys.length; j++) {
+		// 		const [cacheKey, valueIndex] = storeKeys[j];
+		// 		const cacheValues = storeCache.get(cacheKey);
+		// 		const event = cacheValues[valueIndex];
+		// 		if (!event) continue;
+		//
+		// 		contributingPublishers.push(event.metadata.publisherId);
+		// 		// Stream ID is included in the system stream message.
+		// 		const { streamId: id, size, hash } = event.content;
+		// 		report.events.storage.push({
+		// 			id,
+		// 			hash,
+		// 			size,
+		// 		});
+		//
+		// 		if (typeof streamsMap[id] === 'undefined') {
+		// 			streamsMap[id] = {
+		// 				bytes: size,
+		// 				contributors: [event.metadata.publisherId],
+		// 			};
+		// 		} else {
+		// 			streamsMap[id].bytes += size;
+		// 			if (
+		// 				!streamsMap[id].contributors.includes(event.metadata.publisherId)
+		// 			) {
+		// 				streamsMap[id].contributors.push(event.metadata.publisherId);
+		// 			}
+		// 		}
+		// 	}
+		// }
 
 		// FIXME:
 		//				Old way:

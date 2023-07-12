@@ -19,8 +19,8 @@ import { Base64 } from 'js-base64';
 import { shuffle } from 'lodash';
 import { Logger } from 'tslog';
 
-import { Managers } from '../managers';
 import { MessageMetricsSummary } from '../shared/MessageMetricsSummary';
+import { IRuntimeExtended } from '../types';
 import { ActivityTimeout } from './ActivityTimeout';
 
 const START_DELAY = 5 * 1000;
@@ -48,6 +48,7 @@ interface RecoverySummary {
 export class SystemRecovery {
 	private requestId: string;
 	private toTimestamp: number;
+	private toBlockNumber: number;
 	private subscription?: Subscription;
 	private onSystemMessage?: (
 		systemMessage: SystemMessage,
@@ -65,7 +66,8 @@ export class SystemRecovery {
 		private readonly stream: Stream,
 		private readonly signer: Signer,
 		private readonly messageMetricsSummary: MessageMetricsSummary,
-		private readonly logger: Logger
+		private readonly logger: Logger,
+		private readonly runtime: IRuntimeExtended
 	) {
 		this.toTimestamp = Date.now() + START_DELAY;
 		this.activityTimeout = new ActivityTimeout(
@@ -81,6 +83,10 @@ export class SystemRecovery {
 		) => Promise<void>
 	) {
 		this.logger.info('Starting SystemRecovery ...');
+		this.toBlockNumber = this.runtime.time.find(
+			// TODO is this correct? finding from latest possible timestamp, or at creation time?
+			this.runtime.time.latestTimestamp
+		);
 
 		this.onSystemMessage = onSystemMessage;
 		this.subscription = await this.client.subscribe(
@@ -196,17 +202,11 @@ export class SystemRecovery {
 	}
 
 	private async getBrokerEndpoint() {
-		const addresses = shuffle(
-			await Managers.withSources(async (managers) => {
-				return await managers.node.contract.nodeAddresses();
-			})
+		const nodes = shuffle(
+			await this.runtime.managers.node.getBrokerNodes(this.toBlockNumber)
 		);
 
-		for (const address of addresses) {
-			const node = await Managers.withSources(async (managers) => {
-				return await managers.node.contract.nodes(address);
-			});
-
+		for (const node of nodes) {
 			if (node.metadata.includes('http')) {
 				try {
 					const metadata = JSON.parse(node.metadata) as NodeMetadata;

@@ -27,6 +27,7 @@ export class SystemListener {
 	private readonly _cachePath: string;
 	private readonly _db: SystemDb;
 	private _latestTimestamp: number;
+	private _startTimestamp: number;
 
 	constructor(
 		homeDir: string,
@@ -38,6 +39,10 @@ export class SystemListener {
 	) {
 		this._cachePath = path.join(homeDir, '.logstore-metadata');
 		this._db = new SystemDb();
+	}
+
+	public get startTimestamp() {
+		return this._startTimestamp;
 	}
 
 	public get client() {
@@ -60,6 +65,9 @@ export class SystemListener {
 			);
 
 			await this._systemRecovery.start(this.onSystemMessage.bind(this));
+
+			// Store a timestamp for when the listener starts so that the Node must have a timestamp < bundle_start_key to pariticpate.
+			this._startTimestamp = Date.now();
 		} catch (e) {
 			this.logger.error(`Unexpected error starting listener...`);
 			this.logger.error(e);
