@@ -22,11 +22,7 @@
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["./src/*"],
-			"@tests/*": ["./tests/*"]
-		}
+		"baseUrl": "."
 	},
 	"exclude": ["node_modules", "build", "dist"],
 	"include": ["**/*.ts"],

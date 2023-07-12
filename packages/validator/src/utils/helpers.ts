@@ -1,4 +1,4 @@
-import { QueryResponseMessage } from '@/types';
+import { QueryResponseMessage } from '../types';
 
 // go through all the responses recieved and verify using the content.hash property
 // to find a consesnus of all the responses recieved the listener for a particular request
