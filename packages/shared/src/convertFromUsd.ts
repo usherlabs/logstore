@@ -21,7 +21,7 @@ export const convertFromUsd = async (
 
 	let price = 0.01;
 	try {
-		price = await getTokenPrice(stakeTokenAddress, timestamp, signer);
+		price = await getTokenPrice(stakeTokenAddress, timestamp, signer.provider);
 	} catch (e) {
 		logger.warn(`Cannot get price of ${stakeTokenSymbol} from RedStone`);
 	}

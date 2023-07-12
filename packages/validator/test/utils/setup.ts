@@ -24,9 +24,9 @@ import { register } from 'prom-client';
 import { ILogObject, Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
 
+import { StakeToken } from '../../src/managers/StakeToken';
 import Runtime from '../../src/runtime';
 import { Arweave } from '../../src/utils/arweave';
-import { StakeToken } from '../../src/utils/stake-token';
 import Validator from '../../src/validator';
 
 const {
