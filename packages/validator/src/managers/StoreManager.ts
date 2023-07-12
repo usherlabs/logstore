@@ -1,48 +1,47 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { LogStoreManager } from '@logsn/contracts';
+
+import type { ChainSources } from '../sources';
+import type { EventsIndexer } from '../threads';
+import { EventSelect } from '../threads';
 
 export class StoreManager {
-	constructor(private _contract: LogStoreManager) {}
-
-	public get contract() {
-		return this._contract;
-	}
+	constructor(
+		protected chain: ChainSources,
+		protected indexer: EventsIndexer
+	) {}
 
 	public async getStores(
-		fromBlockNumber: number,
 		toBlockNumber: number
 	): Promise<{ id: string; amount: BigNumber }[]> {
-		const storeUpdateEvents = await this.contract.queryFilter(
-			this.contract.filters.StoreUpdated(),
-			fromBlockNumber,
+		const events = await this.indexer.query(
+			[EventSelect.DataStored, EventSelect.StoreUpdated],
 			toBlockNumber
 		);
+
 		const stores: { id: string; amount: BigNumber }[] = [];
-		storeUpdateEvents.forEach((e) => {
-			const storeId = e.args.store.toString();
-			const amount = e.args.amount;
-			const sIndex = stores.findIndex((s) => s.id === storeId);
-			if (sIndex < 0) {
-				stores.push({
-					id: storeId,
-					amount,
-				});
-				return;
-			}
-			stores[sIndex].amount = stores[sIndex].amount.add(amount);
-		});
-		const dataStoredEvents = await this.contract.queryFilter(
-			this.contract.filters.DataStored(),
-			fromBlockNumber,
-			toBlockNumber
-		);
-		dataStoredEvents.forEach((e) => {
-			const storeId = e.args.store.toString();
-			const amount = e.args.fees as BigNumber;
-			const sIndex = stores.findIndex((s) => s.id === storeId);
-			if (sIndex >= 0) {
-				stores[sIndex].amount = stores[sIndex].amount.sub(amount);
-			}
+		events.forEach((event) => {
+			event.value.StoreUpdated.forEach((e) => {
+				const storeId = e.args.store.toString();
+				const amount = e.args.amount;
+				const sIndex = stores.findIndex((s) => s.id === storeId);
+				if (sIndex < 0) {
+					stores.push({
+						id: storeId,
+						amount,
+					});
+					return;
+				}
+				stores[sIndex].amount = stores[sIndex].amount.add(amount);
+			});
+
+			event.value.DataStored.forEach((e) => {
+				const storeId = e.args.store.toString();
+				const amount = e.args.fees as BigNumber;
+				const sIndex = stores.findIndex((s) => s.id === storeId);
+				if (sIndex >= 0) {
+					stores[sIndex].amount = stores[sIndex].amount.sub(amount);
+				}
+			});
 		});
 
 		return stores;

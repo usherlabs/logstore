@@ -2,7 +2,6 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { LSAN__factory } from '@logsn/contracts';
 import { StakeDelegateUpdatedEvent } from '@logsn/contracts/dist/src/NodeManager.sol/LogStoreNodeManager';
 
-import { overrideStartBlockNumber } from '../env-config';
 import type { ChainSources } from '../sources';
 import type { EventsIndexer } from '../threads';
 import { EventSelect } from '../threads';
@@ -148,25 +147,5 @@ export class NodeManager {
 		);
 
 		return stakeToken;
-	}
-
-	// ? For testing purposes, enable overriding startBlockNumber
-	async getStartBlockNumber(): Promise<number> {
-		let startBlockNumber;
-		if (overrideStartBlockNumber !== '0') {
-			BigNumber.from(overrideStartBlockNumber);
-		} else {
-			startBlockNumber = await this.chain.use(async (source) => {
-				const contract = await source.contracts.node();
-				return await contract.startBlockNumber();
-			});
-		}
-		const n = startBlockNumber.toNumber();
-		if (n === 0) {
-			throw new Error(
-				'No Brokers Nodes are available on the network to validate'
-			);
-		}
-		return n;
 	}
 }

@@ -5,16 +5,14 @@ import type {
 	DataStoredEvent,
 	StoreUpdatedEvent,
 } from '@logsn/contracts/dist/src/StoreManager.sol/LogStoreManager';
-import { axios } from 'axios';
+import axios from 'axios';
 import { Base64 } from 'js-base64';
 import type { RootDatabase } from 'lmdb';
 import { isEmpty, range } from 'lodash';
 import path from 'path';
 import type { Logger } from 'tslog';
 
-import { Managers } from '../managers';
 import type { ChainSources } from '../sources';
-import { IConfig } from '../types';
 import { Database } from '../utils/database';
 import { gunzip } from '../utils/gzip';
 
@@ -58,7 +56,7 @@ export class EventsIndexer {
 	constructor(
 		homeDir: string,
 		protected poolId: string,
-		protected config: IConfig,
+		protected startBlockNumber: number,
 		protected chain: ChainSources,
 		protected kyve: KyveLCDClientType[],
 		protected logger: Logger
@@ -68,10 +66,6 @@ export class EventsIndexer {
 
 	public get latestTimestamp() {
 		return this._latestBlockNumber;
-	}
-
-	public get startBlock() {
-		return this._startBlock;
 	}
 
 	/**
@@ -91,18 +85,13 @@ export class EventsIndexer {
 			limit: 1,
 		})) {
 			this.logger.debug(`Fetch last Events Index item - ${key}: ${value}`);
-			this._startBlock = key;
+			this._latestBlockNumber = key;
 		}
 
 		this.logger.info('Starting EventsIndexer ...');
 
 		if (!this._startBlock) {
-			this._startBlock = await Managers.withSources<number>(
-				this.config.sources,
-				async (managers) => {
-					return await managers.node.getStartBlockNumber();
-				}
-			);
+			this._startBlock = this.startBlockNumber;
 		}
 
 		this.logger.info('EventsIndexer: Start Block Number: ', this._startBlock);
@@ -270,7 +259,6 @@ export class EventsIndexer {
 		// ...
 		events.forEach((event) => {
 			if (event.k > this._latestBlockNumber) {
-				this._latestBlockNumber = event.k;
 				this._latestColdBlockNumber = event.k;
 			}
 		});

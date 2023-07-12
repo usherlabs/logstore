@@ -1,91 +1,27 @@
 import { sha256 } from '@kyvejs/protocol';
 import { SystemMessageType, SystemReport } from '@logsn/protocol';
 import Decimal from 'decimal.js';
+import type { Logger } from 'tslog';
 
-import { Managers } from '../managers';
-import { StakeToken } from '../managers/stake-token';
-import { IBrokerNode, IValidatorReport } from '../types';
+import { IValidatorReport } from '../types';
+import type { IRuntimeExtended } from '../types';
 import { Arweave } from '../utils/arweave';
 import { fetchQueryResponseConsensus } from '../utils/helpers';
 import { ReportUtils } from '../utils/report';
-import { AbstractDataItem } from './abstract';
 
-interface IPrepared {
-	fromKey: number;
-	toKey: number;
-	blockNumber: number;
-	stakeToken: StakeToken;
-	brokerNodes: IBrokerNode[];
-}
+export class Report {
+	constructor(
+		protected runtime: IRuntimeExtended,
+		protected logger: Logger,
+		protected fromKey: string,
+		protected toKey: string
+	) {}
 
-export class Report extends AbstractDataItem<IPrepared> {
-	prepared: IPrepared;
-
-	override async load(managers: Managers) {
-		const { core, fromKey: fromKeyStr, toKey: toKeyStr } = this;
-		const fromKey = parseInt(fromKeyStr, 10);
-		const toKey = parseInt(toKeyStr, 10);
-		core.logger.debug('Report Range: ', { fromKey, toKey });
-
-		if (toKey === 0) {
-			return {
-				fromKey: 0,
-				toKey: 0,
-				blockNumber: 0,
-				stakeToken: undefined,
-				brokerNodes: [],
-			};
-		}
-
-		// Get all state from Smart Contract up to the current key (where key = block at a timestamp)
-		// We do this by using the key (timestamp) to determine the most relevant block
-		// ? We need to get the closest block because it may not be the most recent block...
-		core.logger.debug('getBlockByTime...');
-		const fromBlockNumber = await this.runtime.time.find(fromKey);
-		const toBlockNumber = await this.runtime.time.find(toKey);
-		core.logger.debug('Block Number: ', {
-			blockNumber: toBlockNumber,
-		});
-
-		// Now that we have the block that most closely resemble the current key
-		const stakeToken = await managers.node.getStakeToken(toBlockNumber);
-		// Produce brokerNode list by starting at headNode and iterating over nodes.
-		const brokerNodes = await managers.node.getBrokerNodes(
-			fromBlockNumber,
-			toBlockNumber,
-			stakeToken.minRequirement
-		);
-		core.logger.debug('Broker Nodes: ', brokerNodes);
-
-		return {
-			fromKey,
-			toKey,
-			blockNumber: toBlockNumber,
-			stakeToken,
-			brokerNodes,
-		};
-	}
-
-	public async generate(): Promise<SystemReport> {
-		const { fromKey, toKey, blockNumber, brokerNodes, stakeToken } =
-			this.prepared;
-
-		const {
-			core,
-			runtime: {
-				listener,
-				config: { fees },
-			},
-			toKey: keyStr,
-		} = this;
-
-		const fromKeyMs = fromKey * 1000;
-		const toKeyMs = toKey * 1000;
-
+	public scaffold(id: string, height: number): IValidatorReport {
 		// Establish the report
 		const report: IValidatorReport = {
-			id: keyStr,
-			height: blockNumber,
+			id,
+			height,
 			treasury: new Decimal(0),
 			streams: [],
 			consumers: [],
@@ -97,14 +33,56 @@ export class Report extends AbstractDataItem<IPrepared> {
 			},
 		};
 
-		if (keyStr === '0') {
-			return ReportUtils.finalise(report);
+		return report;
+	}
+
+	public async generate(): Promise<SystemReport> {
+		const {
+			fromKey,
+			toKey,
+			runtime: {
+				listener,
+				managers,
+				time,
+				config: { fees },
+			},
+		} = this;
+
+		// ------------ SCAFFOLD ------------
+		const fromKeyInt = parseInt(fromKey, 10);
+		const toKeyInt = parseInt(toKey, 10);
+		this.logger.debug('Report Range: ', { fromKey, toKey });
+
+		if (toKeyInt === 0) {
+			return ReportUtils.finalise(this.scaffold('', 0));
 		}
 
-		// ------------ SETUP UTILS ------------
-		// This method works by distributing a total captured fee amount to a set of nodes.
-		// The report yields a difference in node's balance (positive or negative) to apply to the balance on-chain
-		// ie. If the report indicates a node value is X, then increment the balance by X, otherwise if value is -Y, then decrement the balance by Y
+		// Get all state from Smart Contract up to the current key (where key = block at a timestamp)
+		// We do this by using the key (timestamp) to determine the most relevant block
+		// ? We need to get the closest block because it may not be the most recent block...
+		// const fromBlockNumber = await time.find(fromKey);
+		const toBlockNumber = await time.find(toKeyInt);
+		this.logger.debug('Block Number: ', {
+			blockNumber: toBlockNumber,
+		});
+
+		// Now that we have the block that most closely resemble the current key
+		const stakeToken = await managers.node.getStakeToken(toBlockNumber);
+		// Produce brokerNode list by starting at headNode and iterating over nodes.
+		const brokerNodes = await managers.node.getBrokerNodes(
+			toBlockNumber,
+			stakeToken.minRequirement
+		);
+		this.logger.debug('Broker Nodes: ', brokerNodes);
+
+		const fromKeyMs = fromKeyInt * 1000;
+		const toKeyMs = toKeyInt * 1000;
+
+		// Establish the report
+		const report = this.scaffold(toKey, toBlockNumber);
+
+		// ------------------------------------
+
 		// ------------ SETUP UTILS ------------
 		// This method works by distributing a total captured fee amount to a set of nodes.
 		// The report yields a difference in node's balance (positive or negative) to apply to the balance on-chain
@@ -210,7 +188,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 				}
 			}
 		}
-		core.logger.debug('Storage HashKeyMap: ', storeHashKeyMap);
+		this.logger.debug('Storage HashKeyMap: ', storeHashKeyMap);
 
 		// Apply valid storage events to report
 		const streamsMap: Record<
@@ -261,7 +239,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			}
 		}
 
-		core.logger.debug('Storage Streams Map: ', streamsMap);
+		this.logger.debug('Storage Streams Map: ', streamsMap);
 
 		const streamsMapEntries = Object.entries(streamsMap);
 
@@ -384,7 +362,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		const sortedReport = ReportUtils.sort(report);
 
-		core.logger.debug('Report Generated', sortedReport);
+		this.logger.debug('Report Generated', sortedReport);
 
 		return ReportUtils.finalise(report);
 	}

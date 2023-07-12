@@ -49,10 +49,10 @@ export class ArweaveSplit implements IStorageProvider {
 		const bundleData = bytesToBundle(bundle);
 
 		const lastItem = bundleData.at(-1);
-		const report = lastItem['r'];
-		const events = lastItem['e'];
-		delete bundleData[bundleData.length - 1]['r'];
-		delete bundleData[bundleData.length - 1]['e'];
+		const report = lastItem.value.r;
+		const events = lastItem.value.e;
+		delete bundleData[bundleData.length - 1].value.r;
+		delete bundleData[bundleData.length - 1].value.e;
 		const messagesUploadData = await gzip(bundleToBytes(bundleData));
 		const reportUploadData = await gzip(Buffer.from(JSON.stringify(report)));
 
