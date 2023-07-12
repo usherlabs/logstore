@@ -1,28 +1,27 @@
-import { LSAN__factory } from '@logsn/contracts';
+import { ChainSources } from '@/sources';
 import { getTokenPrice } from '@logsn/shared';
-import { BigNumber, Contract, ethers, Signer } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 export class StakeToken {
 	// public price: number;
-	public tokenContract: Contract;
 	constructor(
 		public address: string,
 		public symbol: string,
 		public decimals: number,
 		public minRequirement: BigNumber,
-		public signer: Signer
+		public chain: ChainSources
 	) {}
 
-	public async init() {
-		this.tokenContract = LSAN__factory.connect(this.address, this.signer);
-	}
-
-	public async getPrice(timestamp: number) {
-		const tokenPrice = await getTokenPrice(
-			this.address,
-			timestamp,
-			this.signer
-		);
+	public async getPrice(
+		timestamp: number,
+		provider?: ethers.providers.Provider
+	) {
+		if (provider) {
+			return getTokenPrice(this.address, timestamp, provider);
+		}
+		const tokenPrice = await this.chain.use((source) => {
+			return getTokenPrice(this.address, timestamp, source.provider);
+		});
 		return tokenPrice;
 	}
 
@@ -31,7 +30,9 @@ export class StakeToken {
 		timestamp: number
 	): Promise<BigNumber> {
 		// Price is of stake token in USD
-		const price = await this.getPrice(timestamp);
+		const price = await this.chain.use((source) => {
+			return this.getPrice(timestamp, source.provider);
+		});
 
 		return ethers.utils.parseUnits(
 			// reduce precision to max allowed to prevent errors

@@ -1,66 +1,77 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { LogStoreNodeManager, LSAN__factory } from '@logsn/contracts';
+import { LSAN__factory } from '@logsn/contracts';
+import { StakeDelegateUpdatedEvent } from '@logsn/contracts/dist/src/NodeManager.sol/LogStoreNodeManager';
 
 import { overrideStartBlockNumber } from '../env-config';
+import type { ChainSources } from '../sources';
+import type { EventsIndexer } from '../threads';
+import { EventSelect } from '../threads';
 import { IBrokerNode } from '../types';
 import { Slogger } from '../utils/slogger';
-import { StakeToken } from '../utils/stake-token';
+import { StakeToken } from './StakeToken';
 
 export class NodeManager {
-	constructor(private _contract: LogStoreNodeManager) {}
-
-	public get contract() {
-		return this._contract;
-	}
+	constructor(
+		protected chain: ChainSources,
+		protected indexer: EventsIndexer
+	) {}
 
 	async getBrokerNodes(
-		fromBlockNumber: number,
 		toBlockNumber: number,
 		minStakeRequirement?: BigNumber
 	): Promise<Array<IBrokerNode>> {
 		// get all the node addresses
-		const nodeAddresses = await this.contract.nodeAddresses({
-			blockTag: toBlockNumber,
+		const baseNodes = await this.chain.use(async (source) => {
+			const contract = await source.contracts.node();
+			const nodeAddresses = await contract.nodeAddresses({
+				blockTag: toBlockNumber,
+			});
+
+			// get more details for each node's address
+			const nodesData = await Promise.all(
+				nodeAddresses.map(async (nodeAddress) => {
+					const nodeDetail = await contract.nodes(nodeAddress, {
+						blockTag: toBlockNumber,
+					});
+
+					Slogger.instance.debug(
+						`Delegates for Node Address from source ${source.provider.connection.url}`,
+						{
+							nodeAddress,
+						}
+					);
+
+					return {
+						id: nodeAddress,
+						index: nodeDetail.index.toNumber(),
+						metadata: nodeDetail.metadata,
+						lastSeen: nodeDetail.lastSeen.toNumber(),
+						next: nodeDetail.next,
+						prev: nodeDetail.prev,
+						stake: nodeDetail.stake,
+					};
+				})
+			);
+
+			// Filter out all nodes fetched which have a stake > minstake
+			const filteredNodes = nodesData.filter(
+				({ stake }) =>
+					typeof minStakeRequirement !== 'undefined' &&
+					stake.gte(minStakeRequirement)
+			);
+
+			return filteredNodes;
 		});
 
-		// get more details for each node's address
-		const detailedAllNodes = await Promise.all(
-			nodeAddresses.map(async (nodeAddress) => {
-				const nodeDetail = await this.contract.nodes(nodeAddress, {
-					blockTag: toBlockNumber,
-				});
-				const allDelegates = await this.getDelegates(
-					nodeAddress,
-					fromBlockNumber,
-					toBlockNumber
-				);
-
-				Slogger.instance.debug('Delegates for Node Address', {
-					allDelegates,
-					nodeAddress,
-				});
-
-				return {
-					id: nodeAddress,
-					index: nodeDetail.index.toNumber(),
-					metadata: nodeDetail.metadata,
-					lastSeen: nodeDetail.lastSeen.toNumber(),
-					next: nodeDetail.next,
-					prev: nodeDetail.prev,
-					stake: nodeDetail.stake,
-					delegates: allDelegates,
-				};
-			})
+		// Now add delegates to the response.
+		const final = await Promise.all(
+			baseNodes.map(async (n) => ({
+				...n,
+				delegates: await this.getDelegatesForNode(n.id, toBlockNumber),
+			}))
 		);
 
-		// Filter out all nodes fetched which have a stake > minstake
-		const brokerNodes = detailedAllNodes.filter(
-			({ stake }) =>
-				typeof minStakeRequirement !== 'undefined' &&
-				stake.gte(minStakeRequirement)
-		);
-
-		return brokerNodes;
+		return final;
 	}
 
 	/**
@@ -69,26 +80,25 @@ export class NodeManager {
 	 * @param   {string}  nodeAddress    [nodeAddress description]
 	 * @param   {number}  toBlockNumber  [toBlockNumber description]
 	 */
-	async getDelegates(
+	async getDelegatesForNode(
 		nodeAddress: string,
-		fromBlockNumber: number,
 		toBlockNumber: number
 	): Promise<Record<string, BigNumber>> {
-		const delegatesEvent = await this.contract.queryFilter(
-			this.contract.filters.StakeDelegateUpdated(
-				null,
-				nodeAddress,
-				null,
-				null,
-				null,
-				null
-			),
-			fromBlockNumber,
+		const events = await this.indexer.query(
+			[EventSelect.StakeDelegateUpdated],
 			toBlockNumber
 		);
+		const stakeDelegateUpdatedEvents: StakeDelegateUpdatedEvent[] = [];
+		events.forEach((ev) => {
+			ev.value.StakeDelegateUpdated.forEach((stuEv) => {
+				if (stuEv.args.node === nodeAddress) {
+					stakeDelegateUpdatedEvents.push(stuEv);
+				}
+			});
+		});
 
 		const delegates: Record<string, BigNumber> = {};
-		delegatesEvent.forEach(({ args }) => {
+		stakeDelegateUpdatedEvents.forEach(({ args }) => {
 			const { delegate } = args;
 			const amount =
 				args.delegated === true ? args.amount : args.amount.mul(-1);
@@ -103,38 +113,54 @@ export class NodeManager {
 		return delegates;
 	}
 
-	async getStakeToken(blockNumber?: number): Promise<StakeToken> {
-		const minStakeRequirement: BigNumber =
-			await this.contract.stakeRequiredAmount({ blockTag: blockNumber });
-		const stakeTokenAddress: string = await this.contract.stakeTokenAddress({
-			blockTag: blockNumber,
-		});
-		// Get decimal count for the stake token
-		const stakeTokenContract = LSAN__factory.connect(
-			stakeTokenAddress,
-			this.contract.provider
-		);
-		const stakeTokenSymbol = await stakeTokenContract.symbol();
-		const stakeTokenDecimals = await stakeTokenContract.decimals();
-		const stakeToken = new StakeToken(
-			stakeTokenAddress,
-			stakeTokenSymbol,
-			stakeTokenDecimals,
-			minStakeRequirement,
-			this.contract.signer
-		);
+	async getStakeToken(blockNumber?: number) {
+		const tokenData = await this.chain.use(async (source) => {
+			const contract = await source.contracts.node();
+			const minStakeRequirement: BigNumber = await contract.stakeRequiredAmount(
+				{ blockTag: blockNumber }
+			);
+			const address: string = await contract.stakeTokenAddress({
+				blockTag: blockNumber,
+			});
 
-		await stakeToken.init();
+			// Get decimal count for the stake token
+			const stakeTokenContract = LSAN__factory.connect(
+				address,
+				source.provider
+			);
+			const symbol = await stakeTokenContract.symbol();
+			const decimals = await stakeTokenContract.decimals();
+
+			return {
+				minStakeRequirement,
+				address,
+				symbol,
+				decimals,
+			};
+		});
+
+		const stakeToken = new StakeToken(
+			tokenData.address,
+			tokenData.symbol,
+			tokenData.decimals,
+			tokenData.minStakeRequirement,
+			this.chain
+		);
 
 		return stakeToken;
 	}
 
 	// ? For testing purposes, enable overriding startBlockNumber
 	async getStartBlockNumber(): Promise<number> {
-		const startBlockNumber =
-			overrideStartBlockNumber !== '0'
-				? BigNumber.from(overrideStartBlockNumber)
-				: await this.contract.startBlockNumber();
+		let startBlockNumber;
+		if (overrideStartBlockNumber !== '0') {
+			BigNumber.from(overrideStartBlockNumber);
+		} else {
+			startBlockNumber = await this.chain.use(async (source) => {
+				const contract = await source.contracts.node();
+				return await contract.startBlockNumber();
+			});
+		}
 		const n = startBlockNumber.toNumber();
 		if (n === 0) {
 			throw new Error(

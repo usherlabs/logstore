@@ -1,4 +1,4 @@
-import { bytesToBundle, sha256, sleep } from '@kyvejs/protocol';
+import { sleep } from '@kyvejs/protocol';
 import type { KyveLCDClientType } from '@kyvejs/sdk';
 import type { StakeDelegateUpdatedEvent } from '@logsn/contracts/dist/src/NodeManager.sol/LogStoreNodeManager';
 import type {
@@ -6,26 +6,29 @@ import type {
 	StoreUpdatedEvent,
 } from '@logsn/contracts/dist/src/StoreManager.sol/LogStoreManager';
 import { axios } from 'axios';
-import { spawn } from 'child_process';
-import type { ChildProcess } from 'child_process';
-import fse from 'fs-extra';
 import { Base64 } from 'js-base64';
 import type { RootDatabase } from 'lmdb';
+import { isEmpty, range } from 'lodash';
 import path from 'path';
-import shell from 'shelljs';
 import type { Logger } from 'tslog';
 
-import { copyFromTimeIndex } from '../env-config';
 import { Managers } from '../managers';
+import type { ChainSources } from '../sources';
 import { IConfig } from '../types';
 import { Database } from '../utils/database';
 import { gunzip } from '../utils/gzip';
 
+export enum EventSelect {
+	StoreUpdated,
+	StakeDelegateUpdated,
+	DataStored,
+}
+
 type BlockNumber = number;
 type Events = {
-	StoreUpdated?: StoreUpdatedEvent;
-	StakeDelegateUpdated?: StakeDelegateUpdatedEvent;
-	DataStored?: DataStoredEvent;
+	StoreUpdated?: StoreUpdatedEvent[];
+	StakeDelegateUpdated?: StakeDelegateUpdatedEvent[];
+	DataStored?: DataStoredEvent[];
 	// ? We can add more here later... however, we'll need to handle data migrations within the validator node for upgrades
 	// ? ie. An upgrade where the next bundle collects all events since start block - we can split the txs up too
 };
@@ -34,12 +37,6 @@ type EventsByBlock = {
 	k: BlockNumber;
 };
 type DB = RootDatabase<Events, BlockNumber>;
-
-const CONFIRMATIONS = 128 as const; // The number of confirmations/blocks required to determine finality.
-const SCAN_BUFFER = 10 as const; // The time (in seconds) a find/scan will use to evaluate the indexed block
-const DEFAULT_DB_VALUE = { b: 0, s: [] };
-const POLL_INTERVAL = 10 as const; // The time (in seconds) to delay between the latest index and the next
-const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
 
 /**
  * Class to manage an index of blocks and their timestamps
@@ -62,6 +59,7 @@ export class EventsIndexer {
 		homeDir: string,
 		protected poolId: string,
 		protected config: IConfig,
+		protected chain: ChainSources,
 		protected kyve: KyveLCDClientType[],
 		protected logger: Logger
 	) {
@@ -128,8 +126,113 @@ export class EventsIndexer {
 	 *
 	 * To be used in Runtime summarize to fetch all events that have not been previously stored in a bundle
 	 */
-	public query() {
-		// ...
+	public async query(eventsToFilterFor: EventSelect[], toBlockNumber?: number) {
+		// ? If the index already exists, check it's latest data.
+		const results: { block: BlockNumber; value: Events }[] = [];
+		for (const { key: key, value } of this._db.getRange()) {
+			const finalValue: Events = {};
+			if (
+				eventsToFilterFor.includes(EventSelect.StoreUpdated) &&
+				value.StoreUpdated
+			) {
+				finalValue.StoreUpdated = value.StoreUpdated;
+			}
+			if (
+				eventsToFilterFor.includes(EventSelect.StakeDelegateUpdated) &&
+				value.StakeDelegateUpdated
+			) {
+				finalValue.StakeDelegateUpdated = value.StakeDelegateUpdated;
+			}
+			if (
+				eventsToFilterFor.includes(EventSelect.DataStored) &&
+				value.DataStored
+			) {
+				finalValue.DataStored = value.DataStored;
+			}
+			if (!isEmpty(finalValue)) {
+				results.push({ block: key, value: finalValue });
+			}
+		}
+
+		if (toBlockNumber && toBlockNumber > this._latestBlockNumber) {
+			const fromBlockNumber = this._latestBlockNumber + 1;
+
+			const newEvents = await this.chain.use(async (source) => {
+				const collectedEvents: Events = {};
+				if (eventsToFilterFor.includes(EventSelect.StoreUpdated)) {
+					const contract = await source.contracts.store();
+					const events = await contract.queryFilter(
+						contract.filters.StoreUpdated(),
+						fromBlockNumber,
+						toBlockNumber
+					);
+					if (!isEmpty(events)) {
+						collectedEvents.StoreUpdated = events;
+					}
+				}
+				if (eventsToFilterFor.includes(EventSelect.StakeDelegateUpdated)) {
+					const contract = await source.contracts.node();
+					const events = await contract.queryFilter(
+						contract.filters.StakeDelegateUpdated(),
+						fromBlockNumber,
+						toBlockNumber
+					);
+					if (!isEmpty(events)) {
+						collectedEvents.StakeDelegateUpdated = events;
+					}
+				}
+				if (eventsToFilterFor.includes(EventSelect.DataStored)) {
+					const contract = await source.contracts.store();
+					const events = await contract.queryFilter(
+						contract.filters.DataStored(),
+						fromBlockNumber,
+						toBlockNumber
+					);
+					if (!isEmpty(events)) {
+						collectedEvents.DataStored = events;
+					}
+				}
+
+				return collectedEvents;
+			});
+			if (!isEmpty(newEvents)) {
+				// Add new events to results.
+				const blockRange = range(fromBlockNumber, toBlockNumber + 1);
+				for (const blockNumber of blockRange) {
+					const indexEvent: Events = {};
+					const storeUpdatedEventsInBlock = newEvents.StoreUpdated.filter(
+						(ev) => ev.blockNumber === blockNumber
+					);
+					if (storeUpdatedEventsInBlock.length > 0) {
+						indexEvent.StoreUpdated = storeUpdatedEventsInBlock;
+					}
+					const stakeDelegateUpdatedEventsInBlock =
+						newEvents.StakeDelegateUpdated.filter(
+							(ev) => ev.blockNumber === blockNumber
+						);
+					if (stakeDelegateUpdatedEventsInBlock.length > 0) {
+						indexEvent.StakeDelegateUpdated = stakeDelegateUpdatedEventsInBlock;
+					}
+					const dataStoredEventsInBlock = newEvents.DataStored.filter(
+						(ev) => ev.blockNumber === blockNumber
+					);
+					if (dataStoredEventsInBlock.length > 0) {
+						indexEvent.DataStored = dataStoredEventsInBlock;
+					}
+
+					if (!isEmpty(indexEvent)) {
+						results.push({ block: blockNumber, value: indexEvent });
+
+						// index new event
+						await this.db().put(blockNumber, indexEvent);
+					}
+				}
+
+				this._latestBlockNumber = toBlockNumber;
+			}
+		}
+
+		return results;
 	}
 
 	/**

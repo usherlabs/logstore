@@ -5,7 +5,7 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import { fastPrivateKey } from '@streamr/test-utils';
 import { ethers } from 'ethers';
 
-import { StakeToken } from '../src/utils/stake-token';
+import { StakeToken } from '../src/managers/StakeToken';
 
 (async () => {
 	const jsonProvider = new JsonRpcProvider('http://localhost:8546');

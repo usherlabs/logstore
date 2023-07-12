@@ -1,16 +1,16 @@
 import { LSAN__factory } from '@logsn/contracts';
 import ContractAddresses from '@logsn/contracts/address.json';
-import { ethers, Signer } from 'ethers';
+import { ethers } from 'ethers';
 import redstone from 'redstone-api';
 
 export const getTokenPrice = async (
 	tokenAddress: string,
 	timestamp: number,
-	signer: Signer
+	provider?: ethers.providers.Provider
 ) => {
 	// get the provider from the signer
-	const provider = await signer.provider;
-	if (!provider) throw new Error('no provider provided');
+	if (!provider)
+		throw new Error('Cannot get Token Price in USD. No provider provided');
 
 	// fetch the chain id to be used to fetch the right token addres
 	const { chainId } = await provider?.getNetwork();
@@ -20,7 +20,7 @@ export const getTokenPrice = async (
 	] as any;
 
 	// initiaite a token contract
-	const tokenContract = LSAN__factory.connect(tokenAddress, signer);
+	const tokenContract = LSAN__factory.connect(tokenAddress, provider);
 
 	// if we are dealing with the alpha token,
 	// we can t get price information directly so we calculate ours

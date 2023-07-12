@@ -4,7 +4,6 @@ import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
 
 import { Managers } from '../managers';
-import { AbstractDataItem } from './abstract';
 
 interface IPrepared {
 	stores: {
@@ -13,8 +12,13 @@ interface IPrepared {
 	}[];
 }
 
-export class Item extends AbstractDataItem<IPrepared> {
-	prepared: IPrepared;
+export class Item {
+	constructor(
+		protected core: Validator,
+		protected runtime: IRuntimeExtended,
+		protected fromKey: string,
+		protected toKey: string
+	) {}
 
 	override async load(managers: Managers) {
 		const { toKey } = this;
