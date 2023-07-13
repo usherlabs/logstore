@@ -6,11 +6,10 @@ import { Item } from './core/item';
 import { Report } from './core/report';
 import { appPackageName, appVersion } from './env-config';
 import { Managers } from './managers';
+import { rollingConfig } from './rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
-
-export const KEY_STEP = 1 as const;
 
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
@@ -133,13 +132,12 @@ export default class Runtime implements IRuntimeExtended {
 	): Promise<string> {
 		const firstItem = bundle.at(0);
 		const lastItem = bundle.at(-1);
-		const bundleStartKey = (parseInt(firstItem.key, 10) - KEY_STEP).toString();
 		core.logger.info(`Create Report: ${lastItem.key}`);
 		const report = new Report(
 			core,
 			this,
 			this.config,
-			bundleStartKey,
+			firstItem.key,
 			lastItem.key
 		);
 		await report.prepare();
@@ -190,7 +188,7 @@ export default class Runtime implements IRuntimeExtended {
 			return startKey.toString();
 		}
 
-		keyInt += KEY_STEP;
+		keyInt += rollingConfig(keyInt).curr.keyStep;
 
 		return keyInt.toString();
 	}

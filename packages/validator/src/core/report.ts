@@ -3,6 +3,7 @@ import { SystemMessageType, SystemReport } from '@logsn/protocol';
 import Decimal from 'decimal.js';
 
 import { Managers } from '../managers';
+import { rollingConfig } from '../rollingConfig';
 import { IBrokerNode, IValidatorReport } from '../types';
 import { Arweave } from '../utils/arweave';
 import { fetchQueryResponseConsensus } from '../utils/helpers';
@@ -77,7 +78,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			config: { fees },
 		} = this;
 
-		const fromKeyMs = fromKey * 1000;
+		const fromKeyMs = (fromKey - rollingConfig(fromKey).prev.keyStep) * 1000;
 		const toKeyMs = toKey * 1000;
 
 		// Establish the report
