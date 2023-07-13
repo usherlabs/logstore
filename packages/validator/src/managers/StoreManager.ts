@@ -59,6 +59,8 @@ export class StoreManager {
 			}
 		});
 
+		// Next time call for a range starting
+		// from the block following the current toBlockNumber
 		this.fromBlockNumber = toBlockNumber + 1;
 
 		return stores;

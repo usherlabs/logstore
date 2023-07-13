@@ -7,8 +7,8 @@ import { Slogger } from '../utils/slogger';
 import { StakeToken } from '../utils/stake-token';
 
 export class NodeManager {
-	private fromBlockNumber: number = 0;
-	private readonly delegates: Record<string, BigNumber> = {};
+	private readonly fromBlockNumber: Record<string, number> = {};
+	private readonly delegates: Record<string, Record<string, BigNumber>> = {};
 
 	constructor(private _contract: LogStoreNodeManager) {}
 
@@ -77,13 +77,16 @@ export class NodeManager {
 		fromBlockNumber: number,
 		toBlockNumber: number
 	): Promise<Record<string, BigNumber>> {
-		if (this.fromBlockNumber < fromBlockNumber) {
-			this.fromBlockNumber = fromBlockNumber;
+		if (
+			this.fromBlockNumber[nodeAddress] == undefined ||
+			this.fromBlockNumber[nodeAddress] < fromBlockNumber
+		) {
+			this.fromBlockNumber[nodeAddress] = fromBlockNumber;
 		}
 
 		// If the range already cached return the cached data
-		if (this.fromBlockNumber > toBlockNumber) {
-			return this.delegates;
+		if (this.fromBlockNumber[nodeAddress] > toBlockNumber) {
+			return this.delegates[nodeAddress];
 		}
 
 		const delegatesEvent = await this.contract.queryFilter(
@@ -95,11 +98,15 @@ export class NodeManager {
 				null,
 				null
 			),
-			this.fromBlockNumber,
+			this.fromBlockNumber[nodeAddress],
 			toBlockNumber
 		);
 
-		const { delegates } = this;
+		if (this.delegates[nodeAddress] == undefined) {
+			this.delegates[nodeAddress] = {};
+		}
+
+		const delegates = this.delegates[nodeAddress];
 
 		delegatesEvent.forEach(({ args }) => {
 			const { delegate } = args;
@@ -113,7 +120,9 @@ export class NodeManager {
 			}
 		});
 
-		this.fromBlockNumber = toBlockNumber + 1;
+		// Next time call for a range starting
+		// from the block following the current toBlockNumber
+		this.fromBlockNumber[nodeAddress] = toBlockNumber + 1;
 
 		return delegates;
 	}
