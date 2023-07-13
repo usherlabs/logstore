@@ -279,10 +279,10 @@ export class EventsIndexer {
 				for (let j = 0; j < results.finalized_bundles.length; j++) {
 					const fb = results.finalized_bundles[j];
 					// See ArweaveSplit Storage Provider for reference
-					if (fb.storage_id.startsWith('v0:')) {
+					if (fb.storage_id.startsWith('v0_')) {
 						const encodedId = fb.storage_id.substring(3, fb.storage_id.length);
 						const txIds = Base64.decode(encodedId).split(',');
-						// ? For v0: decoded tx ids are comma separated, like so: messages,report,events
+						// ? For v0_ decoded tx ids are comma separated, like so: messages,report,events
 						if (txIds.length > 2) {
 							eventsTxIds.push(txIds.at(-1));
 						}

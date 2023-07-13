@@ -146,10 +146,11 @@ export class ReportPoller {
 		);
 		const storageId = response.finalized_bundle.storage_id;
 		let arweaveTxId = storageId;
-		if (storageId.startsWith('v0:')) {
+		const isTxSplit = storageId.startsWith('v0_');
+		if (isTxSplit) {
 			const encodedId = storageId.substring(3, storageId.length);
 			const txIds = Base64.decode(encodedId).split(',');
-			// ? For v0: decoded tx ids are comma separated, like so: messages,report,events
+			// ? For v0_ decoded tx ids are comma separated, like so: messages,report,events
 			if (typeof txIds[1] === 'undefined') {
 				logger.error(
 					`Report Transaction Id does not exist in Storage Id ${storageId}`,
@@ -178,7 +179,7 @@ export class ReportPoller {
 
 		// Add compatibiliy for base reports included into a single bundle, and v0 of Arweave transacton splitting
 		let reportJson;
-		if (storageId.startsWith('v0:')) {
+		if (isTxSplit) {
 			reportJson = unzippedJson;
 		} else {
 			// get a report from the last item in the bundle

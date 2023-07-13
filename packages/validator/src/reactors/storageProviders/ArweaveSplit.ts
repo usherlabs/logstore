@@ -122,7 +122,7 @@ export class ArweaveSplit implements IStorageProvider {
 		// ? The prefix is meant to provide context to the storageId.
 		// ? ie. for Now, we're using this Version 0 of this storage identifier protocol
 		// TODO: Move this storage id protocol into `protocol` package to standardise.
-		const prefix = `v0:`;
+		const prefix = `v0_`;
 		const storageId = prefix + Base64.encode(transactionIds.join(','), true);
 
 		for (const tx of transactions) {
