@@ -13,6 +13,12 @@ import { NoCompression } from '@kyvejs/protocol/dist/src/reactors/compression/No
  * @param {number} compressionId the id of the compression
  * @return {ICompression}
  */
+
+/**
+ * Log Store Note:
+ *
+ * Force NoCompression as Compression happens within the ArweaveSplit StorageProvider
+ */
 export const compressionFactory = (): ICompression => {
 	return new NoCompression();
 };

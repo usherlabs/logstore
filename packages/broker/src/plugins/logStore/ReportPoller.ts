@@ -162,7 +162,8 @@ export class ReportPoller {
 			}
 			arweaveTxId = txIds[1];
 		}
-		// using the storage id, we fetch the information from arweave
+
+		// using the arweave transaction id, we fetch the information from arweave
 		// It should be noted that what is gotten is an array buffer since we expect the file to be zipped
 		const { data: gzippedData } = await axios.get(
 			`https://arweave.net/${arweaveTxId}`,
@@ -175,13 +176,20 @@ export class ReportPoller {
 		const unzippedJsonStringified = await decompressData(gzippedData);
 		const unzippedJson = JSON.parse(unzippedJsonStringified as string);
 
-		// get a report from the last item in the bundle
-		const lastItem = unzippedJson.at(-1);
-		if (!lastItem.value.r) {
-			logger.error('Report not found in bundle');
-			throw Error('Report not found in bundle');
+		// Add compatibiliy for base reports included into a single bundle, and v0 of Arweave transacton splitting
+		let reportJson;
+		if (storageId.startsWith('v0:')) {
+			reportJson = unzippedJson;
+		} else {
+			// get a report from the last item in the bundle
+			const lastItem = unzippedJson.at(-1);
+			if (!lastItem.value.r) {
+				logger.error('Report not found in bundle');
+				throw Error('Report not found in bundle');
+			}
+			reportJson = lastItem.value.r;
 		}
-		const { r: reportJson } = lastItem.value;
+
 		let systemReport: SystemReport;
 		try {
 			systemReport = new SystemReport(reportJson, reportJson.v);

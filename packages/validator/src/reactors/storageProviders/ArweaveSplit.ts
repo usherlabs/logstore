@@ -90,18 +90,14 @@ export class ArweaveSplit implements IStorageProvider {
 
 		const transactions = await Promise.all(txArr);
 
-		// ? The prefix is meant to provide context to the storageId.
-		// ? ie. for Now, we're using this Version 0 of this storage identifier protocol
-		const prefix = `v0:`;
-		const storageId =
-			prefix + Base64.encode(transactions.map((tx) => tx.id).join(','), true);
-
+		// Add tags to transaction before signing
 		for (const tag of txTags) {
 			transactions.forEach((tx) => {
 				tx.addTag(tag.name, tag.value);
 			});
 		}
 
+		// Sign transaction
 		await Promise.all(
 			transactions.map((tx) => {
 				return this.arweaveClient.transactions.sign(tx, this.arweaveKeyfile);
@@ -119,6 +115,15 @@ export class ArweaveSplit implements IStorageProvider {
 				`Not enough funds in Arweave wallet. Found = ${balance} required = ${totalReward}`
 			);
 		}
+
+		// Transaction Ids are empty until they're signed.
+		const transactionIds = transactions.map((tx) => tx.id);
+
+		// ? The prefix is meant to provide context to the storageId.
+		// ? ie. for Now, we're using this Version 0 of this storage identifier protocol
+		// TODO: Move this storage id protocol into `protocol` package to standardise.
+		const prefix = `v0:`;
+		const storageId = prefix + Base64.encode(transactionIds.join(','), true);
 
 		for (const tx of transactions) {
 			await this.arweaveClient.transactions.post(tx);

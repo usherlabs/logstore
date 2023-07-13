@@ -208,7 +208,10 @@ export default class Runtime implements IRuntimeExtended {
 		const summary = [lastItem.key];
 
 		core.logger.info(`Create Report: ${lastItem.key}`);
-		const bundleStartKey = (parseInt(firstItem.key, 10) - KEY_STEP).toString();
+		const bundleStartKey =
+			firstItem.key === '0'
+				? '0'
+				: (parseInt(firstItem.key, 10) - KEY_STEP).toString();
 		const report = new Report(this, core.logger, bundleStartKey, lastItem.key);
 		const systemReport = await report.generate();
 		const reportData = systemReport.serialize();
