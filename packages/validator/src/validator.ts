@@ -4,13 +4,9 @@ import { validateDataAvailability as runKyveValidateDataAvailability } from '@ky
 import { compressionFactory } from './reactors/compression';
 import { storageProviderFactory } from './reactors/storageProviders';
 import { IRuntimeExtended } from './types';
-import { Slogger } from './utils/slogger';
 
 // Hook into this method
 export async function validateDataAvailability(this: Validator): Promise<void> {
-	Slogger.register(this.logger);
-	this.logger.debug('Home Directory:', this.home);
-
 	if (this.runtime.setup) {
 		await this.runtime.setup(this, this.home);
 	}

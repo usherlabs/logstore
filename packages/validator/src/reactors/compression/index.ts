@@ -1,5 +1,6 @@
 import { ICompression } from '@kyvejs/protocol';
-import { NoCompression } from '@kyvejs/protocol/dist/src/reactors/compression/NoCompression';
+
+import { GzipSplit } from './GzipSplit';
 
 /**
  * compressionFactory creates the correct compression class
@@ -20,5 +21,5 @@ import { NoCompression } from '@kyvejs/protocol/dist/src/reactors/compression/No
  * Force NoCompression as Compression happens within the ArweaveSplit StorageProvider
  */
 export const compressionFactory = (): ICompression => {
-	return new NoCompression();
+	return new GzipSplit();
 };

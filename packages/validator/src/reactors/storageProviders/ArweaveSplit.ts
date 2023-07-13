@@ -1,16 +1,11 @@
-import {
-	BundleTag,
-	bundleToBytes,
-	bytesToBundle,
-	IStorageProvider,
-} from '@kyvejs/protocol';
+import { BundleTag, IStorageProvider } from '@kyvejs/protocol';
 import ArweaveClient from '@logsn/arweave';
 import { JWKInterface } from '@logsn/arweave/node/lib/wallet';
 import axios from 'axios';
 import { Base64 } from 'js-base64';
 
-import { gzip } from '../../utils/gzip';
 import { Slogger } from '../../utils/slogger';
+import { GzipSplit } from '../compression/GzipSplit';
 
 export class ArweaveSplit implements IStorageProvider {
 	public name = 'LogStoreArweaveSplit';
@@ -45,27 +40,11 @@ export class ArweaveSplit implements IStorageProvider {
 		return await this.arweaveClient.wallets.getBalance(account);
 	}
 
-	async saveBundle(bundle: Buffer, tags: BundleTag[]) {
-		const bundleData = bytesToBundle(bundle);
+	async saveBundle(compressedBundle: Buffer, tags: BundleTag[]) {
+		const zips = GzipSplit.split(compressedBundle);
 
-		const lastItem = bundleData.at(-1);
-		const report = lastItem.value.r;
-		const events = lastItem.value.e;
-		delete bundleData[bundleData.length - 1].value.r;
-		delete bundleData[bundleData.length - 1].value.e;
-		const messagesUploadData = await gzip(bundleToBytes(bundleData));
-		const reportUploadData = await gzip(Buffer.from(JSON.stringify(report)));
-
-		// if (tag.name === 'Content-Type') {
-		// 	value = 'application/gzip';
-		// }
-		// const txTags = tags.filter((t) => t.name !== 'Content-Type');
-		const txTags = tags.map((t) => {
-			if (t.name === 'Content-Type') {
-				t.value = 'application/gzip';
-			}
-			return t;
-		});
+		const messagesUploadData = zips[0];
+		const reportUploadData = zips[1];
 
 		// Messages
 		const msgTx = this.arweaveClient.createTransaction({
@@ -79,9 +58,9 @@ export class ArweaveSplit implements IStorageProvider {
 		const txArr = [msgTx, reportTx];
 
 		let eventsTx: typeof reportTx;
-		if (events) {
+		if (zips.length > 2) {
 			// Events
-			const eventsUploadData = await gzip(Buffer.from(JSON.stringify(events)));
+			const eventsUploadData = zips[2];
 			eventsTx = this.arweaveClient.createTransaction({
 				data: eventsUploadData,
 			});
@@ -91,7 +70,7 @@ export class ArweaveSplit implements IStorageProvider {
 		const transactions = await Promise.all(txArr);
 
 		// Add tags to transaction before signing
-		for (const tag of txTags) {
+		for (const tag of tags) {
 			transactions.forEach((tx) => {
 				tx.addTag(tag.name, tag.value);
 			});
@@ -139,16 +118,29 @@ export class ArweaveSplit implements IStorageProvider {
 	}
 
 	async retrieveBundle(storageId: string, timeout: number) {
-		const ids = Base64.decode(storageId).split(',');
-		const buffers: Buffer[] = [];
-		for (const id of ids) {
-			const { data } = await axios.get(`https://arweave.net/${id}`, {
+		const isTxSplit = storageId.startsWith('v0_');
+		if (isTxSplit) {
+			const encodedId = storageId.substring(3, storageId.length);
+			const ids = Base64.decode(encodedId).split(',');
+			const buffers: Buffer[] = [];
+			for (const id of ids) {
+				const { data } = await axios.get(`https://arweave.net/${id}`, {
+					responseType: 'arraybuffer',
+					timeout,
+				});
+				buffers.push(data);
+			}
+			const storageData = Buffer.concat(buffers);
+			return { storageId, storageData };
+		}
+
+		const { data: storageData } = await axios.get(
+			`https://arweave.net/${storageId}`,
+			{
 				responseType: 'arraybuffer',
 				timeout,
-			});
-			buffers.push(data);
-		}
-		const storageData = Buffer.concat(buffers);
+			}
+		);
 
 		return { storageId, storageData };
 	}

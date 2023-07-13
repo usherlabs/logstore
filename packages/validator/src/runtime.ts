@@ -9,6 +9,7 @@ import { Managers } from './managers';
 import { ChainSources } from './sources';
 import { EventsIndexer, SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
+import { Slogger } from './utils/slogger';
 import Validator from './validator';
 
 export const KEY_STEP = 20 as const;
@@ -34,6 +35,9 @@ export default class Runtime implements IRuntimeExtended {
 	private _startBlockNumber: number;
 
 	async setup(core: Validator, homeDir: string) {
+		Slogger.register(core.logger);
+		core.logger.debug('Home Directory:', homeDir);
+
 		this.chain = new ChainSources(this.config.sources);
 		const startBlock = await this.startBlockNumber();
 
