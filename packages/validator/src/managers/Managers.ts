@@ -1,5 +1,6 @@
 import { JsonRpcProvider, Provider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
+import { sha256 } from '@kyvejs/protocol';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,
@@ -46,6 +47,8 @@ export class Managers {
 		return block;
 	}
 
+	private static sourcesHash: string;
+	private static managers: { source: string; managers: Managers }[];
 	/**
 	 * This method encapsulate the iteration over sources and consolidation of result for each Blockchain RPC source.
 	 */
@@ -54,10 +57,25 @@ export class Managers {
 		// eslint-disable-next-line
 		fn: (managers: Managers, source: string) => Promise<T>
 	): Promise<T> {
+		const sourcesHash = sha256(Buffer.from(JSON.stringify(sources)));
+
+		if (this.sourcesHash != sourcesHash) {
+			this.managers = await Promise.all(
+				sources.map(async (source) => {
+					const managers = new Managers(source);
+					await managers.init();
+					return {
+						source,
+						managers,
+					};
+				})
+			);
+
+			this.sourcesHash = sourcesHash;
+		}
+
 		const results = await Promise.all(
-			sources.map(async (source) => {
-				const managers = new Managers(source);
-				await managers.init();
+			this.managers.map(async ({ source, managers }) => {
 				return await fn(managers, source);
 			})
 		);
