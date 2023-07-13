@@ -131,10 +131,7 @@ export class TimeIndexer {
 
 	// Wait until the TimeIndex is ready
 	public async ready() {
-		while (true) {
-			if (this._ready) {
-				return true;
-			}
+		while (!this._ready) {
 			await sleep(1000);
 		}
 	}
@@ -202,9 +199,13 @@ export class TimeIndexer {
 
 	private async etl(startBlock?: number) {
 		const db = this.db();
-		this.logger.debug(`Start ETL from block ${startBlock || `'latest'`} ...`);
-
 		const sources = this.chain.sources;
+
+		this.logger.debug(
+			`Start ETL from block ${
+				startBlock || `'latest'`
+			} with sources ${sources.join(', ')}...`
+		);
 
 		const readyChecks = sources.map(() => false);
 
@@ -256,6 +257,8 @@ export class TimeIndexer {
 							// Once there is nothing to sync, the TimeIndex is considered Ready
 							readyChecks[i] = true;
 							if (!readyChecks.includes(false)) {
+								this.logger.debug('TimeIndexer: Ready!');
+
 								this._ready = true;
 							}
 						} else if (

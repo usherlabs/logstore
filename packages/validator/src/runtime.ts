@@ -1,5 +1,5 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { DataItem, sha256 } from '@kyvejs/protocol';
+import { DataItem, sha256, sleep } from '@kyvejs/protocol';
 import ContractAddresses from '@logsn/contracts/address.json';
 
 import { Item } from './core/item';
@@ -33,7 +33,7 @@ export default class Runtime implements IRuntimeExtended {
 	private _startKey: number;
 	private _startBlockNumber: number;
 
-	async setupThreads(core: Validator, homeDir: string) {
+	async setup(core: Validator, homeDir: string) {
 		this.chain = new ChainSources(this.config.sources);
 		const startBlock = await this.startBlockNumber();
 
@@ -53,10 +53,62 @@ export default class Runtime implements IRuntimeExtended {
 		);
 
 		this.managers = new Managers(this.chain, this.events);
+	}
 
+	async runThreads() {
 		await this.time.start();
 		await this.listener.start();
 		await this.events.start();
+	}
+
+	async ready(core: Validator, syncPoolState: () => Promise<void>) {
+		const getCurrentKeyMs = async () => {
+			/* eslint-disable */
+			const nextKey = core.pool.data!.current_key
+				? await this.nextKey(core, core.pool.data!.current_key)
+				: core.pool.data!.start_key;
+			/* eslint-enable */
+
+			return parseInt(nextKey, 10) * 1000;
+		};
+
+		const listenerHasValidData = async () => {
+			let currentKeyMs = await getCurrentKeyMs();
+			if (!currentKeyMs) {
+				// If the pool hasn't started yet, then this check can pass.
+				return;
+			}
+			// If the pool has started, then the currentKey > listener.startTime to proceed. ie. Listener should start before the start of the bundle.
+			while (
+				!this.listener.startTime ||
+				this.listener.startTime > currentKeyMs
+			) {
+				if (!this.listener.startTime) {
+					core.logger.info(
+						'SystemListener is not started yet. Sleeping for 10 seconds...'
+					);
+					await sleep(10 * 1000);
+				} else {
+					const sleepMs = this.listener.startTime - currentKeyMs + 1000;
+					core.logger.info(
+						`SystemListener.startTime (${
+							this.listener.startTime
+						}) is greater than currentKeyMs (${currentKeyMs}). Sleeping for ${(
+							sleepMs / 1000
+						).toFixed(2)} seconds...`
+					);
+					await sleep(sleepMs);
+				}
+				await syncPoolState();
+				currentKeyMs = await getCurrentKeyMs();
+			}
+		};
+
+		await Promise.all([
+			this.time.ready(),
+			this.events.ready(),
+			listenerHasValidData(),
+		]);
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {
@@ -103,6 +155,9 @@ export default class Runtime implements IRuntimeExtended {
 		}
 
 		if (keyInt > this.time.latestTimestamp) {
+			core.logger.info(
+				'Key is greater than last indexed block/timestamp. Failing prevalidation to retry...'
+			);
 			return null;
 		}
 
@@ -164,6 +219,7 @@ export default class Runtime implements IRuntimeExtended {
 
 		core.logger.info(`Create Events: ${lastItem.key}`);
 		const eventsForColdStore = this.events.prepare(true);
+		console.log(eventsForColdStore);
 		if (eventsForColdStore.length > 0) {
 			core.logger.debug(
 				`${eventsForColdStore.length} events prepared for cold storage`

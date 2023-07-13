@@ -20,7 +20,12 @@ export interface IRuntimeExtended extends IRuntime {
 	chain: ChainSources;
 	events: EventsIndexer;
 	managers: Managers;
-	setupThreads?: (core: Validator, homeDir: string) => void;
+	setup?: (core: Validator, homeDir: string) => Promise<void>;
+	runThreads?: (core: Validator) => void;
+	ready?: (
+		core: Validator,
+		syncPoolState: () => Promise<void>
+	) => Promise<void>;
 	startKey(): Promise<number>;
 	startBlockNumber(): Promise<number>;
 }

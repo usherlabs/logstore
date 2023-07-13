@@ -91,14 +91,12 @@ export class EventsIndexer {
 
 		await this.hydrate();
 		this._ready = true;
+		this.logger.debug('EventsIndexer: Ready!');
 	}
 
 	// Wait until the Indexer is ready
 	public async ready() {
-		while (true) {
-			if (this._ready) {
-				return true;
-			}
+		while (!this._ready) {
 			await sleep(1000);
 		}
 	}
@@ -249,11 +247,11 @@ export class EventsIndexer {
 	 * Load all events into cache
 	 */
 	private async hydrate() {
-		this.logger.info('Hydrating Events Index...');
+		this.logger.info('EventsIndexer: Hydrating...');
 
 		let count = 0;
-		let total = 0;
-		while (count < total || total === 0) {
+		let total = -1; // start at -1 to indicat that the hydration has not started. If there are no finalized bundles, total will be replaced with 0
+		while (count < total || total < 0) {
 			const reqCounts = [];
 			const reqTotals = [];
 			const reqNextKeys = [];
@@ -278,7 +276,7 @@ export class EventsIndexer {
 				reqNextKeys.push(results.pagination.next_key);
 
 				// Process results
-				for (let j = 0; j <= results.finalized_bundles.length; j++) {
+				for (let j = 0; j < results.finalized_bundles.length; j++) {
 					const fb = results.finalized_bundles[j];
 					// See ArweaveSplit Storage Provider for reference
 					if (fb.storage_id.startsWith('v0:')) {
@@ -302,6 +300,9 @@ export class EventsIndexer {
 			}
 			total = reqTotals[0];
 			count += reqCounts[0];
+			this.logger.info(
+				`EventsIndexer: Hydrate - Total: ${total}, Count: ${count}`
+			);
 
 			if (eventsTxIds.length === 0) {
 				continue;
@@ -325,5 +326,7 @@ export class EventsIndexer {
 			});
 			this._latestColdBlockNumber = events.at(-1).k;
 		}
+
+		this.logger.info('EventsIndexer: Hydration complete!');
 	}
 }
