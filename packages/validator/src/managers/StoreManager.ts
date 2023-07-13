@@ -2,6 +2,9 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { LogStoreManager } from '@logsn/contracts';
 
 export class StoreManager {
+	private fromBlockNumber: number = 0;
+	private readonly stores: { id: string; amount: BigNumber }[] = [];
+
 	constructor(private _contract: LogStoreManager) {}
 
 	public get contract() {
@@ -12,12 +15,18 @@ export class StoreManager {
 		fromBlockNumber: number,
 		toBlockNumber: number
 	): Promise<{ id: string; amount: BigNumber }[]> {
+		if (this.fromBlockNumber < fromBlockNumber) {
+			this.fromBlockNumber = fromBlockNumber;
+		}
+
 		const storeUpdateEvents = await this.contract.queryFilter(
 			this.contract.filters.StoreUpdated(),
-			fromBlockNumber,
+			this.fromBlockNumber,
 			toBlockNumber
 		);
-		const stores: { id: string; amount: BigNumber }[] = [];
+
+		const { stores } = this;
+
 		storeUpdateEvents.forEach((e) => {
 			const storeId = e.args.store.toString();
 			const amount = e.args.amount;
@@ -33,7 +42,7 @@ export class StoreManager {
 		});
 		const dataStoredEvents = await this.contract.queryFilter(
 			this.contract.filters.DataStored(),
-			fromBlockNumber,
+			this.fromBlockNumber,
 			toBlockNumber
 		);
 		dataStoredEvents.forEach((e) => {
@@ -44,6 +53,8 @@ export class StoreManager {
 				stores[sIndex].amount = stores[sIndex].amount.sub(amount);
 			}
 		});
+
+		this.fromBlockNumber = toBlockNumber;
 
 		return stores;
 	}
