@@ -19,6 +19,11 @@ export class StoreManager {
 			this.fromBlockNumber = fromBlockNumber;
 		}
 
+		// If the range already cached return the cached data
+		if (this.fromBlockNumber > toBlockNumber) {
+			return this.stores;
+		}
+
 		const storeUpdateEvents = await this.contract.queryFilter(
 			this.contract.filters.StoreUpdated(),
 			this.fromBlockNumber,
@@ -54,7 +59,7 @@ export class StoreManager {
 			}
 		});
 
-		this.fromBlockNumber = toBlockNumber;
+		this.fromBlockNumber = toBlockNumber + 1;
 
 		return stores;
 	}

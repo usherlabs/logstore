@@ -7,6 +7,9 @@ import { Slogger } from '../utils/slogger';
 import { StakeToken } from '../utils/stake-token';
 
 export class NodeManager {
+	private fromBlockNumber: number = 0;
+	private readonly delegates: Record<string, BigNumber> = {};
+
 	constructor(private _contract: LogStoreNodeManager) {}
 
 	public get contract() {
@@ -74,6 +77,15 @@ export class NodeManager {
 		fromBlockNumber: number,
 		toBlockNumber: number
 	): Promise<Record<string, BigNumber>> {
+		if (this.fromBlockNumber < fromBlockNumber) {
+			this.fromBlockNumber = fromBlockNumber;
+		}
+
+		// If the range already cached return the cached data
+		if (this.fromBlockNumber > toBlockNumber) {
+			return this.delegates;
+		}
+
 		const delegatesEvent = await this.contract.queryFilter(
 			this.contract.filters.StakeDelegateUpdated(
 				null,
@@ -83,11 +95,12 @@ export class NodeManager {
 				null,
 				null
 			),
-			fromBlockNumber,
+			this.fromBlockNumber,
 			toBlockNumber
 		);
 
-		const delegates: Record<string, BigNumber> = {};
+		const { delegates } = this;
+
 		delegatesEvent.forEach(({ args }) => {
 			const { delegate } = args;
 			const amount =
@@ -99,6 +112,8 @@ export class NodeManager {
 				delegates[delegate].add(amount);
 			}
 		});
+
+		this.fromBlockNumber = toBlockNumber + 1;
 
 		return delegates;
 	}
