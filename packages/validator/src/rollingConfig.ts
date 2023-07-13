@@ -6,6 +6,10 @@ class RollingConfig {
 	}
 
 	public get keyStep(): number {
+		if (this._key > Date.parse('2023-07-06T05:00:00') / 1000) {
+			return 20;
+		}
+
 		if (this._key > Date.parse('2023-07-05T18:00:00') / 1000) {
 			return 10;
 		}
