@@ -130,7 +130,7 @@ export class ArweaveSplit implements IStorageProvider {
 				});
 				buffers.push(data);
 			}
-			const storageData = Buffer.concat(buffers);
+			const storageData = GzipSplit.join(buffers);
 			return { storageId, storageData };
 		}
 

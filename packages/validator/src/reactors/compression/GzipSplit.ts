@@ -19,6 +19,18 @@ export class GzipSplit implements ICompression {
 		return bufferSplit(data, gzipSplitPrimaryDelimiter);
 	}
 
+	public static join(data: Buffer[]) {
+		const buffers: Buffer[] = [];
+		const size = data.length;
+		data.forEach((b, i) => {
+			buffers.push(b);
+			if (i !== size - 1) {
+				buffers.push(gzipSplitPrimaryDelimiter);
+			}
+		});
+		return Buffer.concat(buffers);
+	}
+
 	async compress(data: Buffer) {
 		const bundle = bytesToBundle(data);
 
@@ -37,16 +49,7 @@ export class GzipSplit implements ICompression {
 		}
 		const zips = await Promise.all(promises);
 
-		const buffers: Buffer[] = [];
-		const numOfZips = zips.length;
-		zips.forEach((zip, i) => {
-			buffers.push(zip);
-			if (i !== numOfZips - 1) {
-				buffers.push(gzipSplitPrimaryDelimiter);
-			}
-		});
-
-		return Buffer.concat(buffers);
+		return GzipSplit.join(zips);
 	}
 
 	async decompress(data: Buffer) {
@@ -61,16 +64,6 @@ export class GzipSplit implements ICompression {
 		Slogger.instance.debug('GzipSplit.decompress - output', {
 			json: json.map((j) => j.toString()),
 		});
-		/**
-		 * TODO:
-		 * Receiving the following:
-		 	{
-				json: [
-					'[{"key":"0","value":{"m":[]}},{"key":"1689263977","value":{"m":[]}}]{"s":true,"v":1,"id":"1689263977","height":713,"treasury":"0x00","streams":[],"consumers":[],"nodes":{},"delegates":{},"events":{"queries":[],"storage":[]}}'
-				]
-			}
-			A single elemennt string with concat messages/report.
-		 */
 
 		const bundle = bytesToBundle(json[0]);
 		const report = JSON.parse(json[1].toString());
