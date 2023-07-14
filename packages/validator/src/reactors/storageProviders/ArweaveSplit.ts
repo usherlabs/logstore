@@ -111,7 +111,7 @@ export class ArweaveSplit implements IStorageProvider {
 
 		return {
 			storageId,
-			storageData: Buffer.concat(
+			storageData: GzipSplit.join(
 				transactions.map((tx) => Buffer.from(tx.data))
 			),
 		};
