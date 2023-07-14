@@ -1,3 +1,4 @@
+import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import {
 	convertFromUsd,
 	getQueryManagerContract,
@@ -16,13 +17,7 @@ import os from 'os';
 import path from 'path';
 
 import { appPackageName, appVersion } from './env-config';
-import {
-	allowanceConfirm,
-	bytesToMessage,
-	getLogStoreClient,
-	logger,
-	withRetry,
-} from './utils';
+import { allowanceConfirm, bytesToMessage, logger, withRetry } from './utils';
 
 interface IConfig {
 	privateKey: string;
@@ -153,7 +148,7 @@ program
 			);
 			console.log(
 				`You should see ${ethers.utils.formatEther(
-					balance.toString()
+					ethers.BigNumber.from(balance.toHex())
 				)} LSAN in your Wallet UI.`
 			);
 			const storageMsg = bytesToMessage(availableStorage);
@@ -180,7 +175,7 @@ program
 				);
 			}
 		} catch (e) {
-			logger.info(chalk.red('mint failed'));
+			logger.info(chalk.red('Could not fetch balance'));
 			logger.error(e);
 		}
 	});
@@ -463,12 +458,30 @@ program
 	.action(async (name: string) => {
 		// const provider = new ethers.providers.JsonRpcProvider(options.host);
 		// const signer = new ethers.Wallet(options.wallet, provider);
-		const client = getLogStoreClient(options.wallet);
+		const config = {
+			auth: {
+				privateKey: options.wallet,
+			},
+		};
+		let client: LogStoreClient;
+		if (options.host === 'http://localhost:8546') {
+			if (process.env.STREAMR_DOCKER_DEV_HOST !== 'localhost') {
+				throw new Error(
+					'You are trying to create a Stream on the DevNet! Please re-run with Env variable set: STREAMR_DOCKER_DEV_HOST=localhost'
+				);
+			}
+			client = new LogStoreClient({
+				...CONFIG_TEST,
+				...config,
+			});
+		} else {
+			client = new LogStoreClient(config);
+		}
 		const stream = await client.createStream({
-			// id: name.charAt(0) === '/' ? name : `/${name}`,
-			id: name,
+			id: name.charAt(0) === '/' ? name : `/${name}`,
 		});
-		logger.info(stream);
+		logger.info(chalk.green('New Stream created!'));
+		logger.info(stream.id);
 	});
 
 program.configureHelp({
