@@ -22,6 +22,14 @@ export enum EventSelect {
 	DataStored,
 }
 
+const EventSelectKeys = Object.keys(EventSelect)
+				.map((key) => EventSelect[key])
+				.filter((value) => typeof value === 'string') as string[];
+const createEmptyEventSelect = () => EventSelectKeys.reduce((acc, curr) => {
+	acc[curr] = [];
+	return acc;
+}, {})
+
 type BlockNumber = number;
 type Events = {
 	StoreUpdated?: StoreUpdatedEvent[];
@@ -110,7 +118,7 @@ export class EventsIndexer {
 		// ? If the index already exists, check it's latest data.
 		const results: { block: BlockNumber; value: Events }[] = [];
 		for (const { key: key, value } of this._db.getRange()) {
-			const finalValue: Events = {};
+			const finalValue: Events = ;
 			if (
 				eventsToFilterFor.includes(EventSelect.StoreUpdated) &&
 				value.StoreUpdated
@@ -139,42 +147,33 @@ export class EventsIndexer {
 			const fromBlockNumber = latestBlockNumber + 1;
 
 			const newEvents = await this.chain.use(async (source) => {
-				const collectedEvents: Events = {};
+				const events: Events = createEmptyEventSelect();
 				if (eventsToFilterFor.includes(EventSelect.StoreUpdated)) {
 					const contract = await source.contracts.store();
-					const events = await contract.queryFilter(
+					events.StoreUpdated = await contract.queryFilter(
 						contract.filters.StoreUpdated(),
 						fromBlockNumber,
 						toBlockNumber
 					);
-					if (!isEmpty(events)) {
-						collectedEvents.StoreUpdated = events;
-					}
 				}
 				if (eventsToFilterFor.includes(EventSelect.StakeDelegateUpdated)) {
 					const contract = await source.contracts.node();
-					const events = await contract.queryFilter(
+					events.StakeDelegateUpdated = await contract.queryFilter(
 						contract.filters.StakeDelegateUpdated(),
 						fromBlockNumber,
 						toBlockNumber
 					);
-					if (!isEmpty(events)) {
-						collectedEvents.StakeDelegateUpdated = events;
-					}
 				}
 				if (eventsToFilterFor.includes(EventSelect.DataStored)) {
 					const contract = await source.contracts.store();
-					const events = await contract.queryFilter(
+					events.DataStored = await contract.queryFilter(
 						contract.filters.DataStored(),
 						fromBlockNumber,
 						toBlockNumber
 					);
-					if (!isEmpty(events)) {
-						collectedEvents.DataStored = events;
-					}
 				}
 
-				return collectedEvents;
+				return events;
 			});
 			if (!isEmpty(newEvents)) {
 				// Add new events to results.
