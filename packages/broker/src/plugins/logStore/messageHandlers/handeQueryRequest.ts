@@ -1,4 +1,4 @@
-import LogStoreClient, { MessageMetadata, Stream } from '@logsn/client';
+import { LogStoreClient, MessageMetadata } from '@logsn/client';
 import {
 	QueryFromOptions,
 	QueryLastOptions,
@@ -11,6 +11,7 @@ import { Logger } from '@streamr/utils';
 import { Signer } from 'ethers';
 import { Readable } from 'stream';
 
+import { StreamPublisher } from '../../../shared/StreamPublisher';
 import { hashResponse } from '../Consensus';
 import {
 	LogStore,
@@ -21,8 +22,8 @@ import {
 export async function handeQueryRequest(
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
+	publisher: StreamPublisher,
 	signer: Signer,
-	systemStream: Stream,
 	logger: Logger,
 	queryRequest: QueryRequest,
 	metadata: MessageMetadata
@@ -90,5 +91,5 @@ export async function handeQueryRequest(
 		hash,
 		signature: await signer.signMessage(hash),
 	});
-	await logStoreClient.publish(systemStream, queryResponse.serialize());
+	await publisher.publish(queryResponse.serialize());
 }

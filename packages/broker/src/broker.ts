@@ -1,4 +1,5 @@
 import {
+	formLogStoreSystemStreamId,
 	LogStoreClient,
 	NetworkNodeStub,
 	PrivateKeyAuthConfig,
@@ -34,6 +35,12 @@ export const createBroker = async (
 
 	const logStoreClient = new LogStoreClient(config.client);
 
+	const systemStream = await logStoreClient.getStream(
+		formLogStoreSystemStreamId(
+			config.client.contracts!.logStoreNodeManagerChainAddress!
+		)
+	);
+
 	const privateKey = (config.client!.auth as PrivateKeyAuthConfig).privateKey;
 
 	const provider = new ethers.providers.JsonRpcProvider(
@@ -45,6 +52,7 @@ export const createBroker = async (
 		const pluginOptions: PluginOptions = {
 			name,
 			logStoreClient,
+			systemStream,
 			brokerConfig: config,
 			signer,
 		};

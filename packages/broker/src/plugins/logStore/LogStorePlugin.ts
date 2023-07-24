@@ -17,6 +17,8 @@ import { keccak256 } from 'ethers/lib/utils';
 
 // import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';
+import { StreamPublisher } from '../../shared/StreamPublisher';
+import { StreamSubscriber } from '../../shared/StreamSubscriber';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { createDataQueryEndpoint } from './dataQueryEndpoint';
 import { LogStore, startCassandraLogStore } from './LogStore';
@@ -53,11 +55,23 @@ const isStorableMessage = (msg: StreamMessage): boolean => {
 export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	constructor(options: PluginOptions) {
 		super(options);
+
+		this.publisher = new StreamPublisher(
+			this.logStoreClient,
+			this.systemStream
+		);
+		this.subscriber = new StreamSubscriber(
+			this.logStoreClient,
+			this.systemStream
+		);
 	}
 
 	private logStore?: LogStore;
 	private logStoreConfig?: LogStoreConfig;
 	private messageListener?: (msg: StreamMessage) => void;
+
+	private readonly publisher: StreamPublisher;
+	private readonly subscriber: StreamSubscriber;
 
 	getApiAuthentication(): undefined {
 		return undefined;
@@ -73,18 +87,17 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		const abortController = new AbortController();
 		const poller = new ReportPoller(
 			this.brokerConfig,
-			this.logStoreClient,
 			this.signer,
-			systemStream
+			this.publisher
 		);
 
-		await this.logStoreClient.subscribe(
-			systemStream,
-			async (content: any, metadata: MessageMetadata) => {
-				const queryMessage = SystemMessage.deserialize(content);
-				switch (queryMessage.messageType) {
+		await this.subscriber.subscribe(
+			async (content: unknown, metadata: MessageMetadata) => {
+				const systemMessage = SystemMessage.deserialize(content);
+
+				switch (systemMessage.messageType) {
 					case SystemMessageType.QueryRequest: {
-						const queryRequest = queryMessage as QueryRequest;
+						const queryRequest = systemMessage as QueryRequest;
 						logger.trace(
 							'Received LogStoreQuery, content: %s metadata: %s',
 							content,
@@ -93,8 +106,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						await handeQueryRequest(
 							this.logStore!,
 							this.logStoreClient,
+							this.publisher,
 							this.signer,
-							systemStream,
 							logger,
 							queryRequest,
 							metadata
@@ -102,7 +115,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						break;
 					}
 					case SystemMessageType.ProofOfReport: {
-						const proofOfReport = queryMessage as ProofOfReport;
+						const proofOfReport = systemMessage as ProofOfReport;
 						await poller.processProofOfReport(proofOfReport);
 						break;
 					}
@@ -140,10 +153,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					hash,
 				});
 
-				await this.logStoreClient.publish(
-					systemStream,
-					proofOfMessageStored.serialize()
-				);
+				await this.publisher.publish(proofOfMessageStored.serialize());
 			}
 		};
 		const node = await this.logStoreClient.getNode();

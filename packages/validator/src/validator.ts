@@ -11,7 +11,7 @@ export async function validateDataAvailability(this: Validator): Promise<void> {
 	this.logger.debug('Home Directory:', this.home);
 	if (this.runtime.setupThreads) {
 		// * We cannot `await setupThreads` here because we need it to run async alongside other threads (ie. Kyve's `runCache` and `runNode`)
-		this.runtime.setupThreads(this, this.home);
+		await this.runtime.setupThreads(this, this.home);
 	}
 
 	const listenerHasValidData = async () => {

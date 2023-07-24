@@ -1,4 +1,4 @@
-import type { Stream, StreamMessage, Subscription } from '@logsn/client';
+import type { Stream, StreamMessage } from '@logsn/client';
 import { LogStoreClient } from '@logsn/client';
 import { LogStoreNodeManager } from '@logsn/contracts';
 import {
@@ -11,6 +11,9 @@ import { Logger } from '@streamr/utils';
 import { Signer } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
+
+import { StreamPublisher } from '../../shared/StreamPublisher';
+import { StreamSubscriber } from '../../shared/StreamSubscriber';
 
 const CONSENSUS_TIMEOUT = 30 * 1000; // 30 seconds
 
@@ -55,9 +58,10 @@ export const getConsensus = async (
 
 	return new Promise<Consensus[]>((resolve, reject) => {
 		let timeout: NodeJS.Timeout;
-		let sub: Subscription;
-		logStoreClient
-			.subscribe(systemStream, (msg, metadata) => {
+		const publisher = new StreamPublisher(logStoreClient, systemStream);
+		const subscriber = new StreamSubscriber(logStoreClient, systemStream);
+		subscriber
+			.subscribe((msg, metadata) => {
 				const systemMessage = SystemMessage.deserialize(msg);
 
 				if (systemMessage.messageType != SystemMessageType.QueryResponse) {
@@ -83,7 +87,7 @@ export const getConsensus = async (
 				// check if consensus reached
 				if (consensuses[queryResponse.hash].length >= consesnusThreshold) {
 					clearTimeout(timeout);
-					sub.unsubscribe().then(() => {
+					subscriber.unsubscribe().then(() => {
 						resolve(consensuses[queryResponse.hash]);
 					});
 					return;
@@ -96,26 +100,21 @@ export const getConsensus = async (
 
 				if (leadingResponses + awaitingResponses < consesnusThreshold) {
 					clearTimeout(timeout);
-					sub.unsubscribe().then(() => {
+					subscriber.unsubscribe().then(() => {
 						reject('No consensus');
 					});
 					return;
 				}
 			})
-			.then((subscription) => {
-				// save subscription for clean up
-				sub = subscription;
-
+			.then(() => {
 				// On successful subscription, forward the request to broker network
-				logStoreClient
-					.publish(systemStream, queryRequest.serialize())
-					.then(() => {
-						timeout = setTimeout(() => {
-							sub.unsubscribe().then(() => {
-								reject('Consensus timeout');
-							});
-						}, CONSENSUS_TIMEOUT);
-					});
+				publisher.publish(queryRequest.serialize()).then(() => {
+					timeout = setTimeout(() => {
+						subscriber.unsubscribe().then(() => {
+							reject('Consensus timeout');
+						});
+					}, CONSENSUS_TIMEOUT);
+				});
 
 				const queryResponse = new QueryResponse({
 					requestId: queryRequest.requestId,
@@ -123,7 +122,7 @@ export const getConsensus = async (
 					hash,
 					signature,
 				});
-				logStoreClient.publish(systemStream, queryResponse.serialize()).then();
+				publisher.publish(queryResponse.serialize()).then();
 			})
 			.catch((err) => {
 				logger.error(err);

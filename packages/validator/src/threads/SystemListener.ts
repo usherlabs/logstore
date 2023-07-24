@@ -1,5 +1,5 @@
 // import chokidar from 'chokidar';
-import { CONFIG_TEST, LogStoreClient, MessageMetadata } from '@logsn/client';
+import { LogStoreClient, MessageMetadata, Stream } from '@logsn/client';
 import {
 	ProofOfMessageStored,
 	QueryRequest,
@@ -12,7 +12,7 @@ import type { RootDatabase } from 'lmdb';
 import path from 'path';
 import type { Logger } from 'tslog';
 
-import { getEvmPrivateKey, useStreamrTestConfig } from '../env-config';
+import { StreamSubscriber } from '../shared/StreamSubscriber';
 import type {
 	ProofOfMessageStoredMessage,
 	QueryRequestMessage,
@@ -36,23 +36,17 @@ type DB = {
 
 export class SystemListener {
 	protected _cachePath: string;
-	private _client: LogStoreClient;
+	private readonly _subscriber: StreamSubscriber;
 	private _db!: DB;
 	private _startTime: number;
 
 	constructor(
 		homeDir: string,
-		protected systemStreamId: string,
+		private readonly _client: LogStoreClient,
+		private readonly _systemStream: Stream,
 		protected logger: Logger
 	) {
-		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
-		// core.logger.debug('Streamr Config', streamrConfig);
-		this._client = new LogStoreClient({
-			...streamrConfig,
-			auth: {
-				privateKey: getEvmPrivateKey(), // The Validator needs to stake in QueryManager
-			},
-		});
+		this._subscriber = new StreamSubscriber(this._client, this._systemStream);
 
 		this._cachePath = path.join(homeDir, '.logstore-metadata');
 	}
@@ -85,8 +79,8 @@ export class SystemListener {
 
 			// const systemSubscription =
 			this.logger.info('Starting System Listener ...');
-			this.logger.debug(`System Stream Id: `, this.systemStreamId);
-			await this.subscribe(this.systemStreamId);
+			this.logger.debug(`System Stream Id: `, this._systemStream.id);
+			await this._subscriber.subscribe(this.onMessage.bind(this));
 
 			// Store a timestamp for when the listener starts so that the Node must have a timestamp < bundle_start_key to pariticpate.
 			this._startTime = Date.now();
@@ -98,14 +92,7 @@ export class SystemListener {
 	}
 
 	public async stop() {
-		await this._client.unsubscribe();
-	}
-
-	public async subscribe(streamId: string) {
-		await this._client.subscribe(streamId, (content, metadata) => {
-			// eslint-disable-next-line
-			this.onMessage(content as any, metadata);
-		});
+		await this._subscriber.unsubscribe();
 	}
 
 	public storeDb() {

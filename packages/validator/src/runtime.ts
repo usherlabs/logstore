@@ -1,10 +1,16 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, sha256 } from '@kyvejs/protocol';
+import LogStoreClient, { CONFIG_TEST } from '@logsn/client';
 import ContractAddresses from '@logsn/contracts/address.json';
 
 import { Item } from './core/item';
 import { Report } from './core/report';
-import { appPackageName, appVersion } from './env-config';
+import {
+	appPackageName,
+	appVersion,
+	getEvmPrivateKey,
+	useStreamrTestConfig,
+} from './env-config';
 import { Managers } from './managers';
 import { rollingConfig } from './rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
@@ -29,10 +35,23 @@ export default class Runtime implements IRuntimeExtended {
 	private _startKey: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
+		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
+		// core.logger.debug('Streamr Config', streamrConfig);
+		const logStoreClient = new LogStoreClient({
+			...streamrConfig,
+			auth: {
+				privateKey: getEvmPrivateKey(), // The Validator needs to stake in QueryManager
+			},
+		});
+		const systemStream = await logStoreClient.getStream(
+			this.config.systemStreamId
+		);
+
 		this.time = new TimeIndexer(homeDir, this.config, core.logger);
 		this.listener = new SystemListener(
 			homeDir,
-			this.config.systemStreamId,
+			logStoreClient,
+			systemStream,
 			core.logger
 		);
 

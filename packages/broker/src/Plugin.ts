@@ -1,4 +1,4 @@
-import { LogStoreClient } from '@logsn/client';
+import { LogStoreClient, Stream } from '@logsn/client';
 import { Schema } from 'ajv';
 import { Signer } from 'ethers';
 
@@ -9,6 +9,7 @@ import { Endpoint } from './httpServer';
 export interface PluginOptions {
 	name: string;
 	logStoreClient: LogStoreClient;
+	systemStream: Stream;
 	brokerConfig: StrictConfig;
 	signer: Signer;
 }
@@ -18,6 +19,7 @@ export type HttpServerEndpoint = Omit<Endpoint, 'apiAuthentication'>;
 export abstract class Plugin<T extends object> {
 	readonly name: string;
 	readonly logStoreClient: LogStoreClient;
+	readonly systemStream: Stream;
 	readonly brokerConfig: StrictConfig;
 	readonly signer: Signer;
 	readonly pluginConfig: T;
@@ -26,6 +28,7 @@ export abstract class Plugin<T extends object> {
 	constructor(options: PluginOptions) {
 		this.name = options.name;
 		this.logStoreClient = options.logStoreClient;
+		this.systemStream = options.systemStream;
 		this.brokerConfig = options.brokerConfig;
 		this.signer = options.signer;
 		this.pluginConfig = options.brokerConfig.plugins[this.name];
