@@ -1,6 +1,6 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, sha256 } from '@kyvejs/protocol';
-import LogStoreClient, { CONFIG_TEST } from '@logsn/client';
+import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import ContractAddresses from '@logsn/contracts/address.json';
 
 import { Item } from './core/item';
@@ -90,6 +90,8 @@ export default class Runtime implements IRuntimeExtended {
 			throw new Error(`Config sources have invalid network chain identifier`);
 		}
 
+		await Managers.setSources(config.sources);
+
 		this.config = {
 			...this.config,
 			...config,
@@ -171,7 +173,6 @@ export default class Runtime implements IRuntimeExtended {
 	async startBlockNumber(): Promise<number> {
 		if (!this._startBlockNumber) {
 			this._startBlockNumber = await Managers.withSources<number>(
-				this.config.sources,
 				async (managers) => {
 					return await managers.node.getStartBlockNumber();
 				}
@@ -185,12 +186,9 @@ export default class Runtime implements IRuntimeExtended {
 		if (!this._startKey) {
 			const startBlockNumber = await this.startBlockNumber();
 			// Re-fetch the start key from sources rather than from time-index, as time-index starts from last report id
-			this._startKey = await Managers.withSources<number>(
-				this.config.sources,
-				async (managers) => {
-					return (await managers.getBlock(startBlockNumber)).timestamp;
-				}
-			);
+			this._startKey = await Managers.withSources<number>(async (managers) => {
+				return (await managers.getBlock(startBlockNumber)).timestamp;
+			});
 		}
 
 		return this._startKey;

@@ -100,17 +100,14 @@ export class TimeIndexer {
 			this.logger.info('Starting time indexer ...');
 
 			if (startBlock === 0) {
-				startBlock = await Managers.withSources<number>(
-					this.config.sources,
-					async (managers) => {
-						const lastReport = await managers.report.getLastReport();
-						if ((lastReport || {})?.id) {
-							return lastReport.height;
-						}
-						const startBlockNumber = await managers.node.getStartBlockNumber();
-						return startBlockNumber;
+				startBlock = await Managers.withSources<number>(async (managers) => {
+					const lastReport = await managers.report.getLastReport();
+					if ((lastReport || {})?.id) {
+						return lastReport.height;
 					}
-				);
+					const startBlockNumber = await managers.node.getStartBlockNumber();
+					return startBlockNumber;
+				});
 			}
 
 			this.logger.info('Start Block Number: ', startBlock);

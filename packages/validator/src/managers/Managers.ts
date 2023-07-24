@@ -47,16 +47,11 @@ export class Managers {
 		return block;
 	}
 
+	private static sources: string[];
 	private static sourcesHash: string;
 	private static managers: { source: string; managers: Managers }[];
-	/**
-	 * This method encapsulate the iteration over sources and consolidation of result for each Blockchain RPC source.
-	 */
-	public static async withSources<T>(
-		sources: string[],
-		// eslint-disable-next-line
-		fn: (managers: Managers, source: string) => Promise<T>
-	): Promise<T> {
+
+	public static async setSources(sources: string[]) {
 		const sourcesHash = sha256(Buffer.from(JSON.stringify(sources)));
 
 		if (this.sourcesHash != sourcesHash) {
@@ -71,9 +66,17 @@ export class Managers {
 				})
 			);
 
+			this.sources = sources;
 			this.sourcesHash = sourcesHash;
 		}
+	}
 
+	/**
+	 * This method encapsulate the iteration over sources and consolidation of result for each Blockchain RPC source.
+	 */
+	public static async withSources<T>(
+		fn: (managers: Managers, source: string) => Promise<T>
+	): Promise<T> {
 		const results = await Promise.all(
 			this.managers.map(async ({ source, managers }) => {
 				return await fn(managers, source);
@@ -105,12 +108,12 @@ export class Managers {
 
 		// check if results from the different sources match
 		const a = results[0];
-		const srcA = sources[0];
+		const srcA = this.sources[0];
 		const objA = clean(cloneDeep(a));
 		const strA = JSON.stringify(objA);
 
 		results.slice(1).forEach((b, i) => {
-			const srcB = sources[i + 1];
+			const srcB = this.sources[i + 1];
 			const objB = clean(cloneDeep(b));
 			const strB = JSON.stringify(objB);
 
