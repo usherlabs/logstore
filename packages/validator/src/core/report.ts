@@ -169,7 +169,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		// ------------ STORAGE ------------
 		// Use events in the listener cache to determine which events are valid.
-		const storeCache = listener.storeDb();
+		const storeCache = listener.db.storeDb();
 		// a mapping of "contentHash => [[timestamp, valueIndex], [timestamp, valueIndex]]"
 		// With this mapping, we can determine which events in the storeCache pertain to the ProofOfMessageStored hash - and therefore which publishers/brokers contributed.
 		const storeHashKeyMap: Record<string, [number, number][]> = {};
@@ -183,7 +183,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			for (let i = 0; i < cacheValue.length; i++) {
 				const value = cacheValue[i];
 
-				const { content, metadata } = value;
+				const { content, metadata } = value.message;
 				if (!(content && metadata)) {
 					continue;
 				}
@@ -230,7 +230,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			for (let j = 0; j < storeKeys.length; j++) {
 				const [cacheKey, valueIndex] = storeKeys[j];
 				const cacheValues = storeCache.get(cacheKey);
-				const event = cacheValues[valueIndex];
+				const event = cacheValues[valueIndex].message;
 				if (!event) continue;
 
 				// Now, we're iterating over each specific proofOfMessageStored event published by each Broker on the Broker Network
@@ -304,8 +304,8 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// -------------------------------------
 
 		// ------------ QUERIES ----------------
-		const queryRequestCache = listener.queryRequestDb();
-		const queryResponseCache = listener.queryResponseDb();
+		const queryRequestCache = listener.db.queryRequestDb();
+		const queryResponseCache = listener.db.queryResponseDb();
 		// Iterate over the query-request events between the range
 		const queryRequestCachedItems = queryRequestCache.getRange({
 			start: fromKeyMs,
@@ -326,14 +326,15 @@ export class Report extends AbstractDataItem<IPrepared> {
 				// Here, we iterate over the query requests that may have occured during the same timestamp
 				const value = cacheValue[i];
 
-				const { content, metadata } = value;
+				const { content, metadata } = value.message;
 				if (!(content && metadata)) {
 					continue;
 				}
 
-				const queryResponsesForRequest = queryResponseCache.get(
-					content.requestId
-				);
+				const queryResponsesForRequest = queryResponseCache
+					.get(content.requestId)
+					.map((m) => m.message);
+
 				const {
 					// maxCount: consensusCount,
 					maxHash: consensusHash,
