@@ -4,3 +4,4 @@
 # these will be used directly to allow upload on S3 bucket. The used User must have the correct privileges
 # AWS_ACCESS_KEY_ID=
 # AWS_SECRET_ACCESS_KEY=
+# BETTERSTACK_TOKEN=

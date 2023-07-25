@@ -23,3 +23,12 @@ key_prefix = "docker-logs/${AWS_BUCKET_DIR?:Bucket directory must be supplied}/d
 encoding.codec = "json"
 region = "us-east-1"
 batch.max_bytes=52428800
+
+
+[sinks.better_stack]
+type = "http"
+method = "post"
+inputs = [ "remove_labels" ]
+uri = "https://in.logs.betterstack.com/"
+encoding.codec = "json"
+request.headers.Authorization = "$BETTERSTACK_TOKEN"
