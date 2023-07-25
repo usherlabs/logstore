@@ -336,6 +336,19 @@ services:
       logstore-deploy-contracts:
         condition: service_completed_successfully
 
+  logstore-vector:
+    container_name: logstore-vector
+    hostname: logstore-vector
+    image: timberio/vector:latest-debian
+    restart: always
+    ports:
+      - '8686:8686'
+    env_file:
+      - ./assets/vector/.env.vector
+    volumes:
+      - "./assets/vector/vector.toml:/etc/vector/vector.toml"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
 networks:
   streamr-network:
     name: streamr-docker-dev_streamr-network

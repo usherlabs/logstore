@@ -1,0 +1,6 @@
+# rename it to .env.vector and fill it appropriately
+# LOGSTORE_BUCKET=logstore-logs-bucket # the bucket where the logs will be stored
+# AWS_BUCKET_DIR=dev-network # where to store the logs in the bucket
+# these will be used directly to allow upload on S3 bucket. The used User must have the correct privileges
+# AWS_ACCESS_KEY_ID=
+# AWS_SECRET_ACCESS_KEY=

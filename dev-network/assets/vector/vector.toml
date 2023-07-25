@@ -1,0 +1,25 @@
+[sources.docker_logs_source]
+type = "docker_logs"
+include_containers = [
+	"logstore-heartbeat",
+	"logstore-broker-",
+	"logstore-validator-",
+	"logstore-deploy-contracts"
+]
+
+[transforms.remove_labels]
+type = "remap"
+inputs = ["docker_logs_source"]
+source = '''
+  del(.label)
+'''
+
+
+[sinks.aws_s3_sink]
+type = "aws_s3"
+inputs = ["remove_labels"]
+bucket = "${LOGSTORE_BUCKET:?Bucket name must be supplied}"
+key_prefix = "docker-logs/${AWS_BUCKET_DIR?:Bucket directory must be supplied}/date=%F/"
+encoding.codec = "json"
+region = "us-east-1"
+batch.max_bytes=52428800
