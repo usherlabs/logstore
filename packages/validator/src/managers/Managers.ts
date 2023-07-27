@@ -35,7 +35,6 @@ export class Managers {
 		const cReport = await getReportManagerContract(wallet);
 		const cNode = await getNodeManagerContract(wallet);
 
-		// this.store = new StoreManager(this.provider, );
 		this.node = new NodeManager(cNode);
 		this.store = new StoreManager(cStore);
 		this.report = new ReportManager(cReport);

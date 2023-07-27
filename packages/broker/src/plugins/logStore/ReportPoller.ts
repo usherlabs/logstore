@@ -19,7 +19,7 @@ const REPORT_TRESHOLD_MULTIPLIER = 0.5;
 export class ReportPoller {
 	private readonly poolConfig: StrictConfig['pool'];
 	private readonly signer: Signer;
-	private readonly publisher: StreamPublisher;
+	private readonly streamPublisher: StreamPublisher;
 
 	private reportManager!: LogStoreReportManager;
 	private nodeManager!: LogStoreNodeManager;
@@ -31,12 +31,12 @@ export class ReportPoller {
 	constructor(
 		config: StrictConfig,
 		signer: Signer,
-		publisher: StreamPublisher
+		streamPublisher: StreamPublisher
 	) {
 		this.poolConfig = config.pool;
 		this.latestBundle = 0;
 		this.signer = signer;
-		this.publisher = publisher;
+		this.streamPublisher = streamPublisher;
 	}
 
 	public async start(abortSignal: AbortSignal): Promise<void> {
@@ -179,7 +179,7 @@ export class ReportPoller {
 		);
 
 		const proofOfReport = await poll.report.toProof(this.signer);
-		await this.publisher.publish(proofOfReport.serialize());
+		await this.streamPublisher.publish(proofOfReport.serialize());
 		logger.info(
 			`Proof of report ${poll.report.id} published to system stream`,
 			proofOfReport

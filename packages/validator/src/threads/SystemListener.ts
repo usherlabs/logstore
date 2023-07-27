@@ -8,33 +8,45 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
+import { Signer } from 'ethers';
 import fse from 'fs-extra';
 import path from 'path';
 import type { Logger } from 'tslog';
 
 import { StreamSubscriber } from '../shared/StreamSubscriber';
 import { SystemDb } from './SystemDb';
+import { SystemRecovery } from './SystemRecovery';
+
+const LISTENING_MESSAGE_TYPES = [
+	SystemMessageType.ProofOfMessageStored,
+	SystemMessageType.QueryRequest,
+	SystemMessageType.QueryResponse,
+];
 
 export class SystemListener {
-	protected _cachePath: string;
+	private readonly _cachePath: string;
 	private readonly _subscriber: StreamSubscriber;
-	private _db: SystemDb;
-	private _startTime: number;
+	private readonly _db: SystemDb;
+	private readonly _systemRecovery: SystemRecovery;
+	private _latestTimestamp: number;
 
 	constructor(
 		homeDir: string,
 		private readonly _client: LogStoreClient,
 		private readonly _systemStream: Stream,
-		protected logger: Logger
+		private readonly _signer: Signer,
+		private readonly logger: Logger
 	) {
 		this._subscriber = new StreamSubscriber(this._client, this._systemStream);
 
 		this._cachePath = path.join(homeDir, '.logstore-metadata');
 		this._db = new SystemDb();
-	}
-
-	public get startTime() {
-		return this._startTime;
+		this._systemRecovery = new SystemRecovery(
+			this._client,
+			this._systemStream,
+			this._signer,
+			this.onMessage.bind(this)
+		);
 	}
 
 	public get client() {
@@ -51,13 +63,11 @@ export class SystemListener {
 
 			this._db.open(this._cachePath);
 
-			// const systemSubscription =
 			this.logger.info('Starting System Listener ...');
 			this.logger.debug(`System Stream Id: `, this._systemStream.id);
-			await this._subscriber.subscribe(this.onMessage.bind(this));
-
-			// Store a timestamp for when the listener starts so that the Node must have a timestamp < bundle_start_key to pariticpate.
-			this._startTime = Date.now();
+			await this._subscriber.subscribe((content, metadata) =>
+				setImmediate(() => this.onMessage(content, metadata))
+			);
 		} catch (e) {
 			this.logger.error(`Unexpected error starting listener...`);
 			this.logger.error(e);
@@ -66,29 +76,52 @@ export class SystemListener {
 	}
 
 	public async stop() {
+		await this._systemRecovery.stop();
 		await this._subscriber.unsubscribe();
+	}
+
+	public get latestTimestamp() {
+		if (!this._systemRecovery.progress.isComplete) {
+			return this._systemRecovery.progress.timestamp;
+		}
+		return this._latestTimestamp;
 	}
 
 	private async onMessage(
 		content: unknown,
 		metadata: MessageMetadata
 	): Promise<void> {
+		// Start recovery when the very first message has been received
+		if (this._latestTimestamp === undefined) {
+			this._latestTimestamp = metadata.timestamp;
+			await this._systemRecovery.start();
+		}
+
 		// Add to store
 		const systemMessage = SystemMessage.deserialize(content);
-		// this.logger.debug('onMessage', parsedContent);
-
-		if (
-			[
-				SystemMessageType.ProofOfMessageStored,
-				SystemMessageType.QueryRequest,
-				SystemMessageType.QueryResponse,
-			].includes(systemMessage.messageType) === false
-		) {
+		// this.logger.debug('onMessage', systemMessage);
+		if (!LISTENING_MESSAGE_TYPES.includes(systemMessage.messageType)) {
 			return;
 		}
 
+		this._latestTimestamp = metadata.timestamp;
+
+		const systemMessageMetadata = {
+			streamId: metadata.streamId,
+			streamPartition: metadata.streamPartition,
+			timestamp: metadata.timestamp,
+			sequenceNumber: metadata.sequenceNumber,
+			signature: metadata.signature,
+			publisherId: metadata.publisherId,
+			msgChainId: metadata.msgChainId,
+		};
 		const hash = sha256(
-			Buffer.from(JSON.stringify({ systemMessage: systemMessage, metadata }))
+			Buffer.from(
+				JSON.stringify({
+					systemMessage,
+					systemMessageMetadata,
+				})
+			)
 		);
 
 		switch (systemMessage.messageType) {
@@ -104,7 +137,7 @@ export class SystemListener {
 
 				this.logger.debug('ProofOfMessageStored', {
 					key,
-					value: { content, metadata },
+					value: { proof, systemMessageMetadata },
 				});
 
 				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
@@ -135,7 +168,7 @@ export class SystemListener {
 				const key = metadata.timestamp;
 				this.logger.debug('QueryRequest', {
 					key,
-					value: { systemMessage: systemMessage, metadata },
+					value: { queryRequest, systemMessageMetadata },
 				});
 
 				await db.transaction(() => {

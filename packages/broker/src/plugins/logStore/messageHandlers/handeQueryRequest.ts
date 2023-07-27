@@ -1,4 +1,4 @@
-import { LogStoreClient, MessageMetadata } from '@logsn/client';
+import type { StreamMessage } from '@logsn/client';
 import {
 	QueryFromOptions,
 	QueryLastOptions,
@@ -9,30 +9,37 @@ import {
 } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
 import { Signer } from 'ethers';
+import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
 
 import { StreamPublisher } from '../../../shared/StreamPublisher';
-import { hashResponse } from '../Consensus';
 import {
 	LogStore,
 	MAX_SEQUENCE_NUMBER_VALUE,
 	MIN_SEQUENCE_NUMBER_VALUE,
 } from '../LogStore';
 
+const logger = new Logger(module);
+
+const hashResponse = async (id: string, data: Readable) => {
+	let size = 0;
+	let hash = keccak256(Uint8Array.from(Buffer.from(id)));
+	for await (const chunk of data) {
+		const streamMessage = chunk as StreamMessage;
+		const content = streamMessage.getContent(false);
+		size += Buffer.byteLength(content, 'utf8');
+		hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
+	}
+	hash = keccak256(Uint8Array.from(Buffer.from(hash + size)));
+	return { size, hash };
+};
+
 export async function handeQueryRequest(
 	logStore: LogStore,
-	logStoreClient: LogStoreClient,
-	publisher: StreamPublisher,
+	streamPublisher: StreamPublisher,
 	signer: Signer,
-	logger: Logger,
-	queryRequest: QueryRequest,
-	metadata: MessageMetadata
+	queryRequest: QueryRequest
 ) {
-	// Do not process own messages
-	if (metadata.publisherId === (await logStoreClient.getAddress())) {
-		return;
-	}
-
 	logger.trace('Deserialized queryRequest: %s', queryRequest);
 
 	let readableStream: Readable;
@@ -91,5 +98,5 @@ export async function handeQueryRequest(
 		hash,
 		signature: await signer.signMessage(hash),
 	});
-	await publisher.publish(queryResponse.serialize());
+	await streamPublisher.publish(queryResponse.serialize());
 }

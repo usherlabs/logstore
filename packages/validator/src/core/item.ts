@@ -4,7 +4,7 @@ import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
 
 import { Managers } from '../managers';
-import { rollingConfig } from '../rollingConfig';
+import { rollingConfig } from '../shared/rollingConfig';
 import { AbstractDataItem } from './abstract';
 
 interface IPrepared {

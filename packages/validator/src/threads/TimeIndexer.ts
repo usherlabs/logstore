@@ -1,4 +1,4 @@
-import { sha256, sleep } from '@kyvejs/protocol';
+import { sha256 } from '@kyvejs/protocol';
 import { spawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import fse from 'fs-extra';
@@ -39,7 +39,6 @@ export class TimeIndexer {
 	protected _cachePath: string;
 	private _db!: DB;
 	private _running: boolean = false;
-	private _ready: boolean = false;
 	private _latestTimestamp: number;
 	private _childProcesses: ChildProcess[] = [];
 
@@ -127,16 +126,6 @@ export class TimeIndexer {
 		});
 	}
 
-	// Wait until the TimeIndex is ready
-	public async ready() {
-		while (true) {
-			if (this._ready) {
-				return true;
-			}
-			await sleep(1000);
-		}
-	}
-
 	public find(timestamp: number): number {
 		const db = this.db();
 
@@ -167,8 +156,6 @@ export class TimeIndexer {
 		const { sources } = this.config;
 		const db = this.db();
 		this.logger.debug(`Start ETL from block ${startBlock || `'latest'`} ...`);
-
-		const readyChecks = sources.map(() => false);
 
 		for (let i = 0; i < sources.length; i++) {
 			const run = async (source: string) => {
@@ -211,12 +198,6 @@ export class TimeIndexer {
 						// Skip logs that aren't root of command
 						if (data.includes(`Nothing to sync`)) {
 							this.logger.info(`TimeIndexer (${source}):`, data);
-
-							// Once there is nothing to sync, the TimeIndex is considered Ready
-							readyChecks[i] = true;
-							if (!readyChecks.includes(false)) {
-								this._ready = true;
-							}
 						} else if (
 							data.includes(`Writing last synced block`) ||
 							data.includes(`Current block`)
@@ -308,8 +289,6 @@ export class TimeIndexer {
 					if (this._running) {
 						this.logger.debug(`TimeIndexer (${source}) restarting...`);
 						this._childProcesses[i] = await run(source);
-						readyChecks[i] = false;
-						this._ready = false;
 					}
 				});
 

@@ -21,10 +21,15 @@ import { StreamPublisher } from '../../shared/StreamPublisher';
 import { StreamSubscriber } from '../../shared/StreamSubscriber';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { createDataQueryEndpoint } from './dataQueryEndpoint';
+import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 import { handeQueryRequest } from './messageHandlers/handeQueryRequest';
+import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
+import { RollCall } from './RollCall';
+import { SystemCache } from './SystemCache';
+import { SystemRecovery } from './SystemRecovery';
 
 const logger = new Logger(module);
 
@@ -53,25 +58,50 @@ const isStorableMessage = (msg: StreamMessage): boolean => {
 };
 
 export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
-	constructor(options: PluginOptions) {
-		super(options);
-
-		this.publisher = new StreamPublisher(
-			this.logStoreClient,
-			this.systemStream
-		);
-		this.subscriber = new StreamSubscriber(
-			this.logStoreClient,
-			this.systemStream
-		);
-	}
-
 	private logStore?: LogStore;
 	private logStoreConfig?: LogStoreConfig;
 	private messageListener?: (msg: StreamMessage) => void;
 
-	private readonly publisher: StreamPublisher;
-	private readonly subscriber: StreamSubscriber;
+	private readonly streamPublisher: StreamPublisher;
+	private readonly streamSubscriber: StreamSubscriber;
+	private readonly kyvePool: KyvePool;
+	private readonly rollCall: RollCall;
+	private readonly systemCache: SystemCache;
+	private readonly systemRecovery: SystemRecovery;
+
+	constructor(options: PluginOptions) {
+		super(options);
+
+		this.streamPublisher = new StreamPublisher(
+			this.logStoreClient,
+			this.systemStream
+		);
+		this.streamSubscriber = new StreamSubscriber(
+			this.logStoreClient,
+			this.systemStream
+		);
+		this.kyvePool = new KyvePool(
+			this.brokerConfig.pool.url,
+			this.brokerConfig.pool.id
+		);
+		this.rollCall = new RollCall(
+			this.logStoreClient,
+			this.systemStream,
+			this.streamPublisher
+		);
+		this.systemCache = new SystemCache(
+			this.logStoreClient,
+			this.systemStream,
+			this.kyvePool
+		);
+		this.systemRecovery = new SystemRecovery(
+			this.logStoreClient,
+			this.systemStream,
+			this.streamPublisher,
+			this.systemCache,
+			this.kyvePool
+		);
+	}
 
 	getApiAuthentication(): undefined {
 		return undefined;
@@ -84,14 +114,18 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			)
 		);
 
+		await this.rollCall.start();
+		await this.systemCache.start();
+		await this.systemRecovery.start();
+
 		const abortController = new AbortController();
 		const poller = new ReportPoller(
 			this.brokerConfig,
 			this.signer,
-			this.publisher
+			this.streamPublisher
 		);
 
-		await this.subscriber.subscribe(
+		await this.streamSubscriber.subscribe(
 			async (content: unknown, metadata: MessageMetadata) => {
 				const systemMessage = SystemMessage.deserialize(content);
 
@@ -105,12 +139,9 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						);
 						await handeQueryRequest(
 							this.logStore!,
-							this.logStoreClient,
-							this.publisher,
+							this.streamPublisher,
 							this.signer,
-							logger,
-							queryRequest,
-							metadata
+							queryRequest
 						);
 						break;
 					}
@@ -153,7 +184,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					hash,
 				});
 
-				await this.publisher.publish(proofOfMessageStored.serialize());
+				await this.streamPublisher.publish(proofOfMessageStored.serialize());
 			}
 		};
 		const node = await this.logStoreClient.getNode();
@@ -163,8 +194,15 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 				this.brokerConfig,
 				this.logStore,
 				this.logStoreClient,
-				this.signer,
 				systemStream,
+				this.streamPublisher,
+				metricsContext
+			)
+		);
+		this.addHttpServerEndpoint(
+			createRecoveryEndpoint(
+				this.streamPublisher,
+				this.rollCall,
 				metricsContext
 			)
 		);
@@ -176,7 +214,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.logStoreConfig!.getStreamParts().forEach((streamPart) => {
 			node.unsubscribe(streamPart);
 		});
-		await Promise.all([this.logStore!.close(), this.logStoreConfig!.destroy()]);
+		await Promise.all([
+			this.rollCall.stop(),
+			this.systemCache.stop(),
+			this.systemRecovery.stop(),
+			this.logStore!.close(),
+			this.logStoreConfig!.destroy(),
+		]);
 	}
 
 	// eslint-disable-next-line class-methods-use-this

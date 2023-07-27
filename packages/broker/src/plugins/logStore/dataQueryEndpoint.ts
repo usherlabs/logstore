@@ -13,13 +13,14 @@ import {
 	RateMetric,
 	toEthereumAddress,
 } from '@streamr/utils';
-import { ethers, Signer } from 'ethers';
+import { ethers } from 'ethers';
 import { Request, RequestHandler, Response } from 'express';
 import { pipeline, Readable, Transform } from 'stream';
 import { v4 as uuid } from 'uuid';
 
 import { StrictConfig } from '../../config/config';
 import { HttpServerEndpoint } from '../../Plugin';
+import { StreamPublisher } from '../../shared/StreamPublisher';
 import { createBasicAuthenticatorMiddleware } from './authentication';
 import { Consensus, getConsensus } from './Consensus';
 import { Format, getFormat } from './DataQueryFormat';
@@ -146,8 +147,8 @@ const handleLast = async (
 	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
-	signer: Signer,
 	systemStream: Stream,
+	streamPublisher: StreamPublisher,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendLastQueriesPerSecond.record(1);
@@ -176,9 +177,8 @@ const handleLast = async (
 		queryMessage,
 		nodeManager,
 		logStoreClient,
-		signer,
 		systemStream,
-		data
+		streamPublisher
 	);
 
 	data = logStore.requestLast(streamId, partition, count!);
@@ -195,8 +195,8 @@ const handleFrom = async (
 	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
-	signer: Signer,
 	systemStream: Stream,
+	streamPublisher: StreamPublisher,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendFromQueriesPerSecond.record(1);
@@ -244,9 +244,8 @@ const handleFrom = async (
 		queryMessage,
 		nodeManager,
 		logStoreClient,
-		signer,
 		systemStream,
-		data
+		streamPublisher
 	);
 
 	data = logStore.requestFrom(
@@ -269,8 +268,8 @@ const handleRange = async (
 	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
-	signer: Signer,
 	systemStream: Stream,
+	streamPublisher: StreamPublisher,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendRangeQueriesPerSecond.record(1);
@@ -355,9 +354,8 @@ const handleRange = async (
 		queryMessage,
 		nodeManager,
 		logStoreClient,
-		signer,
 		systemStream,
-		data
+		streamPublisher
 	);
 
 	data = logStore.requestRange(
@@ -377,8 +375,8 @@ const createHandler = (
 	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
-	signer: Signer,
 	systemStream: Stream,
+	streamPublisher: StreamPublisher,
 	metrics: MetricsDefinition
 ): RequestHandler => {
 	return async (req: Request, res: Response) => {
@@ -427,8 +425,8 @@ const createHandler = (
 						nodeManager,
 						logStore,
 						logStoreClient,
-						signer,
 						systemStream,
+						streamPublisher,
 						metrics
 					);
 					break;
@@ -443,8 +441,8 @@ const createHandler = (
 						nodeManager,
 						logStore,
 						logStoreClient,
-						signer,
 						systemStream,
+						streamPublisher,
 						metrics
 					);
 					break;
@@ -459,8 +457,8 @@ const createHandler = (
 						nodeManager,
 						logStore,
 						logStoreClient,
-						signer,
 						systemStream,
+						streamPublisher,
 						metrics
 					);
 					break;
@@ -478,8 +476,8 @@ export const createDataQueryEndpoint = (
 	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
-	signer: Signer,
 	systemStream: Stream,
+	streamPublisher: StreamPublisher,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
 	const metrics = {
@@ -497,8 +495,8 @@ export const createDataQueryEndpoint = (
 				config,
 				logStore,
 				logStoreClient,
-				signer,
 				systemStream,
+				streamPublisher,
 				metrics
 			),
 		],

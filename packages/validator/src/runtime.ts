@@ -2,6 +2,7 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, sha256 } from '@kyvejs/protocol';
 import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import ContractAddresses from '@logsn/contracts/address.json';
+import { ethers } from 'ethers';
 
 import { Item } from './core/item';
 import { Report } from './core/report';
@@ -12,7 +13,7 @@ import {
 	useStreamrTestConfig,
 } from './env-config';
 import { Managers } from './managers';
-import { rollingConfig } from './rollingConfig';
+import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
@@ -37,10 +38,12 @@ export default class Runtime implements IRuntimeExtended {
 	async setupThreads(core: Validator, homeDir: string) {
 		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		// core.logger.debug('Streamr Config', streamrConfig);
+		const privateKey = getEvmPrivateKey(); // The Validator needs to stake in QueryManager
+		const signer = new ethers.Wallet(privateKey);
 		const logStoreClient = new LogStoreClient({
 			...streamrConfig,
 			auth: {
-				privateKey: getEvmPrivateKey(), // The Validator needs to stake in QueryManager
+				privateKey,
 			},
 		});
 		const systemStream = await logStoreClient.getStream(
@@ -52,6 +55,7 @@ export default class Runtime implements IRuntimeExtended {
 			homeDir,
 			logStoreClient,
 			systemStream,
+			signer,
 			core.logger
 		);
 
@@ -106,7 +110,12 @@ export default class Runtime implements IRuntimeExtended {
 			return { key, value: { m: [] } };
 		}
 
-		if (keyInt > this.time.latestTimestamp) {
+		if (
+			!this.time.latestTimestamp ||
+			keyInt > this.time.latestTimestamp ||
+			!this.listener.latestTimestamp ||
+			keyInt > this.listener.latestTimestamp / 1000
+		) {
 			return null;
 		}
 

@@ -18,14 +18,14 @@ export class StreamSubscriber {
 	public async subscribe(onMessage: MessageListener) {
 		const { partitions } = this.stream.getMetadata();
 
+		const promises = [];
 		for (let partition = 0; partition < partitions; partition++) {
-			const subscription = await this.client.subscribe(
-				{ id: this.stream.id, partition },
-				onMessage
+			promises.push(
+				this.client.subscribe({ id: this.stream.id, partition }, onMessage)
 			);
-
-			this.subscriptions.push(subscription);
 		}
+
+		this.subscriptions.push(...(await Promise.all(promises)));
 	}
 
 	public async unsubscribe() {
