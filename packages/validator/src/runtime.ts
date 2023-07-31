@@ -50,7 +50,12 @@ export default class Runtime implements IRuntimeExtended {
 			this.config.systemStreamId
 		);
 
-		this.time = new TimeIndexer(homeDir, this.config, core.logger);
+		let startKey = parseInt(core.pool.data.current_key, 10) || 0;
+		if (startKey) {
+			startKey -= rollingConfig(startKey).prev.keyStep;
+		}
+
+		this.time = new TimeIndexer(startKey, homeDir, this.config, core.logger);
 		this.listener = new SystemListener(
 			homeDir,
 			logStoreClient,

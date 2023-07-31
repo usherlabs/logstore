@@ -46,6 +46,48 @@ export class Managers {
 		return block;
 	}
 
+	public async findBlock(ts: number) {
+		const { provider } = this;
+
+		let minId = 0;
+		let maxId = await provider.getBlockNumber();
+
+		let curId: number;
+		let minTs: number;
+		let maxTs: number;
+		let curTs: number;
+
+		const search = async () => {
+			minTs = (await provider.getBlock(minId)).timestamp;
+			maxTs = (await provider.getBlock(maxId)).timestamp;
+
+			curId = Math.round(
+				minId + ((ts - minTs) / (maxTs - minTs)) * (maxId - minId)
+			);
+			curId = Math.min(curId, maxId);
+			curId = Math.max(curId, minId);
+			curTs = (await provider.getBlock(curId)).timestamp;
+		};
+
+		await search();
+
+		while (curTs != ts && minId < maxId) {
+			if (curTs < ts) {
+				minId = curId + 1;
+			} else {
+				maxId = curId - 1;
+			}
+
+			if (maxId === minId) {
+				return maxId;
+			}
+
+			await search();
+		}
+
+		return curId;
+	}
+
 	private static sources: string[];
 	private static sourcesHash: string;
 	private static managers: { source: string; managers: Managers }[];

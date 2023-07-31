@@ -43,6 +43,7 @@ export class TimeIndexer {
 	private _childProcesses: ChildProcess[] = [];
 
 	constructor(
+		private startTimestamp: number,
 		homeDir: string,
 		protected config: IConfig,
 		protected logger: Logger
@@ -64,9 +65,8 @@ export class TimeIndexer {
 		this._running = true;
 
 		try {
-			// await fse.remove(this._cachePath);
+			await fse.remove(this._cachePath);
 
-			let startBlock = 0;
 			const dbPath = path.join(this._cachePath, 'cache');
 
 			// ? For testing purposes
@@ -82,32 +82,17 @@ export class TimeIndexer {
 
 			this._db = Database.create('time-index', dbPath) as DB;
 
-			// ? If the index already exists, check it's latest data.
-			for (const { key, value } of this._db.getRange({
-				reverse: true,
-				limit: 1,
-			})) {
-				this.logger.debug(
-					`Fetch last Time Index item - ${key}: ${value.b} (${value.s.join(
-						','
-					)})`
-				);
-				this._latestTimestamp = key;
-				startBlock = value.b;
-			}
-
 			this.logger.info('Starting time indexer ...');
 
-			if (startBlock === 0) {
-				startBlock = await Managers.withSources<number>(async (managers) => {
-					const lastReport = await managers.report.getLastReport();
-					if ((lastReport || {})?.id) {
-						return lastReport.height;
+			const startBlock = await Managers.withSources<number>(
+				async (managers) => {
+					if (this.startTimestamp) {
+						return await managers.findBlock(this.startTimestamp);
+					} else {
+						return await managers.node.getStartBlockNumber();
 					}
-					const startBlockNumber = await managers.node.getStartBlockNumber();
-					return startBlockNumber;
-				});
-			}
+				}
+			);
 
 			this.logger.info('Start Block Number: ', startBlock);
 
