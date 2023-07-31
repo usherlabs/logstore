@@ -5,6 +5,7 @@ import type {
 	StreamDefinition,
 } from '@logsn/streamr-client';
 import { StreamrClient } from '@logsn/streamr-client';
+import { ContractTransaction } from 'ethers';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import { container as rootContainer } from 'tsyringe';
@@ -18,11 +19,14 @@ import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
 import { Queries, QueryOptions } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
+import { TokenManager } from './registry/TokenManager';
+import { AmountTypes } from './types';
 
 export class LogStoreClient extends StreamrClient {
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
+	private readonly logstoreTokenManager: TokenManager;
 
 	constructor(
 		config: LogStoreClientConfig = {},
@@ -36,6 +40,8 @@ export class LogStoreClient extends StreamrClient {
 		delete streamrClientConfig.contracts?.logStoreNodeManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
+		delete streamrClientConfig.contracts?.logStoreTokenManagerChainAddress;
+		delete streamrClientConfig.contracts?.logStoreQueryManagerChainAddress;
 
 		super(streamrClientConfig, container);
 		// TODO: Using parentContainer breaks authentication in the Broker's tests
@@ -59,6 +65,8 @@ export class LogStoreClient extends StreamrClient {
 			container.resolve<LogStoreRegistry>(LogStoreRegistry);
 
 		this.logStoreQueries = container.resolve<Queries>(Queries);
+
+		this.logstoreTokenManager = container.resolve<TokenManager>(TokenManager);
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -101,6 +109,10 @@ export class LogStoreClient extends StreamrClient {
 		return messageStream;
 	}
 
+	async getQueryBalance(): Promise<bigint> {
+		return this.logStoreRegistry.getQueryBalance();
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// LogStore
 	// --------------------------------------------------------------------------------------------
@@ -133,6 +145,42 @@ export class LogStoreClient extends StreamrClient {
 	}> {
 		return this.logStoreRegistry.getStoredStreams();
 	}
+
+	async getStoreBalance(streamIdOrPath: string): Promise<bigint> {
+		return this.logStoreRegistry.getStoreBalance(streamIdOrPath);
+	}
+
+	// --------------------------------------------------------------------------------------------
+	// Token utilities
+	// --------------------------------------------------------------------------------------------
+
+	async getBalance(): Promise<bigint> {
+		return this.logstoreTokenManager.getBalance();
+	}
+
+	async mint(weiAmountToMint: bigint): Promise<ContractTransaction> {
+		return this.logstoreTokenManager.mint(weiAmountToMint);
+	}
+
+	async getPrice(): Promise<bigint> {
+		return this.logstoreTokenManager.getPrice();
+	}
+
+	async convert({
+		amount,
+		from,
+		to,
+	}: {
+		amount: string;
+		from: AmountTypes;
+		to: AmountTypes;
+	}): Promise<string> {
+		return this.logstoreTokenManager.convert({ amount, from, to });
+	}
+
+	// --------------------------------------------------------------------------------------------
+	// Client
+	// --------------------------------------------------------------------------------------------
 
 	/**
 	 * Destroys an instance of a {@link StreamrClient} by disconnecting from peers, clearing any pending tasks, and

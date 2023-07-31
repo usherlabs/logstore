@@ -171,6 +171,46 @@ export class LogStoreRegistry {
 		}
 	}
 
+	// --------------------------------------------------------------------------------------------
+	// Query Manager
+	// --------------------------------------------------------------------------------------------
+
+	async queryStake(
+		amount: BigNumberish,
+		options = { usd: false }
+	): Promise<void> {
+		const chainSigner =
+			await this.authentication.getStreamRegistryChainSigner();
+		const stakeAmount = prepareStakeForQueryManager(
+			chainSigner,
+			Number(amount),
+			options.usd
+		);
+		const queryManagerContract = await getQueryManagerContract(chainSigner);
+		await (await queryManagerContract.stake(stakeAmount)).wait();
+	}
+
+	async getQueryBalance(): Promise<bigint> {
+		const address = await this.authentication.getAddress();
+		return this.getQueryBalanceOf(address);
+	}
+
+	async getQueryBalanceOf(account: string): Promise<bigint> {
+		const chainSigner =
+			await this.authentication.getStreamRegistryChainSigner();
+		// TODO discover if we will interact with the contract by this way
+		// 	  or if we should setup a new class to interact with it also with readonly contracts
+		//		as done for store manager contract here
+		const queryManagerContract = await getQueryManagerContract(chainSigner);
+
+		const balanceOfAccount = await queryManagerContract.balanceOf(account);
+		return balanceOfAccount.toBigInt();
+	}
+
+	// --------------------------------------------------------------------------------------------
+	// Log Store
+	// --------------------------------------------------------------------------------------------
+
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
 		amount: bigint
@@ -190,19 +230,13 @@ export class LogStoreRegistry {
 		);
 	}
 
-	async queryStake(
-		amount: BigNumberish,
-		options = { usd: false }
-	): Promise<void> {
-		const chainSigner =
-			await this.authentication.getStreamRegistryChainSigner();
-		const stakeAmount = prepareStakeForQueryManager(
-			chainSigner,
-			Number(amount),
-			options.usd
-		);
-		const queryManagerContract = await getQueryManagerContract(chainSigner);
-		await (await queryManagerContract.stake(stakeAmount)).wait();
+	async getStoreBalance(streamIdOrPath: string): Promise<bigint> {
+		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
+		// `stores` maps the streamId to the storage balance
+		return await queryAllReadonlyContracts(async (contract) => {
+			const storeBalanceBN = await contract.stores(streamId);
+			return storeBalanceBN.toBigInt();
+		}, this.logStoreManagerContractsReadonly);
 	}
 
 	async isLogStoreStream(streamIdOrPath: string): Promise<boolean> {
