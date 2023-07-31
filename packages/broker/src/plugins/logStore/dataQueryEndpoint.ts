@@ -388,14 +388,7 @@ const createHandler = (
 			return;
 		}
 		// TODO: Default the format to 'text/event-stream' by default for simplicity.
-		const format = getFormat(req.query.format as string);
-		if (format === undefined) {
-			sendError(
-				`Query parameter "format" is invalid: ${req.query.format}`,
-				res
-			);
-			return;
-		}
+		const format = getFormat(req);
 
 		const consumer = toEthereumAddress(req.consumer!);
 		const provider = new ethers.providers.JsonRpcProvider(

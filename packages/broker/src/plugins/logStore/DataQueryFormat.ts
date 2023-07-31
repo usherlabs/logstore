@@ -1,4 +1,5 @@
 import { EncryptionType, StreamMessage } from '@streamr/protocol';
+import type { Request } from 'express';
 
 export interface Format {
 	getMessageAsString: (
@@ -61,7 +62,7 @@ export const toObject = (msg: StreamMessage<any>): any => {
 	};
 };
 
-const FORMATS: Record<string, Format> = {
+const FORMATS = {
 	// TODO could we deprecate protocol format?
 	// eslint-disable-next-line max-len
 	protocol: createJsonFormat(
@@ -80,9 +81,11 @@ const FORMATS: Record<string, Format> = {
 		(streamMessage: StreamMessage, version: number | undefined) =>
 			streamMessage.serialize(version)
 	),
-};
+} satisfies Record<string, Format>;
 
-export const getFormat = (id: string | undefined): Format | undefined => {
-	const key = id ?? 'object';
-	return FORMATS[key];
+export type FormatType = keyof typeof FORMATS;
+
+export const getFormat = (req: Request) => {
+	const isServerSideEventRequested = req.headers.accept === 'text/event-stream';
+	return isServerSideEventRequested ? FORMATS.raw : FORMATS.object;
 };
