@@ -1,0 +1,28 @@
+FROM timberio/vector:latest-debian
+
+# install infisical-cli to inject env vars
+RUN apt-get update && apt-get install -y bash curl && curl -1sLf \
+  'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash  && \
+  apt-get update && apt-get install -y infisical=0.8.1
+
+# smoke test
+RUN infisical --version
+
+ARG INFISICAL_TOKEN
+ARG NODE_ID
+
+ENV NODE_ID=$NODE_ID
+ENV INFISICAL_TOKEN=$INFISICAL_TOKEN
+ENV INFISICAL_API_URL=https://env.usher.so/api
+
+# smoke test to know everything is set
+RUN infisical run -- echo "OK"
+
+RUN printf "#!/bin/sh\n\
+  infisical run -- /usr/bin/vector \$@\n\
+  "\
+  > entrypoint.sh
+
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT [ "./entrypoint.sh" ]

@@ -12,6 +12,7 @@ type = "remap"
 inputs = ["docker_logs_source"]
 source = '''
   del(.label)
+  .node_id = "$NODE_ID"
 '''
 
 [transforms.throttle_1s]
@@ -52,9 +53,9 @@ window_secs = 3600
 
 [sinks.aws_s3_sink]
 type = "aws_s3"
-inputs = ["throttle_1m"]
+inputs = ["throttle_1h"]
 bucket = "${LOGSTORE_BUCKET:?Bucket name must be supplied}"
-key_prefix = "docker-logs/${AWS_BUCKET_DIR?:Bucket directory must be supplied}/date=%F/"
+key_prefix = "docker-logs/${NODE_ID?:NODE_ID must be supplied}/date=%F/"
 encoding.codec = "json"
 region = "us-east-1"
 batch.max_bytes=52428800
@@ -67,4 +68,4 @@ inputs = [ "throttle_1m" ]
 uri = "https://in.logs.betterstack.com/"
 encoding.codec = "json"
 auth.strategy = "bearer"
-auth.token = "$BETTERSTACK_TOKEN"
+auth.token = "${BETTERSTACK_TOKEN?:Must be supplied}"
