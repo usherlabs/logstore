@@ -7,24 +7,20 @@ import {
 
 interface RecoveryResponseOptions extends SystemMessageOptions {
 	requestId: string;
-	content: unknown;
-	metadata: MessageMetadata;
+	payload: [SystemMessage, MessageMetadata][];
 }
 
 export class RecoveryResponse extends SystemMessage {
 	requestId: string;
-	content: unknown;
-	metadata: MessageMetadata;
+	payload: [SystemMessage, MessageMetadata][];
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
 		requestId,
-		content,
-		metadata,
+		payload,
 	}: RecoveryResponseOptions) {
 		super(version, SystemMessageType.RecoveryResponse);
 		this.requestId = requestId;
-		this.content = content;
-		this.metadata = metadata;
+		this.payload = payload;
 	}
 }

@@ -144,12 +144,11 @@ export class SystemRecovery {
 					return;
 				}
 
-				await this.onSystemMessage(
-					recoveryResponse.content,
-					recoveryResponse.metadata as MessageMetadata
-				);
+				for await (const [msg, msgMetadata] of recoveryResponse.payload) {
+					await this.onSystemMessage(msg, msgMetadata as MessageMetadata);
+					progress.timestamp = metadata.timestamp;
+				}
 
-				progress.timestamp = recoveryResponse.metadata.timestamp;
 				break;
 			}
 			case SystemMessageType.RecoveryComplete: {

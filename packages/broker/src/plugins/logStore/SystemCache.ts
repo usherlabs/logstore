@@ -19,7 +19,7 @@ export class SystemCache {
 	private shrinkTimeout?: NodeJS.Timeout;
 
 	private records: {
-		message: unknown;
+		message: SystemMessage;
 		metadata: MessageMetadata;
 	}[] = [];
 
@@ -35,10 +35,7 @@ export class SystemCache {
 	}
 
 	public async start() {
-		await this.streamSubscriber.subscribe(
-			async (content: unknown, metadata: MessageMetadata) =>
-				await this.onMessage(content, metadata)
-		);
+		await this.streamSubscriber.subscribe(this.onMessage.bind(this));
 
 		const kyvePoolData = await this.kyvePool.getData();
 		const shrinkTimeout = kyvePoolData.uploadInterval * 1000;
@@ -72,12 +69,12 @@ export class SystemCache {
 		this.shrink(shrinkTimestamp);
 	}
 
-	private async onMessage(message: unknown, metadata: MessageMetadata) {
-		const systemMessage = SystemMessage.deserialize(message);
+	private async onMessage(content: unknown, metadata: MessageMetadata) {
+		const systemMessage = SystemMessage.deserialize(content);
 
 		if (CACHE_MESSAGE_TYPES.includes(systemMessage.messageType)) {
 			this.records.push({
-				message,
+				message: systemMessage,
 				metadata,
 			});
 		}

@@ -45,7 +45,7 @@ export class SystemListener {
 			this._client,
 			this._systemStream,
 			this._signer,
-			this.onMessage.bind(this)
+			this.onSystemMessage.bind(this)
 		);
 	}
 
@@ -97,15 +97,20 @@ export class SystemListener {
 			await this._systemRecovery.start();
 		}
 
-		// Add to store
 		const systemMessage = SystemMessage.deserialize(content);
-		// this.logger.debug('onMessage', systemMessage);
 		if (!LISTENING_MESSAGE_TYPES.includes(systemMessage.messageType)) {
 			return;
 		}
 
 		this._latestTimestamp = metadata.timestamp;
 
+		await this.onSystemMessage(systemMessage, metadata);
+	}
+
+	private async onSystemMessage(
+		systemMessage: SystemMessage,
+		metadata: MessageMetadata
+	) {
 		const systemMessageMetadata = {
 			streamId: metadata.streamId,
 			streamPartition: metadata.streamPartition,

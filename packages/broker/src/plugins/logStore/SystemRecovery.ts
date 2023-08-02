@@ -1,4 +1,4 @@
-import { LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreClient, MessageMetadata, Stream } from '@logsn/client';
 import {
 	RecoveryComplete,
 	RecoveryRequest,
@@ -12,6 +12,8 @@ import { StreamPublisher } from '../../shared/StreamPublisher';
 import { StreamSubscriber } from '../../shared/StreamSubscriber';
 import { KyvePool } from './KyvePool';
 import { SystemCache } from './SystemCache';
+
+const PAYLOAD_LIMIT = 100;
 
 const logger = new Logger(module);
 
@@ -61,18 +63,17 @@ export class SystemRecovery {
 		const from = kyvePoolData.currentKey * 1000;
 		const cacheRecords = this.systemCache.get(from);
 
-		for (const cacheRecord of cacheRecords) {
-			const recoveryResponse = new RecoveryResponse({
-				requestId,
-				content: cacheRecord.message,
-				metadata: cacheRecord.metadata,
-			});
+		const payload: [SystemMessage, MessageMetadata][] = [];
+		for await (const cacheRecord of cacheRecords) {
+			payload.push([cacheRecord.message, cacheRecord.metadata]);
 
-			await this.streamPublisher.publish(recoveryResponse.serialize());
-			logger.trace(
-				'Published RecoveryResponse: %s',
-				JSON.stringify(recoveryResponse)
-			);
+			if (payload.length === PAYLOAD_LIMIT) {
+				await this.sendResponse(requestId, payload.splice(0));
+			}
+		}
+
+		if (payload.length > 0) {
+			await this.sendResponse(requestId, payload);
 		}
 
 		const recoveryComplete = new RecoveryComplete({ requestId });
@@ -80,6 +81,19 @@ export class SystemRecovery {
 		logger.trace(
 			'Published RecoveryComplete: %s',
 			JSON.stringify(recoveryComplete)
+		);
+	}
+
+	private async sendResponse(
+		requestId: string,
+		payload: [SystemMessage, MessageMetadata][]
+	) {
+		const recoveryResponse = new RecoveryResponse({ requestId, payload });
+
+		await this.streamPublisher.publish(recoveryResponse.serialize());
+		logger.trace(
+			'Published RecoveryResponse: %s',
+			JSON.stringify(recoveryResponse)
 		);
 	}
 }
