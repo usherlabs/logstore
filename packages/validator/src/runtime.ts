@@ -1,16 +1,22 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, sha256 } from '@kyvejs/protocol';
+import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import ContractAddresses from '@logsn/contracts/address.json';
+import { ethers } from 'ethers';
 
 import { Item } from './core/item';
 import { Report } from './core/report';
-import { appPackageName, appVersion } from './env-config';
+import {
+	appPackageName,
+	appVersion,
+	getEvmPrivateKey,
+	useStreamrTestConfig,
+} from './env-config';
 import { Managers } from './managers';
+import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
-
-export const KEY_STEP = 20 as const;
 
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
@@ -30,10 +36,31 @@ export default class Runtime implements IRuntimeExtended {
 	private _startKey: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
-		this.time = new TimeIndexer(homeDir, this.config, core.logger);
+		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
+		// core.logger.debug('Streamr Config', streamrConfig);
+		const privateKey = getEvmPrivateKey(); // The Validator needs to stake in QueryManager
+		const signer = new ethers.Wallet(privateKey);
+		const logStoreClient = new LogStoreClient({
+			...streamrConfig,
+			auth: {
+				privateKey,
+			},
+		});
+		const systemStream = await logStoreClient.getStream(
+			this.config.systemStreamId
+		);
+
+		let startKey = parseInt(core.pool.data.current_key, 10) || 0;
+		if (startKey) {
+			startKey -= rollingConfig(startKey).prev.keyStep;
+		}
+
+		this.time = new TimeIndexer(startKey, homeDir, this.config, core.logger);
 		this.listener = new SystemListener(
 			homeDir,
-			this.config.systemStreamId,
+			logStoreClient,
+			systemStream,
+			signer,
 			core.logger
 		);
 
@@ -48,10 +75,12 @@ export default class Runtime implements IRuntimeExtended {
 			throw new Error(`Config does not have any sources`);
 		}
 
-		// TODO: Remove this source from the on-chain PoolConfig
-		config.sources = config.sources.filter(
-			(source) => !source.includes('polygon-bor.publicnode.com')
-		);
+		// if in alpha network then replace sources defined by the pool config with Alchemy source
+		if (config.sources.find((source) => source.includes('polygon-rpc.com'))) {
+			config.sources = [
+				'https://polygon-mainnet.g.alchemy.com/v2/TZ57-u9wrzpTTndvgMNQqPq790OaEdpp',
+			];
+		}
 
 		let chainId = null;
 		for (const source of config.sources) {
@@ -70,6 +99,8 @@ export default class Runtime implements IRuntimeExtended {
 			throw new Error(`Config sources have invalid network chain identifier`);
 		}
 
+		await Managers.setSources(config.sources);
+
 		this.config = {
 			...this.config,
 			...config,
@@ -84,7 +115,12 @@ export default class Runtime implements IRuntimeExtended {
 			return { key, value: { m: [] } };
 		}
 
-		if (keyInt > this.time.latestTimestamp) {
+		if (
+			!this.time.latestTimestamp ||
+			keyInt > this.time.latestTimestamp ||
+			!this.listener.latestTimestamp ||
+			keyInt > this.listener.latestTimestamp / 1000
+		) {
 			return null;
 		}
 
@@ -131,13 +167,12 @@ export default class Runtime implements IRuntimeExtended {
 	): Promise<string> {
 		const firstItem = bundle.at(0);
 		const lastItem = bundle.at(-1);
-		const bundleStartKey = (parseInt(firstItem.key, 10) - KEY_STEP).toString();
 		core.logger.info(`Create Report: ${lastItem.key}`);
 		const report = new Report(
 			core,
 			this,
 			this.config,
-			bundleStartKey,
+			firstItem.key,
 			lastItem.key
 		);
 		await report.prepare();
@@ -152,7 +187,6 @@ export default class Runtime implements IRuntimeExtended {
 	async startBlockNumber(): Promise<number> {
 		if (!this._startBlockNumber) {
 			this._startBlockNumber = await Managers.withSources<number>(
-				this.config.sources,
 				async (managers) => {
 					return await managers.node.getStartBlockNumber();
 				}
@@ -166,12 +200,9 @@ export default class Runtime implements IRuntimeExtended {
 		if (!this._startKey) {
 			const startBlockNumber = await this.startBlockNumber();
 			// Re-fetch the start key from sources rather than from time-index, as time-index starts from last report id
-			this._startKey = await Managers.withSources<number>(
-				this.config.sources,
-				async (managers) => {
-					return (await managers.getBlock(startBlockNumber)).timestamp;
-				}
-			);
+			this._startKey = await Managers.withSources<number>(async (managers) => {
+				return (await managers.getBlock(startBlockNumber)).timestamp;
+			});
 		}
 
 		return this._startKey;
@@ -188,7 +219,7 @@ export default class Runtime implements IRuntimeExtended {
 			return startKey.toString();
 		}
 
-		keyInt += KEY_STEP;
+		keyInt += rollingConfig(keyInt).curr.keyStep;
 
 		return keyInt.toString();
 	}

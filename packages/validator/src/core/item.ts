@@ -4,7 +4,7 @@ import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
 
 import { Managers } from '../managers';
-import { KEY_STEP } from '../runtime';
+import { rollingConfig } from '../shared/rollingConfig';
 import { AbstractDataItem } from './abstract';
 
 interface IPrepared {
@@ -43,7 +43,7 @@ export class Item extends AbstractDataItem<IPrepared> {
 
 		const keyInt = parseInt(key, 10);
 		// Range will be from last key (timestamp) to this key
-		const fromTimestamp = (keyInt - KEY_STEP) * 1000;
+		const fromTimestamp = (keyInt - rollingConfig(keyInt).prev.keyStep) * 1000;
 		const toTimestamp = keyInt * 1000;
 
 		const messages: {

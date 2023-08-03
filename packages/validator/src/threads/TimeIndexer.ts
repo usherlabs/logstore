@@ -1,4 +1,4 @@
-import { sha256, sleep } from '@kyvejs/protocol';
+import { sha256 } from '@kyvejs/protocol';
 import { spawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import fse from 'fs-extra';
@@ -23,7 +23,6 @@ type DB = RootDatabase<
 >;
 
 const CONFIRMATIONS = 128 as const; // The number of confirmations/blocks required to determine finality.
-const SCAN_BUFFER = 10 as const; // The time (in seconds) a find/scan will use to evaluate the indexed block
 const DEFAULT_DB_VALUE = { b: 0, s: [] };
 const POLL_INTERVAL = 10 as const; // The time (in seconds) to delay between the latest index and the next
 const BATCH_SIZE = 10 as const; // How many blocks to batch in single request
@@ -40,11 +39,11 @@ export class TimeIndexer {
 	protected _cachePath: string;
 	private _db!: DB;
 	private _running: boolean = false;
-	private _ready: boolean = false;
 	private _latestTimestamp: number;
 	private _childProcesses: ChildProcess[] = [];
 
 	constructor(
+		private startTimestamp: number,
 		homeDir: string,
 		protected config: IConfig,
 		protected logger: Logger
@@ -66,9 +65,8 @@ export class TimeIndexer {
 		this._running = true;
 
 		try {
-			// await fse.remove(this._cachePath);
+			await fse.remove(this._cachePath);
 
-			let startBlock = 0;
 			const dbPath = path.join(this._cachePath, 'cache');
 
 			// ? For testing purposes
@@ -84,35 +82,17 @@ export class TimeIndexer {
 
 			this._db = Database.create('time-index', dbPath) as DB;
 
-			// ? If the index already exists, check it's latest data.
-			for (const { key, value } of this._db.getRange({
-				reverse: true,
-				limit: 1,
-			})) {
-				this.logger.debug(
-					`Fetch last Time Index item - ${key}: ${value.b} (${value.s.join(
-						','
-					)})`
-				);
-				this._latestTimestamp = key;
-				startBlock = value.b;
-			}
-
 			this.logger.info('Starting time indexer ...');
 
-			if (startBlock === 0) {
-				startBlock = await Managers.withSources<number>(
-					this.config.sources,
-					async (managers) => {
-						const lastReport = await managers.report.getLastReport();
-						if ((lastReport || {})?.id) {
-							return lastReport.height;
-						}
-						const startBlockNumber = await managers.node.getStartBlockNumber();
-						return startBlockNumber;
+			const startBlock = await Managers.withSources<number>(
+				async (managers) => {
+					if (this.startTimestamp) {
+						return await managers.findBlock(this.startTimestamp);
+					} else {
+						return await managers.node.getStartBlockNumber();
 					}
-				);
-			}
+				}
+			);
 
 			this.logger.info('Start Block Number: ', startBlock);
 
@@ -131,16 +111,6 @@ export class TimeIndexer {
 		});
 	}
 
-	// Wait until the TimeIndex is ready
-	public async ready() {
-		while (true) {
-			if (this._ready) {
-				return true;
-			}
-			await sleep(1000);
-		}
-	}
-
 	public find(timestamp: number): number {
 		const db = this.db();
 
@@ -148,51 +118,16 @@ export class TimeIndexer {
 			return 0;
 		}
 
-		// If exact match, use it.
-		const res = db.get(timestamp) || DEFAULT_DB_VALUE;
+		// Search for the nearest block with timestamp greater than the given
+		const res =
+			db.getRange({ start: timestamp, limit: 1 }).asArray[0]?.value ||
+			DEFAULT_DB_VALUE;
+
 		if (res.b > 0 && res.s.length > 0) {
 			return res.b;
-		}
-		// Create an array of diffs - indicating how far the parameter timestamp is from the current value
-		const diffs = [];
-		for (const { key, value } of db.getRange({
-			start: timestamp - SCAN_BUFFER,
-			end: timestamp + SCAN_BUFFER,
-		})) {
-			if (key === timestamp) {
-				return value.b;
-			}
-			diffs.push({ diff: Math.abs(timestamp - key), ts: key, block: value.b });
-		}
-
-		this.logger.debug('Scan blocks with timestamp', {
-			timestamp,
-			diffs,
-		});
-
-		if (diffs.length === 0) {
+		} else {
 			throw new Error('Could not find time indexed blocks for timestamp');
 		}
-		// Sort by diff and value
-		diffs.sort((a, b) => {
-			if (a.diff < b.diff) {
-				return -1;
-			}
-			if (a.diff > b.diff) {
-				return 1;
-			}
-			if (a.diff === b.diff) {
-				if (a.block < b.block) {
-					return -1;
-				}
-				if (a.block < b.block) {
-					return 1;
-				}
-			}
-			return 0;
-		});
-
-		return diffs[0].block;
 	}
 
 	protected db() {
@@ -206,8 +141,6 @@ export class TimeIndexer {
 		const { sources } = this.config;
 		const db = this.db();
 		this.logger.debug(`Start ETL from block ${startBlock || `'latest'`} ...`);
-
-		const readyChecks = sources.map(() => false);
 
 		for (let i = 0; i < sources.length; i++) {
 			const run = async (source: string) => {
@@ -250,12 +183,6 @@ export class TimeIndexer {
 						// Skip logs that aren't root of command
 						if (data.includes(`Nothing to sync`)) {
 							this.logger.info(`TimeIndexer (${source}):`, data);
-
-							// Once there is nothing to sync, the TimeIndex is considered Ready
-							readyChecks[i] = true;
-							if (!readyChecks.includes(false)) {
-								this._ready = true;
-							}
 						} else if (
 							data.includes(`Writing last synced block`) ||
 							data.includes(`Current block`)
@@ -347,8 +274,6 @@ export class TimeIndexer {
 					if (this._running) {
 						this.logger.debug(`TimeIndexer (${source}) restarting...`);
 						this._childProcesses[i] = await run(source);
-						readyChecks[i] = false;
-						this._ready = false;
 					}
 				});
 

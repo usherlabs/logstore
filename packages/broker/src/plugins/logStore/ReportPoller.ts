@@ -1,4 +1,3 @@
-import { LogStoreClient, Stream } from '@logsn/client';
 import { LogStoreNodeManager, LogStoreReportManager } from '@logsn/contracts';
 import { ProofOfReport, SystemReport } from '@logsn/protocol';
 import {
@@ -11,6 +10,7 @@ import { ethers, Signer, Wallet } from 'ethers';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
+import { StreamPublisher } from '../../shared/StreamPublisher';
 import { ReportPoll } from './ReportPoll';
 
 const logger = new Logger(module);
@@ -18,9 +18,8 @@ const REPORT_TRESHOLD_MULTIPLIER = 0.5;
 
 export class ReportPoller {
 	private readonly poolConfig: StrictConfig['pool'];
-	private readonly logStoreClient: LogStoreClient;
-	private readonly systemStream: Stream;
 	private readonly signer: Signer;
+	private readonly streamPublisher: StreamPublisher;
 
 	private reportManager!: LogStoreReportManager;
 	private nodeManager!: LogStoreNodeManager;
@@ -31,15 +30,13 @@ export class ReportPoller {
 
 	constructor(
 		config: StrictConfig,
-		logStoreClient: LogStoreClient,
 		signer: Signer,
-		systemStream: Stream
+		streamPublisher: StreamPublisher
 	) {
 		this.poolConfig = config.pool;
-		this.logStoreClient = logStoreClient;
 		this.latestBundle = 0;
 		this.signer = signer;
-		this.systemStream = systemStream;
+		this.streamPublisher = streamPublisher;
 	}
 
 	public async start(abortSignal: AbortSignal): Promise<void> {
@@ -182,10 +179,7 @@ export class ReportPoller {
 		);
 
 		const proofOfReport = await poll.report.toProof(this.signer);
-		await this.logStoreClient.publish(
-			this.systemStream,
-			proofOfReport.serialize()
-		);
+		await this.streamPublisher.publish(proofOfReport.serialize());
 		logger.info(
 			`Proof of report ${poll.report.id} published to system stream`,
 			proofOfReport

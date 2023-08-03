@@ -9,18 +9,28 @@ import {
 	QueryType,
 } from './QueryRequest';
 import { QueryResponse } from './QueryResponse';
+import { RecoveryComplete } from './RecoveryComplete';
+import { RecoveryRequest } from './RecoveryRequest';
+import { RecoveryResponse } from './RecoveryResponse';
+import { RollCallRequest } from './RollCallRequest';
+import { RollCallResponse } from './RollCallResponse';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
 
 export {
 	ProofOfMessageStored,
-	SystemMessage,
+	ProofOfReport,
+	QueryFromOptions,
+	QueryLastOptions,
+	QueryOptions,
+	QueryRangeOptions,
 	QueryRequest,
 	QueryResponse,
 	QueryType,
-	QueryOptions,
+	RecoveryComplete,
+	RecoveryRequest,
+	RecoveryResponse,
+	RollCallRequest,
+	RollCallResponse,
+	SystemMessage,
 	SystemMessageType,
-	QueryLastOptions,
-	QueryRangeOptions,
-	QueryFromOptions,
-	ProofOfReport,
 };
