@@ -38,10 +38,14 @@ describe('stakes', () => {
 		test(
 			'store',
 			async () => {
+				const previousBalance = await accountClient.getStoreBalance();
+
 				const stream = await createTestStream(accountClient, module);
 				await accountClient.stakeOrCreateStore(stream.id, STAKE_AMOUNT);
-				const storeBalance = await accountClient.getStoreBalance(stream.id);
+				const storeBalance = await accountClient.getStreamBalance(stream.id);
+				const accountBalance = await accountClient.getStoreBalance();
 				expect(storeBalance).toBe(STAKE_AMOUNT);
+				expect(accountBalance).toBe(STAKE_AMOUNT + previousBalance);
 			},
 			TIMEOUT
 		);
