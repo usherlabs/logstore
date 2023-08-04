@@ -150,8 +150,12 @@ export class LogStoreClient extends StreamrClient {
 		return this.logStoreRegistry.getStoredStreams();
 	}
 
-	async getStoreBalance(streamIdOrPath: string): Promise<bigint> {
-		return this.logStoreRegistry.getStoreBalance(streamIdOrPath);
+	async getStreamBalance(streamIdOrPath: string): Promise<bigint> {
+		return this.logStoreRegistry.getStreamBalance(streamIdOrPath);
+	}
+
+	async getStoreBalance(): Promise<bigint> {
+		return this.logStoreRegistry.getStoreBalance();
 	}
 
 	// --------------------------------------------------------------------------------------------

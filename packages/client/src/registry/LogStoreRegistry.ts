@@ -190,13 +190,26 @@ export class LogStoreRegistry {
 		);
 	}
 
-	async getStoreBalance(streamIdOrPath: string): Promise<bigint> {
+	async getStreamBalance(streamIdOrPath: string): Promise<bigint> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
 		// `stores` maps the streamId to the storage balance
 		return await queryAllReadonlyContracts(async (contract) => {
 			const storeBalanceBN = await contract.stores(streamId);
 			return storeBalanceBN.toBigInt();
 		}, this.logStoreManagerContractsReadonly);
+	}
+
+	async getStoreBalanceOf(address: string): Promise<bigint> {
+		return await queryAllReadonlyContracts(async (contract) => {
+			const storeBalanceBN = await contract.balanceOf(address);
+			return storeBalanceBN.toBigInt();
+		}, this.logStoreManagerContractsReadonly);
+	}
+
+	async getStoreBalance(): Promise<bigint> {
+		const signer = await this.authentication.getStreamRegistryChainSigner();
+		const address = await signer.getAddress();
+		return await this.getStoreBalanceOf(address);
 	}
 
 	async isLogStoreStream(streamIdOrPath: string): Promise<boolean> {
