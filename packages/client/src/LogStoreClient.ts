@@ -19,6 +19,7 @@ import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
 import { Queries, QueryOptions } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
+import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
 import { AmountTypes } from './types';
 
@@ -26,6 +27,7 @@ export class LogStoreClient extends StreamrClient {
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
+	private readonly logStoreQueryManager: QueryManager;
 	private readonly logstoreTokenManager: TokenManager;
 
 	constructor(
@@ -66,6 +68,8 @@ export class LogStoreClient extends StreamrClient {
 
 		this.logStoreQueries = container.resolve<Queries>(Queries);
 
+		this.logStoreQueryManager = container.resolve<QueryManager>(QueryManager);
+
 		this.logstoreTokenManager = container.resolve<TokenManager>(TokenManager);
 	}
 
@@ -77,7 +81,7 @@ export class LogStoreClient extends StreamrClient {
 	 * Stake funds so can query
 	 */
 	async queryStake(amount: bigint, options = { usd: false }) {
-		return this.logStoreRegistry.queryStake(amount, { usd: options.usd });
+		return this.logStoreQueryManager.queryStake(amount, { usd: options.usd });
 	}
 
 	/**
@@ -110,7 +114,7 @@ export class LogStoreClient extends StreamrClient {
 	}
 
 	async getQueryBalance(): Promise<bigint> {
-		return this.logStoreRegistry.getQueryBalance();
+		return this.logStoreQueryManager.getQueryBalance();
 	}
 
 	// --------------------------------------------------------------------------------------------

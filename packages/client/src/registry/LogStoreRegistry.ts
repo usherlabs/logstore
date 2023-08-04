@@ -1,12 +1,8 @@
-import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
+import { BigNumber } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
 import type { LogStoreManager as LogStoreManagerContract } from '@logsn/contracts';
 import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
-import {
-	getQueryManagerContract,
-	prepareStakeForQueryManager,
-	prepareStakeForStoreManager,
-} from '@logsn/shared';
+import { prepareStakeForStoreManager } from '@logsn/shared';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
@@ -169,42 +165,6 @@ export class LogStoreRegistry {
 					'logStoreManager'
 				);
 		}
-	}
-
-	// --------------------------------------------------------------------------------------------
-	// Query Manager
-	// --------------------------------------------------------------------------------------------
-
-	async queryStake(
-		amount: BigNumberish,
-		options = { usd: false }
-	): Promise<void> {
-		const chainSigner =
-			await this.authentication.getStreamRegistryChainSigner();
-		const stakeAmount = prepareStakeForQueryManager(
-			chainSigner,
-			Number(amount),
-			options.usd
-		);
-		const queryManagerContract = await getQueryManagerContract(chainSigner);
-		await (await queryManagerContract.stake(stakeAmount)).wait();
-	}
-
-	async getQueryBalance(): Promise<bigint> {
-		const address = await this.authentication.getAddress();
-		return this.getQueryBalanceOf(address);
-	}
-
-	async getQueryBalanceOf(account: string): Promise<bigint> {
-		const chainSigner =
-			await this.authentication.getStreamRegistryChainSigner();
-		// TODO discover if we will interact with the contract by this way
-		// 	  or if we should setup a new class to interact with it also with readonly contracts
-		//		as done for store manager contract here
-		const queryManagerContract = await getQueryManagerContract(chainSigner);
-
-		const balanceOfAccount = await queryManagerContract.balanceOf(account);
-		return balanceOfAccount.toBigInt();
 	}
 
 	// --------------------------------------------------------------------------------------------

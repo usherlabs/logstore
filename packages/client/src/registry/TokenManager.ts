@@ -82,10 +82,13 @@ export class TokenManager {
 
 	public async getBalance(): Promise<bigint> {
 		return queryAllReadonlyContracts(async (contract) => {
-			this.logger.debug('getBalance');
 			const accountAddress = await this.authentication.getAddress();
-			const balanceBN = await contract.balanceOf(accountAddress);
-			return balanceBN.toBigInt();
+			this.logger.debug(`getBalance of current account: ${accountAddress}`);
+			const balance = await contract
+				.balanceOf(accountAddress)
+				.then((b) => b.toBigInt());
+			this.logger.debug(`got balance of ${accountAddress}: ${balance}`);
+			return balance;
 		}, this.logstoreTokenManagerContractsReadonly);
 	}
 
@@ -99,9 +102,6 @@ export class TokenManager {
 
 	public async mint(amount: BigNumberish): Promise<ContractTransaction> {
 		this.logger.debug('mint amount: ' + amount);
-		// TODO discover if we need to interact with it like this, to make consistent
-		// 		or if we should import getTokenManager to interact with it
-		//    and what is the motivation for it, to have a decorated contract that limits requests and logs?
 		await this.connectToContract();
 		return this.logStoreTokenManagerContract!.mint({ value: amount });
 	}
