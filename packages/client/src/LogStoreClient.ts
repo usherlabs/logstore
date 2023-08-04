@@ -127,7 +127,7 @@ export class LogStoreClient extends StreamrClient {
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
 		amount: bigint
-	): Promise<void> {
+	): Promise<ContractTransaction> {
 		return this.logStoreRegistry.stakeOrCreateStore(streamIdOrPath, amount);
 	}
 

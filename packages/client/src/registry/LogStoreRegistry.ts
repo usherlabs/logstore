@@ -12,10 +12,10 @@ import {
 	queryAllReadonlyContracts,
 	Stream,
 	StreamIDBuilder,
-	waitForTx,
 } from '@logsn/streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
+import { ContractTransaction } from 'ethers';
 import { min } from 'lodash';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
@@ -174,7 +174,7 @@ export class LogStoreRegistry {
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
 		amount: bigint
-	): Promise<void> {
+	): Promise<ContractTransaction> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
 		this.logger.debug('adding stream %s to LogStore', streamId);
 		await this.connectToContract();
@@ -185,8 +185,10 @@ export class LogStoreRegistry {
 			await this.authentication.getStreamRegistryChainSigner();
 		await prepareStakeForStoreManager(chainSigner, amount, false);
 		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
-		await waitForTx(
-			this.logStoreManagerContract!.stake(streamId, amount, ethersOverrides)
+		return this.logStoreManagerContract!.stake(
+			streamId,
+			amount,
+			ethersOverrides
 		);
 	}
 
