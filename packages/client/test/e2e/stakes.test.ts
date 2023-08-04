@@ -8,11 +8,7 @@ import { createTestStream } from '../test-utils/utils';
 const STAKE_AMOUNT = BigInt('1000000000');
 const TIMEOUT = 90 * 1000;
 
-function sleep(ms: number) {
-	return new Promise((resolve) => setTimeout(() => resolve(undefined), ms));
-}
-
-describe('query', () => {
+describe('stakes', () => {
 	const provider = new providers.JsonRpcProvider(
 		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
 		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
@@ -23,6 +19,9 @@ describe('query', () => {
 
 	beforeAll(async () => {
 		account = new Wallet(await fetchPrivateKeyWithGas(), provider);
+		console.debug('Initializing tests for: ');
+		console.debug(`Account address: ${account.address}`);
+		console.debug(`Account private key: ${account.privateKey}`);
 		accountClient = new LogStoreClient({
 			...CONFIG_TEST,
 			auth: {
