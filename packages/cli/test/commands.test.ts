@@ -1,0 +1,102 @@
+import { LogStoreClient } from '@logsn/client';
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import { ethers } from 'ethers';
+import { describe, expect, test as rawTest } from 'vitest';
+
+import { executeOnCli, getTestLogStoreClient } from './utils';
+
+const TEST_TIMEOUT = 20_000;
+
+const test = rawTest.extend<{
+	walletPrivateKey: string;
+	logstoreClient: LogStoreClient;
+	provider: ethers.providers.JsonRpcProvider;
+	credentialsString: string;
+}>({
+	walletPrivateKey: async ({}, use) => {
+		const privateKey = await fetchPrivateKeyWithGas();
+		await use(privateKey);
+	},
+	logstoreClient: async ({ walletPrivateKey }, use) => {
+		const logstoreClient = getTestLogStoreClient(walletPrivateKey);
+		await use(logstoreClient);
+		await logstoreClient.destroy();
+	},
+	provider: async ({ logstoreClient }, use) => {
+		const config = logstoreClient.getConfig();
+		const provider = new ethers.providers.JsonRpcProvider(
+			config.contracts.streamRegistryChainRPCs.rpcs[0].url,
+			config.contracts.streamRegistryChainRPCs.chainId
+		);
+		await use(provider);
+	},
+	credentialsString: async ({ walletPrivateKey }, use) => {
+		const credentialsString = `-h http://localhost:8546 -w ${walletPrivateKey}`;
+		await use(credentialsString);
+	},
+});
+
+describe('direct cli call tests', function () {
+	test(
+		'version',
+		async () => {
+			const { stdout, code } = await executeOnCli('version');
+			const expectedPart = '@logsn/cli version:';
+			expect(code).toBe(0);
+			expect(stdout).toContain(expectedPart);
+		},
+		TEST_TIMEOUT
+	);
+
+	test(
+		'balance',
+		async ({ credentialsString }) => {
+			const { stdout, code } = await executeOnCli(
+				'balance ' + credentialsString
+			);
+			expect(code).toBe(0);
+			expect(stdout).toContain('The LSAN balance for address');
+			expect(stdout).toContain(
+				'of Storage are available to be staked on the Log Store'
+			);
+			expect(stdout).toContain(
+				'of Queries are available to be staked on the Log Store'
+			);
+		},
+		TEST_TIMEOUT
+	);
+
+	test(
+		'mint',
+		async ({ credentialsString, logstoreClient }) => {
+			const MINT_AMOUNT = 100_000_000_000_000n;
+			const mintWei = MINT_AMOUNT;
+
+			const balance = await logstoreClient.getBalance();
+			const price = await logstoreClient.getPrice();
+
+			const mintResult = mintWei / price;
+			const expectedBalance = balance + mintResult;
+
+			const { code, stdout } = await executeOnCli(
+				`mint ${mintWei} ${credentialsString} `
+			);
+
+			expect(code).toBe(0);
+			expect(stdout).toContain('Successfully minted tokens to network:Tx');
+			expect(stdout).toContain('Amount:Tx 100000000000000');
+
+			const newBalance = await logstoreClient.getBalance();
+
+			expect(newBalance).toBe(expectedBalance);
+		},
+		TEST_TIMEOUT
+	);
+
+	test('query stake', async ({}) => {
+
+	});
+	test('query stake');
+	test('query balance');
+	test('store balance');
+});
