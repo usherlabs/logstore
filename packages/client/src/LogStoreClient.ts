@@ -14,6 +14,7 @@ import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
 	redactConfig,
+	StrictLogStoreClientConfig,
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
@@ -29,6 +30,7 @@ export class LogStoreClient extends StreamrClient {
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 	private readonly logStoreQueryManager: QueryManager;
 	private readonly logstoreTokenManager: TokenManager;
+	private readonly strictConfig: StrictLogStoreClientConfig;
 
 	constructor(
 		config: LogStoreClientConfig = {},
@@ -51,6 +53,8 @@ export class LogStoreClient extends StreamrClient {
 
 		const strictConfig = createStrictConfig(config);
 		redactConfig(strictConfig);
+
+		this.strictConfig = strictConfig;
 
 		container.register(LogStoreClient, {
 			useValue: this,
@@ -189,6 +193,10 @@ export class LogStoreClient extends StreamrClient {
 	// --------------------------------------------------------------------------------------------
 	// Client
 	// --------------------------------------------------------------------------------------------
+
+	getConfig(): LogStoreClientConfig {
+		return this.strictConfig;
+	}
 
 	/**
 	 * Destroys an instance of a {@link StreamrClient} by disconnecting from peers, clearing any pending tasks, and
