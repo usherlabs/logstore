@@ -66,10 +66,11 @@ export class SystemRecovery {
 		};
 
 		this.logger.debug(
-			`Calling recovery enpoint ${JSON.stringify({
+			'Calling recovery enpoint',
+			JSON.stringify({
 				endpoint,
 				requestId: this.requestId,
-			})}`
+			})
 		);
 
 		const response = await axios.post(
@@ -82,6 +83,11 @@ export class SystemRecovery {
 		for (const brokerAddress of brokerAddresses) {
 			this.progresses.set(brokerAddress, { isComplete: false });
 		}
+
+		this.logger.debug(
+			'Collecting RecoveryResponses from brokers',
+			JSON.stringify(brokerAddresses)
+		);
 	}
 
 	public async stop() {
@@ -150,17 +156,18 @@ export class SystemRecovery {
 		switch (systemMessage.messageType) {
 			case SystemMessageType.RecoveryResponse: {
 				const recoveryResponse = systemMessage as RecoveryResponse;
-				this.logger.debug(
-					`Processing RecoveryResponse ${JSON.stringify({
-						requestId: recoveryResponse.requestId,
-						publisherId: metadata.publisherId,
-						payloadLength: recoveryResponse.payload.length,
-					})} `
-				);
 
 				if (recoveryResponse.requestId != this.requestId) {
 					return;
 				}
+
+				this.logger.debug(
+					'Processing RecoveryResponse',
+					JSON.stringify({
+						publisherId: metadata.publisherId,
+						payloadLength: recoveryResponse.payload.length,
+					})
+				);
 
 				for await (const [msg, msgMetadata] of recoveryResponse.payload) {
 					await this.onSystemMessage(msg, msgMetadata as MessageMetadata);
@@ -171,16 +178,17 @@ export class SystemRecovery {
 			}
 			case SystemMessageType.RecoveryComplete: {
 				const recoveryComplete = systemMessage as RecoveryComplete;
-				this.logger.debug(
-					`Processing RecoveryComplete ${JSON.stringify({
-						requestId: recoveryComplete.requestId,
-						publisherId: metadata.publisherId,
-					})} `
-				);
 
 				if (recoveryComplete.requestId != this.requestId) {
 					return;
 				}
+
+				this.logger.debug(
+					'Processing RecoveryComplete',
+					JSON.stringify({
+						publisherId: metadata.publisherId,
+					})
+				);
 
 				// if no recovery messages received
 				if (progress.timestamp === undefined) {
