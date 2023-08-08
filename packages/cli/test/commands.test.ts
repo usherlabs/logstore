@@ -3,9 +3,10 @@ import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { ethers } from 'ethers';
 import { describe, expect, test as rawTest } from 'vitest';
 
+import { createTestStream } from '../../client/test/test-utils/utils';
 import { executeOnCli, getTestLogStoreClient } from './utils';
 
-const TEST_TIMEOUT = 20_000;
+const TEST_TIMEOUT = 90_000;
 
 const test = rawTest.extend<{
 	walletPrivateKey: string;
@@ -93,10 +94,79 @@ describe('direct cli call tests', function () {
 		TEST_TIMEOUT
 	);
 
-	test('query stake', async ({}) => {
+	test(
+		'query stake',
+		async ({ logstoreClient, credentialsString }) => {
+			const previousQueryBalance = await logstoreClient.getQueryBalance();
 
-	});
-	test('query stake');
-	test('query balance');
-	test('store balance');
+			const STAKE_AMOUNT = 100_000_000_000_000n;
+
+			const { code, stdout } = await executeOnCli(
+				`query stake -y ${STAKE_AMOUNT} ${credentialsString}`
+			);
+
+			expect(code).toBe(0);
+			expect(stdout).toContain('Successfully staked 100000000000000 - Tx');
+
+			const queryBalance = await logstoreClient.getQueryBalance();
+
+			expect(queryBalance).toBe(previousQueryBalance + STAKE_AMOUNT);
+		},
+		TEST_TIMEOUT * 4
+	);
+
+	test(
+		'store stake',
+		async ({ credentialsString, logstoreClient }) => {
+			const previousStoreBalance = await logstoreClient.getStoreBalance();
+			const STAKE_AMOUNT = 100_000_000_000_000n;
+
+			const stream = await createTestStream(logstoreClient, {
+				filename: __filename,
+			});
+
+			const { code, stdout, stderr } = await executeOnCli(
+				`store stake -y ${stream.id} ${STAKE_AMOUNT} ${credentialsString}`
+			);
+
+			expect(stderr).toBe('');
+			expect(code).toBe(0);
+			expect(stdout).toContain('Successfully staked 100000000000000 - Tx');
+
+			const storeBalance = await logstoreClient.getStoreBalance();
+
+			expect(storeBalance).toBe(previousStoreBalance + STAKE_AMOUNT);
+		},
+		TEST_TIMEOUT
+	);
+
+	test(
+		'query balance',
+		async ({ credentialsString }) => {
+			const { code, stdout } = await executeOnCli(
+				`query balance ${credentialsString}`
+			);
+
+			expect(code).toBe(0);
+			expect(stdout).toContain('LSAN staked on-chain for Queries');
+			expect(stdout).toContain('LSAN in a Wallet UI');
+			expect(stdout).toContain('of data is available for Queries');
+		},
+		TEST_TIMEOUT
+	);
+
+	test(
+		'store balance',
+		async ({ credentialsString }) => {
+			const { code, stdout } = await executeOnCli(
+				`store balance ${credentialsString}`
+			);
+
+			expect(code).toBe(0);
+			expect(stdout).toContain('LSAN staked on-chain for Storage');
+			expect(stdout).toContain('LSAN in a Wallet UI');
+			expect(stdout).toContain('of data is available for Storage');
+		},
+		TEST_TIMEOUT
+	);
 });
