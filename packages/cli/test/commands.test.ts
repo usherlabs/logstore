@@ -134,7 +134,11 @@ describe('direct cli call tests', function () {
 			expect(stdout).toContain('Successfully staked 100000000000000 - Tx');
 
 			const storeBalance = await logstoreClient.getStoreBalance();
+			const streamStakeBalance = await logstoreClient.getStreamBalance(
+				stream.id
+			);
 
+			expect(streamStakeBalance).toBe(STAKE_AMOUNT);
 			expect(storeBalance).toBe(previousStoreBalance + STAKE_AMOUNT);
 		},
 		TEST_TIMEOUT
