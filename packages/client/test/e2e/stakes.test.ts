@@ -53,9 +53,12 @@ describe('stakes', () => {
 		test(
 			'stake query',
 			async () => {
+				const previousBalance = await accountClient.getQueryBalance();
+
 				await accountClient.queryStake(STAKE_AMOUNT);
 				const queryBalance = await accountClient.getQueryBalance();
-				expect(queryBalance).toBe(STAKE_AMOUNT);
+
+				expect(queryBalance).toBe(STAKE_AMOUNT + previousBalance);
 			},
 			TIMEOUT
 		);
