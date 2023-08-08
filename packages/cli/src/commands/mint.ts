@@ -45,8 +45,11 @@ export const mintCommand = new Command()
 			const result = await client.mint(BigInt(amountInToken));
 
 			console.log(
-				`Successfully minted tokens to network:Tx ${result.hash}, Amount:Tx ${amountInToken}`
+				`Successfully minted tokens to network:Tx ${result.hash}, Amount:Tx ${amountInToken}. Waiting for confirmations...`
 			);
+
+			await result.wait();
+			console.log('Mint confirmed.');
 		} catch (e) {
 			logger.info(chalk.red('mint failed'));
 			logger.error(e);
