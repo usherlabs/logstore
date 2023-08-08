@@ -2,8 +2,6 @@ import { getLogstoreClientForCredentials } from '@/utils/logstore-client';
 import { exec } from 'child_process';
 import path from 'path';
 
-import { CONFIG_TEST } from '../../client/src/ConfigTest';
-
 const getCliPath = async () => {
 	// gets package.json from the root of the project
 	// gets property bin > logstore path
@@ -20,6 +18,10 @@ const getTSCliPath = () => {
 	return logstoreCliPath;
 };
 
+/**
+ * @param command
+ * @param type -- this will define if we are running the cli from the source code or from the build
+ */
 export const executeOnCli = async (
 	command: string,
 	type: 'build' | 'dev' = 'dev'
@@ -31,7 +33,7 @@ export const executeOnCli = async (
 			: `node ${cliPath} ${command}`;
 	console.log('executing: ', execCommand);
 	return new Promise<{ stdout: string; stderr: string; code: number }>(
-		(resolve, reject) => {
+		(resolve) => {
 			exec(execCommand, (error, stdout, stderr) => {
 				if (error) {
 					resolve({ stdout, stderr, code: error.code });
