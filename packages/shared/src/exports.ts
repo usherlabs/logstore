@@ -13,4 +13,5 @@ export {
 } from './prepareStake';
 export { getTokenPrice, getMaticPrice } from './getTokenPrice';
 export { convertFromUsd } from './convertFromUsd';
+export { withRetry } from './withRetry';
 export * from './types';
