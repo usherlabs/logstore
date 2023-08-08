@@ -1,9 +1,8 @@
 import { getRootOptions } from '@/commands/options';
 import { USE_TEST_CONFIG } from '@/env-config';
 import { LogStoreClient } from '@logsn/client';
+import { CONFIG_TEST } from '@logsn/client';
 import { ethers } from 'ethers';
-
-import { CONFIG_TEST } from '../../../client/src/ConfigTest';
 
 function getCredentialsFrom(host: string, wallet: string) {
 	const provider = new ethers.providers.JsonRpcProvider(host);
