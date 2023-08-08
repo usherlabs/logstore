@@ -32,13 +32,11 @@ export const rootProgram = new Command()
 			return;
 		}
 		const { config } = getRootOptions();
-		console.log({ config });
 		const configFilePath = resolveHome(config);
 
 		const configData: IConfig = await jsonfile
 			.readFile(configFilePath)
 			.catch(() => ({ privateKey: '', host: '' }));
-
 
 		setRootOptions((args) => {
 			const newArgs = { ...args };
