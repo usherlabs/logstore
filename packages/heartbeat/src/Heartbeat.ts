@@ -56,7 +56,7 @@ export class Heartbeat {
 			timestamp: Date.now(),
 		};
 
-		await this.client.publish(this.stream, JSON.stringify(content));
+		await this.client.publish(this.stream, content);
 		console.debug('Published Heartbeat message', content);
 	}
 }
