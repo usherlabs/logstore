@@ -177,30 +177,37 @@ export class TimeIndexer {
 
 				this.logger.debug(`TimeIndexer (${source}) PID:`, child.pid);
 
+				let stderr: string = '';
 				child.stderr.on('data', (buff) => {
 					const data = buff.toString();
-					if (data.includes(`[INFO]`)) {
-						// Skip logs that aren't root of command
-						if (data.includes(`Nothing to sync`)) {
-							this.logger.info(`TimeIndexer (${source}):`, data);
-						} else if (
-							data.includes(`Writing last synced block`) ||
-							data.includes(`Current block`)
-						) {
-							this.logger.debug(`TimeIndexer (${source}):`, data);
+					stderr += data.toString();
+					const entries = stderr.split('\n');
+					stderr = entries.splice(-1)[0];
+
+					for (const entry of entries) {
+						if (entry.includes(`[INFO]`)) {
+							// Skip logs that aren't root of command
+							if (entry.includes(`Nothing to sync`)) {
+								this.logger.info(`TimeIndexer (${source}):`, entry);
+							} else if (
+								entry.includes(`Writing last synced block`) ||
+								entry.includes(`Current block`)
+							) {
+								this.logger.debug(`TimeIndexer (${source}):`, entry);
+							}
+						} else {
+							this.logger.error(`TimeIndexer (${source}):`, entry);
+							throw new Error('TimeIndexer Error');
 						}
-					} else {
-						this.logger.error(`TimeIndexer (${source}):`, data);
-						throw new Error('TimeIndexer Error');
 					}
 				});
 
-				let buffer: string = '';
+				let stdout: string = '';
 				child.stdout.on('data', async (buff) => {
 					const data = buff.toString();
-					buffer += data.toString();
-					const entries = buffer.split('\n');
-					buffer = entries.splice(-1)[0];
+					stdout += data.toString();
+					const entries = stdout.split('\n');
+					stdout = entries.splice(-1)[0];
 
 					for (const entry of entries) {
 						let block: number;

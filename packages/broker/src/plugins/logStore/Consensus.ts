@@ -49,10 +49,17 @@ export const getConsensus = async (
 				}
 
 				const queryResponse = systemMessage as QueryResponse;
+				if (queryResponse.requestId !== queryRequest.requestId) {
+					return;
+				}
 
 				logger.trace(
 					'Received QueryResponse: %s',
-					JSON.stringify(queryResponse)
+					JSON.stringify({
+						requestId: queryResponse.requestId,
+						publisherId: metadata.publisherId,
+						hash: queryResponse.hash,
+					})
 				);
 
 				if (!consensuses[queryResponse.hash]) {
@@ -68,7 +75,10 @@ export const getConsensus = async (
 
 				// check if consensus reached
 				if (consensuses[queryResponse.hash].length >= consesnusThreshold) {
-					logger.trace('Consensus reached: %s', JSON.stringify(queryRequest));
+					logger.trace(
+						'Consensus reached: %s',
+						JSON.stringify({ requestId: queryRequest.requestId })
+					);
 					clearTimeout(timeout);
 					streamSubscriber.unsubscribe().then(() => {
 						resolve(consensuses[queryResponse.hash]);
@@ -83,7 +93,13 @@ export const getConsensus = async (
 
 				if (leadingResponses + awaitingResponses < consesnusThreshold) {
 					clearTimeout(timeout);
-					logger.trace('No consensus: %s', JSON.stringify(queryRequest));
+					logger.trace(
+						'No consensus: %s',
+						JSON.stringify({
+							requestId: queryRequest.requestId,
+							consensuses,
+						})
+					);
 					streamSubscriber.unsubscribe().then(() => {
 						reject('No consensus');
 					});
@@ -99,7 +115,10 @@ export const getConsensus = async (
 					);
 
 					timeout = setTimeout(() => {
-						logger.trace('Consensus timeout: %s', JSON.stringify(queryRequest));
+						logger.trace(
+							'Consensus timeout: %s',
+							JSON.stringify({ requestId: queryRequest.requestId })
+						);
 
 						streamSubscriber.unsubscribe().then(() => {
 							reject('Consensus timeout');
@@ -108,7 +127,7 @@ export const getConsensus = async (
 				});
 			})
 			.catch((err) => {
-				logger.error(err);
+				logger.error(JSON.stringify(err));
 				clearTimeout(timeout);
 				reject(err``);
 			});

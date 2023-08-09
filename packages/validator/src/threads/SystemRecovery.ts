@@ -17,6 +17,7 @@ import { randomUUID } from 'crypto';
 import { Signer } from 'ethers';
 import { Base64 } from 'js-base64';
 import { shuffle } from 'lodash';
+import { Logger } from 'tslog';
 
 import { Managers } from '../managers';
 import { StreamSubscriber } from '../shared/StreamSubscriber';
@@ -32,7 +33,7 @@ interface RecoveryProgress {
 }
 
 export class SystemRecovery {
-	private recoveryRequestId: string;
+	private requestId: string;
 	private subscriber: StreamSubscriber;
 
 	private progresses: Map<EthereumAddress, RecoveryProgress> = new Map();
@@ -41,29 +42,40 @@ export class SystemRecovery {
 		private readonly client: LogStoreClient,
 		private readonly systemStream: Stream,
 		private readonly signer: Signer,
+		private readonly logger: Logger,
 		private readonly onSystemMessage: MessageListener
 	) {
 		this.subscriber = new StreamSubscriber(this.client, this.systemStream);
 	}
 
 	public async start() {
+		this.logger.info('Starting SystemRecovery ...');
+
 		await this.subscriber.subscribe((content, metadata) =>
 			setImmediate(() => this.onMessage(content, metadata))
 		);
 
-		const endpoint = await this.getBrokerEndpoint();
+		const endpoint = `${await this.getBrokerEndpoint()}/recovery`;
 		const authUser = await this.client.getAddress();
 		const authPassword = await this.signer.signMessage(authUser);
 
-		this.recoveryRequestId = randomUUID();
+		this.requestId = randomUUID();
 		const headers = {
 			'Content-Type': 'application/json',
 			Authorization: `Basic ${Base64.encode(`${authUser}:${authPassword}`)}`,
 		};
 
+		this.logger.debug(
+			'Calling recovery enpoint',
+			JSON.stringify({
+				endpoint,
+				requestId: this.requestId,
+			})
+		);
+
 		const response = await axios.post(
-			`${endpoint}/recovery`,
-			{ requestId: this.recoveryRequestId },
+			endpoint,
+			{ requestId: this.requestId },
 			{ headers }
 		);
 
@@ -71,6 +83,11 @@ export class SystemRecovery {
 		for (const brokerAddress of brokerAddresses) {
 			this.progresses.set(brokerAddress, { isComplete: false });
 		}
+
+		this.logger.debug(
+			'Collecting RecoveryResponses from brokers',
+			JSON.stringify(brokerAddresses)
+		);
 	}
 
 	public async stop() {
@@ -140,9 +157,17 @@ export class SystemRecovery {
 			case SystemMessageType.RecoveryResponse: {
 				const recoveryResponse = systemMessage as RecoveryResponse;
 
-				if (recoveryResponse.requestId != this.recoveryRequestId) {
+				if (recoveryResponse.requestId != this.requestId) {
 					return;
 				}
+
+				this.logger.debug(
+					'Processing RecoveryResponse',
+					JSON.stringify({
+						publisherId: metadata.publisherId,
+						payloadLength: recoveryResponse.payload.length,
+					})
+				);
 
 				for await (const [msg, msgMetadata] of recoveryResponse.payload) {
 					await this.onSystemMessage(msg, msgMetadata as MessageMetadata);
@@ -154,9 +179,16 @@ export class SystemRecovery {
 			case SystemMessageType.RecoveryComplete: {
 				const recoveryComplete = systemMessage as RecoveryComplete;
 
-				if (recoveryComplete.requestId != this.recoveryRequestId) {
+				if (recoveryComplete.requestId != this.requestId) {
 					return;
 				}
+
+				this.logger.debug(
+					'Processing RecoveryComplete',
+					JSON.stringify({
+						publisherId: metadata.publisherId,
+					})
+				);
 
 				// if no recovery messages received
 				if (progress.timestamp === undefined) {
@@ -164,6 +196,11 @@ export class SystemRecovery {
 				}
 
 				progress.isComplete = true;
+
+				if (this.progress.isComplete) {
+					await this.stop();
+					this.logger.info('Successfully complete SystemRecovery');
+				}
 				break;
 			}
 		}
