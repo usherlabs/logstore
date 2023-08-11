@@ -632,14 +632,19 @@ export class LogStore extends EventEmitter {
 		if (count < 0) {
 			count = 0;
 
-			const query = 'SELECT size FROM bucket WHERE stream_id=? AND partition=?';
-			const queryParams = [streamId, partition];
+			const queryOverflown =
+				'SELECT size FROM bucket WHERE stream_id=? AND partition=?';
+			const queryParamsOverflown = [streamId, partition];
 
-			const res = await this.cassandraClient.execute(query, queryParams, {
-				prepare: true,
-			});
+			const resOverflown = await this.cassandraClient.execute(
+				queryOverflown,
+				queryParamsOverflown,
+				{
+					prepare: true,
+				}
+			);
 
-			for (const row of res.rows) {
+			for (const row of resOverflown.rows) {
 				count += row.size;
 			}
 		}
