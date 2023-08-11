@@ -50,13 +50,21 @@ describe('query', () => {
 
 	beforeAll(async () => {
 		// Accounts
-		publisherAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
-		storeOwnerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
-		storeConsumerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+		const walletsForAccounts = await Promise.all([
+			fetchPrivateKeyWithGas(),
+			fetchPrivateKeyWithGas(),
+			fetchPrivateKeyWithGas(),
+		]);
+
+		publisherAccount = new Wallet(walletsForAccounts[0], provider);
+		storeOwnerAccount = new Wallet(walletsForAccounts[1], provider);
+		storeConsumerAccount = new Wallet(walletsForAccounts[2], provider);
 
 		// Contracts
-		storeManager = await getStoreManagerContract(storeOwnerAccount);
-		queryManager = await getQueryManagerContract(storeConsumerAccount);
+		[storeManager, queryManager] = await Promise.all([
+			getStoreManagerContract(storeOwnerAccount),
+			getQueryManagerContract(storeConsumerAccount),
+		]);
 
 		// Clients
 		publisherClient = new LogStoreClient({
@@ -115,11 +123,15 @@ describe('query', () => {
 			// 	permissions: [StreamPermission.SUBSCRIBE],
 			// });
 
-			await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
-			await storeManager.stake(stream.id, STAKE_AMOUNT);
+			await Promise.all([
+				prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT),
+				prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT),
+			]);
 
-			await prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT);
-			await queryManager.stake(STAKE_AMOUNT);
+			await Promise.all([
+				storeManager.stake(stream.id, STAKE_AMOUNT),
+				queryManager.stake(STAKE_AMOUNT),
+			]);
 		}, TIMEOUT);
 
 		it(
@@ -219,12 +231,14 @@ describe('query', () => {
 			TIMEOUT
 		);
 
-		it(
-			'can request a query for the last messages via HTTP Interface',
-			async () => {
+		describe('can request a query for the last messages via HTTP Interface', () => {
+			let queryUrl: string;
+			let token: string;
+
+			beforeAll(async () => {
 				await publishMessages(NUM_OF_LAST_MESSAGES);
 
-				const queryUrl = await consumerClient.createQueryUrl(
+				queryUrl = await consumerClient.createQueryUrl(
 					BASE_NODE_URL,
 					{
 						streamId: stream.id,
@@ -235,41 +249,52 @@ describe('query', () => {
 						count: NUM_OF_LAST_MESSAGES,
 					}
 				);
-				const { token } = await consumerClient.apiAuth();
+				({ token } = await consumerClient.apiAuth());
+			}, TIMEOUT);
 
-				const resp = await axios
-					.get(queryUrl, {
+			it(
+				'via json responses',
+				async () => {
+					const resp = await axios
+						.get(queryUrl, {
+							headers: {
+								Authorization: `Basic ${token}`,
+							},
+						})
+						.then(({ data }) => data);
+
+					console.log('HTTP RESPONSE:', resp);
+
+					expect(resp.messages).toHaveLength(NUM_OF_LAST_MESSAGES);
+				},
+				TIMEOUT
+			);
+
+			it(
+				'via stream',
+				async () => {
+					const messages: unknown[] = [];
+					const streamJson = await axios.get(queryUrl, {
 						headers: {
 							Authorization: `Basic ${token}`,
+							Accept: 'text/event-stream',
 						},
-					})
-					.then(({ data }) => data);
+						responseType: 'stream',
+					});
 
-				console.log('HTTP RESPONSE:', resp);
+					streamJson.data.on('data', (chunk: any) => {
+						messages.push(JSON.parse(chunk));
+					});
 
-				expect(resp).toHaveLength(NUM_OF_LAST_MESSAGES);
+					await new Promise((resolve) => {
+						streamJson.data.on('end', resolve);
+					});
 
-				// const messages: unknown[] = [];
-				// await consumerClient.query(
-				// 	{
-				// 		streamId: stream.id,
-				// 		partition: 0,
-				// 	},
-				// 	{ last: NUM_OF_LAST_MESSAGES },
-				// 	(msg: any) => {
-				// 		messages.push(msg);
-				// 	}
-				// );
-				// await waitForCondition(
-				// 	() => messages.length >= NUM_OF_LAST_MESSAGES,
-				// 	TIMEOUT - 1000,
-				// 	250,
-				// 	undefined,
-				// 	() => `messages array length was ${messages.length}`
-				// );
-				// expect(messages).toHaveLength(NUM_OF_LAST_MESSAGES);
-			},
-			TIMEOUT
-		);
+					console.log('HTTP STREAM RESPONSE:', messages);
+					expect(messages).toHaveLength(NUM_OF_LAST_MESSAGES);
+				},
+				TIMEOUT
+			);
+		});
 	});
 });
