@@ -1,5 +1,4 @@
 import { EncryptionType, StreamMessage } from '@streamr/protocol';
-import type { Request } from 'express';
 
 export interface Format {
 	getMessageAsString: (
@@ -9,7 +8,7 @@ export interface Format {
 	contentType: string;
 	delimiter: string;
 	header: string;
-	footer: string;
+	footer: ((metadata: Record<string, any>) => string) | string;
 }
 
 const createJsonFormat = (
@@ -22,8 +21,8 @@ const createJsonFormat = (
 		getMessageAsString,
 		contentType: 'application/json',
 		delimiter: ',',
-		header: '[',
-		footer: ']',
+		header: '{"messages":[',
+		footer: (metadata) => `],"metadata":${JSON.stringify(metadata)}}`,
 	};
 };
 
@@ -35,7 +34,7 @@ const createPlainTextFormat = (
 ): Format => {
 	return {
 		getMessageAsString,
-		contentType: 'text/plain',
+		contentType: 'text/event-stream',
 		delimiter: '\n',
 		header: '',
 		footer: '',
@@ -85,7 +84,8 @@ const FORMATS = {
 
 export type FormatType = keyof typeof FORMATS;
 
-export const getFormat = (req: Request) => {
-	const isServerSideEventRequested = req.headers.accept === 'text/event-stream';
-	return isServerSideEventRequested ? FORMATS.raw : FORMATS.object;
+export const getFormat = (id: string | undefined): Format => {
+	const safeKey = id ?? 'object';
+	const key = safeKey in FORMATS ? id : 'object';
+	return FORMATS[key as FormatType];
 };
