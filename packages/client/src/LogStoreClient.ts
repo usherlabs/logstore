@@ -16,7 +16,7 @@ import {
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
-import { Queries, QueryDict, QueryOptions, QueryType } from './Queries';
+import { HttpApiQueryDict, Queries, QueryOptions, QueryType } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 
 export class LogStoreClient extends StreamrClient {
@@ -105,7 +105,7 @@ export class LogStoreClient extends StreamrClient {
 		nodeUrl: string,
 		streamDefinition: StreamDefinition,
 		type: QueryType | string,
-		queryParams: QueryDict
+		queryParams: HttpApiQueryDict
 	) {
 		const streamPartId = await this.streamIdBuilder.toStreamPartID(
 			streamDefinition

@@ -28,10 +28,26 @@ export enum QueryType {
 	Range = 'range',
 }
 
-export type QueryDict = Record<
-	string,
-	string | number | boolean | null | undefined
->;
+export type HttpQueryLast = {
+	count: number;
+};
+
+export type HttpQueryFrom = {
+	fromTimestamp: number;
+	fromSequenceNumber?: number;
+	publisherId?: string;
+};
+
+export type HttpQueryRange = {
+	fromTimestamp: number;
+	toTimestamp: number;
+	fromSequenceNumber?: number;
+	toSequenceNumber?: number;
+	publisherId?: string;
+	msgChainId?: string;
+};
+
+export type HttpApiQueryDict = HttpQueryLast | HttpQueryFrom | HttpQueryRange;
 
 export interface QueryRef {
 	timestamp: number;
@@ -185,7 +201,7 @@ export class Queries implements IResends {
 	private async fetchStream(
 		queryType: QueryType,
 		streamPartId: StreamPartID,
-		query: QueryDict = {}
+		query: HttpApiQueryDict
 	): Promise<MessageStream> {
 		const loggerIdx = counterId('fetchStream');
 		this.logger.debug(
@@ -287,11 +303,11 @@ export class Queries implements IResends {
 		baseUrl: string,
 		endpointSuffix: string,
 		streamPartId: StreamPartID,
-		query: QueryDict = {}
+		query: HttpApiQueryDict | object = {}
 	): string {
 		const queryMap = {
 			...query,
-			format: 'raw',
+			format: 'object',
 		};
 		const [streamId, streamPartition] =
 			StreamPartIDUtils.getStreamIDAndPartition(streamPartId);
