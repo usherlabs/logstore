@@ -9,11 +9,13 @@ import {
 	LogStoreManager,
 	LogStoreNodeManager,
 	LogStoreQueryManager,
+	LSAN as LogStoreTokenManager,
 } from '@logsn/contracts';
 import {
 	getNodeManagerContract,
 	getQueryManagerContract,
 	getStoreManagerContract,
+	getTokenManagerContract,
 	prepareStakeForNodeManager,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
@@ -49,6 +51,7 @@ describe('Queries', () => {
 	);
 
 	// Accounts
+	let adminAccount: Wallet;
 	let logStoreBrokerAccount: Wallet;
 	let publisherAccount: Wallet;
 	let storeOwnerAccount: Wallet;
@@ -62,6 +65,8 @@ describe('Queries', () => {
 	let consumerClient: LogStoreClient;
 
 	// Contracts
+	let nodeAdminManager: LogStoreNodeManager;
+	let tokenAdminManager: LogStoreTokenManager;
 	let nodeManager: LogStoreNodeManager;
 	let storeManager: LogStoreManager;
 	let queryManager: LogStoreQueryManager;
@@ -74,12 +79,19 @@ describe('Queries', () => {
 			await fetchPrivateKeyWithGas(),
 			provider
 		);
+
 		// Accounts
+		adminAccount = new Wallet(
+			process.env.CONTRACT_OWNER_PRIVATE_KEY!,
+			provider
+		);
 		publisherAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 		storeOwnerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 		storeConsumerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 
 		// Contracts
+		nodeAdminManager = await getNodeManagerContract(adminAccount);
+		tokenAdminManager = await getTokenManagerContract(adminAccount);
 		nodeManager = await getNodeManagerContract(logStoreBrokerAccount);
 		storeManager = await getStoreManagerContract(storeOwnerAccount);
 		queryManager = await getQueryManagerContract(storeConsumerAccount);
@@ -97,6 +109,13 @@ describe('Queries', () => {
 		const nodeMetadata: NodeMetadata = {
 			http: 'http://127.0.0.1:7171',
 		};
+
+		await nodeAdminManager
+			.whitelistApproveNode(logStoreBrokerAccount.address)
+			.then((tx) => tx.wait());
+		await tokenAdminManager
+			.addWhitelist(logStoreBrokerAccount.address, nodeManager.address)
+			.then((tx) => tx.wait());
 
 		await prepareStakeForNodeManager(logStoreBrokerAccount, STAKE_AMOUNT);
 		(await nodeManager.join(STAKE_AMOUNT, JSON.stringify(nodeMetadata))).wait();

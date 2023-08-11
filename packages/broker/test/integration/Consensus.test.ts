@@ -9,11 +9,13 @@ import {
 	LogStoreManager,
 	LogStoreNodeManager,
 	LogStoreQueryManager,
+	LSAN as LogStoreTokenManager,
 } from '@logsn/contracts';
 import {
 	getNodeManagerContract,
 	getQueryManagerContract,
 	getStoreManagerContract,
+	getTokenManagerContract,
 	prepareStakeForNodeManager,
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
@@ -51,6 +53,7 @@ describe('Consensus', () => {
 	);
 
 	// Accounts
+	let adminAccount: Wallet;
 	const logStoreBrokerAccounts: Wallet[] = [];
 	let publisherAccount: Wallet;
 	let storeOwnerAccount: Wallet;
@@ -64,6 +67,8 @@ describe('Consensus', () => {
 	let consumerClient: LogStoreClient;
 
 	// Contracts
+	let nodeAdminManager: LogStoreNodeManager;
+	let tokenAdminManager: LogStoreTokenManager;
 	const nodeManagers: LogStoreNodeManager[] = [];
 	let storeManager: LogStoreManager;
 	let queryManager: LogStoreQueryManager;
@@ -79,11 +84,17 @@ describe('Consensus', () => {
 		}
 
 		// Accounts
+		adminAccount = new Wallet(
+			process.env.CONTRACT_OWNER_PRIVATE_KEY!,
+			provider
+		);
 		publisherAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 		storeOwnerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 		storeConsumerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
 
 		// Contracts
+		nodeAdminManager = await getNodeManagerContract(adminAccount);
+		tokenAdminManager = await getTokenManagerContract(adminAccount);
 		storeManager = await getStoreManagerContract(storeOwnerAccount);
 		queryManager = await getQueryManagerContract(storeConsumerAccount);
 	});
@@ -102,6 +113,16 @@ describe('Consensus', () => {
 			const nodeMetadata: NodeMetadata = {
 				http: `http://127.0.0.1:717${i + 1}`,
 			};
+
+			await nodeAdminManager
+				.whitelistApproveNode(logStoreBrokerAccounts[i].address)
+				.then((tx) => tx.wait());
+			await tokenAdminManager
+				.addWhitelist(
+					logStoreBrokerAccounts[i].address,
+					nodeManagers[i].address
+				)
+				.then((tx) => tx.wait());
 
 			await prepareStakeForNodeManager(logStoreBrokerAccounts[i], STAKE_AMOUNT);
 			(
