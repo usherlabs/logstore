@@ -25,8 +25,8 @@ import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import axios from 'axios';
 import { providers, Wallet } from 'ethers';
-import { Http2Stream } from 'http2';
 import { range } from 'lodash';
+import { Readable } from 'stream';
 
 import { Broker } from '../../../../../src/broker';
 import {
@@ -49,7 +49,7 @@ const BROKER_URL = 'http://127.0.0.1:7171';
 // 1. TRACKER_PORT = undefined - run the test against the brokers running in dev-env and brokers run by the test script.
 // 2. TRACKER_PORT = 17771 - run the test against only brokers run by the test script.
 //    In this case dev-env doesn't run any brokers and there is no brokers joined the network (NodeManager.totalNodes == 0)
-const TRACKER_PORT = 17771;
+const TRACKER_PORT = undefined;
 
 // setting a more easy to test limit
 const mockTestLimit = BASE_NUMBER_OF_MESSAGES + 10;
@@ -240,23 +240,26 @@ describe('http works', () => {
 		lastCount,
 		fromTimestamp,
 		toTimestamp,
+		format,
 	}: {
 		/// Number of messages to fetch just on the `last` query
 		lastCount: number;
 		fromTimestamp: number;
 		toTimestamp: number;
+		format?: 'raw' | 'object';
 	}) => {
 		const queryUrlLast = await createQueryUrl({
 			type: 'last',
-			options: { count: lastCount },
+			options: { format, count: lastCount },
 		});
 		const queryUrlFrom = await createQueryUrl({
 			type: 'from',
-			options: { fromTimestamp },
+			options: { format, fromTimestamp },
 		});
 		const queryUrlRange = await createQueryUrl({
 			type: 'range',
 			options: {
+				format,
 				fromTimestamp,
 				toTimestamp,
 			},
@@ -353,6 +356,7 @@ describe('http works', () => {
 					metadata: {
 						hasNext: expect.any(Boolean),
 						nextTimestamp: expect.any(Number),
+						totalMessages: expect.any(Number),
 					},
 				});
 			});
@@ -380,13 +384,13 @@ describe('http works', () => {
 					},
 					responseType: 'stream',
 				})
-				.then(({ data }) => data as Http2Stream);
+				.then(({ data }) => data as Readable);
 
 			const response = await streamToMessages(httpStream);
 			return response;
 		};
 
-		function streamToMessages(httpStream: Promise<Http2Stream>) {
+		function streamToMessages(httpStream: Promise<Readable>) {
 			return new Promise<any[]>((resolve, reject) => {
 				const messages: any[] = [];
 				httpStream
@@ -408,6 +412,36 @@ describe('http works', () => {
 					});
 			});
 		}
+
+		test('gets raw responses correctly', async () => {
+			const timestampBefore = Date.now();
+			await publishMessages(BASE_NUMBER_OF_MESSAGES);
+			const timestampAfter = Date.now();
+
+			const { queryUrlLast, queryUrlFrom, queryUrlRange } =
+				await createQueryUrls({
+					lastCount: BASE_NUMBER_OF_MESSAGES,
+					fromTimestamp: timestampBefore - 10,
+					toTimestamp: timestampAfter + 10,
+					format: 'raw',
+				});
+
+			const { token } = await consumerClient.apiAuth();
+
+			const queryResponses = await Promise.all(
+				[queryUrlLast, queryUrlFrom, queryUrlRange].map((queryUrl) =>
+					performStreamedQuery({ queryUrl, token })
+				)
+			);
+
+			queryResponses.forEach((response) => {
+				expect(response).toHaveLength(BASE_NUMBER_OF_MESSAGES);
+			});
+
+			expect(queryResponses[0][0]).toMatchInlineSnapshot();
+
+			expectAllItemsToBeEqual(queryResponses);
+		});
 
 		test('Querying below the limit returns normally', async () => {
 			const timestampBefore = Date.now();
