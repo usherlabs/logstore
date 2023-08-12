@@ -86,6 +86,6 @@ export type FormatType = keyof typeof FORMATS;
 
 export const getFormat = (id: string | undefined): Format => {
 	const safeKey = id ?? 'object';
-	const key = safeKey in FORMATS ? id : 'object';
+	const key = safeKey in FORMATS ? safeKey : 'object';
 	return FORMATS[key as FormatType];
 };
