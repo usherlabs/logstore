@@ -9,8 +9,7 @@ import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { Base64 } from 'js-base64';
 import fetch, { Response } from 'node-fetch';
-import split2 from 'split2';
-import { Readable } from 'stream';
+import { Readable, Transform, TransformCallback } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import { Consensus } from './Consensus';
@@ -105,6 +104,7 @@ export class HttpUtil {
 			signal: abortController.signal,
 			headers: {
 				Authorization: `Basic ${authToken}`,
+				Accept: 'text/event-stream',
 			},
 		});
 		if (!response.body) {
@@ -140,8 +140,17 @@ export class HttpUtil {
 			);
 
 			stream = source.pipe(
-				split2((message: string) => {
-					return StreamMessage.deserialize(message);
+				new Transform({
+					objectMode: true,
+					transform(
+						chunk: any,
+						encoding: BufferEncoding,
+						done: TransformCallback
+					) {
+						const message = StreamMessage.deserialize(JSON.parse(chunk));
+						this.push(message);
+						done();
+					},
 				})
 			);
 

@@ -6,7 +6,8 @@ import {
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
 import { Stream, StreamPermission } from '@logsn/streamr-client';
-import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import { MessageID, StreamMessage, toStreamID } from '@streamr/protocol';
+import { fetchPrivateKeyWithGas, toReadableStream } from "@streamr/test-utils";
 import { wait, waitForCondition } from '@streamr/utils';
 import axios from 'axios';
 import { providers, Wallet } from 'ethers';
@@ -20,7 +21,7 @@ const STAKE_AMOUNT = BigInt('1000000000000000000');
 const NUM_OF_LAST_MESSAGES = 20;
 const NUM_OF_FROM_MESSAGES = 15;
 const NUM_OF_RANGE_MESSAGES = 10;
-const MESSAGE_STORE_TIMEOUT = 9 * 1000;
+const MESSAGE_STORE_TIMEOUT = 15 * 1000;
 const TIMEOUT = 90 * 1000;
 
 const BASE_NODE_URL = `http://localhost:7771`;
@@ -89,7 +90,7 @@ describe('query', () => {
 		]);
 	}, TIMEOUT);
 
-	describe('public stream', () => {
+	describe('private stream', () => {
 		let stream: Stream;
 
 		async function publishMessages(numOfMessages: number) {
@@ -139,7 +140,7 @@ describe('query', () => {
 			async () => {
 				await publishMessages(NUM_OF_LAST_MESSAGES);
 
-				const messages: unknown[] = [];
+				const messages: StreamMessage[] = [];
 				await consumerClient.query(
 					{
 						streamId: stream.id,
@@ -158,6 +159,7 @@ describe('query', () => {
 					() => `messages array length was ${messages.length}`
 				);
 				expect(messages).toHaveLength(NUM_OF_LAST_MESSAGES);
+				expect(messages[0]).toMatchObject({ messageNo: 0 });
 			},
 			TIMEOUT
 		);
@@ -261,11 +263,45 @@ describe('query', () => {
 								Authorization: `Basic ${token}`,
 							},
 						})
-						.then(({ data }) => data);
+						.then(({ data }) => data as { messages: any[] });
 
 					console.log('HTTP RESPONSE:', resp);
 
 					expect(resp.messages).toHaveLength(NUM_OF_LAST_MESSAGES);
+					const data = resp.messages.map(
+						({
+							streamId,
+							streamPartition,
+							timestamp,
+							sequenceNumber,
+							publisherId,
+							msgChainId,
+							messageType,
+							contentType,
+							encryptionType,
+							groupKeyId,
+							content,
+							signature,
+						}) =>
+							new StreamMessage({
+								messageId: new MessageID(
+									toStreamID(streamId),
+									streamPartition,
+									timestamp,
+									sequenceNumber,
+									publisherId,
+									msgChainId
+								),
+								content,
+								encryptionType,
+								groupKeyId,
+								signature,
+								contentType,
+								messageType,
+							})
+					);
+
+
 				},
 				TIMEOUT
 			);
@@ -273,7 +309,6 @@ describe('query', () => {
 			it(
 				'via stream',
 				async () => {
-					const messages: unknown[] = [];
 					const streamJson = await axios.get(queryUrl, {
 						headers: {
 							Authorization: `Basic ${token}`,
@@ -282,6 +317,7 @@ describe('query', () => {
 						responseType: 'stream',
 					});
 
+					const messages: unknown[] = [];
 					streamJson.data.on('data', (chunk: any) => {
 						messages.push(JSON.parse(chunk));
 					});
