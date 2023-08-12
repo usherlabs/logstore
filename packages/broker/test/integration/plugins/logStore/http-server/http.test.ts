@@ -438,8 +438,6 @@ describe('http works', () => {
 				expect(response).toHaveLength(BASE_NUMBER_OF_MESSAGES);
 			});
 
-			expect(queryResponses[0][0]).toMatchInlineSnapshot();
-
 			expectAllItemsToBeEqual(queryResponses);
 		});
 

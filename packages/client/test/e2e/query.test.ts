@@ -7,7 +7,7 @@ import {
 } from '@logsn/shared';
 import { Stream, StreamPermission } from '@logsn/streamr-client';
 import { MessageID, StreamMessage, toStreamID } from '@streamr/protocol';
-import { fetchPrivateKeyWithGas, toReadableStream } from "@streamr/test-utils";
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
 import axios from 'axios';
 import { providers, Wallet } from 'ethers';
@@ -301,7 +301,7 @@ describe('query', () => {
 							})
 					);
 
-
+					expect(data[0]).toMatchObject({ messageNo: 0 });
 				},
 				TIMEOUT
 			);
