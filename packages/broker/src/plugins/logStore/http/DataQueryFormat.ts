@@ -34,7 +34,7 @@ const createPlainTextFormat = (
 ): Format => {
 	return {
 		getMessageAsString,
-		contentType: 'text/event-stream',
+		contentType: 'text/plain',
 		delimiter: '\n',
 		header: '',
 		footer: '',
