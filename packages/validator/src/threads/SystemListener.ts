@@ -45,6 +45,7 @@ export class SystemListener {
 			this._client,
 			this._systemStream,
 			this._signer,
+			this.logger,
 			this.onSystemMessage.bind(this)
 		);
 	}
@@ -140,10 +141,12 @@ export class SystemListener {
 				// represent the items in the DB as
 				const key = proof.timestamp;
 
-				this.logger.debug('ProofOfMessageStored', {
-					key,
-					value: { proof, systemMessageMetadata },
-				});
+				this.logger.debug(
+					`Storing ProofOfMessageStored ${JSON.stringify({
+						key,
+						value: { proof, systemMessageMetadata },
+					})}`
+				);
 
 				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
 				await db.transaction(() => {
@@ -171,10 +174,12 @@ export class SystemListener {
 				// Query requests can use point at which broker publishes message because only a single broker will ever emit a query request message
 				const db = this._db.queryRequestDb();
 				const key = metadata.timestamp;
-				this.logger.debug('QueryRequest', {
-					key,
-					value: { queryRequest, systemMessageMetadata },
-				});
+				this.logger.debug(
+					`Storing QueryRequest ${JSON.stringify({
+						key,
+						value: { queryRequest, systemMessageMetadata },
+					})}`
+				);
 
 				await db.transaction(() => {
 					const messages = db.get(key) || [];
@@ -197,10 +202,16 @@ export class SystemListener {
 			case SystemMessageType.QueryResponse: {
 				const queryResponse = systemMessage as QueryResponse;
 				const db = this._db.queryResponseDb();
+				const key = queryResponse.requestId;
+				this.logger.debug(
+					`Storing QueryResponse ${JSON.stringify({
+						key,
+						value: { queryResponse, systemMessageMetadata },
+					})}`
+				);
 				// represent the items in the response DB as
 				// requestId => [{content1, metadata1}, {content2, metadata2}]
 				await db.transaction(() => {
-					const key = queryResponse.requestId;
 					const messages = db.get(key) || [];
 					if (messages.find((m) => m.hash === hash) != undefined) {
 						return true;
