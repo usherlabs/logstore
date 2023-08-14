@@ -79,7 +79,6 @@ const sendSuccess = (
 
 	messageLimitTransform.onMessageLimitReached(({ nextMessage }) => {
 		if (responseTransform instanceof ResponseTransform) {
-			// todo add next message token as 'next' property
 			responseTransform.setMetadata({
 				hasNext: true,
 				nextTimestamp: nextMessage.getTimestamp(),
@@ -479,7 +478,7 @@ const createHandler = (
 			);
 			return;
 		}
-		// TODO: Default the format to 'text/event-stream' by default for simplicity.
+
 		const format = getFormat(req.query.format as string | undefined);
 
 		const consumer = toEthereumAddress(req.consumer!);
