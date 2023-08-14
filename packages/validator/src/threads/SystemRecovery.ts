@@ -1,7 +1,6 @@
 import {
 	EthereumAddress,
 	LogStoreClient,
-	MessageListener,
 	MessageMetadata,
 	NodeMetadata,
 	Stream,
@@ -43,7 +42,10 @@ export class SystemRecovery {
 		private readonly systemStream: Stream,
 		private readonly signer: Signer,
 		private readonly logger: Logger,
-		private readonly onSystemMessage: MessageListener
+		private readonly onSystemMessage: (
+			systemMessage: SystemMessage,
+			metadata: MessageMetadata
+		) => Promise<void>
 	) {
 		this.subscriber = new StreamSubscriber(this.client, this.systemStream);
 	}
