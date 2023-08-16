@@ -40,7 +40,7 @@ export async function handeQueryRequest(
 	signer: Signer,
 	queryRequest: QueryRequest
 ) {
-	logger.trace('Deserialized queryRequest: %s', queryRequest);
+	logger.trace('Deserialized queryRequest: %s', JSON.stringify(queryRequest));
 
 	let readableStream: Readable;
 	switch (queryRequest.queryType) {

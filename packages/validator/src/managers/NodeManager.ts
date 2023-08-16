@@ -38,10 +38,13 @@ export class NodeManager {
 					toBlockNumber
 				);
 
-				Slogger.instance.debug('Delegates for Node Address', {
-					allDelegates,
-					nodeAddress,
-				});
+				Slogger.instance.debug(
+					'Delegates for Node Address',
+					JSON.stringify({
+						allDelegates,
+						nodeAddress,
+					})
+				);
 
 				return {
 					id: nodeAddress,
