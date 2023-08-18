@@ -139,6 +139,7 @@ export class HttpUtil {
 				response.body as unknown as ReadableStream | Readable
 			);
 
+			const logger = this.logger;
 			stream = source.pipe(
 				new Transform({
 					objectMode: true,
@@ -147,6 +148,7 @@ export class HttpUtil {
 						encoding: BufferEncoding,
 						done: TransformCallback
 					) {
+						logger.info(`Transforming chunk: ${chunk}`);
 						const message = StreamMessage.deserialize(JSON.parse(chunk));
 						this.push(message);
 						done();
