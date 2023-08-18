@@ -1,10 +1,7 @@
 import { StreamMessage } from '@streamr/protocol';
-import { Transform, TransformCallback } from "stream";
-
-
+import { Transform } from 'stream';
 
 import { Format } from './DataQueryFormat';
-
 
 const MESSAGE_LIMIT_REACHED = 'limit-reached';
 
