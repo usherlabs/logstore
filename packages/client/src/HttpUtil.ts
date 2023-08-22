@@ -9,7 +9,8 @@ import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { Base64 } from 'js-base64';
 import fetch, { Response } from 'node-fetch';
-import { Readable, Transform, TransformCallback } from 'stream';
+import split2 from 'split2';
+import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import { Consensus } from './Consensus';
@@ -104,7 +105,8 @@ export class HttpUtil {
 			signal: abortController.signal,
 			headers: {
 				Authorization: `Basic ${authToken}`,
-				Accept: 'text/event-stream',
+				// TODO: Implement proper support of SSE
+				// Accept: 'text/event-stream',
 			},
 		});
 		if (!response.body) {
@@ -139,22 +141,27 @@ export class HttpUtil {
 				response.body as unknown as ReadableStream | Readable
 			);
 
-			const logger = this.logger;
 			stream = source.pipe(
-				new Transform({
-					objectMode: true,
-					transform(
-						chunk: any,
-						encoding: BufferEncoding,
-						done: TransformCallback
-					) {
-						logger.info(`Transforming chunk: ${chunk}`);
-						const message = StreamMessage.deserialize(JSON.parse(chunk));
-						this.push(message);
-						done();
-					},
+				split2((message: string) => {
+					return StreamMessage.deserialize(message);
 				})
 			);
+
+			// TODO: Implement proper support of SSE
+			// stream = source.pipe(
+			// 	new Transform({
+			// 		objectMode: true,
+			// 		transform(
+			// 			chunk: any,
+			// 			encoding: BufferEncoding,
+			// 			done: TransformCallback
+			// 		) {
+			// 			const message = StreamMessage.deserialize(JSON.parse(chunk));
+			// 			this.push(message);
+			// 			done();
+			// 		},
+			// 	})
+			// );
 
 			stream.once('close', () => {
 				abortController.abort();
