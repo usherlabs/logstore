@@ -26,7 +26,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 		const { core, fromKey: fromKeyStr, toKey: toKeyStr } = this;
 		const fromKey = parseInt(fromKeyStr, 10);
 		const toKey = parseInt(toKeyStr, 10);
-		core.logger.debug('Report Range: ', { fromKey, toKey });
+		core.logger.debug('Report Range:', JSON.stringify({ fromKey, toKey }));
 
 		if (toKey === 0) {
 			return {
@@ -44,9 +44,12 @@ export class Report extends AbstractDataItem<IPrepared> {
 		core.logger.debug('getBlockByTime...');
 		const fromBlockNumber = await this.runtime.startBlockNumber();
 		const toBlockNumber = await this.runtime.time.find(toKey);
-		core.logger.debug('Block Number: ', {
-			blockNumber: toBlockNumber,
-		});
+		core.logger.debug(
+			'Block Number:',
+			JSON.stringify({
+				blockNumber: toBlockNumber,
+			})
+		);
 
 		// Now that we have the block that most closely resemble the current key
 		const stakeToken = await managers.node.getStakeToken(toBlockNumber);
@@ -56,7 +59,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			toBlockNumber,
 			stakeToken.minRequirement
 		);
-		core.logger.debug('Broker Nodes: ', brokerNodes);
+		core.logger.debug('Broker Nodes:', JSON.stringify(brokerNodes));
 
 		return {
 			fromKey,
@@ -209,7 +212,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 				}
 			}
 		}
-		core.logger.debug('Storage HashKeyMap: ', storeHashKeyMap);
+		core.logger.debug('Storage HashKeyMap:', JSON.stringify(storeHashKeyMap));
 
 		// Apply valid storage events to report
 		const streamsMap: Record<
@@ -260,7 +263,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 			}
 		}
 
-		core.logger.debug('Storage Streams Map: ', streamsMap);
+		core.logger.debug('Storage Streams Map:', JSON.stringify(streamsMap));
 
 		const streamsMapEntries = Object.entries(streamsMap);
 
@@ -384,7 +387,7 @@ export class Report extends AbstractDataItem<IPrepared> {
 
 		const sortedReport = ReportUtils.sort(report);
 
-		core.logger.debug('Report Generated', sortedReport);
+		core.logger.debug('Report Generated', JSON.stringify(sortedReport));
 
 		return ReportUtils.finalise(report);
 	}

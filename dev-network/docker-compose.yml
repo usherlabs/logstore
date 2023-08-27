@@ -328,6 +328,9 @@ services:
       - type: bind
         source: ./assets/heartbeat/start-in-docker.sh
         target: /usr/local/bin/start-in-docker
+      - type: volume
+        source: data-heartbeat
+        target: /firstrun
     depends_on:
       logstore-base:
         condition: service_completed_successfully
@@ -343,5 +346,6 @@ networks:
 
 volumes:
   cassandra_init_scripts:
+  data-heartbeat:
   data-logstore-deploy-contracts:
   data-logstore-deploy-subgraph:
