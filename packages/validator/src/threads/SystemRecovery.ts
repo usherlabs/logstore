@@ -4,6 +4,7 @@ import {
 	MessageMetadata,
 	NodeMetadata,
 	Stream,
+	Subscription,
 } from '@logsn/client';
 import {
 	RecoveryComplete,
@@ -19,7 +20,10 @@ import { shuffle } from 'lodash';
 import { Logger } from 'tslog';
 
 import { Managers } from '../managers';
-import { StreamSubscriber } from '../shared/StreamSubscriber';
+import { ActivityTimeout } from './ActivityTimeout';
+
+const RESTART_DELAY = 30 * 1000;
+const ACTIVITY_TIMEOUT = 30 * 1000;
 
 const LISTENING_MESSAGE_TYPES = [
 	SystemMessageType.RecoveryResponse,
@@ -28,40 +32,114 @@ const LISTENING_MESSAGE_TYPES = [
 
 interface RecoveryProgress {
 	timestamp?: number;
+	lastSeqNum: number;
 	isComplete: boolean;
+	isFulfilled: boolean;
+}
+
+interface RecoverySummary {
+	timestamp?: number;
+	isComplete: boolean;
+	isFulfilled: boolean;
 }
 
 export class SystemRecovery {
 	private requestId: string;
-	private subscriber: StreamSubscriber;
+	private subscription?: Subscription;
+	private onSystemMessage?: (
+		systemMessage: SystemMessage,
+		metadata: MessageMetadata
+	) => Promise<void>;
 
 	private progresses: Map<EthereumAddress, RecoveryProgress> = new Map();
+	private isRestarting: boolean = false;
+
+	private activityTimeout: ActivityTimeout;
+	private restartTimeout?: NodeJS.Timeout;
 
 	constructor(
 		private readonly client: LogStoreClient,
-		private readonly systemStream: Stream,
+		private readonly recoveryStream: Stream,
 		private readonly signer: Signer,
-		private readonly logger: Logger,
-		private readonly onSystemMessage: (
+		private readonly logger: Logger
+	) {
+		this.activityTimeout = new ActivityTimeout(
+			this.onActivityTimeout.bind(this),
+			ACTIVITY_TIMEOUT
+		);
+	}
+
+	public async start(
+		onSystemMessage: (
 			systemMessage: SystemMessage,
 			metadata: MessageMetadata
 		) => Promise<void>
 	) {
-		this.subscriber = new StreamSubscriber(this.client, this.systemStream);
-	}
-
-	public async start() {
 		this.logger.info('Starting SystemRecovery ...');
 
-		await this.subscriber.subscribe((content, metadata) =>
-			setImmediate(() => this.onMessage(content, metadata))
+		this.onSystemMessage = onSystemMessage;
+		this.subscription = await this.client.subscribe(
+			this.recoveryStream,
+			this.onRecoveryMessage.bind(this)
 		);
 
+		await this.callRecoveryEndpoint();
+	}
+
+	public async stop() {
+		this.activityTimeout.stop();
+		clearTimeout(this.restartTimeout);
+
+		await this.subscription?.unsubscribe();
+		this.subscription = undefined;
+
+		this.logger.info('Stopped');
+	}
+
+	public get progress(): RecoverySummary {
+		if (this.progresses.size === 0) {
+			return { isComplete: false, isFulfilled: false };
+		}
+
+		const summary: RecoverySummary = {
+			timestamp: Number.MAX_SAFE_INTEGER,
+			isComplete: true,
+			isFulfilled: true,
+		};
+
+		for (const [_, progress] of this.progresses) {
+			if (progress.timestamp === undefined) {
+				return { isComplete: false, isFulfilled: false };
+			}
+
+			summary.timestamp = Math.min(summary.timestamp || 0, progress.timestamp);
+			summary.isComplete = summary.isComplete && progress.isComplete;
+			summary.isFulfilled = summary.isFulfilled && progress.isFulfilled;
+		}
+
+		return summary;
+	}
+
+	private async onActivityTimeout() {
+		this.logger.warn('Activity timeout');
+		await this.callRecoveryEndpoint();
+	}
+
+	private waitAndRestart() {
+		this.restartTimeout = setTimeout(async () => {
+			await this.callRecoveryEndpoint();
+		}, RESTART_DELAY);
+	}
+
+	private async callRecoveryEndpoint() {
 		const endpoint = `${await this.getBrokerEndpoint()}/recovery`;
 		const authUser = await this.client.getAddress();
 		const authPassword = await this.signer.signMessage(authUser);
 
 		this.requestId = randomUUID();
+		const from = this.progress.timestamp || 0;
+		const to = 0;
+
 		const headers = {
 			'Content-Type': 'application/json',
 			Authorization: `Basic ${Base64.encode(`${authUser}:${authPassword}`)}`,
@@ -72,46 +150,41 @@ export class SystemRecovery {
 			JSON.stringify({
 				endpoint,
 				requestId: this.requestId,
+				from,
+				to,
 			})
 		);
 
 		const response = await axios.post(
 			endpoint,
-			{ requestId: this.requestId },
+			{
+				requestId: this.requestId,
+				from,
+				to,
+			},
 			{ headers }
 		);
 
 		const brokerAddresses = response.data as EthereumAddress[];
+
 		for (const brokerAddress of brokerAddresses) {
-			this.progresses.set(brokerAddress, { isComplete: false });
+			const progress = {
+				...(this.progresses.get(brokerAddress) || {
+					isComplete: false,
+					lastSeqNum: -1,
+				}),
+				isComplete: false,
+				isFulfilled: false,
+				lastSeqNum: -1,
+			};
+
+			this.progresses.set(brokerAddress, progress);
 		}
 
 		this.logger.debug(
 			'Collecting RecoveryResponses from brokers',
 			JSON.stringify(brokerAddresses)
 		);
-	}
-
-	public async stop() {
-		await this.subscriber.unsubscribe();
-	}
-
-	public get progress(): RecoveryProgress {
-		const result: RecoveryProgress = {
-			timestamp: Number.MAX_SAFE_INTEGER,
-			isComplete: true,
-		};
-
-		for (const [_, progress] of this.progresses) {
-			if (progress.timestamp === undefined) {
-				return { isComplete: false };
-			}
-
-			result.timestamp = Math.min(result.timestamp, progress.timestamp);
-			result.isComplete = result.isComplete && progress.isComplete;
-		}
-
-		return result;
 	}
 
 	private async getBrokerEndpoint() {
@@ -140,7 +213,7 @@ export class SystemRecovery {
 		throw new Error('No available enpoints');
 	}
 
-	private async onMessage(
+	private async onRecoveryMessage(
 		content: unknown,
 		metadata: MessageMetadata
 	): Promise<void> {
@@ -149,61 +222,122 @@ export class SystemRecovery {
 			return;
 		}
 
+		const recoveryMessage = systemMessage as
+			| RecoveryResponse
+			| RecoveryComplete;
+		if (recoveryMessage.requestId != this.requestId) {
+			return;
+		}
+
 		let progress = this.progresses.get(metadata.publisherId);
 		if (!progress) {
-			progress = { isComplete: false };
+			progress = { isComplete: false, isFulfilled: false, lastSeqNum: -1 };
 			this.progresses.set(metadata.publisherId, progress);
 		}
 
-		switch (systemMessage.messageType) {
-			case SystemMessageType.RecoveryResponse: {
-				const recoveryResponse = systemMessage as RecoveryResponse;
-
-				if (recoveryResponse.requestId != this.requestId) {
-					return;
+		try {
+			switch (systemMessage.messageType) {
+				case SystemMessageType.RecoveryResponse: {
+					const recoveryResponse = systemMessage as RecoveryResponse;
+					await this.processRecoveryResponse(
+						recoveryResponse,
+						metadata,
+						progress
+					);
+					break;
 				}
-
-				this.logger.debug(
-					'Processing RecoveryResponse',
-					JSON.stringify({
-						publisherId: metadata.publisherId,
-						payloadLength: recoveryResponse.payload.length,
-					})
-				);
-
-				for await (const [msg, msgMetadata] of recoveryResponse.payload) {
-					await this.onSystemMessage(msg, msgMetadata as MessageMetadata);
-					progress.timestamp = metadata.timestamp;
+				case SystemMessageType.RecoveryComplete: {
+					const recoveryComplete = systemMessage as RecoveryComplete;
+					await this.processRecoveryComplete(
+						recoveryComplete,
+						metadata,
+						progress
+					);
+					break;
 				}
-
-				break;
 			}
-			case SystemMessageType.RecoveryComplete: {
-				const recoveryComplete = systemMessage as RecoveryComplete;
 
-				if (recoveryComplete.requestId != this.requestId) {
-					return;
-				}
+			this.activityTimeout.update();
+		} catch (error: any) {
+			if (!this.isRestarting) {
+				this.isRestarting = true;
+				this.logger.warn('Failed to process RecoveryMessage', {
+					message: error.message,
+				});
 
-				this.logger.debug(
-					'Processing RecoveryComplete',
-					JSON.stringify({
-						publisherId: metadata.publisherId,
-					})
+				this.activityTimeout.stop();
+				this.waitAndRestart();
+			}
+		}
+	}
+
+	private async processRecoveryResponse(
+		recoveryResponse: RecoveryResponse,
+		metadata: MessageMetadata,
+		progress: RecoveryProgress
+	) {
+		this.logger.debug(
+			`Processing RecoveryResponse ${JSON.stringify({
+				publisherId: metadata.publisherId,
+				seqNum: recoveryResponse.seqNum,
+				payloadLength: recoveryResponse.payload.length,
+			})}`
+		);
+
+		if (recoveryResponse.seqNum - progress.lastSeqNum !== 1) {
+			throw new Error(
+				`RecoveryResponse has unexpected seqNum ${JSON.stringify({
+					seqNum: recoveryResponse.seqNum,
+				})}`
+			);
+		}
+
+		for await (const [msg, msgMetadata] of recoveryResponse.payload) {
+			await this.onSystemMessage?.(msg, msgMetadata as MessageMetadata);
+			progress.timestamp = msgMetadata.timestamp;
+		}
+
+		progress.lastSeqNum = recoveryResponse.seqNum;
+	}
+
+	private async processRecoveryComplete(
+		recoveryComplete: RecoveryComplete,
+		metadata: MessageMetadata,
+		progress: RecoveryProgress
+	) {
+		this.logger.debug(
+			`Processing RecoveryComplete ${JSON.stringify({
+				publisherId: metadata.publisherId,
+				seqNum: recoveryComplete.seqNum,
+			})}`
+		);
+
+		if (recoveryComplete.seqNum - progress.lastSeqNum !== 1) {
+			throw new Error(
+				`RecoveryComplete has unexpected seqNum ${JSON.stringify({
+					seqNum: recoveryComplete.seqNum,
+				})}`
+			);
+		}
+
+		// if no recovery messages received
+		if (progress.timestamp === undefined) {
+			progress.timestamp = 0;
+		}
+
+		progress.isComplete = true;
+		progress.isFulfilled = recoveryComplete.isFulfilled;
+
+		if (this.progress.isComplete) {
+			if (this.progress.isFulfilled) {
+				this.logger.info('Successfully complete Recovery');
+				setImmediate(this.stop.bind(this));
+			} else {
+				this.logger.info(
+					'Successfully complete Recovery Round. Sending next Request.'
 				);
-
-				// if no recovery messages received
-				if (progress.timestamp === undefined) {
-					progress.timestamp = 0;
-				}
-
-				progress.isComplete = true;
-
-				if (this.progress.isComplete) {
-					await this.stop();
-					this.logger.info('Successfully complete SystemRecovery');
-				}
-				break;
+				this.activityTimeout.stop();
+				setImmediate(this.callRecoveryEndpoint.bind(this));
 			}
 		}
 	}

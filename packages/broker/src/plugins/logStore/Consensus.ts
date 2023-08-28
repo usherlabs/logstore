@@ -9,8 +9,8 @@ import {
 } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
 
-import { StreamPublisher } from '../../shared/StreamPublisher';
-import { StreamSubscriber } from '../../shared/StreamSubscriber';
+import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
+import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 
 const CONSENSUS_TIMEOUT = 30 * 1000; // 30 seconds
 
@@ -31,7 +31,7 @@ export const getConsensus = async (
 	nodeManager: LogStoreNodeManager,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
-	streamPublisher: StreamPublisher
+	streamPublisher: BroadbandPublisher
 ): Promise<Consensus[]> => {
 	let awaitingResponses = (await nodeManager.totalNodes()).toNumber();
 	const consesnusThreshold = Math.ceil(awaitingResponses / 2);
@@ -39,7 +39,10 @@ export const getConsensus = async (
 
 	return new Promise<Consensus[]>((resolve, reject) => {
 		let timeout: NodeJS.Timeout;
-		const streamSubscriber = new StreamSubscriber(logStoreClient, systemStream);
+		const streamSubscriber = new BroadbandSubscriber(
+			logStoreClient,
+			systemStream
+		);
 		streamSubscriber
 			.subscribe((msg, metadata) => {
 				const systemMessage = SystemMessage.deserialize(msg);

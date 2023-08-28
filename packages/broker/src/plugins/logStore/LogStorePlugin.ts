@@ -17,8 +17,8 @@ import { keccak256 } from 'ethers/lib/utils';
 
 // import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';
-import { StreamPublisher } from '../../shared/StreamPublisher';
-import { StreamSubscriber } from '../../shared/StreamSubscriber';
+import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
+import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { createDataQueryEndpoint } from './dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
@@ -62,8 +62,10 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private logStoreConfig?: LogStoreConfig;
 	private messageListener?: (msg: StreamMessage) => void;
 
-	private readonly streamPublisher: StreamPublisher;
-	private readonly streamSubscriber: StreamSubscriber;
+	private readonly systemSubscriber: BroadbandSubscriber;
+	private readonly systemPublisher: BroadbandPublisher;
+	private readonly rollcallSubscriber: BroadbandSubscriber;
+	private readonly rollcallPublisher: BroadbandPublisher;
 	private readonly kyvePool: KyvePool;
 	private readonly rollCall: RollCall;
 	private readonly systemCache: SystemCache;
@@ -72,34 +74,43 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	constructor(options: PluginOptions) {
 		super(options);
 
-		this.streamPublisher = new StreamPublisher(
+		this.systemPublisher = new BroadbandPublisher(
 			this.logStoreClient,
-			this.systemStream
+			options.systemStream
 		);
-		this.streamSubscriber = new StreamSubscriber(
+
+		this.systemSubscriber = new BroadbandSubscriber(
 			this.logStoreClient,
-			this.systemStream
+			options.systemStream
 		);
+
 		this.kyvePool = new KyvePool(
 			this.brokerConfig.pool.url,
 			this.brokerConfig.pool.id
 		);
+
+		this.rollcallPublisher = new BroadbandPublisher(
+			this.logStoreClient,
+			options.systemStream
+		);
+
+		this.rollcallSubscriber = new BroadbandSubscriber(
+			this.logStoreClient,
+			options.systemStream
+		);
+
 		this.rollCall = new RollCall(
-			this.logStoreClient,
-			this.systemStream,
-			this.streamPublisher
+			this.rollcallPublisher,
+			this.rollcallSubscriber
 		);
-		this.systemCache = new SystemCache(
-			this.logStoreClient,
-			this.systemStream,
-			this.kyvePool
-		);
+
+		this.systemCache = new SystemCache(this.rollcallSubscriber, this.kyvePool);
+
 		this.systemRecovery = new SystemRecovery(
 			this.logStoreClient,
 			this.systemStream,
-			this.streamPublisher,
-			this.systemCache,
-			this.kyvePool
+			this.systemStream,
+			this.systemCache
 		);
 	}
 
@@ -122,24 +133,24 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		const poller = new ReportPoller(
 			this.brokerConfig,
 			this.signer,
-			this.streamPublisher
+			this.systemPublisher
 		);
 
-		await this.streamSubscriber.subscribe(
+		await this.systemSubscriber.subscribe(
 			async (content: unknown, metadata: MessageMetadata) => {
 				const systemMessage = SystemMessage.deserialize(content);
 
 				switch (systemMessage.messageType) {
 					case SystemMessageType.QueryRequest: {
 						const queryRequest = systemMessage as QueryRequest;
-						logger.trace(
+						logger.debug(
 							'Received LogStoreQuery, content: %s metadata: %s',
 							content,
 							metadata
 						);
 						await handeQueryRequest(
 							this.logStore!,
-							this.streamPublisher,
+							this.systemPublisher,
 							this.signer,
 							queryRequest
 						);
@@ -184,7 +195,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					hash,
 				});
 
-				await this.streamPublisher.publish(proofOfMessageStored.serialize());
+				await this.systemPublisher.publish(proofOfMessageStored.serialize());
 			}
 		};
 		const node = await this.logStoreClient.getNode();
@@ -195,13 +206,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 				this.logStore,
 				this.logStoreClient,
 				systemStream,
-				this.streamPublisher,
+				this.systemPublisher,
 				metricsContext
 			)
 		);
 		this.addHttpServerEndpoint(
 			createRecoveryEndpoint(
-				this.streamPublisher,
+				this.systemPublisher,
 				this.rollCall,
 				metricsContext
 			)

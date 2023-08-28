@@ -1,6 +1,10 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, sha256 } from '@kyvejs/protocol';
-import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
+import {
+	CONFIG_TEST,
+	LogStoreClient,
+	validateConfig as validateClientConfig,
+} from '@logsn/client';
 import ContractAddresses from '@logsn/contracts/address.json';
 import { ethers } from 'ethers';
 
@@ -13,8 +17,10 @@ import {
 	useStreamrTestConfig,
 } from './env-config';
 import { Managers } from './managers';
+import { BroadbandSubscriber } from './shared/BroadbandSubscriber';
 import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
+import { SystemRecovery } from './threads/SystemRecovery';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
@@ -36,18 +42,43 @@ export default class Runtime implements IRuntimeExtended {
 	private _startKey: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
-		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
+		const clientConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
+		validateClientConfig(clientConfig);
+
+		// Tweaks suggested by the Streamr Team
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+		clientConfig.network!.webrtcSendBufferMaxMessageCount = 5000;
+		clientConfig.gapFill = true;
+		clientConfig.gapFillTimeout = 30 * 1000;
+
 		// core.logger.debug('Streamr Config', streamrConfig);
 		const privateKey = getEvmPrivateKey(); // The Validator needs to stake in QueryManager
 		const signer = new ethers.Wallet(privateKey);
 		const logStoreClient = new LogStoreClient({
-			...streamrConfig,
+			...clientConfig,
 			auth: {
 				privateKey,
 			},
 		});
+
 		const systemStream = await logStoreClient.getStream(
 			this.config.systemStreamId
+		);
+
+		const recoveryStream = await logStoreClient.getStream(
+			this.config.systemStreamId
+		);
+
+		const systemSubscriber = new BroadbandSubscriber(
+			logStoreClient,
+			systemStream
+		);
+
+		const recovery = new SystemRecovery(
+			logStoreClient,
+			recoveryStream,
+			signer,
+			core.logger
 		);
 
 		let startKey = parseInt(core.pool.data.current_key, 10) || 0;
@@ -56,9 +87,12 @@ export default class Runtime implements IRuntimeExtended {
 		}
 
 		this.time = new TimeIndexer(startKey, homeDir, this.config, core.logger);
+
 		this.listener = new SystemListener(
 			homeDir,
 			logStoreClient,
+			systemSubscriber,
+			recovery,
 			systemStream,
 			signer,
 			core.logger
