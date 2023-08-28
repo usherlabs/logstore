@@ -45,6 +45,7 @@ interface RecoverySummary {
 
 export class SystemRecovery {
 	private requestId: string;
+	private toTimestamp: number;
 	private subscription?: Subscription;
 	private onSystemMessage?: (
 		systemMessage: SystemMessage,
@@ -63,6 +64,7 @@ export class SystemRecovery {
 		private readonly signer: Signer,
 		private readonly logger: Logger
 	) {
+		this.toTimestamp = Date.now();
 		this.activityTimeout = new ActivityTimeout(
 			this.onActivityTimeout.bind(this),
 			ACTIVITY_TIMEOUT
@@ -138,7 +140,7 @@ export class SystemRecovery {
 
 		this.requestId = randomUUID();
 		const from = this.progress.timestamp || 0;
-		const to = 0;
+		const to = this.toTimestamp;
 
 		const headers = {
 			'Content-Type': 'application/json',
