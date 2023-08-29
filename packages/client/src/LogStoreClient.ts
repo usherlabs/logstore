@@ -16,7 +16,7 @@ import {
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
-import { Queries, QueryOptions } from './Queries';
+import { HttpApiQueryDict, Queries, QueryOptions, QueryType } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 
 export class LogStoreClient extends StreamrClient {
@@ -99,6 +99,30 @@ export class LogStoreClient extends StreamrClient {
 			messageStream.useLegacyOnMessageHandler(onMessage);
 		}
 		return messageStream;
+	}
+
+	async createQueryUrl(
+		nodeUrl: string,
+		streamDefinition: StreamDefinition,
+		type: QueryType | string,
+		queryParams: HttpApiQueryDict
+	) {
+		const streamPartId = await this.streamIdBuilder.toStreamPartID(
+			streamDefinition
+		);
+
+		const url = this.logStoreQueries.createUrl(
+			nodeUrl,
+			type,
+			streamPartId,
+			queryParams
+		);
+
+		return url;
+	}
+
+	apiAuth() {
+		return this.logStoreQueries.getAuth();
 	}
 
 	// --------------------------------------------------------------------------------------------

@@ -6,8 +6,10 @@ import {
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
 import { Stream, StreamPermission } from '@logsn/streamr-client';
+import { MessageID, StreamMessage, toStreamID } from '@streamr/protocol';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { wait, waitForCondition } from '@streamr/utils';
+import axios from 'axios';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
 
@@ -19,8 +21,10 @@ const STAKE_AMOUNT = BigInt('1000000000000000000');
 const NUM_OF_LAST_MESSAGES = 20;
 const NUM_OF_FROM_MESSAGES = 15;
 const NUM_OF_RANGE_MESSAGES = 10;
-const MESSAGE_STORE_TIMEOUT = 9 * 1000;
+const MESSAGE_STORE_TIMEOUT = 15 * 1000;
 const TIMEOUT = 90 * 1000;
+
+const BASE_NODE_URL = `http://localhost:7771`;
 
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(undefined), ms));
@@ -47,13 +51,21 @@ describe('query', () => {
 
 	beforeAll(async () => {
 		// Accounts
-		publisherAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
-		storeOwnerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
-		storeConsumerAccount = new Wallet(await fetchPrivateKeyWithGas(), provider);
+		const walletsForAccounts = await Promise.all([
+			fetchPrivateKeyWithGas(),
+			fetchPrivateKeyWithGas(),
+			fetchPrivateKeyWithGas(),
+		]);
+
+		publisherAccount = new Wallet(walletsForAccounts[0], provider);
+		storeOwnerAccount = new Wallet(walletsForAccounts[1], provider);
+		storeConsumerAccount = new Wallet(walletsForAccounts[2], provider);
 
 		// Contracts
-		storeManager = await getStoreManagerContract(storeOwnerAccount);
-		queryManager = await getQueryManagerContract(storeConsumerAccount);
+		[storeManager, queryManager] = await Promise.all([
+			getStoreManagerContract(storeOwnerAccount),
+			getQueryManagerContract(storeConsumerAccount),
+		]);
 
 		// Clients
 		publisherClient = new LogStoreClient({
@@ -78,7 +90,7 @@ describe('query', () => {
 		]);
 	}, TIMEOUT);
 
-	describe('public stream', () => {
+	describe('private stream', () => {
 		let stream: Stream;
 
 		async function publishMessages(numOfMessages: number) {
@@ -112,11 +124,15 @@ describe('query', () => {
 			// 	permissions: [StreamPermission.SUBSCRIBE],
 			// });
 
-			await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
-			await storeManager.stake(stream.id, STAKE_AMOUNT);
+			await Promise.all([
+				prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT),
+				prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT),
+			]);
 
-			await prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT);
-			await queryManager.stake(STAKE_AMOUNT);
+			await Promise.all([
+				storeManager.stake(stream.id, STAKE_AMOUNT),
+				queryManager.stake(STAKE_AMOUNT),
+			]);
 		}, TIMEOUT);
 
 		it(
@@ -124,7 +140,7 @@ describe('query', () => {
 			async () => {
 				await publishMessages(NUM_OF_LAST_MESSAGES);
 
-				const messages: unknown[] = [];
+				const messages: StreamMessage[] = [];
 				await consumerClient.query(
 					{
 						streamId: stream.id,
@@ -143,6 +159,7 @@ describe('query', () => {
 					() => `messages array length was ${messages.length}`
 				);
 				expect(messages).toHaveLength(NUM_OF_LAST_MESSAGES);
+				expect(messages[0]).toMatchObject({ messageNo: 0 });
 			},
 			TIMEOUT
 		);
@@ -215,5 +232,105 @@ describe('query', () => {
 			},
 			TIMEOUT
 		);
+
+		describe('can request a query for the last messages via HTTP Interface', () => {
+			let queryUrl: string;
+			let token: string;
+
+			beforeAll(async () => {
+				await publishMessages(NUM_OF_LAST_MESSAGES);
+
+				queryUrl = await consumerClient.createQueryUrl(
+					BASE_NODE_URL,
+					{
+						streamId: stream.id,
+						partition: 0,
+					},
+					'last',
+					{
+						count: NUM_OF_LAST_MESSAGES,
+					}
+				);
+				({ token } = await consumerClient.apiAuth());
+			}, TIMEOUT);
+
+			it(
+				'via json responses',
+				async () => {
+					const resp = await axios
+						.get(queryUrl, {
+							headers: {
+								Authorization: `Basic ${token}`,
+							},
+						})
+						.then(({ data }) => data as { messages: any[] });
+
+					console.log('HTTP RESPONSE:', resp);
+
+					expect(resp.messages).toHaveLength(NUM_OF_LAST_MESSAGES);
+					const data = resp.messages.map(
+						({
+							streamId,
+							streamPartition,
+							timestamp,
+							sequenceNumber,
+							publisherId,
+							msgChainId,
+							messageType,
+							contentType,
+							encryptionType,
+							groupKeyId,
+							content,
+							signature,
+						}) =>
+							new StreamMessage({
+								messageId: new MessageID(
+									toStreamID(streamId),
+									streamPartition,
+									timestamp,
+									sequenceNumber,
+									publisherId,
+									msgChainId
+								),
+								content,
+								encryptionType,
+								groupKeyId,
+								signature,
+								contentType,
+								messageType,
+							})
+					);
+
+					expect(data[0]).toMatchObject({ messageNo: 0 });
+				},
+				TIMEOUT
+			);
+
+			it(
+				'via stream',
+				async () => {
+					const streamJson = await axios.get(queryUrl, {
+						headers: {
+							Authorization: `Basic ${token}`,
+							Accept: 'text/event-stream',
+						},
+						responseType: 'stream',
+					});
+
+					const messages: unknown[] = [];
+					streamJson.data.on('data', (chunk: any) => {
+						messages.push(JSON.parse(chunk));
+					});
+
+					await new Promise((resolve) => {
+						streamJson.data.on('end', resolve);
+					});
+
+					console.log('HTTP STREAM RESPONSE:', messages);
+					expect(messages).toHaveLength(NUM_OF_LAST_MESSAGES);
+				},
+				TIMEOUT
+			);
+		});
 	});
 });

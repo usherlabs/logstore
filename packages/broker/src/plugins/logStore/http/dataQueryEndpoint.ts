@@ -5,69 +5,38 @@ import { LogStoreClient, Stream } from '@logsn/client';
 import { LogStoreNodeManager } from '@logsn/contracts';
 import { QueryRequest, QueryType } from '@logsn/protocol';
 import { getNodeManagerContract, getQueryManagerContract } from '@logsn/shared';
-import { StreamMessage } from '@streamr/protocol';
 import {
 	Logger,
 	MetricsContext,
 	MetricsDefinition,
 	RateMetric,
-	toEthereumAddress,
+	toEthereumAddress
 } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { Request, RequestHandler, Response } from 'express';
-import { pipeline, Readable, Transform } from 'stream';
+import { pipeline, Readable } from 'stream';
 import { v4 as uuid } from 'uuid';
 
-import { StrictConfig } from '../../config/config';
-import { HttpServerEndpoint } from '../../Plugin';
-import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
-import { createBasicAuthenticatorMiddleware } from './authentication';
-import { Consensus, getConsensus } from './Consensus';
+import { StrictConfig } from '../../../config/config';
+import { HttpServerEndpoint } from '../../../Plugin';
+import { BroadbandPublisher } from '../../../shared/BroadbandPublisher';
+import { createBasicAuthenticatorMiddleware } from '../authentication';
+import { Consensus, getConsensus } from '../Consensus';
+import { LogStore } from '../LogStore';
 import { Format, getFormat } from './DataQueryFormat';
-import { LogStore } from './LogStore';
+import {
+	MessageLimitTransform,
+	ResponseTransform,
+	StreamResponseTransform
+} from './dataTransformers';
+import { getMessageLimitForRequest } from './messageLimiter';
+import { isStreamRequest } from './utils';
 
 const logger = new Logger(module);
 
 // TODO: move this to protocol-js
 export const MIN_SEQUENCE_NUMBER_VALUE = 0;
 export const MAX_SEQUENCE_NUMBER_VALUE = 2147483647;
-
-class ResponseTransform extends Transform {
-	format: Format;
-	version: number | undefined;
-	firstMessage = true;
-
-	constructor(format: Format, version: number | undefined) {
-		super({
-			writableObjectMode: true,
-		});
-		this.format = format;
-		this.version = version;
-	}
-
-	override _transform(
-		input: StreamMessage,
-		_encoding: string,
-		done: () => void
-	) {
-		if (this.firstMessage) {
-			this.firstMessage = false;
-			this.push(this.format.header);
-		} else {
-			this.push(this.format.delimiter);
-		}
-		this.push(this.format.getMessageAsString(input, this.version));
-		done();
-	}
-
-	override _flush(done: () => void) {
-		if (this.firstMessage) {
-			this.push(this.format.header);
-		}
-		this.push(this.format.footer);
-		done();
-	}
-}
 
 function parseIntIfExists(x: string | undefined): number | undefined {
 	return x === undefined ? undefined : parseInt(x);
@@ -79,11 +48,14 @@ const sendSuccess = (
 	format: Format,
 	version: number | undefined,
 	streamId: string,
+	req: Request,
 	res: Response
 ) => {
 	data.once('readable', () => {
 		res.writeHead(200, {
-			'Content-Type': format.contentType,
+			'Content-Type': isStreamRequest(req)
+				? 'text/event-stream'
+				: format.contentType,
 			Consensus: JSON.stringify(consensus),
 		});
 	});
@@ -94,7 +66,27 @@ const sendSuccess = (
 			});
 		}
 	});
-	pipeline(data, new ResponseTransform(format, version), res, (err) => {
+
+	const responseTransform = isStreamRequest(req)
+		? new StreamResponseTransform(format, version)
+		: new ResponseTransform(format, version);
+
+	const messageLimitForRequest = getMessageLimitForRequest(req);
+
+	const messageLimitTransform = new MessageLimitTransform(
+		messageLimitForRequest
+	);
+
+	messageLimitTransform.onMessageLimitReached(({ nextMessage }) => {
+		if (responseTransform instanceof ResponseTransform) {
+			responseTransform.setMetadata({
+				hasNext: true,
+				nextTimestamp: nextMessage.getTimestamp(),
+			});
+		}
+	});
+
+	pipeline(data, messageLimitTransform, responseTransform, res, (err) => {
 		if (err !== undefined && err !== null) {
 			logger.error(`Pipeline error in DataQueryEndpoints: ${streamId}`, err);
 		}
@@ -137,12 +129,27 @@ type RangeRequest = BaseRequest<{
 	toOffset?: string; // no longer supported
 }>;
 
-const handleLast = async (
+export type QueryHttpRequest = LastRequest | FromRequest | RangeRequest;
+
+const getCountForLastRequest = (req: LastRequest) => {
+	const count =
+		req.query.count === undefined ? 1 : parseIntIfExists(req.query.count) ?? 1;
+
+	if (Number.isNaN(count)) {
+		return 'NOT_A_NUMBER' as const;
+	}
+
+	// Added 1 because we want to know later if there are more events, so we
+	// may add a metadata field to the response
+	const messageLimitForARequest = getMessageLimitForRequest(req) + 1;
+
+	return Math.min(count, messageLimitForARequest);
+};
+
+const getDataForLastRequest = async (
 	req: LastRequest,
 	streamId: string,
 	partition: number,
-	format: Format,
-	version: number | undefined,
 	res: Response,
 	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
@@ -152,9 +159,8 @@ const handleLast = async (
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendLastQueriesPerSecond.record(1);
-	const count =
-		req.query.count === undefined ? 1 : parseIntIfExists(req.query.count) ?? 1;
-	if (Number.isNaN(count)) {
+	const count = getCountForLastRequest(req);
+	if (count === 'NOT_A_NUMBER') {
 		sendError(`Query parameter "count" not a number: ${req.query.count}`, res);
 		return;
 	}
@@ -182,15 +188,13 @@ const handleLast = async (
 	);
 
 	data = logStore.requestLast(streamId, partition, count!);
-	sendSuccess(data, consensus, format, version, streamId, res);
+	return { data, consensus };
 };
 
-const handleFrom = async (
+const getDataForFromRequest = async (
 	req: FromRequest,
 	streamId: string,
 	partition: number,
-	format: Format,
-	version: number | undefined,
 	res: Response,
 	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
@@ -216,12 +220,20 @@ const handleFrom = async (
 		return;
 	}
 
+	// Added 1 because we want to know later if there are more events, so we
+	// may add a metadata field to the response
+	const messageLimitForRequest = getMessageLimitForRequest(req) + 1;
+	const limitOrUndefinedIfInfinity = isFinite(messageLimitForRequest)
+		? messageLimitForRequest
+		: undefined;
+
 	let data = logStore.requestFrom(
 		streamId,
 		partition,
 		fromTimestamp,
 		fromSequenceNumber,
-		publisherId
+		publisherId,
+		limitOrUndefinedIfInfinity
 	);
 
 	const requestId = uuid();
@@ -236,6 +248,7 @@ const handleFrom = async (
 				timestamp: fromTimestamp,
 				sequenceNumber: fromSequenceNumber,
 			},
+			limit: limitOrUndefinedIfInfinity,
 			publisherId,
 		},
 	});
@@ -253,17 +266,16 @@ const handleFrom = async (
 		partition,
 		fromTimestamp,
 		fromSequenceNumber,
-		publisherId
+		publisherId,
+		limitOrUndefinedIfInfinity
 	);
-	sendSuccess(data, consensus, format, version, streamId, res);
+	return { data, consensus };
 };
 
-const handleRange = async (
+const getDataForRangeRequest = async (
 	req: RangeRequest,
 	streamId: string,
 	partition: number,
-	format: Format,
-	version: number | undefined,
 	res: Response,
 	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
@@ -318,6 +330,13 @@ const handleRange = async (
 		return;
 	}
 
+	// Added 1 because we want to know later if there are more events, so we
+	// may add a metadata field to the response
+	const messageLimitForRequest = getMessageLimitForRequest(req) + 1;
+	const limitOrUndefinedIfInfinity = isFinite(messageLimitForRequest)
+		? messageLimitForRequest
+		: undefined;
+
 	let data = logStore.requestRange(
 		streamId,
 		partition,
@@ -326,7 +345,8 @@ const handleRange = async (
 		toTimestamp,
 		toSequenceNumber,
 		publisherId,
-		msgChainId
+		msgChainId,
+		limitOrUndefinedIfInfinity
 	);
 
 	const requestId = uuid();
@@ -345,6 +365,7 @@ const handleRange = async (
 				timestamp: toTimestamp,
 				sequenceNumber: toSequenceNumber,
 			},
+			limit: limitOrUndefinedIfInfinity,
 			publisherId,
 			msgChainId,
 		},
@@ -366,9 +387,70 @@ const handleRange = async (
 		toTimestamp,
 		toSequenceNumber,
 		publisherId,
-		msgChainId
+		msgChainId,
+		limitOrUndefinedIfInfinity
 	);
-	sendSuccess(data, consensus, format, version, streamId, res);
+	return { data, consensus };
+};
+
+const getRequestType = (
+	req: LastRequest | FromRequest | RangeRequest
+):
+	| { type: 'last'; req: LastRequest }
+	| { type: 'from'; req: FromRequest }
+	| { type: 'range'; req: RangeRequest } => {
+	if (req.params.queryType === 'last') {
+		return { type: 'last', req: req as LastRequest };
+	} else if (req.params.queryType === 'from') {
+		return { type: 'from', req: req as FromRequest };
+	} else if (req.params.queryType === 'range') {
+		return { type: 'range', req: req as RangeRequest };
+	} else {
+		throw new Error(`Unknown query type: ${req.params.queryType}`);
+	}
+};
+
+const getDataForRequest = async (
+	...args: Parameters<
+		| typeof getDataForLastRequest
+		| typeof getDataForFromRequest
+		| typeof getDataForRangeRequest
+	>
+) => {
+	const [
+		req,
+		streamId,
+		partition,
+		res,
+		nodeManager,
+		logStore,
+		logStoreClient,
+		signer,
+		systemStream,
+		metrics,
+	] = args;
+	const rest = [
+		streamId,
+		partition,
+		res,
+		nodeManager,
+		logStore,
+		logStoreClient,
+		signer,
+		systemStream,
+		metrics,
+	] as const;
+	const reqType = getRequestType(req);
+	switch (reqType.type) {
+		case 'last':
+			return getDataForLastRequest(reqType.req, ...rest);
+		case 'from':
+			return getDataForFromRequest(reqType.req, ...rest);
+		case 'range':
+			return getDataForRangeRequest(reqType.req, ...rest);
+		default:
+			throw new Error(`Unknown query type: ${reqType}`);
+	}
 };
 
 const createHandler = (
@@ -387,15 +469,8 @@ const createHandler = (
 			);
 			return;
 		}
-		// TODO: Default the format to 'text/event-stream' by default for simplicity.
-		const format = getFormat(req.query.format as string);
-		if (format === undefined) {
-			sendError(
-				`Query parameter "format" is invalid: ${req.query.format}`,
-				res
-			);
-			return;
-		}
+
+		const format = getFormat(req.query.format as string | undefined);
 
 		const consumer = toEthereumAddress(req.consumer!);
 		const provider = new ethers.providers.JsonRpcProvider(
@@ -413,58 +488,28 @@ const createHandler = (
 		const partition = parseInt(req.params.partition);
 		const version = parseIntIfExists(req.query.version as string);
 		try {
-			switch (req.params.queryType) {
-				case 'last':
-					await handleLast(
-						req,
-						streamId,
-						partition,
-						format,
-						version,
-						res,
-						nodeManager,
-						logStore,
-						logStoreClient,
-						systemStream,
-						streamPublisher,
-						metrics
-					);
-					break;
-				case 'from':
-					await handleFrom(
-						req,
-						streamId,
-						partition,
-						format,
-						version,
-						res,
-						nodeManager,
-						logStore,
-						logStoreClient,
-						systemStream,
-						streamPublisher,
-						metrics
-					);
-					break;
-				case 'range':
-					await handleRange(
-						req,
-						streamId,
-						partition,
-						format,
-						version,
-						res,
-						nodeManager,
-						logStore,
-						logStoreClient,
-						systemStream,
-						streamPublisher,
-						metrics
-					);
-					break;
-				default:
-					sendError('Unknown query type', res);
-					break;
+			const response = await getDataForRequest(
+				req,
+				streamId,
+				partition,
+				res,
+				nodeManager,
+				logStore,
+				logStoreClient,
+				systemStream,
+				streamPublisher,
+				metrics
+			);
+			if (response) {
+				sendSuccess(
+					response.data,
+					response.consensus,
+					format,
+					version,
+					streamId,
+					req,
+					res
+				);
 			}
 		} catch (error) {
 			sendError(error, res);

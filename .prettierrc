@@ -28,6 +28,7 @@
 				"importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
 				"importOrderParserPlugins": ["typescript", "decorators-legacy"],
 				"importOrderSeparation": true,
+				"trailingComma": "es5",
 				"importOrderSortSpecifiers": true,
 				"importOrderCaseInsensitive": true
 			}

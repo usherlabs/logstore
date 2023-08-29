@@ -28,7 +28,35 @@ export enum QueryType {
 	Range = 'range',
 }
 
-type QueryDict = Record<string, string | number | boolean | null | undefined>;
+export type BaseHttpQuery = {
+	format?: 'raw' | 'protocol' | 'object';
+};
+
+export type HttpQueryLast = {
+	count: number;
+};
+
+export type HttpQueryFrom = {
+	fromTimestamp: number;
+	fromSequenceNumber?: number;
+	publisherId?: string;
+};
+
+export type HttpQueryRange = {
+	fromTimestamp: number;
+	toTimestamp: number;
+	fromSequenceNumber?: number;
+	toSequenceNumber?: number;
+	publisherId?: string;
+	msgChainId?: string;
+};
+
+export type HttpApiQueryDict = (
+	| HttpQueryLast
+	| HttpQueryFrom
+	| HttpQueryRange
+) &
+	BaseHttpQuery;
 
 export interface QueryRef {
 	timestamp: number;
@@ -182,7 +210,7 @@ export class Queries implements IResends {
 	private async fetchStream(
 		queryType: QueryType,
 		streamPartId: StreamPartID,
-		query: QueryDict = {}
+		query: HttpApiQueryDict
 	): Promise<MessageStream> {
 		const loggerIdx = counterId('fetchStream');
 		this.logger.debug(
@@ -194,7 +222,11 @@ export class Queries implements IResends {
 		);
 
 		const nodeUrl = await this.nodeManager.getRandomNodeUrl();
-		const url = this.createUrl(nodeUrl, queryType, streamPartId, query);
+		const url = this.createUrl(nodeUrl, queryType, streamPartId, {
+			...query,
+			// we will get raw request to desserialize and decrypt
+			format: 'raw',
+		});
 		const messageStream = createSubscribePipeline({
 			streamPartId,
 			resends: this,
@@ -233,7 +265,7 @@ export class Queries implements IResends {
 		});
 	}
 
-	private async from(
+	async from(
 		streamPartId: StreamPartID,
 		{
 			fromTimestamp,
@@ -280,21 +312,21 @@ export class Queries implements IResends {
 		});
 	}
 
-	private createUrl(
+	createUrl(
 		baseUrl: string,
 		endpointSuffix: string,
 		streamPartId: StreamPartID,
-		query: QueryDict = {}
+		query: HttpApiQueryDict | object = {}
 	): string {
-		const queryMap = {
-			...query,
-			format: 'raw',
-		};
 		const [streamId, streamPartition] =
 			StreamPartIDUtils.getStreamIDAndPartition(streamPartId);
-		const queryString = this.httpUtil.createQueryString(queryMap);
+		const queryString = this.httpUtil.createQueryString(query);
 		return `${baseUrl}/streams/${encodeURIComponent(
 			streamId
 		)}/data/partitions/${streamPartition}/${endpointSuffix}?${queryString}`;
+	}
+
+	getAuth() {
+		return this.httpUtil.fetchAuthParams();
 	}
 }

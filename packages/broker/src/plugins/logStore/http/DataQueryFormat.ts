@@ -8,7 +8,7 @@ export interface Format {
 	contentType: string;
 	delimiter: string;
 	header: string;
-	footer: string;
+	footer: ((metadata: Record<string, any>) => string) | string;
 }
 
 const createJsonFormat = (
@@ -21,8 +21,8 @@ const createJsonFormat = (
 		getMessageAsString,
 		contentType: 'application/json',
 		delimiter: ',',
-		header: '[',
-		footer: ']',
+		header: '{"messages":[',
+		footer: (metadata) => `],"metadata":${JSON.stringify(metadata)}}`,
 	};
 };
 
@@ -61,7 +61,7 @@ export const toObject = (msg: StreamMessage<any>): any => {
 	};
 };
 
-const FORMATS: Record<string, Format> = {
+const FORMATS = {
 	// TODO could we deprecate protocol format?
 	// eslint-disable-next-line max-len
 	protocol: createJsonFormat(
@@ -80,9 +80,12 @@ const FORMATS: Record<string, Format> = {
 		(streamMessage: StreamMessage, version: number | undefined) =>
 			streamMessage.serialize(version)
 	),
-};
+} satisfies Record<string, Format>;
 
-export const getFormat = (id: string | undefined): Format | undefined => {
-	const key = id ?? 'object';
-	return FORMATS[key];
+export type FormatType = keyof typeof FORMATS;
+
+export const getFormat = (id: string | undefined): Format => {
+	const safeKey = id ?? 'object';
+	const key = safeKey in FORMATS ? safeKey : 'object';
+	return FORMATS[key as FormatType];
 };
