@@ -33,6 +33,11 @@ export const createBroker = async (
 	const config = validateConfig(configWithoutDefaults, BROKER_CONFIG_SCHEMA);
 	validateClientConfig(config.client);
 
+	// Tweaks suggested by the Streamr Team
+	config.client.network!.webrtcSendBufferMaxMessageCount = 5000;
+	config.client.gapFill = true;
+	config.client.gapFillTimeout = 30 * 1000;
+
 	const logStoreClient = new LogStoreClient(config.client);
 
 	const systemStream = await logStoreClient.getStream(

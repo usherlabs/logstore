@@ -5,21 +5,20 @@ import {
 	Subscription,
 } from '@logsn/client';
 
-export class StreamSubscriber {
+export class BroadbandSubscriber {
+	private readonly partitions: number;
 	private readonly subscriptions: Subscription[] = [];
 
 	constructor(
 		private readonly client: LogStoreClient,
 		private readonly stream: Stream
 	) {
-		//
+		this.partitions = this.stream.getMetadata().partitions;
 	}
 
 	public async subscribe(onMessage: MessageListener) {
-		const { partitions } = this.stream.getMetadata();
-
 		const promises = [];
-		for (let partition = 0; partition < partitions; partition++) {
+		for (let partition = 0; partition < this.partitions; partition++) {
 			promises.push(
 				this.client.subscribe({ id: this.stream.id, partition }, onMessage)
 			);

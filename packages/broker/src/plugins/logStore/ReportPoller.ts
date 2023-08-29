@@ -10,7 +10,7 @@ import { ethers, Signer, Wallet } from 'ethers';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
-import { StreamPublisher } from '../../shared/StreamPublisher';
+import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { ReportPoll } from './ReportPoll';
 
 const logger = new Logger(module);
@@ -19,7 +19,7 @@ const REPORT_TRESHOLD_MULTIPLIER = 0.5;
 export class ReportPoller {
 	private readonly poolConfig: StrictConfig['pool'];
 	private readonly signer: Signer;
-	private readonly streamPublisher: StreamPublisher;
+	private readonly publisher: BroadbandPublisher;
 
 	private reportManager!: LogStoreReportManager;
 	private nodeManager!: LogStoreNodeManager;
@@ -31,12 +31,12 @@ export class ReportPoller {
 	constructor(
 		config: StrictConfig,
 		signer: Signer,
-		streamPublisher: StreamPublisher
+		publisher: BroadbandPublisher
 	) {
 		this.poolConfig = config.pool;
 		this.latestBundle = 0;
 		this.signer = signer;
-		this.streamPublisher = streamPublisher;
+		this.publisher = publisher;
 	}
 
 	public async start(abortSignal: AbortSignal): Promise<void> {
@@ -179,7 +179,7 @@ export class ReportPoller {
 		);
 
 		const proofOfReport = await poll.report.toProof(this.signer);
-		await this.streamPublisher.publish(proofOfReport.serialize());
+		await this.publisher.publish(proofOfReport.serialize());
 		logger.info(
 			`Proof of report ${poll.report.id} published to system stream`,
 			proofOfReport

@@ -12,7 +12,7 @@ import { Signer } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
 
-import { StreamPublisher } from '../../../shared/StreamPublisher';
+import { BroadbandPublisher } from '../../../shared/BroadbandPublisher';
 import {
 	LogStore,
 	MAX_SEQUENCE_NUMBER_VALUE,
@@ -36,7 +36,7 @@ const hashResponse = async (id: string, data: Readable) => {
 
 export async function handeQueryRequest(
 	logStore: LogStore,
-	streamPublisher: StreamPublisher,
+	streamPublisher: BroadbandPublisher,
 	signer: Signer,
 	queryRequest: QueryRequest
 ) {

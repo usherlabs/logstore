@@ -13,7 +13,7 @@ import fse from 'fs-extra';
 import path from 'path';
 import type { Logger } from 'tslog';
 
-import { StreamSubscriber } from '../shared/StreamSubscriber';
+import { BroadbandSubscriber } from '../shared/BroadbandSubscriber';
 import { SystemDb } from './SystemDb';
 import { SystemRecovery } from './SystemRecovery';
 
@@ -25,19 +25,22 @@ const LISTENING_MESSAGE_TYPES = [
 
 export class SystemListener {
 	private readonly _cachePath: string;
-	private readonly _subscriber: StreamSubscriber;
 	private readonly _db: SystemDb;
-	private readonly _systemRecovery: SystemRecovery;
 	private _latestTimestamp: number;
 
 	constructor(
 		homeDir: string,
 		private readonly _client: LogStoreClient,
+		private readonly _subscriber: BroadbandSubscriber,
+		private readonly _systemRecovery: SystemRecovery,
 		private readonly _systemStream: Stream,
 		private readonly _signer: Signer,
 		private readonly logger: Logger
 	) {
-		this._subscriber = new StreamSubscriber(this._client, this._systemStream);
+		this._subscriber = new BroadbandSubscriber(
+			this._client,
+			this._systemStream
+		);
 
 		this._cachePath = path.join(homeDir, '.logstore-metadata');
 		this._db = new SystemDb();
@@ -45,8 +48,7 @@ export class SystemListener {
 			this._client,
 			this._systemStream,
 			this._signer,
-			this.logger,
-			this.onSystemMessage.bind(this)
+			this.logger
 		);
 	}
 
@@ -64,7 +66,7 @@ export class SystemListener {
 
 			this._db.open(this._cachePath);
 
-			this.logger.info('Starting System Listener ...');
+			this.logger.info('Starting...');
 			this.logger.debug(`System Stream Id: `, this._systemStream.id);
 			await this._subscriber.subscribe((content, metadata) =>
 				setImmediate(() => this.onMessage(content, metadata))
@@ -95,7 +97,7 @@ export class SystemListener {
 		// Start recovery when the very first message has been received
 		if (this._latestTimestamp === undefined) {
 			this._latestTimestamp = metadata.timestamp;
-			await this._systemRecovery.start();
+			await this._systemRecovery.start(this.onSystemMessage.bind(this));
 		}
 
 		const systemMessage = SystemMessage.deserialize(content);

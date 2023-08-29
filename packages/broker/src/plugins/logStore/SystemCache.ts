@@ -1,8 +1,8 @@
-import { LogStoreClient, MessageMetadata, Stream } from '@logsn/client';
+import { MessageMetadata } from '@logsn/client';
 import { SystemMessage, SystemMessageType } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
 
-import { StreamSubscriber } from '../../shared/StreamSubscriber';
+import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { KyvePool } from './KyvePool';
 
 const logger = new Logger(module);
@@ -15,7 +15,6 @@ const CACHE_MESSAGE_TYPES = [
 ];
 
 export class SystemCache {
-	private streamSubscriber: StreamSubscriber;
 	private shrinkTimeout?: NodeJS.Timeout;
 
 	private records: {
@@ -24,23 +23,21 @@ export class SystemCache {
 	}[] = [];
 
 	constructor(
-		private readonly client: LogStoreClient,
-		private readonly systemStream: Stream,
+		private readonly subscriber: BroadbandSubscriber,
 		private readonly kyvePool: KyvePool
 	) {
-		this.streamSubscriber = new StreamSubscriber(
-			this.client,
-			this.systemStream
-		);
+		//
 	}
 
 	public async start() {
-		await this.streamSubscriber.subscribe(this.onMessage.bind(this));
+		await this.subscriber.subscribe(this.onMessage.bind(this));
 
 		const kyvePoolData = await this.kyvePool.getData();
 		const shrinkTimeout = kyvePoolData.uploadInterval * 1000;
 
 		await this.resetShrinkTimeout(shrinkTimeout);
+
+		logger.info('Started');
 	}
 
 	public async stop() {
@@ -48,7 +45,8 @@ export class SystemCache {
 			clearTimeout(this.shrinkTimeout);
 			this.shrinkTimeout = undefined;
 		}
-		await this.streamSubscriber.unsubscribe();
+		await this.subscriber.unsubscribe();
+		logger.info('Stopped');
 	}
 
 	private async resetShrinkTimeout(ms: number) {
@@ -80,13 +78,20 @@ export class SystemCache {
 		}
 	}
 
-	public get(from: number) {
-		return this.records.filter((record) => record.metadata.timestamp >= from);
+	public get(from: number, to?: number) {
+		return this.records.filter(
+			(record) =>
+				record.metadata.timestamp >= from &&
+				record.metadata.timestamp < (to || Number.MAX_SAFE_INTEGER)
+		);
 	}
 
 	private async shrink(timestamp: number) {
 		this.records = this.get(timestamp);
 
-		logger.info('Shrunk to: %i. Records: %i', timestamp, this.records.length);
+		logger.debug(
+			'Shrunk %s',
+			JSON.stringify({ timestamp, records: this.records.length })
+		);
 	}
 }

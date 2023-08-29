@@ -20,7 +20,7 @@ import { v4 as uuid } from 'uuid';
 
 import { StrictConfig } from '../../config/config';
 import { HttpServerEndpoint } from '../../Plugin';
-import { StreamPublisher } from '../../shared/StreamPublisher';
+import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { createBasicAuthenticatorMiddleware } from './authentication';
 import { Consensus, getConsensus } from './Consensus';
 import { Format, getFormat } from './DataQueryFormat';
@@ -148,7 +148,7 @@ const handleLast = async (
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
-	streamPublisher: StreamPublisher,
+	streamPublisher: BroadbandPublisher,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendLastQueriesPerSecond.record(1);
@@ -196,7 +196,7 @@ const handleFrom = async (
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
-	streamPublisher: StreamPublisher,
+	streamPublisher: BroadbandPublisher,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendFromQueriesPerSecond.record(1);
@@ -269,7 +269,7 @@ const handleRange = async (
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
-	streamPublisher: StreamPublisher,
+	streamPublisher: BroadbandPublisher,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendRangeQueriesPerSecond.record(1);
@@ -376,7 +376,7 @@ const createHandler = (
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
-	streamPublisher: StreamPublisher,
+	streamPublisher: BroadbandPublisher,
 	metrics: MetricsDefinition
 ): RequestHandler => {
 	return async (req: Request, res: Response) => {
@@ -477,7 +477,7 @@ export const createDataQueryEndpoint = (
 	logStore: LogStore,
 	logStoreClient: LogStoreClient,
 	systemStream: Stream,
-	streamPublisher: StreamPublisher,
+	streamPublisher: BroadbandPublisher,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
 	const metrics = {
