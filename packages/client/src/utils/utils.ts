@@ -1,5 +1,4 @@
-import { StreamID, toStreamID } from '@streamr/protocol';
-import { randomString, toEthereumAddress } from '@streamr/utils';
+import { randomString } from '@streamr/utils';
 
 import pkg from '../../package.json';
 import LRU from '../../vendor/quick-lru';
@@ -93,12 +92,6 @@ const versionString = getVersion();
 
 export function getVersionString(): string {
 	return versionString;
-}
-
-export function formLogStoreSystemStreamId(
-	logStoreNodeManagerAddress: string
-): StreamID {
-	return toStreamID('/system', toEthereumAddress(logStoreNodeManagerAddress));
 }
 
 export class MaxSizedSet<T> {

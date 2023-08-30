@@ -26,9 +26,9 @@ export class SystemRecovery {
 
 	constructor(
 		private readonly client: LogStoreClient,
-		private readonly systemStream: Stream,
 		private readonly recoveryStream: Stream,
-		private readonly systemCache: SystemCache
+		private readonly systemStream: Stream,
+		private readonly cache: SystemCache
 	) {
 		//
 	}
@@ -70,7 +70,7 @@ export class SystemRecovery {
 	}
 
 	private async processRequest(requestId: string, from: number, to: number) {
-		const cacheRecords = this.systemCache.get(from, to);
+		const cacheRecords = this.cache.get(from, to);
 
 		let seqNum: number = 0;
 		const payload: [SystemMessage, MessageMetadata][] = [];

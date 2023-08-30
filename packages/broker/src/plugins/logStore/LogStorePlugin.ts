@@ -1,8 +1,4 @@
-import {
-	formLogStoreSystemStreamId,
-	MessageMetadata,
-	Stream,
-} from '@logsn/client';
+import { MessageMetadata, Stream } from '@logsn/client';
 import {
 	ProofOfMessageStored,
 	ProofOfReport,
@@ -76,12 +72,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 		this.systemPublisher = new BroadbandPublisher(
 			this.logStoreClient,
-			options.systemStream
+			this.systemStream
 		);
 
 		this.systemSubscriber = new BroadbandSubscriber(
 			this.logStoreClient,
-			options.systemStream
+			this.systemStream
 		);
 
 		this.kyvePool = new KyvePool(
@@ -91,12 +87,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 		this.rollcallPublisher = new BroadbandPublisher(
 			this.logStoreClient,
-			options.systemStream
+			this.rollCallStream
 		);
 
 		this.rollcallSubscriber = new BroadbandSubscriber(
 			this.logStoreClient,
-			options.systemStream
+			this.rollCallStream
 		);
 
 		this.rollCall = new RollCall(
@@ -104,11 +100,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.rollcallSubscriber
 		);
 
-		this.systemCache = new SystemCache(this.rollcallSubscriber, this.kyvePool);
+		this.systemCache = new SystemCache(this.systemSubscriber, this.kyvePool);
 
 		this.systemRecovery = new SystemRecovery(
 			this.logStoreClient,
-			this.systemStream,
+			this.recoveryStream,
 			this.systemStream,
 			this.systemCache
 		);
@@ -119,12 +115,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	}
 
 	async start(): Promise<void> {
-		const systemStream = await this.logStoreClient.getStream(
-			formLogStoreSystemStreamId(
-				this.brokerConfig.client.contracts!.logStoreNodeManagerChainAddress!
-			)
-		);
-
 		await this.rollCall.start();
 		await this.systemCache.start();
 		await this.systemRecovery.start();
@@ -173,7 +163,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		).getMetricsContext();
 		this.logStore = await this.startCassandraStorage(metricsContext);
 
-		this.logStoreConfig = await this.startLogStoreConfig(systemStream);
+		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
 		this.messageListener = async (msg) => {
 			if (
 				isStorableMessage(msg) &&
@@ -205,17 +195,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 				this.brokerConfig,
 				this.logStore,
 				this.logStoreClient,
-				systemStream,
+				this.systemStream,
 				this.systemPublisher,
 				metricsContext
 			)
 		);
 		this.addHttpServerEndpoint(
-			createRecoveryEndpoint(
-				this.systemPublisher,
-				this.rollCall,
-				metricsContext
-			)
+			createRecoveryEndpoint(this.systemStream, this.rollCall, metricsContext)
 		);
 	}
 

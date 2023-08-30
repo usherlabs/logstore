@@ -28,6 +28,7 @@ export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
 	public version = appVersion;
 	public config: IConfig = {
+		recoveryStreamId: '',
 		systemStreamId: '',
 		sources: [],
 		fees: {
@@ -66,7 +67,7 @@ export default class Runtime implements IRuntimeExtended {
 		);
 
 		const recoveryStream = await logStoreClient.getStream(
-			this.config.systemStreamId
+			this.config.recoveryStreamId
 		);
 
 		const systemSubscriber = new BroadbandSubscriber(
@@ -93,8 +94,6 @@ export default class Runtime implements IRuntimeExtended {
 			logStoreClient,
 			systemSubscriber,
 			recovery,
-			systemStream,
-			signer,
 			core.logger
 		);
 
@@ -135,10 +134,23 @@ export default class Runtime implements IRuntimeExtended {
 
 		await Managers.setSources(config.sources);
 
+		const isDevNetwork =
+			systemContracts.nodeManagerAddress ===
+			'0x85ac4C8E780eae81Dd538053D596E382495f7Db9';
+
+		const recoveryStreamId = isDevNetwork
+			? `${systemContracts.nodeManagerAddress}/recovery`
+			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-recovery';
+
+		const systemStreamId = isDevNetwork
+			? `${systemContracts.nodeManagerAddress}/system`
+			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-system';
+
 		this.config = {
 			...this.config,
 			...config,
-			systemStreamId: `${systemContracts.nodeManagerAddress}/system`,
+			recoveryStreamId,
+			systemStreamId,
 		};
 	}
 
