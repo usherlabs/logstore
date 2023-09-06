@@ -15,7 +15,10 @@ import { keccak256 } from 'ethers/lib/utils';
 import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
+import {
+	MessageMetricsSubject,
+	MessageMetricsSummary,
+} from '../../shared/MessageMetricsSummary';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
@@ -27,6 +30,37 @@ import { ReportPoller } from './ReportPoller';
 import { RollCall } from './RollCall';
 import { SystemCache } from './SystemCache';
 import { SystemRecovery } from './SystemRecovery';
+
+const METRICS_SUBJECTS: MessageMetricsSubject[] = [
+	{
+		subject: 'ProofOfMessageStored',
+		type: SystemMessageType.ProofOfMessageStored,
+	},
+	{
+		subject: 'ProofOfReport',
+		type: SystemMessageType.ProofOfReport,
+	},
+	{
+		subject: 'RollCallRequest',
+		type: SystemMessageType.RollCallRequest,
+	},
+	{
+		subject: 'RollCallResponse',
+		type: SystemMessageType.RollCallResponse,
+	},
+	{
+		subject: 'QueryRequest',
+		type: SystemMessageType.QueryRequest,
+	},
+	{
+		subject: 'QueryResponse',
+		type: SystemMessageType.QueryResponse,
+	},
+	{
+		subject: 'RecoveryRequest',
+		type: SystemMessageType.RecoveryRequest,
+	},
+];
 
 const METRICS_INTERVAL = 60 * 1000;
 
@@ -103,7 +137,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.rollCallStream
 		);
 
-		this.messageMetricsSummary = new MessageMetricsSummary();
+		this.messageMetricsSummary = new MessageMetricsSummary(METRICS_SUBJECTS);
 
 		this.rollCall = new RollCall(
 			this.rollcallPublisher,
