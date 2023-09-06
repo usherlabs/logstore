@@ -8,12 +8,12 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
-import { Signer } from 'ethers';
 import fse from 'fs-extra';
 import path from 'path';
 import type { Logger } from 'tslog';
 
 import { BroadbandSubscriber } from '../shared/BroadbandSubscriber';
+import { MessageMetricsSummary } from '../shared/MessageMetricsSummary';
 import { SystemDb } from './SystemDb';
 import { SystemRecovery } from './SystemRecovery';
 
@@ -34,7 +34,7 @@ export class SystemListener {
 		private readonly _subscriber: BroadbandSubscriber,
 		private readonly _systemRecovery: SystemRecovery,
 		private readonly _systemStream: Stream,
-		private readonly _signer: Signer,
+		private readonly messageMetricsSummary: MessageMetricsSummary,
 		private readonly logger: Logger
 	) {
 		this._subscriber = new BroadbandSubscriber(
@@ -44,12 +44,6 @@ export class SystemListener {
 
 		this._cachePath = path.join(homeDir, '.logstore-metadata');
 		this._db = new SystemDb();
-		this._systemRecovery = new SystemRecovery(
-			this._client,
-			this._systemStream,
-			this._signer,
-			this.logger
-		);
 	}
 
 	public get client() {
@@ -94,6 +88,7 @@ export class SystemListener {
 		content: unknown,
 		metadata: MessageMetadata
 	): Promise<void> {
+		this.messageMetricsSummary.update(content, metadata);
 		// Start recovery when the very first message has been received
 		if (this._latestTimestamp === undefined) {
 			this._latestTimestamp = metadata.timestamp;

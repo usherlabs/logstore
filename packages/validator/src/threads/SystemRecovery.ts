@@ -20,6 +20,7 @@ import { shuffle } from 'lodash';
 import { Logger } from 'tslog';
 
 import { Managers } from '../managers';
+import { MessageMetricsSummary } from '../shared/MessageMetricsSummary';
 import { ActivityTimeout } from './ActivityTimeout';
 
 const RESTART_DELAY = 30 * 1000;
@@ -62,6 +63,7 @@ export class SystemRecovery {
 		private readonly client: LogStoreClient,
 		private readonly recoveryStream: Stream,
 		private readonly signer: Signer,
+		private readonly messageMetricsSummary: MessageMetricsSummary,
 		private readonly logger: Logger
 	) {
 		this.toTimestamp = Date.now();
@@ -219,6 +221,7 @@ export class SystemRecovery {
 		content: unknown,
 		metadata: MessageMetadata
 	): Promise<void> {
+		this.messageMetricsSummary.update(content, metadata);
 		const systemMessage = SystemMessage.deserialize(content);
 		if (!LISTENING_MESSAGE_TYPES.includes(systemMessage.messageType)) {
 			return;

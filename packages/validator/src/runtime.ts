@@ -18,11 +18,14 @@ import {
 } from './env-config';
 import { Managers } from './managers';
 import { BroadbandSubscriber } from './shared/BroadbandSubscriber';
+import { MessageMetricsSummary } from './shared/MessageMetricsSummary';
 import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
 import { SystemRecovery } from './threads/SystemRecovery';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
+
+const METRICS_INTERVAL = 60 * 1000;
 
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
@@ -74,10 +77,13 @@ export default class Runtime implements IRuntimeExtended {
 			systemStream
 		);
 
+		const messageMetricsSummary = new MessageMetricsSummary();
+
 		const recovery = new SystemRecovery(
 			logStoreClient,
 			recoveryStream,
 			signer,
+			messageMetricsSummary,
 			core.logger
 		);
 
@@ -94,12 +100,20 @@ export default class Runtime implements IRuntimeExtended {
 			systemSubscriber,
 			recovery,
 			systemStream,
-			signer,
+			messageMetricsSummary,
 			core.logger
 		);
 
 		await this.time.start();
 		await this.listener.start();
+
+		setInterval(
+			() =>
+				core.logger.info(
+					`Metrics ${JSON.stringify(messageMetricsSummary.summary)}`
+				),
+			METRICS_INTERVAL
+		);
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {
