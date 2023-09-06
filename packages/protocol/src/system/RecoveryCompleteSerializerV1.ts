@@ -9,19 +9,19 @@ export default class RecoveryCompleteSerializerV1 extends Serializer<RecoveryCom
 		return [
 			VERSION,
 			SystemMessageType.RecoveryComplete,
-			message.requestId,
 			message.seqNum,
+			message.requestId,
 			message.isFulfilled,
 		];
 	}
 
 	fromArray(arr: any[]): RecoveryComplete {
-		const [version, _messageType, requestId, seqNum, isFulfilled] = arr;
+		const [version, _messageType, seqNum, requestId, isFulfilled] = arr;
 
 		return new RecoveryComplete({
 			version,
-			requestId,
 			seqNum,
+			requestId,
 			isFulfilled,
 		});
 	}

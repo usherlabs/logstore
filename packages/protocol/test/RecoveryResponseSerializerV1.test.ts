@@ -18,15 +18,15 @@ const testEmptyPayload = {
 	name: 'empty payload',
 	obj: new RecoveryResponse({
 		version: VERSION,
+		seqNum: 1234,
 		requestId: 'recoveryRequestId',
-		seqNum: 0,
 		payload: [],
 	}),
 	str: JSON.stringify([
 		VERSION,
 		SystemMessageType.RecoveryResponse,
+		1234,
 		'recoveryRequestId',
-		0,
 		[],
 	]),
 };
@@ -35,11 +35,12 @@ const testOneMessagePayload = {
 	name: 'one message payload',
 	obj: new RecoveryResponse({
 		version: VERSION,
+		seqNum: 1234,
 		requestId: 'recoveryRequestId',
-		seqNum: 0,
 		payload: [
 			[
 				new QueryResponse({
+					seqNum: 1234,
 					requestId: 'queryRequestId',
 					size: 1024,
 					hash: 'HASH_0001',
@@ -61,13 +62,14 @@ const testOneMessagePayload = {
 		`[` +
 		`${VERSION},` +
 		`${SystemMessageType.RecoveryResponse},` +
+		`1234,` +
 		`"recoveryRequestId",` +
-		`0,` +
 		`[` +
 		`[` +
 		`"[` +
 		`${QueryResponse.LATEST_VERSION},` +
 		`${SystemMessageType.QueryResponse},` +
+		`1234,` +
 		`\\"queryRequestId\\",` +
 		`1024,` +
 		`\\"HASH_0001\\",` +

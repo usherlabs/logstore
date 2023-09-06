@@ -17,11 +17,12 @@ export class RecoveryRequest extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
+		seqNum,
 		requestId,
 		from,
 		to,
 	}: RecoveryRequestOptions) {
-		super(version, SystemMessageType.RecoveryRequest);
+		super(version, SystemMessageType.RecoveryRequest, seqNum);
 		this.requestId = requestId;
 		this.from = from;
 		this.to = to;

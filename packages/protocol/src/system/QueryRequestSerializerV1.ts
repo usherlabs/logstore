@@ -16,6 +16,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 		const result: any[] = [
 			VERSION,
 			SystemMessageType.QueryRequest,
+			message.seqNum,
 			message.requestId,
 			message.consumerId,
 			message.streamId,
@@ -55,6 +56,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 		const [
 			version,
 			_messageType,
+			seqNum,
 			requestId,
 			consumerId,
 			streamId,
@@ -95,6 +97,7 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 
 		return new QueryRequest({
 			version,
+			seqNum,
 			requestId,
 			consumerId,
 			streamId,

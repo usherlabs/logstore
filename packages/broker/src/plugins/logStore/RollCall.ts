@@ -17,6 +17,8 @@ export class RollCall {
 	private roundTimeout?: NodeJS.Timeout;
 	private requestId?: string;
 	private responses: Map<EthereumAddress, number> = new Map();
+	private requestSeqNum: number = 0;
+	private responseSeqNum: number = 0;
 
 	constructor(
 		private readonly publisher: BroadbandPublisher,
@@ -71,7 +73,10 @@ export class RollCall {
 		this.resetRoundTimeout();
 		this.requestId = uuid();
 
-		const rollCallRequest = new RollCallRequest({ requestId: this.requestId });
+		const rollCallRequest = new RollCallRequest({
+			seqNum: this.requestSeqNum++,
+			requestId: this.requestId,
+		});
 		await this.publisher.publish(rollCallRequest.serialize());
 	}
 
@@ -85,6 +90,7 @@ export class RollCall {
 				this.requestId = rollCallRequest.requestId;
 
 				const rollCallResponse = new RollCallResponse({
+					seqNum: this.responseSeqNum++,
 					requestId: this.requestId,
 				});
 				await this.publisher.publish(rollCallResponse.serialize());

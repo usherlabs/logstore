@@ -21,13 +21,14 @@ export class ProofOfReport extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
+		seqNum,
 		address,
 		hash,
 		toth,
 		timestamp = Date.now(),
 		signature,
 	}: ProofOfReportOptions) {
-		super(version, SystemMessageType.ProofOfReport);
+		super(version, SystemMessageType.ProofOfReport, seqNum);
 
 		this.address = address;
 		this.hash = hash;

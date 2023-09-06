@@ -10,7 +10,7 @@ import {
 	MetricsContext,
 	MetricsDefinition,
 	RateMetric,
-	toEthereumAddress
+	toEthereumAddress,
 } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { Request, RequestHandler, Response } from 'express';
@@ -27,12 +27,14 @@ import { Format, getFormat } from './DataQueryFormat';
 import {
 	MessageLimitTransform,
 	ResponseTransform,
-	StreamResponseTransform
+	StreamResponseTransform,
 } from './dataTransformers';
 import { getMessageLimitForRequest } from './messageLimiter';
 import { isStreamRequest } from './utils';
 
 const logger = new Logger(module);
+
+let seqNum: number = 0;
 
 // TODO: move this to protocol-js
 export const MIN_SEQUENCE_NUMBER_VALUE = 0;
@@ -169,6 +171,7 @@ const getDataForLastRequest = async (
 
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
+		seqNum: seqNum++,
 		requestId,
 		consumerId: req.consumer!,
 		streamId,
@@ -238,6 +241,7 @@ const getDataForFromRequest = async (
 
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
+		seqNum: seqNum++,
 		requestId,
 		consumerId: req.consumer!,
 		streamId,
@@ -351,6 +355,7 @@ const getDataForRangeRequest = async (
 
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
+		seqNum: seqNum++,
 		requestId,
 		consumerId: req.consumer!,
 		streamId,

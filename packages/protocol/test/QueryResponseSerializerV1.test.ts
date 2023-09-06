@@ -9,6 +9,7 @@ const VERSION = 1;
 // Message definitions
 const message = new QueryResponse({
 	version: VERSION,
+	seqNum: 1234,
 	requestId: 'requestId',
 	size: 1024,
 	hash: 'hash',
@@ -18,6 +19,7 @@ const message = new QueryResponse({
 const serializedMessage = JSON.stringify([
 	VERSION,
 	SystemMessageType.QueryResponse,
+	1234,
 	'requestId',
 	1024,
 	'hash',

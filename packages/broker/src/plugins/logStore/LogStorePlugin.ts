@@ -71,6 +71,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
 
+	private seqNum: number = 0;
+
 	constructor(options: PluginOptions) {
 		super(options);
 
@@ -187,6 +189,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 				);
 
 				const proofOfMessageStored = new ProofOfMessageStored({
+					seqNum: this.seqNum++,
 					streamId: msg.getStreamId(),
 					partition: msg.getStreamPartition(),
 					timestamp: msg.getTimestamp(),
