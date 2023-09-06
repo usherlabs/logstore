@@ -13,6 +13,7 @@ import path from 'path';
 import type { Logger } from 'tslog';
 
 import { BroadbandSubscriber } from '../shared/BroadbandSubscriber';
+import { MessageMetricsSummary } from '../shared/MessageMetricsSummary';
 import { SystemDb } from './SystemDb';
 import { SystemRecovery } from './SystemRecovery';
 
@@ -32,6 +33,7 @@ export class SystemListener {
 		private readonly _client: LogStoreClient,
 		private readonly _systemSubscriber: BroadbandSubscriber,
 		private readonly _systemRecovery: SystemRecovery,
+		private readonly messageMetricsSummary: MessageMetricsSummary,
 		private readonly logger: Logger
 	) {
 		this._cachePath = path.join(homeDir, '.logstore-metadata');
@@ -84,6 +86,8 @@ export class SystemListener {
 		content: unknown,
 		metadata: MessageMetadata
 	): Promise<void> {
+		this.messageMetricsSummary.update(content, metadata);
+
 		const systemMessage = SystemMessage.deserialize(content);
 		if (!LISTENING_MESSAGE_TYPES.includes(systemMessage.messageType)) {
 			return;

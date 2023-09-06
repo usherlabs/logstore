@@ -69,6 +69,7 @@ export class QueryRequest extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
+		seqNum,
 		requestId,
 		consumerId,
 		streamId,
@@ -76,7 +77,7 @@ export class QueryRequest extends SystemMessage {
 		queryType,
 		queryOptions,
 	}: QueryRequestOptions) {
-		super(version, SystemMessageType.QueryRequest);
+		super(version, SystemMessageType.QueryRequest, seqNum);
 
 		// TODO: Validate the arguments
 		this.requestId = requestId;

@@ -6,14 +6,20 @@ const VERSION = 1;
 
 export default class RollCallRequestSerializerV1 extends Serializer<RollCallRequest> {
 	toArray(message: RollCallRequest): any[] {
-		return [VERSION, SystemMessageType.RollCallRequest, message.requestId];
+		return [
+			VERSION,
+			SystemMessageType.RollCallRequest,
+			message.seqNum,
+			message.requestId,
+		];
 	}
 
 	fromArray(arr: any[]): RollCallRequest {
-		const [version, _messageType, requestId] = arr;
+		const [version, _messageType, seqNum, requestId] = arr;
 
 		return new RollCallRequest({
 			version,
+			seqNum,
 			requestId,
 		});
 	}

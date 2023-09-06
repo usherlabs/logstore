@@ -28,6 +28,8 @@ export class ReportPoller {
 
 	private latestBundle: number;
 
+	private seqNum: number = 0;
+
 	constructor(
 		config: StrictConfig,
 		signer: Signer,
@@ -178,7 +180,7 @@ export class ReportPoller {
 			`Publishing proof of report ${poll.report.id} (hash: ${poll.hash})`
 		);
 
-		const proofOfReport = await poll.report.toProof(this.signer);
+		const proofOfReport = await poll.report.toProof(this.seqNum++, this.signer);
 		await this.publisher.publish(proofOfReport.serialize());
 		logger.info(
 			`Proof of report ${poll.report.id} published to system stream`,

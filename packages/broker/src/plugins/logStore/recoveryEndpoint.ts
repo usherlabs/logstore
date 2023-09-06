@@ -9,6 +9,8 @@ import { RollCall } from './RollCall';
 
 const logger = new Logger(module);
 
+let seqNum: number = 0;
+
 const createHandler = (
 	systemStream: Stream,
 	rollCall: RollCall
@@ -16,7 +18,12 @@ const createHandler = (
 	return async (req: Request, res: Response) => {
 		const { requestId, from, to } = req.body;
 
-		const recoveryRequest = new RecoveryRequest({ requestId, from, to });
+		const recoveryRequest = new RecoveryRequest({
+			seqNum: seqNum++,
+			requestId,
+			from,
+			to,
+		});
 		await systemStream.publish(recoveryRequest.serialize());
 		logger.debug(
 			'Published RecoveryRequest: %s',

@@ -14,6 +14,7 @@ export class ProofOfMessageStored extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
+		seqNum,
 		streamId,
 		partition,
 		timestamp,
@@ -21,7 +22,7 @@ export class ProofOfMessageStored extends SystemMessage {
 		size,
 		hash,
 	}: ProofOfMessageStoredOptions) {
-		super(version, SystemMessageType.ProofOfMessageStored);
+		super(version, SystemMessageType.ProofOfMessageStored, seqNum);
 
 		this.streamId = streamId;
 		this.partition = partition;

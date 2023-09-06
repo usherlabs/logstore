@@ -15,6 +15,7 @@ import { keccak256 } from 'ethers/lib/utils';
 import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
+import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
@@ -26,6 +27,8 @@ import { ReportPoller } from './ReportPoller';
 import { RollCall } from './RollCall';
 import { SystemCache } from './SystemCache';
 import { SystemRecovery } from './SystemRecovery';
+
+const METRICS_INTERVAL = 60 * 1000;
 
 const logger = new Logger(module);
 
@@ -63,9 +66,14 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly rollcallSubscriber: BroadbandSubscriber;
 	private readonly rollcallPublisher: BroadbandPublisher;
 	private readonly kyvePool: KyvePool;
+	private readonly messageMetricsSummary: MessageMetricsSummary;
 	private readonly rollCall: RollCall;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
+
+	private seqNum: number = 0;
+
+	private metricsTimer?: NodeJS.Timer;
 
 	constructor(options: PluginOptions) {
 		super(options);
@@ -95,18 +103,26 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.rollCallStream
 		);
 
+		this.messageMetricsSummary = new MessageMetricsSummary();
+
 		this.rollCall = new RollCall(
 			this.rollcallPublisher,
-			this.rollcallSubscriber
+			this.rollcallSubscriber,
+			this.messageMetricsSummary
 		);
 
-		this.systemCache = new SystemCache(this.systemSubscriber, this.kyvePool);
+		this.systemCache = new SystemCache(
+			this.systemSubscriber,
+			this.kyvePool,
+			this.messageMetricsSummary
+		);
 
 		this.systemRecovery = new SystemRecovery(
 			this.logStoreClient,
 			this.recoveryStream,
 			this.systemStream,
-			this.systemCache
+			this.systemCache,
+			this.messageMetricsSummary
 		);
 	}
 
@@ -177,6 +193,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 				);
 
 				const proofOfMessageStored = new ProofOfMessageStored({
+					seqNum: this.seqNum++,
 					streamId: msg.getStreamId(),
 					partition: msg.getStreamPartition(),
 					timestamp: msg.getTimestamp(),
@@ -203,9 +220,16 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.addHttpServerEndpoint(
 			createRecoveryEndpoint(this.systemStream, this.rollCall, metricsContext)
 		);
+
+		this.metricsTimer = setInterval(
+			this.logMetrics.bind(this),
+			METRICS_INTERVAL
+		);
 	}
 
 	async stop(): Promise<void> {
+		clearInterval(this.metricsTimer);
+
 		const node = await this.logStoreClient.getNode();
 		node.removeMessageListener(this.messageListener!);
 		this.logStoreConfig!.getStreamParts().forEach((streamPart) => {
@@ -286,5 +310,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		);
 		await logStoreConfig.start();
 		return logStoreConfig;
+	}
+
+	private logMetrics() {
+		logger.info(
+			`Metrics ${JSON.stringify(this.messageMetricsSummary.summary)}`
+		);
 	}
 }
