@@ -23,14 +23,15 @@ export class MessageMetrics {
 		if (prevSeqNum) {
 			const diff = seqNum - prevSeqNum;
 			if (diff > 1) {
-				this.lost += diff - 1;
+				const lost = diff - 1;
+				this.lost += lost;
 
 				logger.error(
 					`Unexpected ${this.subject} seqNum ${JSON.stringify({
 						publisherId,
 						prev: prevSeqNum,
 						curr: seqNum,
-						lost: diff,
+						lost,
 					})}`
 				);
 			}
