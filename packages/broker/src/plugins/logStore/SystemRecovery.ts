@@ -13,6 +13,7 @@ import {
 } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
 
+import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
 import { SystemCache } from './SystemCache';
 
 const INTERVAL = 100;
@@ -26,9 +27,10 @@ export class SystemRecovery {
 
 	constructor(
 		private readonly client: LogStoreClient,
-		private readonly systemStream: Stream,
 		private readonly recoveryStream: Stream,
-		private readonly systemCache: SystemCache
+		private readonly systemStream: Stream,
+		private readonly cache: SystemCache,
+		private readonly messageMetricsSummary: MessageMetricsSummary
 	) {
 		//
 	}
@@ -48,7 +50,8 @@ export class SystemRecovery {
 		logger.info('Stopped');
 	}
 
-	private async onMessage(message: unknown) {
+	private async onMessage(message: unknown, metadata: MessageMetadata) {
+		this.messageMetricsSummary.update(message, metadata);
 		const systemMessage = SystemMessage.deserialize(message);
 		if (systemMessage.messageType !== SystemMessageType.RecoveryRequest) {
 			return;
@@ -70,7 +73,7 @@ export class SystemRecovery {
 	}
 
 	private async processRequest(requestId: string, from: number, to: number) {
-		const cacheRecords = this.systemCache.get(from, to);
+		const cacheRecords = this.cache.get(from, to);
 
 		let seqNum: number = 0;
 		const payload: [SystemMessage, MessageMetadata][] = [];

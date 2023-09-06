@@ -1,5 +1,4 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { keccak256 as solidityKeccak256 } from '@ethersproject/solidity';
 import assert from 'assert';
 
 import {

@@ -21,6 +21,8 @@ import {
 
 const logger = new Logger(module);
 
+let seqNum: number = 0;
+
 const hashResponse = async (id: string, data: Readable) => {
 	let size = 0;
 	let hash = keccak256(Uint8Array.from(Buffer.from(id)));
@@ -95,6 +97,7 @@ export async function handeQueryRequest(
 	);
 
 	const queryResponse = new QueryResponse({
+		seqNum: seqNum++,
 		requestId: queryRequest.requestId,
 		size,
 		hash,

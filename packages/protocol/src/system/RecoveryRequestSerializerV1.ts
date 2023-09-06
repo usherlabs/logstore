@@ -9,6 +9,7 @@ export default class RecoveryRequestSerializerV1 extends Serializer<RecoveryRequ
 		return [
 			VERSION,
 			SystemMessageType.RecoveryRequest,
+			message.seqNum,
 			message.requestId,
 			message.from,
 			message.to,
@@ -16,10 +17,11 @@ export default class RecoveryRequestSerializerV1 extends Serializer<RecoveryRequ
 	}
 
 	fromArray(arr: any[]): RecoveryRequest {
-		const [version, _messageType, requestId, from, to] = arr;
+		const [version, _messageType, seqNum, requestId, from, to] = arr;
 
 		return new RecoveryRequest({
 			version,
+			seqNum,
 			requestId,
 			from,
 			to,

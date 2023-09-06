@@ -11,7 +11,7 @@ export class BroadbandSubscriber {
 
 	constructor(
 		private readonly client: LogStoreClient,
-		private readonly stream: Stream,
+		private readonly stream: Stream
 	) {
 		this.partitions = this.stream.getMetadata().partitions;
 	}
@@ -20,7 +20,7 @@ export class BroadbandSubscriber {
 		const promises = [];
 		for (let partition = 0; partition < this.partitions; partition++) {
 			promises.push(
-				this.client.subscribe({ id: this.stream.id, partition }, onMessage),
+				this.client.subscribe({ id: this.stream.id, partition }, onMessage)
 			);
 		}
 
@@ -29,7 +29,7 @@ export class BroadbandSubscriber {
 
 	public async unsubscribe() {
 		await Promise.all(
-			this.subscriptions.map((subscription) => subscription.unsubscribe()),
+			this.subscriptions.map((subscription) => subscription.unsubscribe())
 		);
 		this.subscriptions.splice(0);
 	}

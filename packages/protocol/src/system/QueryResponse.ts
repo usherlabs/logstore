@@ -19,12 +19,13 @@ export class QueryResponse extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
+		seqNum,
 		requestId,
 		size,
 		hash,
 		signature,
 	}: QueryResponseOptions) {
-		super(version, SystemMessageType.QueryResponse);
+		super(version, SystemMessageType.QueryResponse, seqNum);
 
 		this.requestId = requestId;
 		this.size = size;

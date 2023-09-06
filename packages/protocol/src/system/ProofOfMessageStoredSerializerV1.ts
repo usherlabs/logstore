@@ -9,6 +9,7 @@ export default class ProofOfMessageStoredSerializerV1 extends Serializer<ProofOf
 		const result: any[] = [
 			VERSION,
 			SystemMessageType.ProofOfMessageStored,
+			message.seqNum,
 			message.streamId,
 			message.partition,
 			message.timestamp,
@@ -24,6 +25,7 @@ export default class ProofOfMessageStoredSerializerV1 extends Serializer<ProofOf
 		const [
 			version,
 			_messageType,
+			seqNum,
 			streamId,
 			partition,
 			timestamp,
@@ -34,6 +36,7 @@ export default class ProofOfMessageStoredSerializerV1 extends Serializer<ProofOf
 
 		return new ProofOfMessageStored({
 			version,
+			seqNum,
 			streamId,
 			partition,
 			timestamp,

@@ -20,8 +20,10 @@ import { shuffle } from 'lodash';
 import { Logger } from 'tslog';
 
 import { Managers } from '../managers';
+import { MessageMetricsSummary } from '../shared/MessageMetricsSummary';
 import { ActivityTimeout } from './ActivityTimeout';
 
+const START_DELAY = 5 * 1000;
 const RESTART_DELAY = 30 * 1000;
 const ACTIVITY_TIMEOUT = 30 * 1000;
 
@@ -60,11 +62,12 @@ export class SystemRecovery {
 
 	constructor(
 		private readonly client: LogStoreClient,
-		private readonly recoveryStream: Stream,
+		private readonly stream: Stream,
 		private readonly signer: Signer,
+		private readonly messageMetricsSummary: MessageMetricsSummary,
 		private readonly logger: Logger
 	) {
-		this.toTimestamp = Date.now();
+		this.toTimestamp = Date.now() + START_DELAY;
 		this.activityTimeout = new ActivityTimeout(
 			this.onActivityTimeout.bind(this),
 			ACTIVITY_TIMEOUT
@@ -81,11 +84,11 @@ export class SystemRecovery {
 
 		this.onSystemMessage = onSystemMessage;
 		this.subscription = await this.client.subscribe(
-			this.recoveryStream,
+			this.stream,
 			this.onRecoveryMessage.bind(this)
 		);
 
-		await this.callRecoveryEndpoint();
+		setTimeout(this.callRecoveryEndpoint.bind(this), START_DELAY);
 	}
 
 	public async stop() {
@@ -95,7 +98,7 @@ export class SystemRecovery {
 		await this.subscription?.unsubscribe();
 		this.subscription = undefined;
 
-		this.logger.info('Stopped');
+		this.logger.info('Stopped SystemRecovery');
 	}
 
 	public get progress(): RecoverySummary {
@@ -187,6 +190,9 @@ export class SystemRecovery {
 			'Collecting RecoveryResponses from brokers',
 			JSON.stringify(brokerAddresses)
 		);
+
+		this.activityTimeout.start();
+		this.isRestarting = false;
 	}
 
 	private async getBrokerEndpoint() {
@@ -219,6 +225,7 @@ export class SystemRecovery {
 		content: unknown,
 		metadata: MessageMetadata
 	): Promise<void> {
+		this.messageMetricsSummary.update(content, metadata);
 		const systemMessage = SystemMessage.deserialize(content);
 		if (!LISTENING_MESSAGE_TYPES.includes(systemMessage.messageType)) {
 			return;
@@ -324,7 +331,7 @@ export class SystemRecovery {
 
 		// if no recovery messages received
 		if (progress.timestamp === undefined) {
-			progress.timestamp = 0;
+			progress.timestamp = metadata.timestamp;
 		}
 
 		progress.isComplete = true;

@@ -66,6 +66,7 @@ export class SystemReport {
 
 	// ? Produce a hash based on the time of the ProofOfReport
 	async toProof(
+		seqNum: number,
 		signer: Signer,
 		// ? Create a Timestamp for Proof Of Report - Compatible with On-Chain Verification
 		// Tried using Streamr Message Timestamp, but hash/signature mechanism is difficult to replicate on-chain
@@ -77,6 +78,7 @@ export class SystemReport {
 		const signature = await signer.signMessage(arrayify(toth));
 
 		return new ProofOfReport({
+			seqNum,
 			hash: this.toHash(),
 			address: await signer.getAddress(),
 			toth, // Time-based one-time hash

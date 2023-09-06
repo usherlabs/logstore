@@ -18,16 +18,20 @@ import {
 } from './env-config';
 import { Managers } from './managers';
 import { BroadbandSubscriber } from './shared/BroadbandSubscriber';
+import { MessageMetricsSummary } from './shared/MessageMetricsSummary';
 import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
 import { SystemRecovery } from './threads/SystemRecovery';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
+const METRICS_INTERVAL = 60 * 1000;
+
 export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
 	public version = appVersion;
 	public config: IConfig = {
+		recoveryStreamId: '',
 		systemStreamId: '',
 		sources: [],
 		fees: {
@@ -66,7 +70,7 @@ export default class Runtime implements IRuntimeExtended {
 		);
 
 		const recoveryStream = await logStoreClient.getStream(
-			this.config.systemStreamId
+			this.config.recoveryStreamId
 		);
 
 		const systemSubscriber = new BroadbandSubscriber(
@@ -74,10 +78,13 @@ export default class Runtime implements IRuntimeExtended {
 			systemStream
 		);
 
+		const messageMetricsSummary = new MessageMetricsSummary();
+
 		const recovery = new SystemRecovery(
 			logStoreClient,
 			recoveryStream,
 			signer,
+			messageMetricsSummary,
 			core.logger
 		);
 
@@ -93,13 +100,20 @@ export default class Runtime implements IRuntimeExtended {
 			logStoreClient,
 			systemSubscriber,
 			recovery,
-			systemStream,
-			signer,
+			messageMetricsSummary,
 			core.logger
 		);
 
 		await this.time.start();
 		await this.listener.start();
+
+		setInterval(
+			() =>
+				core.logger.info(
+					`Metrics ${JSON.stringify(messageMetricsSummary.summary)}`
+				),
+			METRICS_INTERVAL
+		);
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {
@@ -135,10 +149,23 @@ export default class Runtime implements IRuntimeExtended {
 
 		await Managers.setSources(config.sources);
 
+		const isDevNetwork =
+			systemContracts.nodeManagerAddress ===
+			'0x85ac4C8E780eae81Dd538053D596E382495f7Db9';
+
+		const recoveryStreamId = isDevNetwork
+			? `${systemContracts.nodeManagerAddress}/recovery`
+			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-recovery';
+
+		const systemStreamId = isDevNetwork
+			? `${systemContracts.nodeManagerAddress}/system`
+			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-system';
+
 		this.config = {
 			...this.config,
 			...config,
-			systemStreamId: `${systemContracts.nodeManagerAddress}/system`,
+			recoveryStreamId,
+			systemStreamId,
 		};
 	}
 

@@ -8,6 +8,7 @@ const VERSION = 1;
 
 const message = new RecoveryRequest({
 	version: VERSION,
+	seqNum: 1234,
 	requestId: 'recoveryRequestId',
 	from: 1234567890,
 	to: 1234567890,
@@ -16,6 +17,7 @@ const message = new RecoveryRequest({
 const serializedMessage = JSON.stringify([
 	VERSION,
 	SystemMessageType.RecoveryRequest,
+	1234,
 	'recoveryRequestId',
 	1234567890,
 	1234567890,

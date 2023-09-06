@@ -13,9 +13,10 @@ export class RollCallResponse extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
+		seqNum,
 		requestId,
 	}: RollCallResponseOptions) {
-		super(version, SystemMessageType.RollCallResponse);
+		super(version, SystemMessageType.RollCallResponse, seqNum);
 
 		this.requestId = requestId;
 	}

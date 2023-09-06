@@ -21,6 +21,7 @@ export interface IRuntimeExtended extends IRuntime {
 }
 
 export interface IConfig {
+	recoveryStreamId: string;
 	systemStreamId: string;
 	sources: string[];
 	fees: {

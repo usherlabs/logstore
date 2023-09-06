@@ -8,16 +8,16 @@ const VERSION = 1;
 
 const message = new RecoveryComplete({
 	version: VERSION,
+	seqNum: 1234,
 	requestId: 'recoveryRequestId',
-	seqNum: 42,
 	isFulfilled: true,
 });
 
 const serializedMessage = JSON.stringify([
 	VERSION,
 	SystemMessageType.RecoveryComplete,
+	1234,
 	'recoveryRequestId',
-	42,
 	true,
 ]);
 

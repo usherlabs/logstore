@@ -9,6 +9,7 @@ import { v4 as uuid } from 'uuid';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
+import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
 
 const ROLLCALL_ROUND_MS = 10 * 1000;
 const ROLLCALL_ROUND_SPREAD_MS = 5 * 1000;
@@ -17,10 +18,13 @@ export class RollCall {
 	private roundTimeout?: NodeJS.Timeout;
 	private requestId?: string;
 	private responses: Map<EthereumAddress, number> = new Map();
+	private requestSeqNum: number = 0;
+	private responseSeqNum: number = 0;
 
 	constructor(
 		private readonly publisher: BroadbandPublisher,
-		private readonly subscriber: BroadbandSubscriber
+		private readonly subscriber: BroadbandSubscriber,
+		private readonly messageMetricsSummary: MessageMetricsSummary
 	) {
 		//
 	}
@@ -71,11 +75,15 @@ export class RollCall {
 		this.resetRoundTimeout();
 		this.requestId = uuid();
 
-		const rollCallRequest = new RollCallRequest({ requestId: this.requestId });
+		const rollCallRequest = new RollCallRequest({
+			seqNum: this.requestSeqNum++,
+			requestId: this.requestId,
+		});
 		await this.publisher.publish(rollCallRequest.serialize());
 	}
 
 	private async onMessage(message: unknown, metadata: MessageMetadata) {
+		this.messageMetricsSummary.update(message, metadata);
 		const systemMessage = SystemMessage.deserialize(message);
 		switch (systemMessage.messageType) {
 			case SystemMessageType.RollCallRequest: {
@@ -85,6 +93,7 @@ export class RollCall {
 				this.requestId = rollCallRequest.requestId;
 
 				const rollCallResponse = new RollCallResponse({
+					seqNum: this.responseSeqNum++,
 					requestId: this.requestId,
 				});
 				await this.publisher.publish(rollCallResponse.serialize());

@@ -6,25 +6,22 @@ import {
 
 interface RecoveryCompleteOptions extends SystemMessageOptions {
 	requestId: string;
-	seqNum: number;
 	isFulfilled: boolean;
 }
 
 export class RecoveryComplete extends SystemMessage {
 	requestId: string;
-	seqNum: number;
 	isFulfilled: boolean;
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
-		requestId,
 		seqNum,
+		requestId,
 		isFulfilled,
 	}: RecoveryCompleteOptions) {
-		super(version, SystemMessageType.RecoveryComplete);
+		super(version, SystemMessageType.RecoveryComplete, seqNum);
 
 		this.requestId = requestId;
-		this.seqNum = seqNum;
 		this.isFulfilled = isFulfilled;
 	}
 }
