@@ -4,6 +4,7 @@ import {
 	PrivateKeyAuthConfig,
 	validateConfig as validateClientConfig,
 } from '@logsn/client';
+import { getNodeManagerContract } from '@logsn/shared';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
@@ -71,6 +72,8 @@ export const createBroker = async (
 	);
 	const signer = new ethers.Wallet(privateKey, provider);
 
+	const nodeManger = await getNodeManagerContract(signer);
+
 	const plugins: Plugin<any>[] = Object.keys(config.plugins).map((name) => {
 		const pluginOptions: PluginOptions = {
 			name,
@@ -80,6 +83,7 @@ export const createBroker = async (
 			systemStream,
 			brokerConfig: config,
 			signer,
+			nodeManger,
 		};
 		return createPlugin(name, pluginOptions);
 	});

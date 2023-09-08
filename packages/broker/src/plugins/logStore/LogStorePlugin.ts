@@ -20,6 +20,7 @@ import {
 	MessageMetricsSummary,
 } from '../../shared/MessageMetricsSummary';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
+import { ConsensusManager } from './ConsensusManger';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
@@ -104,6 +105,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly rollCall: RollCall;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
+	private readonly consensusManager: ConsensusManager;
 
 	private seqNum: number = 0;
 
@@ -158,6 +160,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.systemCache,
 			this.messageMetricsSummary
 		);
+
+		this.consensusManager = new ConsensusManager(
+			this.nodeManger,
+			this.systemPublisher,
+			this.systemSubscriber,
+			this.messageMetricsSummary
+		);
 	}
 
 	getApiAuthentication(): undefined {
@@ -168,6 +177,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		await this.rollCall.start();
 		await this.systemCache.start();
 		await this.systemRecovery.start();
+		await this.consensusManager.start();
 
 		const abortController = new AbortController();
 		const poller = new ReportPoller(
@@ -245,9 +255,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			createDataQueryEndpoint(
 				this.brokerConfig,
 				this.logStore,
-				this.logStoreClient,
-				this.systemStream,
-				this.systemPublisher,
+				this.consensusManager,
 				metricsContext
 			)
 		);
@@ -270,6 +278,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			node.unsubscribe(streamPart);
 		});
 		await Promise.all([
+			this.consensusManager.stop(),
 			this.rollCall.stop(),
 			this.systemCache.stop(),
 			this.systemRecovery.stop(),
