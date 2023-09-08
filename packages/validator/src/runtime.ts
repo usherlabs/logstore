@@ -6,6 +6,7 @@ import {
 	validateConfig as validateClientConfig,
 } from '@logsn/client';
 import ContractAddresses from '@logsn/contracts/address.json';
+import { SystemMessageType } from '@logsn/protocol';
 import { ethers } from 'ethers';
 
 import { Item } from './core/item';
@@ -18,13 +19,46 @@ import {
 } from './env-config';
 import { Managers } from './managers';
 import { BroadbandSubscriber } from './shared/BroadbandSubscriber';
-import { MessageMetricsSummary } from './shared/MessageMetricsSummary';
+import {
+	MessageMetricsSubject,
+	MessageMetricsSummary,
+} from './shared/MessageMetricsSummary';
 import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
 import { SystemRecovery } from './threads/SystemRecovery';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
+const METRICS_SUBJECTS: MessageMetricsSubject[] = [
+	{
+		subject: 'ProofOfMessageStored',
+		type: SystemMessageType.ProofOfMessageStored,
+	},
+	{
+		subject: 'ProofOfReport',
+		type: SystemMessageType.ProofOfReport,
+	},
+	{
+		subject: 'QueryRequest',
+		type: SystemMessageType.QueryRequest,
+	},
+	{
+		subject: 'QueryResponse',
+		type: SystemMessageType.QueryResponse,
+	},
+	{
+		subject: 'RecoveryRequest',
+		type: SystemMessageType.RecoveryRequest,
+	},
+	{
+		subject: 'RecoveryResponse',
+		type: SystemMessageType.RecoveryResponse,
+	},
+	{
+		subject: 'RecoveryComplete',
+		type: SystemMessageType.RecoveryComplete,
+	},
+];
 const METRICS_INTERVAL = 60 * 1000;
 
 export default class Runtime implements IRuntimeExtended {
@@ -78,7 +112,7 @@ export default class Runtime implements IRuntimeExtended {
 			systemStream
 		);
 
-		const messageMetricsSummary = new MessageMetricsSummary();
+		const messageMetricsSummary = new MessageMetricsSummary(METRICS_SUBJECTS);
 
 		const recovery = new SystemRecovery(
 			logStoreClient,

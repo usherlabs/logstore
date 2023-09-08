@@ -1,10 +1,8 @@
 /**
  * Endpoints for RESTful data requests
  */
-import { LogStoreClient, Stream } from '@logsn/client';
-import { LogStoreNodeManager } from '@logsn/contracts';
 import { QueryRequest, QueryType } from '@logsn/protocol';
-import { getNodeManagerContract, getQueryManagerContract } from '@logsn/shared';
+import { getQueryManagerContract } from '@logsn/shared';
 import {
 	Logger,
 	MetricsContext,
@@ -19,9 +17,9 @@ import { v4 as uuid } from 'uuid';
 
 import { StrictConfig } from '../../../config/config';
 import { HttpServerEndpoint } from '../../../Plugin';
-import { BroadbandPublisher } from '../../../shared/BroadbandPublisher';
 import { createBasicAuthenticatorMiddleware } from '../authentication';
-import { Consensus, getConsensus } from '../Consensus';
+import { ConsensusResponse } from '../Consensus';
+import { ConsensusManager } from '../ConsensusManger';
 import { LogStore } from '../LogStore';
 import { Format, getFormat } from './DataQueryFormat';
 import {
@@ -46,7 +44,7 @@ function parseIntIfExists(x: string | undefined): number | undefined {
 
 const sendSuccess = (
 	data: Readable,
-	consensus: Consensus[],
+	consensus: ConsensusResponse[],
 	format: Format,
 	version: number | undefined,
 	streamId: string,
@@ -153,11 +151,8 @@ const getDataForLastRequest = async (
 	streamId: string,
 	partition: number,
 	res: Response,
-	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
-	logStoreClient: LogStoreClient,
-	systemStream: Stream,
-	streamPublisher: BroadbandPublisher,
+	consensusManager: ConsensusManager,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendLastQueriesPerSecond.record(1);
@@ -166,8 +161,6 @@ const getDataForLastRequest = async (
 		sendError(`Query parameter "count" not a number: ${req.query.count}`, res);
 		return;
 	}
-
-	let data = logStore.requestLast(streamId, partition, count!);
 
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
@@ -181,16 +174,9 @@ const getDataForLastRequest = async (
 			last: count,
 		},
 	});
+	const consensus = await consensusManager.getConsensus(queryMessage);
 
-	const consensus = await getConsensus(
-		queryMessage,
-		nodeManager,
-		logStoreClient,
-		systemStream,
-		streamPublisher
-	);
-
-	data = logStore.requestLast(streamId, partition, count!);
+	const data = logStore.requestLast(streamId, partition, count!);
 	return { data, consensus };
 };
 
@@ -199,11 +185,8 @@ const getDataForFromRequest = async (
 	streamId: string,
 	partition: number,
 	res: Response,
-	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
-	logStoreClient: LogStoreClient,
-	systemStream: Stream,
-	streamPublisher: BroadbandPublisher,
+	consensusManager: ConsensusManager,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendFromQueriesPerSecond.record(1);
@@ -230,15 +213,6 @@ const getDataForFromRequest = async (
 		? messageLimitForRequest
 		: undefined;
 
-	let data = logStore.requestFrom(
-		streamId,
-		partition,
-		fromTimestamp,
-		fromSequenceNumber,
-		publisherId,
-		limitOrUndefinedIfInfinity
-	);
-
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
 		seqNum: seqNum++,
@@ -257,15 +231,9 @@ const getDataForFromRequest = async (
 		},
 	});
 
-	const consensus = await getConsensus(
-		queryMessage,
-		nodeManager,
-		logStoreClient,
-		systemStream,
-		streamPublisher
-	);
+	const consensus = await consensusManager.getConsensus(queryMessage);
 
-	data = logStore.requestFrom(
+	const data = logStore.requestFrom(
 		streamId,
 		partition,
 		fromTimestamp,
@@ -281,11 +249,8 @@ const getDataForRangeRequest = async (
 	streamId: string,
 	partition: number,
 	res: Response,
-	nodeManager: LogStoreNodeManager,
 	logStore: LogStore,
-	logStoreClient: LogStoreClient,
-	systemStream: Stream,
-	streamPublisher: BroadbandPublisher,
+	consensusManager: ConsensusManager,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendRangeQueriesPerSecond.record(1);
@@ -341,18 +306,6 @@ const getDataForRangeRequest = async (
 		? messageLimitForRequest
 		: undefined;
 
-	let data = logStore.requestRange(
-		streamId,
-		partition,
-		fromTimestamp,
-		fromSequenceNumber,
-		toTimestamp,
-		toSequenceNumber,
-		publisherId,
-		msgChainId,
-		limitOrUndefinedIfInfinity
-	);
-
 	const requestId = uuid();
 	const queryMessage = new QueryRequest({
 		seqNum: seqNum++,
@@ -376,15 +329,9 @@ const getDataForRangeRequest = async (
 		},
 	});
 
-	const consensus = await getConsensus(
-		queryMessage,
-		nodeManager,
-		logStoreClient,
-		systemStream,
-		streamPublisher
-	);
+	const consensus = await consensusManager.getConsensus(queryMessage);
 
-	data = logStore.requestRange(
+	const data = logStore.requestRange(
 		streamId,
 		partition,
 		fromTimestamp,
@@ -422,27 +369,14 @@ const getDataForRequest = async (
 		| typeof getDataForRangeRequest
 	>
 ) => {
-	const [
-		req,
-		streamId,
-		partition,
-		res,
-		nodeManager,
-		logStore,
-		logStoreClient,
-		signer,
-		systemStream,
-		metrics,
-	] = args;
+	const [req, streamId, partition, res, logStore, consensusManager, metrics] =
+		args;
 	const rest = [
 		streamId,
 		partition,
 		res,
-		nodeManager,
 		logStore,
-		logStoreClient,
-		signer,
-		systemStream,
+		consensusManager,
 		metrics,
 	] as const;
 	const reqType = getRequestType(req);
@@ -461,9 +395,7 @@ const getDataForRequest = async (
 const createHandler = (
 	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
-	logStoreClient: LogStoreClient,
-	systemStream: Stream,
-	streamPublisher: BroadbandPublisher,
+	consensusManager: ConsensusManager,
 	metrics: MetricsDefinition
 ): RequestHandler => {
 	return async (req: Request, res: Response) => {
@@ -481,7 +413,6 @@ const createHandler = (
 		const provider = new ethers.providers.JsonRpcProvider(
 			config.client!.contracts?.streamRegistryChainRPCs!.rpcs[0]
 		);
-		const nodeManager = await getNodeManagerContract(provider);
 		const queryManager = await getQueryManagerContract(provider);
 		const balance = await queryManager.balanceOf(consumer);
 		if (!balance.gt(0)) {
@@ -498,11 +429,8 @@ const createHandler = (
 				streamId,
 				partition,
 				res,
-				nodeManager,
 				logStore,
-				logStoreClient,
-				systemStream,
-				streamPublisher,
+				consensusManager,
 				metrics
 			);
 			if (response) {
@@ -525,9 +453,7 @@ const createHandler = (
 export const createDataQueryEndpoint = (
 	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
-	logStoreClient: LogStoreClient,
-	systemStream: Stream,
-	streamPublisher: BroadbandPublisher,
+	consensusManager: ConsensusManager,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
 	const metrics = {
@@ -541,14 +467,7 @@ export const createDataQueryEndpoint = (
 		method: 'get',
 		requestHandlers: [
 			createBasicAuthenticatorMiddleware(),
-			createHandler(
-				config,
-				logStore,
-				logStoreClient,
-				systemStream,
-				streamPublisher,
-				metrics
-			),
+			createHandler(config, logStore, consensusManager, metrics),
 		],
 	};
 };

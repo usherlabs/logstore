@@ -1,149 +1,84 @@
-import type { Stream } from '@logsn/client';
-import { LogStoreClient } from '@logsn/client';
-import { LogStoreNodeManager } from '@logsn/contracts';
-import {
-	QueryRequest,
-	QueryResponse,
-	SystemMessage,
-	SystemMessageType,
-} from '@logsn/protocol';
-import { Logger } from '@streamr/utils';
-
-import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
-import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
+import { QueryResponse } from '@logsn/protocol';
+import { EthereumAddress, Logger } from '@streamr/utils';
 
 const CONSENSUS_TIMEOUT = 30 * 1000; // 30 seconds
 
 const logger = new Logger(module);
 
-export type Consensus = {
+export type ConsensusResponse = {
 	hash: string;
-	signer: string;
+	signer: EthereumAddress;
 	signature: string;
 };
 
-/**
- * On receiving a HTTP Query Request, forward the request to other Broker Nodes.
- * The wait for the Broker Network's response.
- */
-export const getConsensus = async (
-	queryRequest: QueryRequest,
-	nodeManager: LogStoreNodeManager,
-	logStoreClient: LogStoreClient,
-	systemStream: Stream,
-	streamPublisher: BroadbandPublisher
-): Promise<Consensus[]> => {
-	let awaitingResponses = (await nodeManager.totalNodes()).toNumber();
-	const consesnusThreshold = Math.ceil(awaitingResponses / 2);
-	const consensuses: Record<string, Consensus[]> = {};
+export class Consensus {
+	private responses: Record<string, ConsensusResponse[]> = {};
+	private promise: Promise<ConsensusResponse[]>;
+	private resolve!: (value: ConsensusResponse[]) => void;
+	private reject!: (reason: any) => void;
+	private readonly threshold: number;
 
-	return new Promise<Consensus[]>((resolve, reject) => {
-		let timeout: NodeJS.Timeout;
-		const streamSubscriber = new BroadbandSubscriber(
-			logStoreClient,
-			systemStream
-		);
-		streamSubscriber
-			.subscribe((msg, metadata) => {
-				const systemMessage = SystemMessage.deserialize(msg);
+	constructor(
+		private readonly requestId: string,
+		private awaitingResponses: number
+	) {
+		this.threshold = Math.ceil(awaitingResponses / 2);
 
-				if (systemMessage.messageType != SystemMessageType.QueryResponse) {
-					return;
-				}
+		this.promise = new Promise<ConsensusResponse[]>((resolve, reject) => {
+			this.resolve = resolve;
+			this.reject = reject;
+		});
+	}
 
-				const queryResponse = systemMessage as QueryResponse;
-				if (queryResponse.requestId !== queryRequest.requestId) {
-					return;
-				}
+	public update(queryResponse: QueryResponse, publisherId: EthereumAddress) {
+		if (!this.responses[queryResponse.hash]) {
+			this.responses[queryResponse.hash] = [];
+		}
 
-				logger.trace(
-					'Received QueryResponse: %s',
-					JSON.stringify({
-						requestId: queryResponse.requestId,
-						publisherId: metadata.publisherId,
-						hash: queryResponse.hash,
-					})
-				);
+		this.awaitingResponses--;
+		this.responses[queryResponse.hash].push({
+			hash: queryResponse.hash,
+			signer: publisherId,
+			signature: queryResponse.signature,
+		});
 
-				if (!consensuses[queryResponse.hash]) {
-					consensuses[queryResponse.hash] = [];
-				}
+		// check if consensus reached
+		if (this.responses[queryResponse.hash].length >= this.threshold) {
+			logger.trace(
+				'Consensus reached: %s',
+				JSON.stringify({ requestId: this.requestId })
+			);
+			this.resolve(this.responses[queryResponse.hash]);
+			return;
+		}
 
-				awaitingResponses--;
-				consensuses[queryResponse.hash].push({
-					hash: queryResponse.hash,
-					signer: metadata.publisherId,
-					signature: queryResponse.signature,
-				});
+		// check if consensus cannot be reached
+		const leadingResponses = Object.keys(this.responses)
+			.map((key) => this.responses[key].length)
+			.reduce((max, length) => Math.max(max, length), 0);
 
-				// check if consensus reached
-				if (consensuses[queryResponse.hash].length >= consesnusThreshold) {
-					logger.trace(
-						'Consensus reached: %s',
-						JSON.stringify({ requestId: queryRequest.requestId })
-					);
-					clearTimeout(timeout);
-					streamSubscriber.unsubscribe().then(() => {
-						resolve(consensuses[queryResponse.hash]);
-					});
-					return;
-				}
+		if (leadingResponses + this.awaitingResponses < this.threshold) {
+			logger.trace(
+				'No consensus: %s',
+				JSON.stringify({
+					requestId: this.requestId,
+					responses: this.responses,
+				})
+			);
+			this.reject('No consensus');
+			return;
+		}
+	}
 
-				// check if consensus cannot be reached
-				const leadingResponses = Object.keys(consensuses)
-					.map((key) => consensuses[key].length)
-					.reduce((max, length) => Math.max(max, length), 0);
+	public async wait() {
+		const timeout = setTimeout(() => {
+			this.reject('Consensus timeout');
+		}, CONSENSUS_TIMEOUT);
 
-				if (leadingResponses + awaitingResponses < consesnusThreshold) {
-					clearTimeout(timeout);
-					logger.trace(
-						'No consensus: %s',
-						JSON.stringify({
-							requestId: queryRequest.requestId,
-							consensuses,
-						})
-					);
-					streamSubscriber.unsubscribe().then(() => {
-						reject('No consensus');
-					});
-					return;
-				}
-			})
-			.then(() => {
-				// On successful subscription, forward the request to broker network
-				streamPublisher.publish(queryRequest.serialize()).then(() => {
-					logger.trace(
-						'Published QueryRequest: %s',
-						JSON.stringify(queryRequest)
-					);
-
-					timeout = setTimeout(() => {
-						logger.trace(
-							'Consensus timeout: %s',
-							JSON.stringify({ requestId: queryRequest.requestId })
-						);
-
-						streamSubscriber.unsubscribe().then(() => {
-							reject('Consensus timeout');
-						});
-					}, CONSENSUS_TIMEOUT);
-				});
-			})
-			.catch((err) => {
-				logger.error(JSON.stringify(err));
-				clearTimeout(timeout);
-				reject(err``);
-			});
-	});
-
-	///
-	// 1. Iterate over all the items in data readable
-	// 2. hash each of them, prepending the previous hash -- ie.
-	// hash = keccak256(fromStringToUint8Array(toString(hash) + data[i].message))
-	// size = size + Buffer.byteLength(data[i].message);
-	// 3. Ship the message over the system stream
-	// 4. Await messages to be received via the system stream listner
-	// 5. Compare local metadata to received metadata
-	// 6. Collate all system publisher ids, signatures and hashhes and include them as items in the readable stream.... -- if this is possible...
-	// Send the response
-};
+		try {
+			return await this.promise;
+		} finally {
+			clearTimeout(timeout);
+		}
+	}
+}

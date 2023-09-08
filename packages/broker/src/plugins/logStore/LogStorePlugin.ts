@@ -15,8 +15,12 @@ import { keccak256 } from 'ethers/lib/utils';
 import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
+import {
+	MessageMetricsSubject,
+	MessageMetricsSummary,
+} from '../../shared/MessageMetricsSummary';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
+import { ConsensusManager } from './ConsensusManger';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
@@ -27,6 +31,37 @@ import { ReportPoller } from './ReportPoller';
 import { RollCall } from './RollCall';
 import { SystemCache } from './SystemCache';
 import { SystemRecovery } from './SystemRecovery';
+
+const METRICS_SUBJECTS: MessageMetricsSubject[] = [
+	{
+		subject: 'ProofOfMessageStored',
+		type: SystemMessageType.ProofOfMessageStored,
+	},
+	{
+		subject: 'ProofOfReport',
+		type: SystemMessageType.ProofOfReport,
+	},
+	{
+		subject: 'RollCallRequest',
+		type: SystemMessageType.RollCallRequest,
+	},
+	{
+		subject: 'RollCallResponse',
+		type: SystemMessageType.RollCallResponse,
+	},
+	{
+		subject: 'QueryRequest',
+		type: SystemMessageType.QueryRequest,
+	},
+	{
+		subject: 'QueryResponse',
+		type: SystemMessageType.QueryResponse,
+	},
+	{
+		subject: 'RecoveryRequest',
+		type: SystemMessageType.RecoveryRequest,
+	},
+];
 
 const METRICS_INTERVAL = 60 * 1000;
 
@@ -70,6 +105,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly rollCall: RollCall;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
+	private readonly consensusManager: ConsensusManager;
 
 	private seqNum: number = 0;
 
@@ -103,7 +139,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.rollCallStream
 		);
 
-		this.messageMetricsSummary = new MessageMetricsSummary();
+		this.messageMetricsSummary = new MessageMetricsSummary(METRICS_SUBJECTS);
 
 		this.rollCall = new RollCall(
 			this.rollcallPublisher,
@@ -124,6 +160,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.systemCache,
 			this.messageMetricsSummary
 		);
+
+		this.consensusManager = new ConsensusManager(
+			this.nodeManger,
+			this.systemPublisher,
+			this.systemSubscriber,
+			this.messageMetricsSummary
+		);
 	}
 
 	getApiAuthentication(): undefined {
@@ -134,6 +177,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		await this.rollCall.start();
 		await this.systemCache.start();
 		await this.systemRecovery.start();
+		await this.consensusManager.start();
 
 		const abortController = new AbortController();
 		const poller = new ReportPoller(
@@ -211,9 +255,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			createDataQueryEndpoint(
 				this.brokerConfig,
 				this.logStore,
-				this.logStoreClient,
-				this.systemStream,
-				this.systemPublisher,
+				this.consensusManager,
 				metricsContext
 			)
 		);
@@ -236,6 +278,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			node.unsubscribe(streamPart);
 		});
 		await Promise.all([
+			this.consensusManager.stop(),
 			this.rollCall.stop(),
 			this.systemCache.stop(),
 			this.systemRecovery.stop(),

@@ -49,7 +49,7 @@ export async function handeQueryRequest(
 		case QueryType.Last: {
 			const { last } = queryRequest.queryOptions as QueryLastOptions;
 
-			readableStream = logStore!.requestLast(
+			readableStream = logStore.requestLast(
 				queryRequest.streamId,
 				queryRequest.partition,
 				last
