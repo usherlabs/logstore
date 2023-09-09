@@ -8,6 +8,7 @@ import {
 import ContractAddresses from '@logsn/contracts/address.json';
 import { SystemMessageType } from '@logsn/protocol';
 import { ethers } from 'ethers';
+import fse from 'fs-extra';
 
 import { Item } from './core/item';
 import { Report } from './core/report';
@@ -62,6 +63,7 @@ const METRICS_SUBJECTS: MessageMetricsSubject[] = [
 const METRICS_INTERVAL = 60 * 1000;
 
 export default class Runtime implements IRuntimeExtended {
+	private _homeDir: string;
 	public name = appPackageName;
 	public version = appVersion;
 	public config: IConfig = {
@@ -80,6 +82,8 @@ export default class Runtime implements IRuntimeExtended {
 	private _startKey: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
+		this._homeDir = homeDir;
+
 		const clientConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
 		validateClientConfig(clientConfig);
 
@@ -276,6 +280,12 @@ export default class Runtime implements IRuntimeExtended {
 		const reportHash = sha256(Buffer.from(JSON.stringify(reportData))); // use sha256 of entire report to include "events".
 
 		lastItem.value.r = reportData;
+
+		await fse.outputFile(
+			`${this._homeDir}/bundles/${firstItem.key}-${lastItem.key}.json`,
+			JSON.stringify(bundle, null, 2)
+		);
+
 		return lastItem.key + '_' + reportHash;
 	}
 
