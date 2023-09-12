@@ -293,7 +293,7 @@ export class SystemRecovery {
 			})}`
 		);
 
-		if (recoveryResponse.seqNum - progress.lastSeqNum !== 1) {
+		if (recoveryResponse.seqNum - progress.lastSeqNum > 1) {
 			throw new Error(
 				`RecoveryResponse has unexpected seqNum ${JSON.stringify({
 					seqNum: recoveryResponse.seqNum,
@@ -321,7 +321,7 @@ export class SystemRecovery {
 			})}`
 		);
 
-		if (recoveryComplete.seqNum - progress.lastSeqNum !== 1) {
+		if (recoveryComplete.seqNum - progress.lastSeqNum > 1) {
 			throw new Error(
 				`RecoveryComplete has unexpected seqNum ${JSON.stringify({
 					seqNum: recoveryComplete.seqNum,
