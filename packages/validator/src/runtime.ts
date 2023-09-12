@@ -257,7 +257,20 @@ export default class Runtime implements IRuntimeExtended {
 			Buffer.from(JSON.stringify(validationDataItem.value.m))
 		);
 
-		return proposedDataItemHash === validationDataItemHash;
+		const isValid = proposedDataItemHash === validationDataItemHash;
+
+		if (!isValid) {
+			await fse.outputFile(
+				`${this._homeDir}/bundles/${proposedDataItem.key}-proposed.json`,
+				JSON.stringify(proposedDataItem, null, 2)
+			);
+			await fse.outputFile(
+				`${this._homeDir}/bundles/${validationDataItem.key}-validation.json`,
+				JSON.stringify(validationDataItem, null, 2)
+			);
+		}
+
+		return isValid;
 	}
 
 	async summarizeDataBundle(
