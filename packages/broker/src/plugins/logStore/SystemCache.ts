@@ -15,6 +15,8 @@ const CACHE_MESSAGE_TYPES = [
 	SystemMessageType.ProofOfReport,
 ];
 
+const DEFAULT_SRINK_INTERVAL = 2 * 60 * 1000;
+
 export class SystemCache {
 	private shrinkTimeout?: NodeJS.Timeout;
 
@@ -34,8 +36,14 @@ export class SystemCache {
 	public async start() {
 		await this.subscriber.subscribe(this.onMessage.bind(this));
 
-		const kyvePoolData = await this.kyvePool.getData();
-		const shrinkTimeout = kyvePoolData.uploadInterval * 1000;
+		let shrinkTimeout;
+		try {
+			const kyvePoolData = await this.kyvePool.fetchPoolData();
+			shrinkTimeout = kyvePoolData.uploadInterval * 1000;
+		} catch (err) {
+			logger.warn(`error when trying to get shrink interval for cache: ${err}`);
+			shrinkTimeout = DEFAULT_SRINK_INTERVAL;
+		}
 
 		await this.resetShrinkTimeout(shrinkTimeout);
 
@@ -60,13 +68,17 @@ export class SystemCache {
 	}
 
 	private async onShrinkTimeout() {
-		const kyvePoolData = await this.kyvePool.getData();
+		try {
+			const kyvePoolData = await this.kyvePool.fetchPoolData();
 
-		const shrinkTimeout = kyvePoolData.uploadInterval * 1000;
-		const shrinkTimestamp = kyvePoolData.currentKey * 1000;
+			const shrinkTimeout = kyvePoolData.uploadInterval * 1000;
+			const shrinkTimestamp = kyvePoolData.currentKey * 1000;
 
-		this.resetShrinkTimeout(shrinkTimeout);
-		this.shrink(shrinkTimestamp);
+			this.resetShrinkTimeout(shrinkTimeout);
+			this.shrink(shrinkTimestamp);
+		} catch (err) {
+			logger.warn(`error when trying to shrink cache: ${err}`);
+		}
 	}
 
 	private async onMessage(content: unknown, metadata: MessageMetadata) {

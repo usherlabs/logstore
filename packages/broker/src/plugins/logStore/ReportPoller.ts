@@ -11,12 +11,14 @@ import { ethers, Signer, Wallet } from 'ethers';
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
+import { KyvePool } from './KyvePool';
 import { ReportPoll } from './ReportPoll';
 
 const logger = new Logger(module);
 const REPORT_TRESHOLD_MULTIPLIER = 0.5;
 
 export class ReportPoller {
+	private readonly kyvePool: KyvePool;
 	private readonly poolConfig: StrictConfig['pool'];
 	private readonly signer: Signer;
 	private readonly publisher: BroadbandPublisher;
@@ -31,10 +33,12 @@ export class ReportPoller {
 	private seqNum: number = 0;
 
 	constructor(
+		kyvePool: KyvePool,
 		config: StrictConfig,
 		signer: Signer,
 		publisher: BroadbandPublisher
 	) {
+		this.kyvePool = kyvePool;
 		this.poolConfig = config.pool;
 		this.latestBundle = 0;
 		this.signer = signer;
@@ -59,7 +63,8 @@ export class ReportPoller {
 
 	private async poll(): Promise<void> {
 		// get the report manager contract
-		const latestBundle = await this.fetchPoolLatestBundle();
+		const { totalBundles } = await this.kyvePool.fetchPoolData();
+		const latestBundle = totalBundles - 1;
 
 		// ensure this poller has seen at least 1 bundles cycle before it can start processing
 		// so nodes who join halfway through the process, wait for the next round before starting
@@ -125,24 +130,10 @@ export class ReportPoller {
 		}
 	}
 
-	// poll kyve url for information on how many bundles have been finalized by tthis pool
-	private async fetchPoolLatestBundle(): Promise<number> {
-		logger.info(`Fetching the pool information to get latest bundle`);
-		const { data: response } = await axios.get(
-			`${this.poolConfig.url}/kyve/query/v1beta1/pool/${this.poolConfig.id}`
-		);
-		const { total_bundles: totalBundles } = response.pool.data;
-		return totalBundles - 1;
-	}
-
 	// using the bundle id, fetch information about this bundle
-	private async fetchReportData(bundleId: number): Promise<SystemReport> {
-		logger.info(`Fetching the bundle with id:${bundleId}`);
-		// fetch information about the bundle parameter passed in
-		const { data: response } = await axios.get(
-			`${this.poolConfig.url}/kyve/query/v1beta1/finalized_bundle/${this.poolConfig.id}/${bundleId}`
-		);
-		const arweaveStorageId = response.finalized_bundle.storage_id;
+	public async fetchReportData(bundleId: number): Promise<SystemReport> {
+		const finalizedBundle = await this.kyvePool.fetchFinalizedBundle(bundleId);
+		const arweaveStorageId = finalizedBundle.storageId;
 		// using the storage id, we fetch the information from arweave
 		// It should be noted that what is gotten is an array buffer since we expect the file to be zipped
 		const { data: gzippedData } = await axios.get(

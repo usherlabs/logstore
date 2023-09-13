@@ -106,6 +106,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
 	private readonly consensusManager: ConsensusManager;
+	private readonly reportPoller: ReportPoller;
 
 	private seqNum: number = 0;
 
@@ -167,6 +168,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.systemSubscriber,
 			this.messageMetricsSummary
 		);
+
+		this.reportPoller = new ReportPoller(
+			this.kyvePool,
+			this.brokerConfig,
+			this.signer,
+			this.systemPublisher
+		);
 	}
 
 	getApiAuthentication(): undefined {
@@ -180,11 +188,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		await this.consensusManager.start();
 
 		const abortController = new AbortController();
-		const poller = new ReportPoller(
-			this.brokerConfig,
-			this.signer,
-			this.systemPublisher
-		);
 
 		await this.systemSubscriber.subscribe(
 			async (content: unknown, metadata: MessageMetadata) => {
@@ -208,7 +211,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 					}
 					case SystemMessageType.ProofOfReport: {
 						const proofOfReport = systemMessage as ProofOfReport;
-						await poller.processProofOfReport(proofOfReport);
+						await this.reportPoller.processProofOfReport(proofOfReport);
 						break;
 					}
 				}
@@ -216,7 +219,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		);
 
 		// start the report polling process
-		poller.start(abortController.signal);
+		this.reportPoller.start(abortController.signal);
 
 		const metricsContext = (
 			await this.logStoreClient!.getNode()
