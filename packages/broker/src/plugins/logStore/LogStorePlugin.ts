@@ -1,14 +1,11 @@
 import { MessageMetadata, Stream } from '@logsn/client';
 import {
-	ProofOfMessageStored,
 	QueryRequest,
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
-import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
-import { keccak256 } from 'ethers/lib/utils';
 
 // import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';
@@ -25,6 +22,7 @@ import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 import { handeQueryRequest } from './messageHandlers/handeQueryRequest';
+import { MessageListener } from './MessageListener';
 import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
 import { RollCall } from './RollCall';
@@ -86,14 +84,9 @@ export interface LogStorePluginConfig {
 	};
 }
 
-const isStorableMessage = (msg: StreamMessage): boolean => {
-	return msg.messageType === StreamMessageType.MESSAGE;
-};
-
 export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private logStore?: LogStore;
 	private logStoreConfig?: LogStoreConfig;
-	private messageListener?: (msg: StreamMessage) => void;
 
 	private readonly systemSubscriber: BroadbandSubscriber;
 	private readonly systemPublisher: BroadbandPublisher;
@@ -106,6 +99,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly systemRecovery: SystemRecovery;
 	private readonly consensusManager: ConsensusManager;
 	private readonly reportPoller: ReportPoller;
+	private readonly messageListener: MessageListener;
 
 	private seqNum: number = 0;
 
@@ -137,6 +131,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.rollcallSubscriber = new BroadbandSubscriber(
 			this.logStoreClient,
 			this.rollCallStream
+		);
+
+		this.messageListener = new MessageListener(
+			this.logStoreClient,
+			this.systemSubscriber,
+			this.systemPublisher,
+			this.nodeManger
 		);
 
 		this.messageMetricsSummary = new MessageMetricsSummary(METRICS_SUBJECTS);
@@ -223,33 +224,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.logStore = await this.startCassandraStorage(metricsContext);
 
 		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
-		this.messageListener = async (msg) => {
-			if (
-				isStorableMessage(msg) &&
-				this.logStoreConfig!.hasStreamPart(msg.getStreamPartID())
-			) {
-				await this.logStore!.store(msg);
+		this.messageListener.start(this.logStore, this.logStoreConfig);
 
-				const size = Buffer.byteLength(msg.serialize());
-				const hash = keccak256(
-					Uint8Array.from(Buffer.from(msg.serialize() + size))
-				);
-
-				const proofOfMessageStored = new ProofOfMessageStored({
-					seqNum: this.seqNum++,
-					streamId: msg.getStreamId(),
-					partition: msg.getStreamPartition(),
-					timestamp: msg.getTimestamp(),
-					sequenceNumber: msg.getSequenceNumber(),
-					size,
-					hash,
-				});
-
-				await this.systemPublisher.publish(proofOfMessageStored.serialize());
-			}
-		};
-		const node = await this.logStoreClient.getNode();
-		node.addMessageListener(this.messageListener);
 		this.addHttpServerEndpoint(
 			createDataQueryEndpoint(
 				this.brokerConfig,
@@ -271,12 +247,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	async stop(): Promise<void> {
 		clearInterval(this.metricsTimer);
 
-		const node = await this.logStoreClient.getNode();
-		node.removeMessageListener(this.messageListener!);
-		this.logStoreConfig!.getStreamParts().forEach((streamPart) => {
-			node.unsubscribe(streamPart);
-		});
 		await Promise.all([
+			this.messageListener.stop(),
 			this.consensusManager.stop(),
 			this.rollCall.stop(),
 			this.systemCache.stop(),
