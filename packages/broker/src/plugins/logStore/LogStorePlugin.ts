@@ -1,7 +1,6 @@
 import { MessageMetadata, Stream } from '@logsn/client';
 import {
 	ProofOfMessageStored,
-	ProofOfReport,
 	QueryRequest,
 	SystemMessage,
 	SystemMessageType,
@@ -173,7 +172,9 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.kyvePool,
 			this.brokerConfig,
 			this.signer,
-			this.systemPublisher
+			this.systemPublisher,
+			this.systemSubscriber,
+			this.messageMetricsSummary
 		);
 	}
 
@@ -207,11 +208,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 							this.signer,
 							queryRequest
 						);
-						break;
-					}
-					case SystemMessageType.ProofOfReport: {
-						const proofOfReport = systemMessage as ProofOfReport;
-						await this.reportPoller.processProofOfReport(proofOfReport);
 						break;
 					}
 				}

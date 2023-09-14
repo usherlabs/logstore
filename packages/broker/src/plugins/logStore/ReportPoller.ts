@@ -1,5 +1,11 @@
+import { MessageMetadata } from '@logsn/client';
 import { LogStoreNodeManager, LogStoreReportManager } from '@logsn/contracts';
-import { ProofOfReport, SystemReport } from '@logsn/protocol';
+import {
+	ProofOfReport,
+	SystemMessage,
+	SystemMessageType,
+	SystemReport,
+} from '@logsn/protocol';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,
@@ -11,6 +17,8 @@ import { ethers, Signer, Wallet } from 'ethers';
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
+import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
+import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
 import { KyvePool } from './KyvePool';
 import { ReportPoll } from './ReportPoll';
 
@@ -22,6 +30,8 @@ export class ReportPoller {
 	private readonly poolConfig: StrictConfig['pool'];
 	private readonly signer: Signer;
 	private readonly publisher: BroadbandPublisher;
+	private readonly subscriber: BroadbandSubscriber;
+	private readonly messageMetricsSummary: MessageMetricsSummary;
 
 	private reportManager!: LogStoreReportManager;
 	private nodeManager!: LogStoreNodeManager;
@@ -36,18 +46,24 @@ export class ReportPoller {
 		kyvePool: KyvePool,
 		config: StrictConfig,
 		signer: Signer,
-		publisher: BroadbandPublisher
+		publisher: BroadbandPublisher,
+		subscriber: BroadbandSubscriber,
+		messageMetricsSummary: MessageMetricsSummary
 	) {
 		this.kyvePool = kyvePool;
 		this.poolConfig = config.pool;
 		this.latestBundle = 0;
 		this.signer = signer;
 		this.publisher = publisher;
+		this.subscriber = subscriber;
+		this.messageMetricsSummary = messageMetricsSummary;
 	}
 
 	public async start(abortSignal: AbortSignal): Promise<void> {
 		this.reportManager = await getReportManagerContract(this.signer as Wallet);
 		this.nodeManager = await getNodeManagerContract(this.signer as Wallet);
+
+		await this.subscriber.subscribe(this.onMessage.bind(this));
 
 		if (this.poolConfig.pollInterval > 0) {
 			await scheduleAtInterval(
@@ -179,6 +195,18 @@ export class ReportPoller {
 		);
 	}
 
+	private async onMessage(content: unknown, metadata: MessageMetadata) {
+		this.messageMetricsSummary.update(content, metadata);
+		const systemMessage = SystemMessage.deserialize(content);
+
+		if (systemMessage.messageType !== SystemMessageType.ProofOfReport) {
+			return;
+		}
+
+		const proofOfReport = systemMessage as ProofOfReport;
+		await this.processProofOfReport(proofOfReport);
+	}
+
 	private async submitReport(poll: ReportPoll & { report: SystemReport }) {
 		const contractParams = poll.report.toContract();
 
@@ -251,7 +279,7 @@ export class ReportPoller {
 		return [submitReportTx, processReportTx];
 	}
 
-	public async processProofOfReport(proof: ProofOfReport) {
+	private async processProofOfReport(proof: ProofOfReport) {
 		logger.info(`processProofOfReport`);
 
 		let poll = this.polls[proof.hash];
