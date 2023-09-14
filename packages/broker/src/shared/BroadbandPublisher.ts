@@ -11,6 +11,10 @@ export class BroadbandPublisher {
 		this.partitions = this.stream.getMetadata().partitions;
 	}
 
+	public getAddress() {
+		return this.client.getAddress();
+	}
+
 	public async publish(message: unknown) {
 		const partition = this.counter % this.partitions;
 

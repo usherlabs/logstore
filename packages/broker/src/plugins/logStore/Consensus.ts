@@ -13,6 +13,7 @@ export type ConsensusResponse = {
 
 export class Consensus {
 	private responses: Record<string, ConsensusResponse[]> = {};
+	private selfResponse?: ConsensusResponse;
 	private promise: Promise<ConsensusResponse[]>;
 	private resolve!: (value: ConsensusResponse[]) => void;
 	private reject!: (reason: any) => void;
@@ -20,6 +21,7 @@ export class Consensus {
 
 	constructor(
 		private readonly requestId: string,
+		private readonly requestPublisherId: EthereumAddress,
 		private awaitingResponses: number
 	) {
 		this.threshold = Math.ceil(awaitingResponses / 2);
@@ -31,33 +33,45 @@ export class Consensus {
 	}
 
 	public update(queryResponse: QueryResponse, publisherId: EthereumAddress) {
+		const consensusResponse: ConsensusResponse = {
+			hash: queryResponse.hash,
+			signer: publisherId,
+			signature: queryResponse.signature,
+		};
+
+		if (publisherId === this.requestPublisherId) {
+			this.selfResponse = consensusResponse;
+		}
+
 		if (!this.responses[queryResponse.hash]) {
 			this.responses[queryResponse.hash] = [];
 		}
 
 		this.awaitingResponses--;
-		this.responses[queryResponse.hash].push({
-			hash: queryResponse.hash,
-			signer: publisherId,
-			signature: queryResponse.signature,
-		});
+		this.responses[queryResponse.hash].push(consensusResponse);
+
+		if (!this.selfResponse) {
+			return;
+		}
 
 		// check if consensus reached
-		if (this.responses[queryResponse.hash].length >= this.threshold) {
+		if (
+			this.selfResponse.hash === queryResponse.hash &&
+			this.responses[this.selfResponse.hash].length >= this.threshold
+		) {
 			logger.trace(
 				'Consensus reached: %s',
 				JSON.stringify({ requestId: this.requestId })
 			);
-			this.resolve(this.responses[queryResponse.hash]);
+			this.resolve(this.responses[this.selfResponse.hash]);
 			return;
 		}
 
 		// check if consensus cannot be reached
-		const leadingResponses = Object.keys(this.responses)
-			.map((key) => this.responses[key].length)
-			.reduce((max, length) => Math.max(max, length), 0);
+		const possibleResponses =
+			this.responses[this.selfResponse.hash].length + this.awaitingResponses;
 
-		if (leadingResponses + this.awaitingResponses < this.threshold) {
+		if (possibleResponses < this.threshold) {
 			logger.trace(
 				'No consensus: %s',
 				JSON.stringify({

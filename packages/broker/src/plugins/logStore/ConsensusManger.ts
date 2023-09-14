@@ -36,11 +36,13 @@ export class ConsensusManager {
 	}
 
 	public async getConsensus(queryRequest: QueryRequest) {
+		const requestPublisherId = await this.publisher.getAddress();
 		const awaitingResponses = (await this.nodeManager.totalNodes()).toNumber();
 
 		try {
 			const consensus = new Consensus(
 				queryRequest.requestId,
+				requestPublisherId,
 				awaitingResponses
 			);
 
