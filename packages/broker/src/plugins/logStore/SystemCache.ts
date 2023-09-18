@@ -3,7 +3,6 @@ import { SystemMessage, SystemMessageType } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
 import { KyvePool } from './KyvePool';
 
 const logger = new Logger(module);
@@ -27,8 +26,7 @@ export class SystemCache {
 
 	constructor(
 		private readonly subscriber: BroadbandSubscriber,
-		private readonly kyvePool: KyvePool,
-		private readonly messageMetricsSummary: MessageMetricsSummary
+		private readonly kyvePool: KyvePool
 	) {
 		//
 	}
@@ -82,7 +80,6 @@ export class SystemCache {
 	}
 
 	private async onMessage(content: unknown, metadata: MessageMetadata) {
-		this.messageMetricsSummary.update(content, metadata);
 		const systemMessage = SystemMessage.deserialize(content);
 
 		if (CACHE_MESSAGE_TYPES.includes(systemMessage.messageType)) {

@@ -1,5 +1,4 @@
 import { Stream } from '@logsn/client';
-import { SystemMessageType } from '@logsn/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 
@@ -7,10 +6,6 @@ import { Schema } from 'ajv';
 import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import {
-	MessageMetricsSubject,
-	MessageMetricsSummary,
-} from '../../shared/MessageMetricsSummary';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { ConsensusManager } from './ConsensusManger';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
@@ -18,43 +13,13 @@ import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 import { MessageListener } from './MessageListener';
+import { MessageMetricsCollector } from './MessageMetricsCollector';
 import { QueryRequestHandler } from './QueryRequestHandler';
 import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
 import { RollCall } from './RollCall';
 import { SystemCache } from './SystemCache';
 import { SystemRecovery } from './SystemRecovery';
-
-const METRICS_SUBJECTS: MessageMetricsSubject[] = [
-	{
-		subject: 'ProofOfMessageStored',
-		type: SystemMessageType.ProofOfMessageStored,
-	},
-	{
-		subject: 'ProofOfReport',
-		type: SystemMessageType.ProofOfReport,
-	},
-	{
-		subject: 'RollCallRequest',
-		type: SystemMessageType.RollCallRequest,
-	},
-	{
-		subject: 'RollCallResponse',
-		type: SystemMessageType.RollCallResponse,
-	},
-	{
-		subject: 'QueryRequest',
-		type: SystemMessageType.QueryRequest,
-	},
-	{
-		subject: 'QueryResponse',
-		type: SystemMessageType.QueryResponse,
-	},
-	{
-		subject: 'RecoveryRequest',
-		type: SystemMessageType.RecoveryRequest,
-	},
-];
 
 const METRICS_INTERVAL = 60 * 1000;
 
@@ -89,7 +54,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly rollcallSubscriber: BroadbandSubscriber;
 	private readonly rollcallPublisher: BroadbandPublisher;
 	private readonly kyvePool: KyvePool;
-	private readonly messageMetricsSummary: MessageMetricsSummary;
+	private readonly messageMetricsCollector: MessageMetricsCollector;
 	private readonly rollCall: RollCall;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
@@ -137,26 +102,25 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.nodeManger
 		);
 
-		this.messageMetricsSummary = new MessageMetricsSummary(METRICS_SUBJECTS);
+		this.messageMetricsCollector = new MessageMetricsCollector(
+			this.logStoreClient,
+			this.systemSubscriber,
+			this.rollcallSubscriber,
+			this.recoveryStream
+		);
 
 		this.rollCall = new RollCall(
 			this.rollcallPublisher,
-			this.rollcallSubscriber,
-			this.messageMetricsSummary
+			this.rollcallSubscriber
 		);
 
-		this.systemCache = new SystemCache(
-			this.systemSubscriber,
-			this.kyvePool,
-			this.messageMetricsSummary
-		);
+		this.systemCache = new SystemCache(this.systemSubscriber, this.kyvePool);
 
 		this.systemRecovery = new SystemRecovery(
 			this.logStoreClient,
 			this.recoveryStream,
 			this.systemStream,
-			this.systemCache,
-			this.messageMetricsSummary
+			this.systemCache
 		);
 
 		this.queryRequestHandler = new QueryRequestHandler(
@@ -168,8 +132,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.consensusManager = new ConsensusManager(
 			this.nodeManger,
 			this.systemPublisher,
-			this.systemSubscriber,
-			this.messageMetricsSummary
+			this.systemSubscriber
 		);
 
 		this.reportPoller = new ReportPoller(
@@ -177,8 +140,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.brokerConfig,
 			this.signer,
 			this.systemPublisher,
-			this.systemSubscriber,
-			this.messageMetricsSummary
+			this.systemSubscriber
 		);
 	}
 
@@ -205,6 +167,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.messageListener.start(this.logStore, this.logStoreConfig);
 
 		await this.queryRequestHandler.start(this.logStore!);
+		await this.messageMetricsCollector.start();
 
 		this.addHttpServerEndpoint(
 			createDataQueryEndpoint(
@@ -228,6 +191,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		clearInterval(this.metricsTimer);
 
 		await Promise.all([
+			this.messageMetricsCollector.stop(),
 			this.messageListener.stop(),
 			this.consensusManager.stop(),
 			this.queryRequestHandler.stop(),
@@ -309,7 +273,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 	private logMetrics() {
 		logger.info(
-			`Metrics ${JSON.stringify(this.messageMetricsSummary.summary)}`
+			`Metrics ${JSON.stringify(this.messageMetricsCollector.summary)}`
 		);
 	}
 }

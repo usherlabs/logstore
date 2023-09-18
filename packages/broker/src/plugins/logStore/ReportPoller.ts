@@ -1,4 +1,3 @@
-import { MessageMetadata } from '@logsn/client';
 import { LogStoreNodeManager, LogStoreReportManager } from '@logsn/contracts';
 import {
 	ProofOfReport,
@@ -18,7 +17,6 @@ import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
 import { KyvePool } from './KyvePool';
 import { ReportPoll } from './ReportPoll';
 
@@ -31,7 +29,6 @@ export class ReportPoller {
 	private readonly signer: Signer;
 	private readonly publisher: BroadbandPublisher;
 	private readonly subscriber: BroadbandSubscriber;
-	private readonly messageMetricsSummary: MessageMetricsSummary;
 
 	private reportManager!: LogStoreReportManager;
 	private nodeManager!: LogStoreNodeManager;
@@ -47,8 +44,7 @@ export class ReportPoller {
 		config: StrictConfig,
 		signer: Signer,
 		publisher: BroadbandPublisher,
-		subscriber: BroadbandSubscriber,
-		messageMetricsSummary: MessageMetricsSummary
+		subscriber: BroadbandSubscriber
 	) {
 		this.kyvePool = kyvePool;
 		this.poolConfig = config.pool;
@@ -56,7 +52,6 @@ export class ReportPoller {
 		this.signer = signer;
 		this.publisher = publisher;
 		this.subscriber = subscriber;
-		this.messageMetricsSummary = messageMetricsSummary;
 	}
 
 	public async start(abortSignal: AbortSignal): Promise<void> {
@@ -195,8 +190,7 @@ export class ReportPoller {
 		);
 	}
 
-	private async onMessage(content: unknown, metadata: MessageMetadata) {
-		this.messageMetricsSummary.update(content, metadata);
+	private async onMessage(content: unknown) {
 		const systemMessage = SystemMessage.deserialize(content);
 
 		if (systemMessage.messageType !== SystemMessageType.ProofOfReport) {

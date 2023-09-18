@@ -10,7 +10,6 @@ import { Logger } from '@streamr/utils';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
 import { Consensus } from './Consensus';
 
 const logger = new Logger(module);
@@ -21,8 +20,7 @@ export class ConsensusManager {
 	constructor(
 		private readonly nodeManager: LogStoreNodeManager,
 		private readonly publisher: BroadbandPublisher,
-		private readonly subscriber: BroadbandSubscriber,
-		private readonly messageMetricsSummary: MessageMetricsSummary
+		private readonly subscriber: BroadbandSubscriber
 	) {
 		//
 	}
@@ -57,8 +55,6 @@ export class ConsensusManager {
 	}
 
 	private onMessage(content: unknown, metadata: MessageMetadata) {
-		this.messageMetricsSummary.update(content, metadata);
-
 		const systemMessage = SystemMessage.deserialize(content);
 		if (systemMessage.messageType != SystemMessageType.QueryResponse) {
 			return;

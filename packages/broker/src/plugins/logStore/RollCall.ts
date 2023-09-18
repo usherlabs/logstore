@@ -9,7 +9,6 @@ import { v4 as uuid } from 'uuid';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import { MessageMetricsSummary } from '../../shared/MessageMetricsSummary';
 
 const ROLLCALL_ROUND_MS = 10 * 1000;
 const ROLLCALL_ROUND_SPREAD_MS = 5 * 1000;
@@ -23,8 +22,7 @@ export class RollCall {
 
 	constructor(
 		private readonly publisher: BroadbandPublisher,
-		private readonly subscriber: BroadbandSubscriber,
-		private readonly messageMetricsSummary: MessageMetricsSummary
+		private readonly subscriber: BroadbandSubscriber
 	) {
 		//
 	}
@@ -83,7 +81,6 @@ export class RollCall {
 	}
 
 	private async onMessage(message: unknown, metadata: MessageMetadata) {
-		this.messageMetricsSummary.update(message, metadata);
 		const systemMessage = SystemMessage.deserialize(message);
 		switch (systemMessage.messageType) {
 			case SystemMessageType.RollCallRequest: {
