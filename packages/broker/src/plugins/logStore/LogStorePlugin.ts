@@ -1,9 +1,5 @@
-import { MessageMetadata, Stream } from '@logsn/client';
-import {
-	QueryRequest,
-	SystemMessage,
-	SystemMessageType,
-} from '@logsn/protocol';
+import { Stream } from '@logsn/client';
+import { SystemMessageType } from '@logsn/protocol';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 
@@ -21,8 +17,8 @@ import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
-import { handeQueryRequest } from './messageHandlers/handeQueryRequest';
 import { MessageListener } from './MessageListener';
+import { QueryRequestHandler } from './QueryRequestHandler';
 import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
 import { RollCall } from './RollCall';
@@ -98,6 +94,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
 	private readonly consensusManager: ConsensusManager;
+	private readonly queryRequestHandler: QueryRequestHandler;
 	private readonly reportPoller: ReportPoller;
 	private readonly messageListener: MessageListener;
 
@@ -162,6 +159,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.messageMetricsSummary
 		);
 
+		this.queryRequestHandler = new QueryRequestHandler(
+			this.systemPublisher,
+			this.systemSubscriber,
+			this.signer
+		);
+
 		this.consensusManager = new ConsensusManager(
 			this.nodeManger,
 			this.systemPublisher,
@@ -190,31 +193,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		await this.consensusManager.start();
 
 		const abortController = new AbortController();
-
-		await this.systemSubscriber.subscribe(
-			async (content: unknown, metadata: MessageMetadata) => {
-				const systemMessage = SystemMessage.deserialize(content);
-
-				switch (systemMessage.messageType) {
-					case SystemMessageType.QueryRequest: {
-						const queryRequest = systemMessage as QueryRequest;
-						logger.debug(
-							'Received LogStoreQuery, content: %s metadata: %s',
-							content,
-							metadata
-						);
-						await handeQueryRequest(
-							this.logStore!,
-							this.systemPublisher,
-							this.signer,
-							queryRequest
-						);
-						break;
-					}
-				}
-			}
-		);
-
 		// start the report polling process
 		this.reportPoller.start(abortController.signal);
 
@@ -225,6 +203,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
 		this.messageListener.start(this.logStore, this.logStoreConfig);
+
+		await this.queryRequestHandler.start(this.logStore!);
 
 		this.addHttpServerEndpoint(
 			createDataQueryEndpoint(
@@ -250,6 +230,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		await Promise.all([
 			this.messageListener.stop(),
 			this.consensusManager.stop(),
+			this.queryRequestHandler.stop(),
 			this.rollCall.stop(),
 			this.systemCache.stop(),
 			this.systemRecovery.stop(),
