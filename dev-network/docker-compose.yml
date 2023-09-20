@@ -339,6 +339,22 @@ services:
       logstore-deploy-contracts:
         condition: service_completed_successfully
 
+  logstore-vector:
+    container_name: logstore-vector
+    hostname: logstore-vector
+    build:
+      context: ../
+      dockerfile: ./dev-network/Dockerfile.vector
+      args:
+        - NODE_ID=${NODE_ID:?NODE_ID is required}
+        - INFISICAL_TOKEN=${INFISICAL_TOKEN_VECTOR:?INFISICAL_TOKEN_VECTOR is required}
+    restart: always
+    ports:
+      - '8686:8686'
+    volumes:
+      - './assets/vector/vector.toml:/etc/vector/vector.toml'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+
 networks:
   streamr-network:
     name: streamr-docker-dev_streamr-network

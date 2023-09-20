@@ -1,0 +1,71 @@
+[sources.docker_logs_source]
+type = "docker_logs"
+include_containers = [
+	"logstore-heartbeat",
+	"logstore-broker-",
+	"logstore-validator-",
+	"logstore-deploy-contracts"
+]
+
+[transforms.remove_labels]
+type = "remap"
+inputs = ["docker_logs_source"]
+source = '''
+  del(.label)
+  .node_id = "$NODE_ID"
+'''
+
+[transforms.throttle_1s]
+type = "throttle"
+inputs = [ "remove_labels" ]
+key_field = "{{ container_name }}"
+threshold = 60
+window_secs = 1
+
+[transforms.throttle_5s]
+type = "throttle"
+inputs = [ "throttle_1s" ]
+key_field = "{{ container_name }}"
+threshold = 200
+window_secs = 5
+
+[transforms.throttle_30s]
+type = "throttle"
+inputs = [ "throttle_5s" ]
+key_field = "{{ container_name }}"
+threshold = 400
+window_secs = 30
+
+[transforms.throttle_1m]
+type = "throttle"
+inputs = [ "throttle_30s" ]
+key_field = "{{ container_name }}"
+threshold = 800
+window_secs = 60
+
+[transforms.throttle_1h]
+type = "throttle"
+inputs = [ "throttle_1m" ]
+key_field = "{{ container_name }}"
+threshold = 10000
+window_secs = 3600
+
+
+[sinks.aws_s3_sink]
+type = "aws_s3"
+inputs = ["throttle_1h"]
+bucket = "${LOGSTORE_BUCKET:?Bucket name must be supplied}"
+key_prefix = "docker-logs/${NODE_ID?:NODE_ID must be supplied}/date=%F/"
+encoding.codec = "json"
+region = "us-east-1"
+batch.max_bytes=52428800
+
+
+[sinks.better_stack]
+type = "http"
+method = "post"
+inputs = [ "throttle_1m" ]
+uri = "https://in.logs.betterstack.com/"
+encoding.codec = "json"
+auth.strategy = "bearer"
+auth.token = "${BETTERSTACK_TOKEN?:Must be supplied}"
