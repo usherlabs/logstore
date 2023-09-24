@@ -20,7 +20,7 @@ import { Plugin, PluginOptions } from '../../Plugin';
 import { StreamPublisher } from '../../shared/StreamPublisher';
 import { StreamSubscriber } from '../../shared/StreamSubscriber';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
-import { createDataQueryEndpoint } from './dataQueryEndpoint';
+import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';

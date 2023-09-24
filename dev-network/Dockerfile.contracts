@@ -1,5 +1,9 @@
 FROM logstore-base
 
+USER root
+RUN mkdir /firstrun && chown node:node /firstrun
+
+USER node
 WORKDIR /home/node/logstore/packages/contracts
 
 ENTRYPOINT [ "sh", "./start.sh" ]

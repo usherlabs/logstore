@@ -28,6 +28,7 @@ export interface QueryLastOptions {
 export interface QueryFromOptions {
 	from: QueryRef;
 	publisherId?: string;
+	limit?: number;
 }
 
 /**
@@ -38,6 +39,7 @@ export interface QueryRangeOptions {
 	to: QueryRef;
 	msgChainId?: string;
 	publisherId?: string;
+	limit?: number;
 }
 
 /**

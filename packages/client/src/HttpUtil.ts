@@ -99,15 +99,14 @@ export class HttpUtil {
 		url: string,
 		abortController = new AbortController()
 	): AsyncIterable<StreamMessage> {
-		const authUser = await this.authentication.getAddress();
-		const authPassword = await this.authentication.createMessageSignature(
-			authUser
-		);
+		const { token: authToken } = await this.fetchAuthParams();
 
 		const response = await fetchResponse(url, this.logger, {
 			signal: abortController.signal,
 			headers: {
-				Authorization: `Basic ${Base64.encode(`${authUser}:${authPassword}`)}`,
+				Authorization: `Basic ${authToken}`,
+				// TODO: Implement proper support of SSE
+				// Accept: 'text/event-stream',
 			},
 		});
 		if (!response.body) {
@@ -148,6 +147,22 @@ export class HttpUtil {
 				})
 			);
 
+			// TODO: Implement proper support of SSE
+			// stream = source.pipe(
+			// 	new Transform({
+			// 		objectMode: true,
+			// 		transform(
+			// 			chunk: any,
+			// 			encoding: BufferEncoding,
+			// 			done: TransformCallback
+			// 		) {
+			// 			const message = StreamMessage.deserialize(JSON.parse(chunk));
+			// 			this.push(message);
+			// 			done();
+			// 		},
+			// 	})
+			// );
+
 			stream.once('close', () => {
 				abortController.abort();
 			});
@@ -167,6 +182,18 @@ export class HttpUtil {
 			Object.entries(query).filter(([_k, v]) => v != null)
 		);
 		return new URLSearchParams(withoutEmpty).toString();
+	}
+
+	async fetchAuthParams() {
+		const user = await this.authentication.getAddress();
+		const password = await this.authentication.createMessageSignature(user);
+		const token = Base64.encode(`${user}:${password}`);
+
+		return {
+			user,
+			password,
+			token,
+		};
 	}
 }
 

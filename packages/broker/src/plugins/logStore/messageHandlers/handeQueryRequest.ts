@@ -55,7 +55,7 @@ export async function handeQueryRequest(
 			break;
 		}
 		case QueryType.From: {
-			const { from, publisherId } =
+			const { from, publisherId, limit } =
 				queryRequest.queryOptions as QueryFromOptions;
 
 			readableStream = logStore.requestFrom(
@@ -63,12 +63,13 @@ export async function handeQueryRequest(
 				queryRequest.partition,
 				from.timestamp,
 				from.sequenceNumber || MIN_SEQUENCE_NUMBER_VALUE,
-				publisherId
+				publisherId,
+				limit
 			);
 			break;
 		}
 		case QueryType.Range: {
-			const { from, publisherId, to, msgChainId } =
+			const { from, publisherId, to, msgChainId, limit } =
 				queryRequest.queryOptions as QueryRangeOptions;
 
 			readableStream = logStore.requestRange(
@@ -79,7 +80,8 @@ export async function handeQueryRequest(
 				to.timestamp,
 				to.sequenceNumber || MAX_SEQUENCE_NUMBER_VALUE,
 				publisherId,
-				msgChainId
+				msgChainId,
+				limit
 			);
 			break;
 		}
