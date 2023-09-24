@@ -11,5 +11,5 @@ module.exports = {
 			},
 		],
 	},
-	setupFilesAfterEnv: ['jest-extended/all'],
+	setupFilesAfterEnv: ['jest-extended/all', 'dotenv/config'],
 };

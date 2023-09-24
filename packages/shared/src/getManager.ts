@@ -42,14 +42,14 @@ export async function getStoreManagerContract(
 	)) as LogStoreManager;
 }
 
-export async function getReportManagerContract(wallet: Wallet) {
+export async function getReportManagerContract(wallet: Signer) {
 	return (await getManagerContract(
 		wallet,
 		Manager.ReportManager
 	)) as LogStoreReportManager;
 }
 
-export async function getTokenManagerContract(wallet: Wallet) {
+export async function getTokenManagerContract(wallet: Signer) {
 	return (await getManagerContract(wallet, Manager.TokenManager)) as LSAN;
 }
 

@@ -1,3 +1,8 @@
 {
-	"extends": "../../.eslintrc"
+	"extends": "../../.eslintrc",
+	"plugins": ["immutable"],
+	"rules": {
+		"immutable/no-let": 1,
+		"immutable/no-mutation": 1
+	}
 }
