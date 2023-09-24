@@ -1,32 +1,29 @@
 import assert from 'assert';
 
 import { SystemMessage, SystemMessageType } from '../src/system';
-import { QueryResponse } from '../src/system/QueryResponse';
-import '../src/system/QueryResponseSerializerV1';
+import { RecoveryRequest } from '../src/system/RecoveryRequest';
+import '../src/system/RecoveryRequestSerializerV1';
 
 const VERSION = 1;
 
-// Message definitions
-const message = new QueryResponse({
+const message = new RecoveryRequest({
 	version: VERSION,
 	seqNum: 1234,
-	requestId: 'requestId',
-	size: 1024,
-	hash: 'hash',
-	signature: '0123456789ABCDEF',
+	requestId: 'recoveryRequestId',
+	from: 1234567890,
+	to: 1234567890,
 });
 
 const serializedMessage = JSON.stringify([
 	VERSION,
-	SystemMessageType.QueryResponse,
+	SystemMessageType.RecoveryRequest,
 	1234,
-	'requestId',
-	1024,
-	'hash',
-	'0123456789ABCDEF',
+	'recoveryRequestId',
+	1234567890,
+	1234567890,
 ]);
 
-describe('QueryResponseSerializerV1', () => {
+describe('RecoveryRequestSerializerV1', () => {
 	describe('deserialize', () => {
 		it('correctly parses messages', () => {
 			assert.deepStrictEqual(
@@ -37,7 +34,7 @@ describe('QueryResponseSerializerV1', () => {
 	});
 	describe('serialize', () => {
 		it('correctly serializes messages', () => {
-			assert.deepStrictEqual(message.serialize(VERSION, 32), serializedMessage);
+			assert.deepStrictEqual(message.serialize(), serializedMessage);
 		});
 	});
 });

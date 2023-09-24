@@ -16,10 +16,11 @@ export class RecoveryResponse extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
+		seqNum,
 		requestId,
 		payload,
 	}: RecoveryResponseOptions) {
-		super(version, SystemMessageType.RecoveryResponse);
+		super(version, SystemMessageType.RecoveryResponse, seqNum);
 		this.requestId = requestId;
 		this.payload = payload;
 	}

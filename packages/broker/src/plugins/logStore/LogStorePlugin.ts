@@ -1,35 +1,27 @@
-import {
-	formLogStoreSystemStreamId,
-	MessageMetadata,
-	Stream,
-} from '@logsn/client';
-import {
-	ProofOfMessageStored,
-	ProofOfReport,
-	QueryRequest,
-	SystemMessage,
-	SystemMessageType,
-} from '@logsn/protocol';
-import { StreamMessage, StreamMessageType } from '@streamr/protocol';
+import { Stream } from '@logsn/client';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
-import { keccak256 } from 'ethers/lib/utils';
 
 // import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';
-import { StreamPublisher } from '../../shared/StreamPublisher';
-import { StreamSubscriber } from '../../shared/StreamSubscriber';
+import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
+import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
+import { ConsensusManager } from './ConsensusManger';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
-import { handeQueryRequest } from './messageHandlers/handeQueryRequest';
+import { MessageListener } from './MessageListener';
+import { MessageMetricsCollector } from './MessageMetricsCollector';
+import { QueryRequestHandler } from './QueryRequestHandler';
 import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
 import { RollCall } from './RollCall';
 import { SystemCache } from './SystemCache';
 import { SystemRecovery } from './SystemRecovery';
+
+const METRICS_INTERVAL = 60 * 1000;
 
 const logger = new Logger(module);
 
@@ -53,53 +45,102 @@ export interface LogStorePluginConfig {
 	};
 }
 
-const isStorableMessage = (msg: StreamMessage): boolean => {
-	return msg.messageType === StreamMessageType.MESSAGE;
-};
-
 export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private logStore?: LogStore;
 	private logStoreConfig?: LogStoreConfig;
-	private messageListener?: (msg: StreamMessage) => void;
 
-	private readonly streamPublisher: StreamPublisher;
-	private readonly streamSubscriber: StreamSubscriber;
+	private readonly systemSubscriber: BroadbandSubscriber;
+	private readonly systemPublisher: BroadbandPublisher;
+	private readonly rollcallSubscriber: BroadbandSubscriber;
+	private readonly rollcallPublisher: BroadbandPublisher;
 	private readonly kyvePool: KyvePool;
+	private readonly messageMetricsCollector: MessageMetricsCollector;
 	private readonly rollCall: RollCall;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
+	private readonly consensusManager: ConsensusManager;
+	private readonly queryRequestHandler: QueryRequestHandler;
+	private readonly reportPoller: ReportPoller;
+	private readonly messageListener: MessageListener;
+
+	private seqNum: number = 0;
+
+	private metricsTimer?: NodeJS.Timer;
 
 	constructor(options: PluginOptions) {
 		super(options);
 
-		this.streamPublisher = new StreamPublisher(
+		this.systemPublisher = new BroadbandPublisher(
 			this.logStoreClient,
 			this.systemStream
 		);
-		this.streamSubscriber = new StreamSubscriber(
+
+		this.systemSubscriber = new BroadbandSubscriber(
 			this.logStoreClient,
 			this.systemStream
 		);
+
 		this.kyvePool = new KyvePool(
 			this.brokerConfig.pool.url,
 			this.brokerConfig.pool.id
 		);
+
+		this.rollcallPublisher = new BroadbandPublisher(
+			this.logStoreClient,
+			this.rollCallStream
+		);
+
+		this.rollcallSubscriber = new BroadbandSubscriber(
+			this.logStoreClient,
+			this.rollCallStream
+		);
+
+		this.messageListener = new MessageListener(
+			this.logStoreClient,
+			this.systemSubscriber,
+			this.systemPublisher,
+			this.nodeManger
+		);
+
+		this.messageMetricsCollector = new MessageMetricsCollector(
+			this.logStoreClient,
+			this.systemSubscriber,
+			this.rollcallSubscriber,
+			this.recoveryStream
+		);
+
 		this.rollCall = new RollCall(
-			this.logStoreClient,
-			this.systemStream,
-			this.streamPublisher
+			this.rollcallPublisher,
+			this.rollcallSubscriber
 		);
-		this.systemCache = new SystemCache(
-			this.logStoreClient,
-			this.systemStream,
-			this.kyvePool
-		);
+
+		this.systemCache = new SystemCache(this.systemSubscriber, this.kyvePool);
+
 		this.systemRecovery = new SystemRecovery(
 			this.logStoreClient,
+			this.recoveryStream,
 			this.systemStream,
-			this.streamPublisher,
-			this.systemCache,
-			this.kyvePool
+			this.systemCache
+		);
+
+		this.queryRequestHandler = new QueryRequestHandler(
+			this.systemPublisher,
+			this.systemSubscriber,
+			this.signer
+		);
+
+		this.consensusManager = new ConsensusManager(
+			this.nodeManger,
+			this.systemPublisher,
+			this.systemSubscriber
+		);
+
+		this.reportPoller = new ReportPoller(
+			this.kyvePool,
+			this.brokerConfig,
+			this.signer,
+			this.systemPublisher,
+			this.systemSubscriber
 		);
 	}
 
@@ -108,113 +149,52 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	}
 
 	async start(): Promise<void> {
-		const systemStream = await this.logStoreClient.getStream(
-			formLogStoreSystemStreamId(
-				this.brokerConfig.client.contracts!.logStoreNodeManagerChainAddress!
-			)
-		);
-
 		await this.rollCall.start();
 		await this.systemCache.start();
 		await this.systemRecovery.start();
+		await this.consensusManager.start();
 
 		const abortController = new AbortController();
-		const poller = new ReportPoller(
-			this.brokerConfig,
-			this.signer,
-			this.streamPublisher
-		);
-
-		await this.streamSubscriber.subscribe(
-			async (content: unknown, metadata: MessageMetadata) => {
-				const systemMessage = SystemMessage.deserialize(content);
-
-				switch (systemMessage.messageType) {
-					case SystemMessageType.QueryRequest: {
-						const queryRequest = systemMessage as QueryRequest;
-						logger.trace(
-							'Received LogStoreQuery, content: %s metadata: %s',
-							content,
-							metadata
-						);
-						await handeQueryRequest(
-							this.logStore!,
-							this.streamPublisher,
-							this.signer,
-							queryRequest
-						);
-						break;
-					}
-					case SystemMessageType.ProofOfReport: {
-						const proofOfReport = systemMessage as ProofOfReport;
-						await poller.processProofOfReport(proofOfReport);
-						break;
-					}
-				}
-			}
-		);
-
 		// start the report polling process
-		poller.start(abortController.signal);
+		this.reportPoller.start(abortController.signal);
 
 		const metricsContext = (
 			await this.logStoreClient!.getNode()
 		).getMetricsContext();
 		this.logStore = await this.startCassandraStorage(metricsContext);
 
-		this.logStoreConfig = await this.startLogStoreConfig(systemStream);
-		this.messageListener = async (msg) => {
-			if (
-				isStorableMessage(msg) &&
-				this.logStoreConfig!.hasStreamPart(msg.getStreamPartID())
-			) {
-				await this.logStore!.store(msg);
+		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
+		this.messageListener.start(this.logStore, this.logStoreConfig);
 
-				const size = Buffer.byteLength(msg.serialize());
-				const hash = keccak256(
-					Uint8Array.from(Buffer.from(msg.serialize() + size))
-				);
+		await this.queryRequestHandler.start(this.logStore!);
+		await this.messageMetricsCollector.start();
 
-				const proofOfMessageStored = new ProofOfMessageStored({
-					streamId: msg.getStreamId(),
-					partition: msg.getStreamPartition(),
-					timestamp: msg.getTimestamp(),
-					sequenceNumber: msg.getSequenceNumber(),
-					size,
-					hash,
-				});
-
-				await this.streamPublisher.publish(proofOfMessageStored.serialize());
-			}
-		};
-		const node = await this.logStoreClient.getNode();
-		node.addMessageListener(this.messageListener);
 		this.addHttpServerEndpoint(
 			createDataQueryEndpoint(
 				this.brokerConfig,
 				this.logStore,
-				this.logStoreClient,
-				systemStream,
-				this.streamPublisher,
+				this.consensusManager,
 				metricsContext
 			)
 		);
 		this.addHttpServerEndpoint(
-			createRecoveryEndpoint(
-				this.streamPublisher,
-				this.rollCall,
-				metricsContext
-			)
+			createRecoveryEndpoint(this.systemStream, this.rollCall, metricsContext)
+		);
+
+		this.metricsTimer = setInterval(
+			this.logMetrics.bind(this),
+			METRICS_INTERVAL
 		);
 	}
 
 	async stop(): Promise<void> {
-		const node = await this.logStoreClient.getNode();
-		node.removeMessageListener(this.messageListener!);
-		this.logStoreConfig!.getStreamParts().forEach((streamPart) => {
-			node.unsubscribe(streamPart);
-		});
+		clearInterval(this.metricsTimer);
+
 		await Promise.all([
+			this.messageMetricsCollector.stop(),
+			this.messageListener.stop(),
+			this.consensusManager.stop(),
+			this.queryRequestHandler.stop(),
 			this.rollCall.stop(),
 			this.systemCache.stop(),
 			this.systemRecovery.stop(),
@@ -289,5 +269,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		);
 		await logStoreConfig.start();
 		return logStoreConfig;
+	}
+
+	private logMetrics() {
+		logger.info(
+			`Metrics ${JSON.stringify(this.messageMetricsCollector.summary)}`
+		);
 	}
 }

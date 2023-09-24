@@ -9,6 +9,7 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 		return [
 			VERSION,
 			SystemMessageType.QueryResponse,
+			message.seqNum,
 			message.requestId,
 			message.size,
 			message.hash,
@@ -17,10 +18,12 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 	}
 
 	fromArray(arr: any[]): QueryResponse {
-		const [version, _messageType, requestId, size, hash, signature] = arr;
+		const [version, _messageType, seqNum, requestId, size, hash, signature] =
+			arr;
 
 		return new QueryResponse({
 			version,
+			seqNum,
 			requestId,
 			size,
 			hash,

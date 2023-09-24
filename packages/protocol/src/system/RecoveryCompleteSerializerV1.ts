@@ -6,15 +6,23 @@ const VERSION = 1;
 
 export default class RecoveryCompleteSerializerV1 extends Serializer<RecoveryComplete> {
 	toArray(message: RecoveryComplete): any[] {
-		return [VERSION, SystemMessageType.RecoveryComplete, message.requestId];
+		return [
+			VERSION,
+			SystemMessageType.RecoveryComplete,
+			message.seqNum,
+			message.requestId,
+			message.isFulfilled,
+		];
 	}
 
 	fromArray(arr: any[]): RecoveryComplete {
-		const [version, _messageType, requestId] = arr;
+		const [version, _messageType, seqNum, requestId, isFulfilled] = arr;
 
 		return new RecoveryComplete({
 			version,
+			seqNum,
 			requestId,
+			isFulfilled,
 		});
 	}
 }

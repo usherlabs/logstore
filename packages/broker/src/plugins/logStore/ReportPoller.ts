@@ -1,5 +1,10 @@
 import { LogStoreNodeManager, LogStoreReportManager } from '@logsn/contracts';
-import { ProofOfReport, SystemReport } from '@logsn/protocol';
+import {
+	ProofOfReport,
+	SystemMessage,
+	SystemMessageType,
+	SystemReport,
+} from '@logsn/protocol';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,
@@ -10,16 +15,20 @@ import { ethers, Signer, Wallet } from 'ethers';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
-import { StreamPublisher } from '../../shared/StreamPublisher';
+import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
+import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
+import { KyvePool } from './KyvePool';
 import { ReportPoll } from './ReportPoll';
 
 const logger = new Logger(module);
 const REPORT_TRESHOLD_MULTIPLIER = 0.5;
 
 export class ReportPoller {
+	private readonly kyvePool: KyvePool;
 	private readonly poolConfig: StrictConfig['pool'];
 	private readonly signer: Signer;
-	private readonly streamPublisher: StreamPublisher;
+	private readonly publisher: BroadbandPublisher;
+	private readonly subscriber: BroadbandSubscriber;
 
 	private reportManager!: LogStoreReportManager;
 	private nodeManager!: LogStoreNodeManager;
@@ -28,20 +37,28 @@ export class ReportPoller {
 
 	private latestBundle: number;
 
+	private seqNum: number = 0;
+
 	constructor(
+		kyvePool: KyvePool,
 		config: StrictConfig,
 		signer: Signer,
-		streamPublisher: StreamPublisher
+		publisher: BroadbandPublisher,
+		subscriber: BroadbandSubscriber
 	) {
+		this.kyvePool = kyvePool;
 		this.poolConfig = config.pool;
 		this.latestBundle = 0;
 		this.signer = signer;
-		this.streamPublisher = streamPublisher;
+		this.publisher = publisher;
+		this.subscriber = subscriber;
 	}
 
 	public async start(abortSignal: AbortSignal): Promise<void> {
 		this.reportManager = await getReportManagerContract(this.signer as Wallet);
 		this.nodeManager = await getNodeManagerContract(this.signer as Wallet);
+
+		await this.subscriber.subscribe(this.onMessage.bind(this));
 
 		if (this.poolConfig.pollInterval > 0) {
 			await scheduleAtInterval(
@@ -57,7 +74,8 @@ export class ReportPoller {
 
 	private async poll(): Promise<void> {
 		// get the report manager contract
-		const latestBundle = await this.fetchPoolLatestBundle();
+		const { totalBundles } = await this.kyvePool.fetchPoolData();
+		const latestBundle = totalBundles - 1;
 
 		// ensure this poller has seen at least 1 bundles cycle before it can start processing
 		// so nodes who join halfway through the process, wait for the next round before starting
@@ -123,24 +141,10 @@ export class ReportPoller {
 		}
 	}
 
-	// poll kyve url for information on how many bundles have been finalized by tthis pool
-	private async fetchPoolLatestBundle(): Promise<number> {
-		logger.info(`Fetching the pool information to get latest bundle`);
-		const { data: response } = await axios.get(
-			`${this.poolConfig.url}/kyve/query/v1beta1/pool/${this.poolConfig.id}`
-		);
-		const { total_bundles: totalBundles } = response.pool.data;
-		return totalBundles - 1;
-	}
-
 	// using the bundle id, fetch information about this bundle
-	private async fetchReportData(bundleId: number): Promise<SystemReport> {
-		logger.info(`Fetching the bundle with id:${bundleId}`);
-		// fetch information about the bundle parameter passed in
-		const { data: response } = await axios.get(
-			`${this.poolConfig.url}/kyve/query/v1beta1/finalized_bundle/${this.poolConfig.id}/${bundleId}`
-		);
-		const arweaveStorageId = response.finalized_bundle.storage_id;
+	public async fetchReportData(bundleId: number): Promise<SystemReport> {
+		const finalizedBundle = await this.kyvePool.fetchFinalizedBundle(bundleId);
+		const arweaveStorageId = finalizedBundle.storageId;
 		// using the storage id, we fetch the information from arweave
 		// It should be noted that what is gotten is an array buffer since we expect the file to be zipped
 		const { data: gzippedData } = await axios.get(
@@ -178,12 +182,23 @@ export class ReportPoller {
 			`Publishing proof of report ${poll.report.id} (hash: ${poll.hash})`
 		);
 
-		const proofOfReport = await poll.report.toProof(this.signer);
-		await this.streamPublisher.publish(proofOfReport.serialize());
+		const proofOfReport = await poll.report.toProof(this.seqNum++, this.signer);
+		await this.publisher.publish(proofOfReport.serialize());
 		logger.info(
 			`Proof of report ${poll.report.id} published to system stream`,
 			proofOfReport
 		);
+	}
+
+	private async onMessage(content: unknown) {
+		const systemMessage = SystemMessage.deserialize(content);
+
+		if (systemMessage.messageType !== SystemMessageType.ProofOfReport) {
+			return;
+		}
+
+		const proofOfReport = systemMessage as ProofOfReport;
+		await this.processProofOfReport(proofOfReport);
 	}
 
 	private async submitReport(poll: ReportPoll & { report: SystemReport }) {
@@ -258,7 +273,7 @@ export class ReportPoller {
 		return [submitReportTx, processReportTx];
 	}
 
-	public async processProofOfReport(proof: ProofOfReport) {
+	private async processProofOfReport(proof: ProofOfReport) {
 		logger.info(`processProofOfReport`);
 
 		let poll = this.polls[proof.hash];

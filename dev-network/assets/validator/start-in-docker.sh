@@ -14,5 +14,6 @@ else
         --storage-priv STORAGE_PRIV \
         --chain-id kyve-local \
         --rpc http://logstore-kyve:26657 \
-        --rest http://logstore-kyve:1317
+        --rest http://logstore-kyve:1317 \
+        --debug
 fi

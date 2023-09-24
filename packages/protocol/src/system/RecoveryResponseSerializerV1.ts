@@ -25,13 +25,14 @@ export default class RecoveryResponseSerializerV1 extends Serializer<RecoveryRes
 		return [
 			VERSION,
 			SystemMessageType.RecoveryResponse,
+			message.seqNum,
 			message.requestId,
 			payload,
 		];
 	}
 
 	fromArray(arr: any[]): RecoveryResponse {
-		const [version, _messageType, requestId, payload] = arr;
+		const [version, _messageType, seqNum, requestId, payload] = arr;
 
 		const messages: [SystemMessage, MessageMetadata][] = (
 			payload as [unknown, unknown[]][]
@@ -52,6 +53,7 @@ export default class RecoveryResponseSerializerV1 extends Serializer<RecoveryRes
 
 		return new RecoveryResponse({
 			version,
+			seqNum,
 			requestId,
 			payload: messages,
 		});

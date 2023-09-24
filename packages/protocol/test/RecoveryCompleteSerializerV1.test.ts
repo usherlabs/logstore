@@ -1,32 +1,27 @@
 import assert from 'assert';
 
 import { SystemMessage, SystemMessageType } from '../src/system';
-import { QueryResponse } from '../src/system/QueryResponse';
-import '../src/system/QueryResponseSerializerV1';
+import { RecoveryComplete } from '../src/system/RecoveryComplete';
+import '../src/system/RecoveryCompleteSerializerV1';
 
 const VERSION = 1;
 
-// Message definitions
-const message = new QueryResponse({
+const message = new RecoveryComplete({
 	version: VERSION,
 	seqNum: 1234,
-	requestId: 'requestId',
-	size: 1024,
-	hash: 'hash',
-	signature: '0123456789ABCDEF',
+	requestId: 'recoveryRequestId',
+	isFulfilled: true,
 });
 
 const serializedMessage = JSON.stringify([
 	VERSION,
-	SystemMessageType.QueryResponse,
+	SystemMessageType.RecoveryComplete,
 	1234,
-	'requestId',
-	1024,
-	'hash',
-	'0123456789ABCDEF',
+	'recoveryRequestId',
+	true,
 ]);
 
-describe('QueryResponseSerializerV1', () => {
+describe('RecoveryCompleteSerializerV1', () => {
 	describe('deserialize', () => {
 		it('correctly parses messages', () => {
 			assert.deepStrictEqual(
@@ -37,7 +32,7 @@ describe('QueryResponseSerializerV1', () => {
 	});
 	describe('serialize', () => {
 		it('correctly serializes messages', () => {
-			assert.deepStrictEqual(message.serialize(VERSION, 32), serializedMessage);
+			assert.deepStrictEqual(message.serialize(), serializedMessage);
 		});
 	});
 });

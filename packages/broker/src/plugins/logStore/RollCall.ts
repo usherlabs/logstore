@@ -1,9 +1,4 @@
-import {
-	EthereumAddress,
-	LogStoreClient,
-	MessageMetadata,
-	Stream,
-} from '@logsn/client';
+import { EthereumAddress, MessageMetadata } from '@logsn/client';
 import {
 	RollCallRequest,
 	RollCallResponse,
@@ -12,31 +7,28 @@ import {
 } from '@logsn/protocol';
 import { v4 as uuid } from 'uuid';
 
-import { StreamPublisher } from '../../shared/StreamPublisher';
-import { StreamSubscriber } from '../../shared/StreamSubscriber';
+import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
+import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 
 const ROLLCALL_ROUND_MS = 10 * 1000;
 const ROLLCALL_ROUND_SPREAD_MS = 5 * 1000;
 
 export class RollCall {
-	private streamSubscriber: StreamSubscriber;
 	private roundTimeout?: NodeJS.Timeout;
 	private requestId?: string;
 	private responses: Map<EthereumAddress, number> = new Map();
+	private requestSeqNum: number = 0;
+	private responseSeqNum: number = 0;
 
 	constructor(
-		private readonly client: LogStoreClient,
-		private readonly systemStream: Stream,
-		private readonly streamPublisher: StreamPublisher
+		private readonly publisher: BroadbandPublisher,
+		private readonly subscriber: BroadbandSubscriber
 	) {
-		this.streamSubscriber = new StreamSubscriber(
-			this.client,
-			this.systemStream
-		);
+		//
 	}
 
 	public async start() {
-		await this.streamSubscriber.subscribe(
+		await this.subscriber.subscribe(
 			async (content: unknown, metadata: MessageMetadata) =>
 				await this.onMessage(content, metadata)
 		);
@@ -49,7 +41,7 @@ export class RollCall {
 			clearTimeout(this.roundTimeout);
 			this.roundTimeout = undefined;
 		}
-		await this.streamSubscriber.unsubscribe();
+		await this.subscriber.unsubscribe();
 	}
 
 	public get aliveBrokers() {
@@ -81,8 +73,11 @@ export class RollCall {
 		this.resetRoundTimeout();
 		this.requestId = uuid();
 
-		const rollCallRequest = new RollCallRequest({ requestId: this.requestId });
-		await this.streamPublisher.publish(rollCallRequest.serialize());
+		const rollCallRequest = new RollCallRequest({
+			seqNum: this.requestSeqNum++,
+			requestId: this.requestId,
+		});
+		await this.publisher.publish(rollCallRequest.serialize());
 	}
 
 	private async onMessage(message: unknown, metadata: MessageMetadata) {
@@ -95,9 +90,10 @@ export class RollCall {
 				this.requestId = rollCallRequest.requestId;
 
 				const rollCallResponse = new RollCallResponse({
+					seqNum: this.responseSeqNum++,
 					requestId: this.requestId,
 				});
-				await this.streamPublisher.publish(rollCallResponse.serialize());
+				await this.publisher.publish(rollCallResponse.serialize());
 				break;
 			}
 			case SystemMessageType.RollCallResponse: {

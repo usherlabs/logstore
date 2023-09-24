@@ -1,8 +1,14 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, sha256 } from '@kyvejs/protocol';
-import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
+import {
+	CONFIG_TEST,
+	LogStoreClient,
+	validateConfig as validateClientConfig,
+} from '@logsn/client';
 import ContractAddresses from '@logsn/contracts/address.json';
+import { SystemMessageType } from '@logsn/protocol';
 import { ethers } from 'ethers';
+import fse from 'fs-extra';
 
 import { Item } from './core/item';
 import { Report } from './core/report';
@@ -13,15 +19,55 @@ import {
 	useStreamrTestConfig,
 } from './env-config';
 import { Managers } from './managers';
+import { BroadbandSubscriber } from './shared/BroadbandSubscriber';
+import {
+	MessageMetricsSubject,
+	MessageMetricsSummary,
+} from './shared/MessageMetricsSummary';
 import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
+import { SystemRecovery } from './threads/SystemRecovery';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
+const METRICS_SUBJECTS: MessageMetricsSubject[] = [
+	{
+		subject: 'ProofOfMessageStored',
+		type: SystemMessageType.ProofOfMessageStored,
+	},
+	{
+		subject: 'ProofOfReport',
+		type: SystemMessageType.ProofOfReport,
+	},
+	{
+		subject: 'QueryRequest',
+		type: SystemMessageType.QueryRequest,
+	},
+	{
+		subject: 'QueryResponse',
+		type: SystemMessageType.QueryResponse,
+	},
+	{
+		subject: 'RecoveryRequest',
+		type: SystemMessageType.RecoveryRequest,
+	},
+	{
+		subject: 'RecoveryResponse',
+		type: SystemMessageType.RecoveryResponse,
+	},
+	{
+		subject: 'RecoveryComplete',
+		type: SystemMessageType.RecoveryComplete,
+	},
+];
+const METRICS_INTERVAL = 60 * 1000;
+
 export default class Runtime implements IRuntimeExtended {
+	private _homeDir: string;
 	public name = appPackageName;
 	public version = appVersion;
 	public config: IConfig = {
+		recoveryStreamId: '',
 		systemStreamId: '',
 		sources: [],
 		fees: {
@@ -36,18 +82,48 @@ export default class Runtime implements IRuntimeExtended {
 	private _startKey: number;
 
 	async setupThreads(core: Validator, homeDir: string) {
-		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
+		this._homeDir = homeDir;
+
+		const clientConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
+		validateClientConfig(clientConfig);
+
+		// Tweaks suggested by the Streamr Team
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+		clientConfig.network!.webrtcSendBufferMaxMessageCount = 5000;
+		clientConfig.gapFill = true;
+		clientConfig.gapFillTimeout = 30 * 1000;
+
 		// core.logger.debug('Streamr Config', streamrConfig);
 		const privateKey = getEvmPrivateKey(); // The Validator needs to stake in QueryManager
 		const signer = new ethers.Wallet(privateKey);
 		const logStoreClient = new LogStoreClient({
-			...streamrConfig,
+			...clientConfig,
 			auth: {
 				privateKey,
 			},
 		});
+
 		const systemStream = await logStoreClient.getStream(
 			this.config.systemStreamId
+		);
+
+		const recoveryStream = await logStoreClient.getStream(
+			this.config.recoveryStreamId
+		);
+
+		const systemSubscriber = new BroadbandSubscriber(
+			logStoreClient,
+			systemStream
+		);
+
+		const messageMetricsSummary = new MessageMetricsSummary(METRICS_SUBJECTS);
+
+		const recovery = new SystemRecovery(
+			logStoreClient,
+			recoveryStream,
+			signer,
+			messageMetricsSummary,
+			core.logger
 		);
 
 		let startKey = parseInt(core.pool.data.current_key, 10) || 0;
@@ -56,16 +132,26 @@ export default class Runtime implements IRuntimeExtended {
 		}
 
 		this.time = new TimeIndexer(startKey, homeDir, this.config, core.logger);
+
 		this.listener = new SystemListener(
 			homeDir,
 			logStoreClient,
-			systemStream,
-			signer,
+			systemSubscriber,
+			recovery,
+			messageMetricsSummary,
 			core.logger
 		);
 
 		await this.time.start();
 		await this.listener.start();
+
+		setInterval(
+			() =>
+				core.logger.info(
+					`Metrics ${JSON.stringify(messageMetricsSummary.summary)}`
+				),
+			METRICS_INTERVAL
+		);
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {
@@ -101,10 +187,23 @@ export default class Runtime implements IRuntimeExtended {
 
 		await Managers.setSources(config.sources);
 
+		const isDevNetwork =
+			systemContracts.nodeManagerAddress ===
+			'0x85ac4C8E780eae81Dd538053D596E382495f7Db9';
+
+		const recoveryStreamId = isDevNetwork
+			? `${systemContracts.nodeManagerAddress}/recovery`
+			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-recovery';
+
+		const systemStreamId = isDevNetwork
+			? `${systemContracts.nodeManagerAddress}/system`
+			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-system';
+
 		this.config = {
 			...this.config,
 			...config,
-			systemStreamId: `${systemContracts.nodeManagerAddress}/system`,
+			recoveryStreamId,
+			systemStreamId,
 		};
 	}
 
@@ -158,7 +257,20 @@ export default class Runtime implements IRuntimeExtended {
 			Buffer.from(JSON.stringify(validationDataItem.value.m))
 		);
 
-		return proposedDataItemHash === validationDataItemHash;
+		const isValid = proposedDataItemHash === validationDataItemHash;
+
+		if (!isValid) {
+			await fse.outputFile(
+				`${this._homeDir}/bundles/${proposedDataItem.key}-proposed.json`,
+				JSON.stringify(proposedDataItem, null, 2)
+			);
+			await fse.outputFile(
+				`${this._homeDir}/bundles/${validationDataItem.key}-validation.json`,
+				JSON.stringify(validationDataItem, null, 2)
+			);
+		}
+
+		return isValid;
 	}
 
 	async summarizeDataBundle(
@@ -181,6 +293,12 @@ export default class Runtime implements IRuntimeExtended {
 		const reportHash = sha256(Buffer.from(JSON.stringify(reportData))); // use sha256 of entire report to include "events".
 
 		lastItem.value.r = reportData;
+
+		await fse.outputFile(
+			`${this._homeDir}/bundles/${firstItem.key}-${lastItem.key}.json`,
+			JSON.stringify(bundle, null, 2)
+		);
+
 		return lastItem.key + '_' + reportHash;
 	}
 

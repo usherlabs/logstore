@@ -1,6 +1,6 @@
 // import chokidar from 'chokidar';
 import { sha256 } from '@kyvejs/protocol';
-import { LogStoreClient, MessageMetadata, Stream } from '@logsn/client';
+import { LogStoreClient, MessageMetadata } from '@logsn/client';
 import {
 	ProofOfMessageStored,
 	QueryRequest,
@@ -8,12 +8,12 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
-import { Signer } from 'ethers';
 import fse from 'fs-extra';
 import path from 'path';
 import type { Logger } from 'tslog';
 
-import { StreamSubscriber } from '../shared/StreamSubscriber';
+import { BroadbandSubscriber } from '../shared/BroadbandSubscriber';
+import { MessageMetricsSummary } from '../shared/MessageMetricsSummary';
 import { SystemDb } from './SystemDb';
 import { SystemRecovery } from './SystemRecovery';
 
@@ -25,29 +25,19 @@ const LISTENING_MESSAGE_TYPES = [
 
 export class SystemListener {
 	private readonly _cachePath: string;
-	private readonly _subscriber: StreamSubscriber;
 	private readonly _db: SystemDb;
-	private readonly _systemRecovery: SystemRecovery;
 	private _latestTimestamp: number;
 
 	constructor(
 		homeDir: string,
 		private readonly _client: LogStoreClient,
-		private readonly _systemStream: Stream,
-		private readonly _signer: Signer,
+		private readonly _systemSubscriber: BroadbandSubscriber,
+		private readonly _systemRecovery: SystemRecovery,
+		private readonly messageMetricsSummary: MessageMetricsSummary,
 		private readonly logger: Logger
 	) {
-		this._subscriber = new StreamSubscriber(this._client, this._systemStream);
-
 		this._cachePath = path.join(homeDir, '.logstore-metadata');
 		this._db = new SystemDb();
-		this._systemRecovery = new SystemRecovery(
-			this._client,
-			this._systemStream,
-			this._signer,
-			this.logger,
-			this.onSystemMessage.bind(this)
-		);
 	}
 
 	public get client() {
@@ -64,11 +54,12 @@ export class SystemListener {
 
 			this._db.open(this._cachePath);
 
-			this.logger.info('Starting System Listener ...');
-			this.logger.debug(`System Stream Id: `, this._systemStream.id);
-			await this._subscriber.subscribe((content, metadata) =>
+			this.logger.info('Starting SystemListener ...');
+			await this._systemSubscriber.subscribe((content, metadata) =>
 				setImmediate(() => this.onMessage(content, metadata))
 			);
+
+			await this._systemRecovery.start(this.onSystemMessage.bind(this));
 		} catch (e) {
 			this.logger.error(`Unexpected error starting listener...`);
 			this.logger.error(e);
@@ -78,25 +69,24 @@ export class SystemListener {
 
 	public async stop() {
 		await this._systemRecovery.stop();
-		await this._subscriber.unsubscribe();
+		await this._systemSubscriber.unsubscribe();
 	}
 
 	public get latestTimestamp() {
 		if (!this._systemRecovery.progress.isComplete) {
 			return this._systemRecovery.progress.timestamp;
 		}
-		return this._latestTimestamp;
+		return Math.max(
+			this._latestTimestamp || 0,
+			this._systemRecovery.progress.timestamp
+		);
 	}
 
 	private async onMessage(
 		content: unknown,
 		metadata: MessageMetadata
 	): Promise<void> {
-		// Start recovery when the very first message has been received
-		if (this._latestTimestamp === undefined) {
-			this._latestTimestamp = metadata.timestamp;
-			await this._systemRecovery.start();
-		}
+		this.messageMetricsSummary.update(content, metadata);
 
 		const systemMessage = SystemMessage.deserialize(content);
 		if (!LISTENING_MESSAGE_TYPES.includes(systemMessage.messageType)) {

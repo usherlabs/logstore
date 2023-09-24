@@ -12,6 +12,7 @@ const VERSION = 1;
 // Message definitions
 const message = new ProofOfMessageStored({
 	version: VERSION,
+	seqNum: 1234,
 	streamId: 'streamId',
 	partition: 42,
 	timestamp: 1234567890,
@@ -23,6 +24,7 @@ const message = new ProofOfMessageStored({
 const serializedMessage = JSON.stringify([
 	VERSION,
 	SystemMessageType.ProofOfMessageStored,
+	1234,
 	'streamId',
 	42,
 	1234567890,

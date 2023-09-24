@@ -1,4 +1,9 @@
-import { LogStoreClient, MessageMetadata, Stream } from '@logsn/client';
+import {
+	LogStoreClient,
+	MessageMetadata,
+	Stream,
+	Subscription,
+} from '@logsn/client';
 import {
 	RecoveryComplete,
 	RecoveryRequest,
@@ -8,37 +13,39 @@ import {
 } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
 
-import { StreamPublisher } from '../../shared/StreamPublisher';
-import { StreamSubscriber } from '../../shared/StreamSubscriber';
-import { KyvePool } from './KyvePool';
 import { SystemCache } from './SystemCache';
 
-const PAYLOAD_LIMIT = 100;
+const INTERVAL = 100;
+const PAYLOAD_LIMIT = 50;
+const RESPONSE_LIMIT = 5;
 
 const logger = new Logger(module);
 
 export class SystemRecovery {
-	private readonly streamSubscriber: StreamSubscriber;
+	private subscription?: Subscription;
 
 	constructor(
 		private readonly client: LogStoreClient,
+		private readonly recoveryStream: Stream,
 		private readonly systemStream: Stream,
-		private readonly streamPublisher: StreamPublisher,
-		private readonly systemCache: SystemCache,
-		private readonly kyvePool: KyvePool
+		private readonly cache: SystemCache
 	) {
-		this.streamSubscriber = new StreamSubscriber(
-			this.client,
-			this.systemStream
-		);
+		//
 	}
 
 	public async start() {
-		await this.streamSubscriber.subscribe(this.onMessage.bind(this));
+		this.subscription = await this.client.subscribe(
+			this.systemStream,
+			this.onMessage.bind(this)
+		);
+
+		logger.info('Started');
 	}
 
 	public async stop() {
-		await this.streamSubscriber.unsubscribe();
+		await this.subscription?.unsubscribe();
+
+		logger.info('Stopped');
 	}
 
 	private async onMessage(message: unknown) {
@@ -48,52 +55,90 @@ export class SystemRecovery {
 		}
 
 		const recoveryRequest = systemMessage as RecoveryRequest;
-		logger.trace(
-			'Received RecoveryRequest: %s',
+		logger.debug(
+			'Received RecoveryRequest %s',
 			JSON.stringify(recoveryRequest)
 		);
 
 		setImmediate(async () => {
-			await this.processRequet(recoveryRequest.requestId);
+			await this.processRequest(
+				recoveryRequest.requestId,
+				recoveryRequest.from,
+				recoveryRequest.to
+			);
 		});
 	}
 
-	private async processRequet(requestId: string) {
-		const kyvePoolData = await this.kyvePool.getData();
-		const from = kyvePoolData.currentKey * 1000;
-		const cacheRecords = this.systemCache.get(from);
+	private async processRequest(requestId: string, from: number, to: number) {
+		const cacheRecords = this.cache.get(from, to);
 
+		let seqNum: number = 0;
 		const payload: [SystemMessage, MessageMetadata][] = [];
 		for await (const cacheRecord of cacheRecords) {
 			payload.push([cacheRecord.message, cacheRecord.metadata]);
 
 			if (payload.length === PAYLOAD_LIMIT) {
-				await this.sendResponse(requestId, payload.splice(0));
+				await this.sendResponse(requestId, seqNum++, payload.splice(0));
+				await new Promise((resolve) => setTimeout(resolve, INTERVAL));
+			}
+
+			if (seqNum === RESPONSE_LIMIT) {
+				break;
 			}
 		}
 
 		if (payload.length > 0) {
-			await this.sendResponse(requestId, payload);
+			await this.sendResponse(requestId, seqNum++, payload);
 		}
 
-		const recoveryComplete = new RecoveryComplete({ requestId });
-		await this.streamPublisher.publish(recoveryComplete.serialize());
-		logger.trace(
-			'Published RecoveryComplete: %s',
-			JSON.stringify(recoveryComplete)
-		);
+		await this.sendComplete(requestId, seqNum, seqNum < RESPONSE_LIMIT);
 	}
 
 	private async sendResponse(
 		requestId: string,
+		seqNum: number,
 		payload: [SystemMessage, MessageMetadata][]
 	) {
-		const recoveryResponse = new RecoveryResponse({ requestId, payload });
+		const recoveryResponse = new RecoveryResponse({
+			requestId,
+			seqNum,
+			payload,
+		});
 
-		await this.streamPublisher.publish(recoveryResponse.serialize());
-		logger.trace(
-			'Published RecoveryResponse: %s',
-			JSON.stringify(recoveryResponse)
+		const recoveryResponseSeralized = recoveryResponse.serialize();
+
+		await this.recoveryStream.publish(recoveryResponseSeralized);
+		logger.debug(
+			'Published RecoveryResponse %s',
+			JSON.stringify({
+				requestId: recoveryResponse.requestId,
+				seqNum: recoveryResponse.seqNum,
+				bytes: recoveryResponseSeralized.length,
+			})
+		);
+	}
+
+	private async sendComplete(
+		requestId: string,
+		seqNum: number,
+		isFulfilled: boolean
+	) {
+		const recoveryComplete = new RecoveryComplete({
+			requestId,
+			seqNum,
+			isFulfilled,
+		});
+
+		const recoveryCompleteSeralized = recoveryComplete.serialize();
+
+		await this.recoveryStream.publish(recoveryCompleteSeralized);
+		logger.debug(
+			'Published RecoveryComplete %s',
+			JSON.stringify({
+				requestId: recoveryComplete.requestId,
+				seqNum: recoveryComplete.seqNum,
+				bytes: recoveryCompleteSeralized.length,
+			})
 		);
 	}
 }

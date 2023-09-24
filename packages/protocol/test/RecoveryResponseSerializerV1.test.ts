@@ -18,12 +18,14 @@ const testEmptyPayload = {
 	name: 'empty payload',
 	obj: new RecoveryResponse({
 		version: VERSION,
+		seqNum: 1234,
 		requestId: 'recoveryRequestId',
 		payload: [],
 	}),
 	str: JSON.stringify([
 		VERSION,
 		SystemMessageType.RecoveryResponse,
+		1234,
 		'recoveryRequestId',
 		[],
 	]),
@@ -33,10 +35,12 @@ const testOneMessagePayload = {
 	name: 'one message payload',
 	obj: new RecoveryResponse({
 		version: VERSION,
+		seqNum: 1234,
 		requestId: 'recoveryRequestId',
 		payload: [
 			[
 				new QueryResponse({
+					seqNum: 1234,
 					requestId: 'queryRequestId',
 					size: 1024,
 					hash: 'HASH_0001',
@@ -58,12 +62,14 @@ const testOneMessagePayload = {
 		`[` +
 		`${VERSION},` +
 		`${SystemMessageType.RecoveryResponse},` +
+		`1234,` +
 		`"recoveryRequestId",` +
 		`[` +
 		`[` +
 		`"[` +
 		`${QueryResponse.LATEST_VERSION},` +
 		`${SystemMessageType.QueryResponse},` +
+		`1234,` +
 		`\\"queryRequestId\\",` +
 		`1024,` +
 		`\\"HASH_0001\\",` +
@@ -102,7 +108,7 @@ describe('RecoveryResponseSerializerV1', () => {
 			});
 		}
 	});
-	describe('serialize as deserialize', () => {
+	describe('serialize and deserialize', () => {
 		for (const test of tests) {
 			it(`correctly process two way ${test.name}`, () => {
 				const str = test.obj.serialize();

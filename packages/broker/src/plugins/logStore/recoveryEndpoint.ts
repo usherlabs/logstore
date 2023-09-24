@@ -1,24 +1,31 @@
+import { Stream } from '@logsn/client';
 import { RecoveryRequest } from '@logsn/protocol';
 import { Logger, MetricsContext, RateMetric } from '@streamr/utils';
 import { json, Request, RequestHandler, Response } from 'express';
 
 import { HttpServerEndpoint } from '../../Plugin';
-import { StreamPublisher } from '../../shared/StreamPublisher';
 import { createBasicAuthenticatorMiddleware } from './authentication';
 import { RollCall } from './RollCall';
 
 const logger = new Logger(module);
 
+let seqNum: number = 0;
+
 const createHandler = (
-	streamPublisher: StreamPublisher,
+	systemStream: Stream,
 	rollCall: RollCall
 ): RequestHandler => {
 	return async (req: Request, res: Response) => {
-		const { requestId } = req.body;
+		const { requestId, from, to } = req.body;
 
-		const recoveryRequest = new RecoveryRequest({ requestId });
-		await streamPublisher.publish(recoveryRequest.serialize());
-		logger.trace(
+		const recoveryRequest = new RecoveryRequest({
+			seqNum: seqNum++,
+			requestId,
+			from,
+			to,
+		});
+		await systemStream.publish(recoveryRequest.serialize());
+		logger.debug(
 			'Published RecoveryRequest: %s',
 			JSON.stringify(recoveryRequest)
 		);
@@ -28,7 +35,7 @@ const createHandler = (
 };
 
 export const createRecoveryEndpoint = (
-	streamPublisher: StreamPublisher,
+	systemStream: Stream,
 	rollCall: RollCall,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
@@ -42,7 +49,7 @@ export const createRecoveryEndpoint = (
 		requestHandlers: [
 			json(),
 			createBasicAuthenticatorMiddleware(),
-			createHandler(streamPublisher, rollCall),
+			createHandler(systemStream, rollCall),
 		],
 	};
 };
