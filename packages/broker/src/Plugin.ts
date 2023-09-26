@@ -12,7 +12,6 @@ export interface PluginOptions {
 	logStoreClient: LogStoreClient;
 	heartbeatStream: Stream;
 	recoveryStream: Stream;
-	rollCallStream: Stream;
 	systemStream: Stream;
 	brokerConfig: StrictConfig;
 	signer: Signer;
@@ -26,7 +25,6 @@ export abstract class Plugin<T extends object> {
 	readonly logStoreClient: LogStoreClient;
 	readonly heartbeatStream: Stream;
 	readonly recoveryStream: Stream;
-	readonly rollCallStream: Stream;
 	readonly systemStream: Stream;
 	readonly brokerConfig: StrictConfig;
 	readonly signer: Signer;
@@ -39,7 +37,6 @@ export abstract class Plugin<T extends object> {
 		this.logStoreClient = options.logStoreClient;
 		this.heartbeatStream = options.heartbeatStream;
 		this.recoveryStream = options.recoveryStream;
-		this.rollCallStream = options.rollCallStream;
 		this.systemStream = options.systemStream;
 		this.brokerConfig = options.brokerConfig;
 		this.signer = options.signer;

@@ -14,11 +14,9 @@ export enum SystemMessageType {
 	QueryRequest = 1,
 	QueryResponse = 2,
 	ProofOfReport = 3,
-	RollCallRequest = 4,
-	RollCallResponse = 5,
-	RecoveryRequest = 6,
-	RecoveryResponse = 7,
-	RecoveryComplete = 8,
+	RecoveryRequest = 4,
+	RecoveryResponse = 5,
+	RecoveryComplete = 6,
 }
 
 export interface SystemMessageOptions {

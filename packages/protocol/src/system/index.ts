@@ -12,8 +12,6 @@ import { QueryResponse } from './QueryResponse';
 import { RecoveryComplete } from './RecoveryComplete';
 import { RecoveryRequest } from './RecoveryRequest';
 import { RecoveryResponse } from './RecoveryResponse';
-import { RollCallRequest } from './RollCallRequest';
-import { RollCallResponse } from './RollCallResponse';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
 
 export {
@@ -29,8 +27,6 @@ export {
 	RecoveryComplete,
 	RecoveryRequest,
 	RecoveryResponse,
-	RollCallRequest,
-	RollCallResponse,
 	SystemMessage,
 	SystemMessageType,
 };

@@ -18,7 +18,6 @@ import { MessageMetricsCollector } from './MessageMetricsCollector';
 import { QueryRequestHandler } from './QueryRequestHandler';
 import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
-import { RollCall } from './RollCall';
 import { SystemCache } from './SystemCache';
 import { SystemRecovery } from './SystemRecovery';
 
@@ -54,11 +53,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly systemPublisher: BroadbandPublisher;
 	private readonly heartbeatPublisher: BroadbandPublisher;
 	private readonly heartbeatSubscriber: BroadbandSubscriber;
-	private readonly rollcallSubscriber: BroadbandSubscriber;
-	private readonly rollcallPublisher: BroadbandPublisher;
 	private readonly kyvePool: KyvePool;
 	private readonly messageMetricsCollector: MessageMetricsCollector;
-	private readonly rollCall: RollCall;
 	private readonly heartbeat: Heartbeat;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
@@ -97,16 +93,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.heartbeatStream
 		);
 
-		this.rollcallPublisher = new BroadbandPublisher(
-			this.logStoreClient,
-			this.rollCallStream
-		);
-
-		this.rollcallSubscriber = new BroadbandSubscriber(
-			this.logStoreClient,
-			this.rollCallStream
-		);
-
 		this.heartbeat = new Heartbeat(
 			this.heartbeatPublisher,
 			this.heartbeatSubscriber
@@ -122,13 +108,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.messageMetricsCollector = new MessageMetricsCollector(
 			this.logStoreClient,
 			this.systemSubscriber,
-			this.rollcallSubscriber,
 			this.recoveryStream
-		);
-
-		this.rollCall = new RollCall(
-			this.rollcallPublisher,
-			this.rollcallSubscriber
 		);
 
 		this.systemCache = new SystemCache(this.systemSubscriber, this.kyvePool);
@@ -167,7 +147,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 	async start(): Promise<void> {
 		await this.heartbeat.start();
-		await this.rollCall.start();
 		await this.systemCache.start();
 		await this.systemRecovery.start();
 		await this.consensusManager.start();
@@ -196,7 +175,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			)
 		);
 		this.addHttpServerEndpoint(
-			createRecoveryEndpoint(this.systemStream, this.rollCall, metricsContext)
+			createRecoveryEndpoint(this.systemStream, this.heartbeat, metricsContext)
 		);
 
 		this.metricsTimer = setInterval(
@@ -214,7 +193,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.messageListener.stop(),
 			this.consensusManager.stop(),
 			this.queryRequestHandler.stop(),
-			this.rollCall.stop(),
 			this.systemCache.stop(),
 			this.systemRecovery.stop(),
 			this.logStore!.close(),

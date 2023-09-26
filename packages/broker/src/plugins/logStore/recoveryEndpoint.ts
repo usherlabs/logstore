@@ -5,7 +5,7 @@ import { json, Request, RequestHandler, Response } from 'express';
 
 import { HttpServerEndpoint } from '../../Plugin';
 import { createBasicAuthenticatorMiddleware } from './authentication';
-import { RollCall } from './RollCall';
+import { Heartbeat } from './Heartbeat';
 
 const logger = new Logger(module);
 
@@ -13,7 +13,7 @@ let seqNum: number = 0;
 
 const createHandler = (
 	systemStream: Stream,
-	rollCall: RollCall
+	heartbeat: Heartbeat
 ): RequestHandler => {
 	return async (req: Request, res: Response) => {
 		const { requestId, from, to } = req.body;
@@ -30,13 +30,13 @@ const createHandler = (
 			JSON.stringify(recoveryRequest)
 		);
 
-		res.json(rollCall.aliveBrokers);
+		res.json(heartbeat.onlineBrokers);
 	};
 };
 
 export const createRecoveryEndpoint = (
 	systemStream: Stream,
-	rollCall: RollCall,
+	heartbeat: Heartbeat,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
 	const metrics = {
@@ -49,7 +49,7 @@ export const createRecoveryEndpoint = (
 		requestHandlers: [
 			json(),
 			createBasicAuthenticatorMiddleware(),
-			createHandler(systemStream, rollCall),
+			createHandler(systemStream, heartbeat),
 		],
 	};
 };
