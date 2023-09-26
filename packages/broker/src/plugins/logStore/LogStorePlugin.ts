@@ -166,6 +166,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	}
 
 	async start(): Promise<void> {
+		await this.heartbeat.start();
 		await this.rollCall.start();
 		await this.systemCache.start();
 		await this.systemRecovery.start();
@@ -181,7 +182,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.logStore = await this.startCassandraStorage(metricsContext);
 
 		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
-		this.heartbeat.start();
 		this.messageListener.start(this.logStore, this.logStoreConfig);
 
 		await this.queryRequestHandler.start(this.logStore!);
