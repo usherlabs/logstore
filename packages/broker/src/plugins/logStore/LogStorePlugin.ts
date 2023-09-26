@@ -8,6 +8,7 @@ import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { ConsensusManager } from './ConsensusManger';
+import { Heartbeat } from './Heartbeat';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
@@ -51,19 +52,20 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 	private readonly systemSubscriber: BroadbandSubscriber;
 	private readonly systemPublisher: BroadbandPublisher;
+	private readonly heartbeatPublisher: BroadbandPublisher;
+	private readonly heartbeatSubscriber: BroadbandSubscriber;
 	private readonly rollcallSubscriber: BroadbandSubscriber;
 	private readonly rollcallPublisher: BroadbandPublisher;
 	private readonly kyvePool: KyvePool;
 	private readonly messageMetricsCollector: MessageMetricsCollector;
 	private readonly rollCall: RollCall;
+	private readonly heartbeat: Heartbeat;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
 	private readonly consensusManager: ConsensusManager;
 	private readonly queryRequestHandler: QueryRequestHandler;
 	private readonly reportPoller: ReportPoller;
 	private readonly messageListener: MessageListener;
-
-	private seqNum: number = 0;
 
 	private metricsTimer?: NodeJS.Timer;
 
@@ -85,6 +87,16 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.brokerConfig.pool.id
 		);
 
+		this.heartbeatSubscriber = new BroadbandSubscriber(
+			this.logStoreClient,
+			this.heartbeatStream
+		);
+
+		this.heartbeatPublisher = new BroadbandPublisher(
+			this.logStoreClient,
+			this.heartbeatStream
+		);
+
 		this.rollcallPublisher = new BroadbandPublisher(
 			this.logStoreClient,
 			this.rollCallStream
@@ -93,6 +105,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.rollcallSubscriber = new BroadbandSubscriber(
 			this.logStoreClient,
 			this.rollCallStream
+		);
+
+		this.heartbeat = new Heartbeat(
+			this.heartbeatPublisher,
+			this.heartbeatSubscriber
 		);
 
 		this.messageListener = new MessageListener(
@@ -164,6 +181,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.logStore = await this.startCassandraStorage(metricsContext);
 
 		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
+		this.heartbeat.start();
 		this.messageListener.start(this.logStore, this.logStoreConfig);
 
 		await this.queryRequestHandler.start(this.logStore!);
@@ -192,6 +210,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 		await Promise.all([
 			this.messageMetricsCollector.stop(),
+			this.heartbeat.stop(),
 			this.messageListener.stop(),
 			this.consensusManager.stop(),
 			this.queryRequestHandler.stop(),

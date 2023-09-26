@@ -10,6 +10,7 @@ import { Endpoint } from './httpServer';
 export interface PluginOptions {
 	name: string;
 	logStoreClient: LogStoreClient;
+	heartbeatStream: Stream;
 	recoveryStream: Stream;
 	rollCallStream: Stream;
 	systemStream: Stream;
@@ -23,6 +24,7 @@ export type HttpServerEndpoint = Omit<Endpoint, 'apiAuthentication'>;
 export abstract class Plugin<T extends object> {
 	readonly name: string;
 	readonly logStoreClient: LogStoreClient;
+	readonly heartbeatStream: Stream;
 	readonly recoveryStream: Stream;
 	readonly rollCallStream: Stream;
 	readonly systemStream: Stream;
@@ -35,6 +37,7 @@ export abstract class Plugin<T extends object> {
 	constructor(options: PluginOptions) {
 		this.name = options.name;
 		this.logStoreClient = options.logStoreClient;
+		this.heartbeatStream = options.heartbeatStream;
 		this.recoveryStream = options.recoveryStream;
 		this.rollCallStream = options.rollCallStream;
 		this.systemStream = options.systemStream;
