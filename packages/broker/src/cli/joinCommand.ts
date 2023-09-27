@@ -5,10 +5,12 @@ import {
 import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
+	withRetry,
 } from '@logsn/shared';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
 
+import { overrideConfigToEnvVarsIfGiven } from '../config/config';
 import BROKER_CONFIG_SCHEMA from '../config/config.schema.json';
 import { readConfigAndMigrateIfNeeded } from '../config/migration';
 import { validateConfig } from '../config/validateConfig';
@@ -41,7 +43,7 @@ export const joinCommand = new Command('join')
 				const configWithoutDefaults = readConfigAndMigrateIfNeeded(
 					options.config
 				);
-
+				overrideConfigToEnvVarsIfGiven(configWithoutDefaults);
 				const config = validateConfig(
 					configWithoutDefaults,
 					BROKER_CONFIG_SCHEMA
@@ -64,11 +66,18 @@ export const joinCommand = new Command('join')
 				);
 				const nodeManagerContract = await getNodeManagerContract(signer);
 				console.log(
-					`Joining network with stake amount ${stakeAmount} and metadata ${cmdOptions.metadata}...`
+					`Joining the network with stake amount ${stakeAmount} and metadata ${cmdOptions.metadata}...`
 				);
-				const receipt = await (
-					await nodeManagerContract.join(stakeAmount, cmdOptions.metadata || '')
-				).wait();
+
+				const tx = await withRetry(provider, (gasPrice) => {
+					return nodeManagerContract.join(
+						stakeAmount,
+						cmdOptions.metadata || '',
+						{ gasPrice }
+					);
+				});
+
+				const receipt = await tx.wait();
 				console.log(
 					`Successfully joined the network: Tx ${receipt.transactionHash}`
 				);
