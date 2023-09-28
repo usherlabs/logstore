@@ -1,4 +1,3 @@
-import { ProofOfMessageStored } from './ProofOfMessageStored';
 import { ProofOfReport } from './ProofOfReport';
 import {
 	QueryFromOptions,
@@ -15,7 +14,6 @@ import { RecoveryResponse } from './RecoveryResponse';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
 
 export {
-	ProofOfMessageStored,
 	ProofOfReport,
 	QueryFromOptions,
 	QueryLastOptions,
