@@ -1,20 +1,8 @@
 import { SystemMessageType } from '@logsn/protocol';
 import { RootDatabase } from 'lmdb';
 
-import {
-	ProofOfMessageStoredMessage,
-	QueryRequestMessage,
-	QueryResponseMessage,
-} from '../types';
+import { QueryRequestMessage, QueryResponseMessage } from '../types';
 import { Database } from '../utils/database';
-
-type ProofOfMessageStoredDatabase = RootDatabase<
-	Array<{
-		message: ProofOfMessageStoredMessage;
-		hash: string;
-	}>,
-	number
->;
 
 type QueryRequestDatabase = RootDatabase<
 	Array<{
@@ -33,7 +21,6 @@ type QueryResponseDatabase = RootDatabase<
 >;
 
 type DB = {
-	[SystemMessageType.ProofOfMessageStored]: ProofOfMessageStoredDatabase;
 	[SystemMessageType.QueryRequest]: QueryRequestDatabase;
 	[SystemMessageType.QueryResponse]: QueryResponseDatabase;
 };
@@ -43,19 +30,9 @@ export class SystemDb {
 
 	public open(path: string) {
 		this._db = {
-			[SystemMessageType.ProofOfMessageStored]: Database.create(
-				'ProofOfMessageStored',
-				path
-			),
 			[SystemMessageType.QueryRequest]: Database.create('QueryRequest', path),
 			[SystemMessageType.QueryResponse]: Database.create('QueryResponse', path),
 		} as DB;
-	}
-
-	public storeDb() {
-		return this.db(
-			SystemMessageType.ProofOfMessageStored
-		) as ProofOfMessageStoredDatabase;
 	}
 
 	public queryRequestDb() {

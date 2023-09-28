@@ -2,7 +2,6 @@
 import { sha256 } from '@kyvejs/protocol';
 import { LogStoreClient, MessageMetadata } from '@logsn/client';
 import {
-	ProofOfMessageStored,
 	QueryRequest,
 	QueryResponse,
 	SystemMessage,
@@ -18,7 +17,6 @@ import { SystemDb } from './SystemDb';
 import { SystemRecovery } from './SystemRecovery';
 
 const LISTENING_MESSAGE_TYPES = [
-	SystemMessageType.ProofOfMessageStored,
 	SystemMessageType.QueryRequest,
 	SystemMessageType.QueryResponse,
 ];
@@ -121,43 +119,6 @@ export class SystemListener {
 		);
 
 		switch (systemMessage.messageType) {
-			case SystemMessageType.ProofOfMessageStored: {
-				const proof = systemMessage as ProofOfMessageStored;
-				/**
-					Cache with the timestamp in Proof (point at which the developer submits the message), rather than the timestamp of the metadata (point at which the broker submits the proof)
-					This prevents issues associated to eventual consistency on the decentralised network
-				 */
-				const db = this._db.storeDb();
-				// represent the items in the DB as
-				const key = proof.timestamp;
-
-				this.logger.debug(
-					`Storing ProofOfMessageStored ${JSON.stringify({
-						key,
-						value: { proof, systemMessageMetadata },
-					})}`
-				);
-
-				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
-				await db.transaction(() => {
-					const messages = db.get(key) || [];
-					if (messages.find((m) => m.hash === hash) != undefined) {
-						return true;
-					}
-
-					messages.push({
-						message: {
-							content: proof,
-							metadata,
-						},
-						hash,
-					});
-
-					return db.put(key, messages);
-				});
-
-				break;
-			}
 			case SystemMessageType.QueryRequest: {
 				const queryRequest = systemMessage as QueryRequest;
 
