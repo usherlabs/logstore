@@ -1,4 +1,4 @@
-import { StreamMessage } from '@streamr/protocol';
+import { MessageID, StreamMessage } from '@streamr/protocol';
 import { Logger, MetricsContext, RateMetric } from '@streamr/utils';
 import { auth, Client, tracker, types } from 'cassandra-driver';
 import { EventEmitter } from 'events';
@@ -6,6 +6,7 @@ import merge2 from 'merge2';
 import { pipeline, Readable, Transform } from 'stream';
 import { v1 as uuidv1 } from 'uuid';
 
+import { isPresent } from '../../helpers/isPresent';
 import { BatchManager } from './BatchManager';
 import { Bucket, BucketId } from './Bucket';
 import { BucketManager, BucketManagerOptions } from './BucketManager';
@@ -32,17 +33,21 @@ const bucketsToIds = (buckets: Bucket[]) =>
 	buckets.map((bucket: Bucket) => bucket.getId());
 
 // NET-329
-interface QueryDebugInfo {
-	streamId: string;
-	partition?: number;
-	limit?: number;
-	fromTimestamp?: number;
-	toTimestamp?: number;
-	fromSequenceNo?: number | null;
-	toSequenceNo?: number | null;
-	publisherId?: string | null;
-	msgChainId?: string | null;
-}
+type QueryDebugInfo =
+	| {
+			streamId: string;
+			partition?: number;
+			limit?: number;
+			fromTimestamp?: number;
+			toTimestamp?: number;
+			fromSequenceNo?: number | null;
+			toSequenceNo?: number | null;
+			publisherId?: string | null;
+			msgChainId?: string | null;
+	  }
+	| {
+			messageIds: string[];
+	  };
 
 export type LogStoreOptions = Partial<BucketManagerOptions> & {
 	useTtl?: boolean;
@@ -257,6 +262,24 @@ export class LogStore extends EventEmitter {
 		);
 	}
 
+	/**
+	 * Requests data from the DB using the serialized message ID.
+	 */
+	requestByMessageId(messageIdSerialized: string) {
+		return this.requestByMessageIds([messageIdSerialized]);
+	}
+
+	/**
+	 * Requests messages from DB by their serialized message IDs.
+	 */
+	requestByMessageIds(messageIdsSerialized: string[]) {
+		const messageIds = messageIdsSerialized.map((messageId) =>
+			MessageID.fromArray(JSON.parse(messageId))
+		);
+
+		return this.fetchByMessageIds(messageIds);
+	}
+
 	requestRange(
 		streamId: string,
 		partition: number,
@@ -332,6 +355,95 @@ export class LogStore extends EventEmitter {
 		this.bucketManager.stop();
 		this.batchManager.stop();
 		return this.cassandraClient.shutdown();
+	}
+
+	/**
+	 * Fetches messages from stream_data table based on the given message IDs.
+	 *
+	 * - It won't error if doesn't find a bucket id. Will just skip the message.
+	 * - If it doesn't find a message it will just skip it
+	 *
+	 * @param {MessageID[]} messageIds
+	 */
+	private fetchByMessageIds(
+		messageIds: MessageID[]
+		// ? should we need to add limit param? Will we use it to fetch over 5000 messages?
+	) {
+		const resultStream = this.createResultStream({
+			messageIds: messageIds.map((m) => m.serialize()),
+		});
+
+		const getStatementForMessageId = (messageId: MessageID) => {
+			const bucketId = this.bucketManager.getBucketId(
+				messageId.streamId,
+				messageId.streamPartition,
+				messageId.timestamp
+			);
+
+			if (!bucketId) {
+				// With this we decide not to stop execution on missing bucket id, but just skip the message
+				return undefined;
+			}
+
+			return {
+				query:
+					'SELECT payload FROM stream_data WHERE ' +
+					'stream_id = ? AND partition = ? AND bucket_id = ? AND ts = ? AND sequence_no = ? AND publisher_id = ? AND msg_chain_id = ?',
+				params: [
+					messageId.streamId,
+					messageId.streamPartition,
+					bucketId,
+					messageId.timestamp,
+					messageId.sequenceNumber,
+					messageId.publisherId,
+					messageId.msgChainId,
+				],
+			};
+		};
+
+		const queries = messageIds.map(getStatementForMessageId).filter(isPresent);
+
+		const resultsPromises = Promise.all(
+			queries.map((q) =>
+				this.cassandraClient.execute(q.query, q.params, { prepare: true })
+			)
+		);
+
+		/**
+		 * Creates a Readable stream from a Promise of ResultSet array
+		 */
+		function createPromiseReadable(
+			promise: Promise<types.ResultSet[]>
+		): Readable {
+			let handled = false;
+			return new Readable({
+				objectMode: true,
+				async read() {
+					if (!handled) {
+						handled = true;
+						try {
+							const resultSet = await promise;
+							resultSet.forEach((r) => {
+								r.rows.forEach((row) => {
+									this.push(row);
+								});
+							});
+							this.push(null); // End of data
+						} catch (error) {
+							this.destroy(error);
+						}
+					}
+				},
+			});
+		}
+
+		const stream = createPromiseReadable(resultsPromises);
+		return pipeline(stream, resultStream, (err: Error | null) => {
+			if (err) {
+				resultStream.destroy(err);
+				stream.destroy(undefined);
+			}
+		});
 	}
 
 	private fetchRange(
