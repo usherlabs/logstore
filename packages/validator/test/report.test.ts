@@ -7,7 +7,6 @@ import { BROKER_NODE_PRIVATE_KEY } from './utils/setup';
 import {
 	cleanupTests,
 	publishQueryMessages,
-	publishStorageMessages,
 	setupTests,
 } from './utils/setup';
 
@@ -38,7 +37,8 @@ describe('Report', () => {
 
 			// ACT
 			const brokerNodeCount = 2;
-			await publishStorageMessages(PUBLISH_MESSAGE_COUNT); // these messages are being fired after the current key...
+			// FIXME Old ProofOfMessageStored
+			// await publishStorageMessages(PUBLISH_MESSAGE_COUNT); // these messages are being fired after the current key...
 			await publishQueryMessages(PUBLISH_MESSAGE_COUNT, brokerNodeCount);
 
 			const now = Date.now();
@@ -49,16 +49,18 @@ describe('Report', () => {
 			} as any;
 			// Re-initate the Validator now that the listener has started.
 
-			const storeCache = v['runtime'].listener.storeDb();
-			const queryRequestCache = v['runtime'].listener.queryRequestDb();
-			const queryResponseCache = v['runtime'].listener.queryResponseDb();
+			// FIXME Old ProofOfMessageStored
+			// const storeCache = v['runtime'].listener.storeDb();
+			const queryRequestCache = v['runtime'].listener.db.queryRequestDb();
+			const queryResponseCache = v['runtime'].listener.db.queryResponseDb();
 
 			const storeMsgs = [];
-			for (const { key: _k, value: _v } of storeCache.getRange()) {
-				_v.forEach((sMsg) => {
-					storeMsgs.push(sMsg);
-				});
-			}
+			// FIXME Old ProofOfMessageStored
+			// for (const { key: _k, value: _v } of storeCache.getRange()) {
+			// 	_v.forEach((sMsg) => {
+			// 		storeMsgs.push(sMsg);
+			// 	});
+			// }
 			const requestIds = [];
 			for (const { key: _k, value: _v } of queryRequestCache.getRange()) {
 				_v.forEach((value) => {

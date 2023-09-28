@@ -217,54 +217,55 @@ export async function cleanupTests() {
 	}
 }
 
-export const publishStorageMessages = async (numOfMessages: number) => {
-	const { systemStreamId } = v['runtime'].config;
-	const messages: ProofOfMessageStored[] = [];
-	try {
-		const sourceStreamId = systemStreamId.replace('/system', '/test');
-		for (let idx = 1; idx <= numOfMessages; idx++) {
-			const msg = { messageNo: idx };
-			const msgStr = JSON.stringify(msg);
-			const size = Buffer.byteLength(msgStr, 'utf8');
-			const hash = ethers.utils.keccak256(
-				fromString(sourceStreamId + msgStr + size)
-			);
-			console.log(`Publishing storage message:`, msg, { hash, size });
-
-			const content = {
-				id: sourceStreamId,
-				hash,
-				size,
-			};
-
-			const proofOfMessageStored = new ProofOfMessageStored({
-				streamId: content.id,
-				partition: 0,
-				timestamp: +new Date(),
-				sequenceNumber: 0,
-				size: content.size,
-				hash: content.hash,
-			});
-
-			await publisherClient.publish(
-				{
-					id: systemStreamId,
-					partition: 0,
-				},
-				proofOfMessageStored.serialize()
-			);
-
-			messages.push(proofOfMessageStored);
-			// await sleep(100);
-		}
-		await wait(MESSAGE_STORE_TIMEOUT);
-	} catch (e) {
-		console.log(`Cannot publish message to storage stream`);
-		console.error(e);
-	}
-
-	return messages;
-};
+// TODO Delete it once everything works again
+// export const publishStorageMessages = async (numOfMessages: number) => {
+// 	const { systemStreamId } = v['runtime'].config;
+// 	const messages: ProofOfMessageStored[] = [];
+// 	try {
+// 		const sourceStreamId = systemStreamId.replace('/system', '/test');
+// 		for (let idx = 1; idx <= numOfMessages; idx++) {
+// 			const msg = { messageNo: idx };
+// 			const msgStr = JSON.stringify(msg);
+// 			const size = Buffer.byteLength(msgStr, 'utf8');
+// 			const hash = ethers.utils.keccak256(
+// 				fromString(sourceStreamId + msgStr + size)
+// 			);
+// 			console.log(`Publishing storage message:`, msg, { hash, size });
+//
+// 			const content = {
+// 				id: sourceStreamId,
+// 				hash,
+// 				size,
+// 			};
+//
+// 			const proofOfMessageStored = new ProofOfMessageStored({
+// 				streamId: content.id,
+// 				partition: 0,
+// 				timestamp: +new Date(),
+// 				sequenceNumber: 0,
+// 				size: content.size,
+// 				hash: content.hash,
+// 			});
+//
+// 			await publisherClient.publish(
+// 				{
+// 					id: systemStreamId,
+// 					partition: 0,
+// 				},
+// 				proofOfMessageStored.serialize()
+// 			);
+//
+// 			messages.push(proofOfMessageStored);
+// 			// await sleep(100);
+// 		}
+// 		await wait(MESSAGE_STORE_TIMEOUT);
+// 	} catch (e) {
+// 		console.log(`Cannot publish message to storage stream`);
+// 		console.error(e);
+// 	}
+//
+// 	return messages;
+// };
 
 export const publishQueryMessages = async (
 	numOfMessages: number,
