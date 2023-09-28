@@ -11,12 +11,7 @@ import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.m
 import { lcd } from '@kyvejs/protocol/test/mocks/lcd.mock';
 import { TestNormalStorageProvider } from '@kyvejs/protocol/test/mocks/storageProvider.mock';
 import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
-import {
-	ProofOfMessageStored,
-	QueryRequest,
-	QueryResponse,
-	QueryType,
-} from '@logsn/protocol';
+import { QueryRequest, QueryResponse, QueryType } from '@logsn/protocol';
 import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
@@ -43,6 +38,7 @@ export const BROKER_NODE_PRIVATE_KEY =
 	process.env.BROKER_NODE_PRIVATE_KEY ||
 	('0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const);
 const MESSAGE_STORE_TIMEOUT = 9 * 1000;
+
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
 }
