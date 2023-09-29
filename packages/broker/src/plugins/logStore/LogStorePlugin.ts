@@ -6,6 +6,7 @@ import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
+import { logStoreContext } from './context';
 import { Heartbeat } from './Heartbeat';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
@@ -15,7 +16,8 @@ import { MessageListener } from './MessageListener';
 import { MessageMetricsCollector } from './MessageMetricsCollector';
 import { PropagationClient } from './PropagationClient';
 import { PropagationServer } from './PropagationServer';
-import { QueryRequestHandler } from './QueryRequestHandler';
+import { ConsensusManager } from './query/ConsensusManger';
+import { QueryRequestManager } from './QueryRequestManager';
 import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
 import { SystemCache } from './SystemCache';
@@ -58,7 +60,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly heartbeat: Heartbeat;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
-	private readonly queryRequestHandler: QueryRequestHandler;
+	private readonly queryRequestHandler: QueryRequestManager;
 	private readonly propagationClient: PropagationClient;
 	private readonly propagationServer: PropagationServer;
 	private readonly reportPoller: ReportPoller;
@@ -129,7 +131,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.systemSubscriber
 		);
 
-		this.queryRequestHandler = new QueryRequestHandler(
+		this.queryRequestHandler = new QueryRequestManager(
 			this.systemPublisher,
 			this.systemSubscriber,
 			this.propagationClient,
@@ -177,12 +179,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		await this.messageMetricsCollector.start();
 
 		this.addHttpServerEndpoint(
-			createDataQueryEndpoint(
-				this.brokerConfig,
-				this.logStore,
-				this.propagationClient,
-				metricsContext
-			)
+			createDataQueryEndpoint(this.brokerConfig, metricsContext)
 		);
 		this.addHttpServerEndpoint(
 			createRecoveryEndpoint(this.systemStream, this.heartbeat, metricsContext)

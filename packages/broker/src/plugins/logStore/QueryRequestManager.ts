@@ -9,6 +9,7 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
+import { Signer, utils } from 'ethers';
 import { createSignaturePayload } from '@streamr/protocol';
 import { EthereumAddress, Logger } from '@streamr/utils';
 import { keccak256 } from 'ethers/lib/utils';
@@ -21,17 +22,19 @@ import {
 	MAX_SEQUENCE_NUMBER_VALUE,
 	MIN_SEQUENCE_NUMBER_VALUE,
 } from './LogStore';
+import { QueryResponseManager } from './QueryResponseManager';
 import { PropagationClient } from './PropagationClient';
 import { PropagationServer } from './PropagationServer';
 
 const logger = new Logger(module);
 
-export class QueryRequestHandler {
+export class QueryRequestManager {
 	private seqNum: number = 0;
 	private logStore?: LogStore;
 	private clientId?: EthereumAddress;
 
 	constructor(
+		private readonly queryResponseManager: QueryResponseManager,
 		private readonly publisher: BroadbandPublisher,
 		private readonly subscriber: BroadbandSubscriber,
 		private readonly propagationClient: PropagationClient,
@@ -64,7 +67,29 @@ export class QueryRequestHandler {
 			content,
 			metadata
 		);
+		const readableStream = this.processQueryRequest(queryRequest);
 
+		const { size, hash } = await this.hashResponse(
+			queryRequest.requestId,
+			readableStream
+		);
+
+		const queryResponse = new QueryResponse({
+			seqNum: this.seqNum++,
+			requestId: queryRequest.requestId,
+			size,
+			hash,
+			signature: await this.signer.signMessage(hash),
+		});
+		await this.queryResponseManager.publishQueryResponse(queryResponse);
+		utils.recoverAddress(hash, queryResponse.signature);
+	}
+
+	public publishQueryRequest(queryRequest: QueryRequest) {
+		return this.publisher.publish(queryRequest.serialize());
+	}
+
+	public processQueryRequest(queryRequest: QueryRequest) {
 		let readableStream: Readable;
 		switch (queryRequest.queryType) {
 			case QueryType.Last: {
