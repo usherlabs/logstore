@@ -1,3 +1,5 @@
+import '../telemetry/setup/startOpenTelemetry';
+
 export * from './initCommand';
 export * from './joinCommand';
 export * from './startCommand';
