@@ -13,7 +13,7 @@ Keep the script running.
 Hit [Ctrl+C] to abort.
 "
 
-sudo $SSH \
+$SSH \
 	-o ServerAliveInterval=60 \
   -N \
   -L 80:localhost:80 \
