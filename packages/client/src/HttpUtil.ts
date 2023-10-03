@@ -5,15 +5,13 @@ import {
 	WebStreamToNodeStream,
 } from '@logsn/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
-import { Logger, toEthereumAddress } from '@streamr/utils';
-import { ethers } from 'ethers';
+import { Logger } from '@streamr/utils';
 import { Base64 } from 'js-base64';
 import fetch, { Response } from 'node-fetch';
 import split2 from 'split2';
 import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
-import { Consensus } from './Consensus';
 import { getVersionString } from './utils/utils';
 
 export enum ErrorCode {
@@ -111,27 +109,6 @@ export class HttpUtil {
 		});
 		if (!response.body) {
 			throw new Error('No Response Body');
-		}
-
-		try {
-			const consensus = JSON.parse(
-				response.headers.get('consensus') ?? ''
-			) as Consensus[];
-
-			const hash = consensus[0].hash;
-
-			for (const item of consensus) {
-				const signer = toEthereumAddress(
-					ethers.utils.verifyMessage(item.hash, item.signature)
-				);
-
-				const itemSigner = toEthereumAddress(item.signer);
-				if (item.hash != hash || itemSigner != signer) {
-					throw new Error('No consensus');
-				}
-			}
-		} catch {
-			throw new Error('No consensus');
 		}
 
 		let stream: Readable | undefined;

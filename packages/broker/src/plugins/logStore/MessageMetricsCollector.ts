@@ -30,6 +30,10 @@ const METRICS_SUBJECTS: MessageMetricsSubject[] = [
 		type: SystemMessageType.QueryResponse,
 	},
 	{
+		subject: 'QueryPropagate',
+		type: SystemMessageType.QueryPropagate,
+	},
+	{
 		subject: 'RecoveryRequest',
 		type: SystemMessageType.RecoveryRequest,
 	},

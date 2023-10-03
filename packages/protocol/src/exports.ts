@@ -2,6 +2,7 @@
 import './report/ReportSerializerV1';
 import './system/ProofOfMessageStoredSerializerV1';
 import './system/ProofOfReportSerializerV1';
+import './system/QueryPropagateSerializerV1';
 import './system/QueryRequestSerializerV1';
 import './system/QueryResponseSerializerV1';
 import './system/RecoveryCompleteSerializerV1';

@@ -1,5 +1,6 @@
 import { ProofOfMessageStored } from './ProofOfMessageStored';
 import { ProofOfReport } from './ProofOfReport';
+import { QueryPropagate } from './QueryPropagate';
 import {
 	QueryFromOptions,
 	QueryLastOptions,
@@ -20,6 +21,7 @@ export {
 	QueryFromOptions,
 	QueryLastOptions,
 	QueryOptions,
+	QueryPropagate,
 	QueryRangeOptions,
 	QueryRequest,
 	QueryResponse,

@@ -6,7 +6,7 @@ import { Managers } from '../managers';
 import { rollingConfig } from '../shared/rollingConfig';
 import { IBrokerNode, IValidatorReport } from '../types';
 import { Arweave } from '../utils/arweave';
-import { fetchQueryResponseConsensus } from '../utils/helpers';
+// import { fetchQueryResponseConsensus } from '../utils/helpers';
 import { ReportUtils } from '../utils/report';
 import { StakeToken } from '../utils/stake-token';
 import { AbstractDataItem } from './abstract';
@@ -307,81 +307,82 @@ export class Report extends AbstractDataItem<IPrepared> {
 		// -------------------------------------
 
 		// ------------ QUERIES ----------------
-		const queryRequestCache = listener.db.queryRequestDb();
-		const queryResponseCache = listener.db.queryResponseDb();
-		// Iterate over the query-request events between the range
-		const queryRequestCachedItems = queryRequestCache.getRange({
-			start: fromKeyMs,
-			end: toKeyMs,
-		});
+		//TODO: Temporary disabled
+		// const queryRequestCache = listener.db.queryRequestDb();
+		// const queryResponseCache = listener.db.queryResponseDb();
+		// // Iterate over the query-request events between the range
+		// const queryRequestCachedItems = queryRequestCache.getRange({
+		// 	start: fromKeyMs,
+		// 	end: toKeyMs,
+		// });
 
-		// Determine read fees
-		let readFee = new Decimal(0);
-		if (totalBytesStored > 0) {
-			readFee = writeFee.mul(fees.readMultiplier);
-		}
-		const readTreasuryFee = readFee.mul(fees.treasuryMultiplier);
-		const readNodeFee = readFee.sub(readTreasuryFee);
+		// // Determine read fees
+		// let readFee = new Decimal(0);
+		// if (totalBytesStored > 0) {
+		// 	readFee = writeFee.mul(fees.readMultiplier);
+		// }
+		// const readTreasuryFee = readFee.mul(fees.treasuryMultiplier);
+		// const readNodeFee = readFee.sub(readTreasuryFee);
 
-		for (const { value: cacheValue } of queryRequestCachedItems) {
-			if (!cacheValue) continue;
-			for (let i = 0; i < cacheValue.length; i++) {
-				// Here, we iterate over the query requests that may have occured during the same timestamp
-				const value = cacheValue[i];
+		// for (const { value: cacheValue } of queryRequestCachedItems) {
+		// 	if (!cacheValue) continue;
+		// 	for (let i = 0; i < cacheValue.length; i++) {
+		// 		// Here, we iterate over the query requests that may have occured during the same timestamp
+		// 		const value = cacheValue[i];
 
-				const { content, metadata } = value.message;
-				if (!(content && metadata)) {
-					continue;
-				}
+		// 		const { content, metadata } = value.message;
+		// 		if (!(content && metadata)) {
+		// 			continue;
+		// 		}
 
-				const queryResponsesForRequest = queryResponseCache
-					.get(content.requestId)
-					.map((m) => m.message);
+		// 		const queryResponsesForRequest = queryResponseCache
+		// 			.get(content.requestId)
+		// 			.map((m) => m.message);
 
-				const {
-					// maxCount: consensusCount,
-					maxHash: consensusHash,
-					result: queryResponseHashMap,
-				} = fetchQueryResponseConsensus(queryResponsesForRequest);
+		// 		const {
+		// 			// maxCount: consensusCount,
+		// 			maxHash: consensusHash,
+		// 			result: queryResponseHashMap,
+		// 		} = fetchQueryResponseConsensus(queryResponsesForRequest);
 
-				// get data for response that has the highest consensus
-				//  -- In the future, we can penalise nodes for not meeting a threshold of >=50% of the responses
+		// 		// get data for response that has the highest consensus
+		// 		//  -- In the future, we can penalise nodes for not meeting a threshold of >=50% of the responses
 
-				// get the first item because they should all be the same as they have the same hash
-				// and we have confirmed that the length is greater than one so an item will be present
-				const { hash, size } = queryResponseHashMap[consensusHash][0].content;
+		// 		// get the first item because they should all be the same as they have the same hash
+		// 		// and we have confirmed that the length is greater than one so an item will be present
+		// 		const { hash, size } = queryResponseHashMap[consensusHash][0].content;
 
-				report.events.queries.push({
-					id: content.streamId,
-					query: content.queryOptions,
-					consumer: content.consumerId,
-					hash,
-					size,
-				});
-				const captureAmount = readFee.mul(size);
-				const existingConsumerIndex = report.consumers.findIndex(
-					(c) => c.id === content.consumerId
-				);
-				if (existingConsumerIndex < 0) {
-					report.consumers.push({
-						id: content.consumerId,
-						capture: captureAmount, // the total amount of stake to capture token in wei based on the calculations
-						bytes: size,
-					});
-				} else {
-					report.consumers[existingConsumerIndex].capture =
-						report.consumers[existingConsumerIndex].capture.add(captureAmount);
-					report.consumers[existingConsumerIndex].bytes += size;
-				}
-				report.treasury = report.treasury.add(readTreasuryFee.mul(size));
+		// 		report.events.queries.push({
+		// 			id: content.streamId,
+		// 			query: content.queryOptions,
+		// 			consumer: content.consumerId,
+		// 			hash,
+		// 			size,
+		// 		});
+		// 		const captureAmount = readFee.mul(size);
+		// 		const existingConsumerIndex = report.consumers.findIndex(
+		// 			(c) => c.id === content.consumerId
+		// 		);
+		// 		if (existingConsumerIndex < 0) {
+		// 			report.consumers.push({
+		// 				id: content.consumerId,
+		// 				capture: captureAmount, // the total amount of stake to capture token in wei based on the calculations
+		// 				bytes: size,
+		// 			});
+		// 		} else {
+		// 			report.consumers[existingConsumerIndex].capture =
+		// 				report.consumers[existingConsumerIndex].capture.add(captureAmount);
+		// 			report.consumers[existingConsumerIndex].bytes += size;
+		// 		}
+		// 		report.treasury = report.treasury.add(readTreasuryFee.mul(size));
 
-				// Only apply fees to nodes that have contributed to the conensus response
-				const contributors = queryResponseHashMap[consensusHash].map(
-					(msg) => msg.metadata.publisherId
-				);
-				rewardNodes(readNodeFee.mul(size), contributors, false);
-			}
-		}
+		// 		// Only apply fees to nodes that have contributed to the conensus response
+		// 		const contributors = queryResponseHashMap[consensusHash].map(
+		// 			(msg) => msg.metadata.publisherId
+		// 		);
+		// 		rewardNodes(readNodeFee.mul(size), contributors, false);
+		// 	}
+		// }
 		// ------------ END QUERIES ------------
 		// -------------------------------------
 

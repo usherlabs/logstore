@@ -3,6 +3,7 @@ import { RootDatabase } from 'lmdb';
 
 import {
 	ProofOfMessageStoredMessage,
+	QueryPropagateMessage,
 	QueryRequestMessage,
 	QueryResponseMessage,
 } from '../types';
@@ -32,10 +33,19 @@ type QueryResponseDatabase = RootDatabase<
 	string
 >;
 
+type QueryPropagateDatabase = RootDatabase<
+	Array<{
+		message: QueryPropagateMessage;
+		hash: string;
+	}>,
+	string
+>;
+
 type DB = {
 	[SystemMessageType.ProofOfMessageStored]: ProofOfMessageStoredDatabase;
 	[SystemMessageType.QueryRequest]: QueryRequestDatabase;
 	[SystemMessageType.QueryResponse]: QueryResponseDatabase;
+	[SystemMessageType.QueryPropagate]: QueryPropagateDatabase;
 };
 
 export class SystemDb {
@@ -49,6 +59,10 @@ export class SystemDb {
 			),
 			[SystemMessageType.QueryRequest]: Database.create('QueryRequest', path),
 			[SystemMessageType.QueryResponse]: Database.create('QueryResponse', path),
+			[SystemMessageType.QueryPropagate]: Database.create(
+				'QueryPropagate',
+				path
+			),
 		} as DB;
 	}
 
@@ -64,6 +78,10 @@ export class SystemDb {
 
 	public queryResponseDb() {
 		return this.db(SystemMessageType.QueryResponse) as QueryResponseDatabase;
+	}
+
+	public queryPropagateDb() {
+		return this.db(SystemMessageType.QueryPropagate) as QueryPropagateDatabase;
 	}
 
 	private db(type: SystemMessageType) {
