@@ -11,3 +11,5 @@ declare global {
 		LogStoreClient: LogStoreClient;
 	}
 }
+
+export type AmountTypes = 'usd' | 'bytes' | 'wei';

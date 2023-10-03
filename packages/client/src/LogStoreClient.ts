@@ -5,6 +5,7 @@ import type {
 	StreamDefinition,
 } from '@logsn/streamr-client';
 import { StreamrClient } from '@logsn/streamr-client';
+import { ContractTransaction } from 'ethers';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import { container as rootContainer } from 'tsyringe';
@@ -13,16 +14,23 @@ import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
 	redactConfig,
+	StrictLogStoreClientConfig,
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
 import { HttpApiQueryDict, Queries, QueryOptions, QueryType } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
+import { QueryManager } from './registry/QueryManager';
+import { TokenManager } from './registry/TokenManager';
+import { AmountTypes } from './types';
 
 export class LogStoreClient extends StreamrClient {
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
+	private readonly logStoreQueryManager: QueryManager;
+	private readonly logstoreTokenManager: TokenManager;
+	private readonly strictConfig: StrictLogStoreClientConfig;
 
 	constructor(
 		config: LogStoreClientConfig = {},
@@ -36,6 +44,8 @@ export class LogStoreClient extends StreamrClient {
 		delete streamrClientConfig.contracts?.logStoreNodeManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
+		delete streamrClientConfig.contracts?.logStoreTokenManagerChainAddress;
+		delete streamrClientConfig.contracts?.logStoreQueryManagerChainAddress;
 
 		super(streamrClientConfig, container);
 		// TODO: Using parentContainer breaks authentication in the Broker's tests
@@ -43,6 +53,8 @@ export class LogStoreClient extends StreamrClient {
 
 		const strictConfig = createStrictConfig(config);
 		redactConfig(strictConfig);
+
+		this.strictConfig = strictConfig;
 
 		container.register(LogStoreClient, {
 			useValue: this,
@@ -59,6 +71,10 @@ export class LogStoreClient extends StreamrClient {
 			container.resolve<LogStoreRegistry>(LogStoreRegistry);
 
 		this.logStoreQueries = container.resolve<Queries>(Queries);
+
+		this.logStoreQueryManager = container.resolve<QueryManager>(QueryManager);
+
+		this.logstoreTokenManager = container.resolve<TokenManager>(TokenManager);
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -69,7 +85,7 @@ export class LogStoreClient extends StreamrClient {
 	 * Stake funds so can query
 	 */
 	async queryStake(amount: bigint, options = { usd: false }) {
-		return this.logStoreRegistry.queryStake(amount, { usd: options.usd });
+		return this.logStoreQueryManager.queryStake(amount, { usd: options.usd });
 	}
 
 	/**
@@ -99,6 +115,10 @@ export class LogStoreClient extends StreamrClient {
 			messageStream.useLegacyOnMessageHandler(onMessage);
 		}
 		return messageStream;
+	}
+
+	async getQueryBalance(): Promise<bigint> {
+		return this.logStoreQueryManager.getQueryBalance();
 	}
 
 	async createQueryUrl(
@@ -135,7 +155,7 @@ export class LogStoreClient extends StreamrClient {
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
 		amount: bigint
-	): Promise<void> {
+	): Promise<ContractTransaction> {
 		return this.logStoreRegistry.stakeOrCreateStore(streamIdOrPath, amount);
 	}
 
@@ -156,6 +176,50 @@ export class LogStoreClient extends StreamrClient {
 		blockNumber: number;
 	}> {
 		return this.logStoreRegistry.getStoredStreams();
+	}
+
+	async getStreamBalance(streamIdOrPath: string): Promise<bigint> {
+		return this.logStoreRegistry.getStreamBalance(streamIdOrPath);
+	}
+
+	async getStoreBalance(): Promise<bigint> {
+		return this.logStoreRegistry.getStoreBalance();
+	}
+
+	// --------------------------------------------------------------------------------------------
+	// Token utilities
+	// --------------------------------------------------------------------------------------------
+
+	async getBalance(): Promise<bigint> {
+		return this.logstoreTokenManager.getBalance();
+	}
+
+	async mint(weiAmountToMint: bigint): Promise<ContractTransaction> {
+		return this.logstoreTokenManager.mint(weiAmountToMint);
+	}
+
+	async getPrice(): Promise<bigint> {
+		return this.logstoreTokenManager.getPrice();
+	}
+
+	async convert({
+		amount,
+		from,
+		to,
+	}: {
+		amount: string;
+		from: AmountTypes;
+		to: AmountTypes;
+	}): Promise<string> {
+		return this.logstoreTokenManager.convert({ amount, from, to });
+	}
+
+	// --------------------------------------------------------------------------------------------
+	// Client
+	// --------------------------------------------------------------------------------------------
+
+	getConfig(): LogStoreClientConfig {
+		return this.strictConfig;
 	}
 
 	/**

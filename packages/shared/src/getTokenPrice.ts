@@ -3,6 +3,14 @@ import ContractAddresses from '@logsn/contracts/address.json';
 import { ethers, Signer } from 'ethers';
 import redstone from 'redstone-api';
 
+export async function getMaticPrice(timestamp: number) {
+	const { value: maticPrice } = await redstone.getHistoricalPrice('MATIC', {
+		date: timestamp,
+		verifySignature: true,
+	});
+	return maticPrice;
+}
+
 export const getTokenPrice = async (
 	tokenAddress: string,
 	timestamp: number,
@@ -13,7 +21,7 @@ export const getTokenPrice = async (
 	if (!provider) throw new Error('no provider provided');
 
 	// fetch the chain id to be used to fetch the right token addres
-	const { chainId } = await provider?.getNetwork();
+	const { chainId } = await provider.getNetwork();
 	const chainIdIndex = `${chainId}` as keyof typeof ContractAddresses;
 	const { tokenManagerAddress: lsanTokenAddress } = ContractAddresses[
 		chainIdIndex
@@ -27,10 +35,7 @@ export const getTokenPrice = async (
 	if (tokenAddress === lsanTokenAddress) {
 		const weiPerByte = await tokenContract.functions.price();
 		const lsanPricePerMatic = ethers.utils.formatEther(+weiPerByte);
-		const { value: maticPrice } = await redstone.getHistoricalPrice('MATIC', {
-			date: timestamp,
-			verifySignature: true,
-		});
+		const maticPrice = await getMaticPrice(timestamp);
 		const response = +lsanPricePerMatic * maticPrice;
 		return response;
 	}

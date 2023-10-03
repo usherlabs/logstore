@@ -1,0 +1,4 @@
+# rename to .env and fill accordingly
+
+NODE_ID=dev-network # will be used to diferentiate logs
+INFISICAL_TOKEN_VECTOR= # will help us inject env variables
