@@ -1,0 +1,62 @@
+{
+	"name": "@logsn/observer",
+	"version": "0.0.1",
+	"description": "The Log Store Network Broker Node",
+	"author": "Ryan Soury <ryan@usher.so>, Victor Shevtsov <victor.shevtsov@usher.so>",
+	"license": "SEE LICENSE IN ./LICENSE",
+	"private": false,
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/usherlabs/logstore.git",
+		"directory": "packages/observer"
+	},
+	"main": "./dist/src/index.ts",
+	"files": [
+		"./dist"
+	],
+	"scripts": {
+		"build": "echo 'no build'",
+		"format": "prettier --write .",
+		"start:dev": "dotenv -- tsx scripts/start-dev-server.ts",
+		"start:prod": "tsx scripts/start-prod-server.ts",
+		"ts": "tsc --noEmit",
+		"lint": "eslint ./src/**/*.ts ./test/**/*.ts",
+		"test": "dotenv -e .env jest --"
+	},
+	"dependencies": {
+		"@logsn/client": "workspace:^",
+		"@logsn/contracts": "workspace:^",
+		"@logsn/protocol": "workspace:^",
+		"@logsn/shared": "workspace:^",
+		"@logsn/broker": "workspace:^",
+		"@streamr/utils": "^8.5.5",
+		"@streamr/protocol": "^8.5.5",
+		"ethers": "^5.7.2",
+		"ajv": "^8.12.0",
+		"@opentelemetry/api": "^1.6.0",
+		"@opentelemetry/context-async-hooks": "^1.17.0",
+		"@opentelemetry/auto-instrumentations-node": "^0.39.2",
+		"@opentelemetry/sdk-node": "^0.43.0",
+		"@opentelemetry/exporter-metrics-otlp-grpc": "^0.43.0",
+		"@opentelemetry/sdk-metrics": "^1.17.0",
+		"@opentelemetry/exporter-trace-otlp-grpc": "^0.43.0",
+		"@opentelemetry/instrumentation-http": "^0.43.0",
+		"@opentelemetry/semantic-conventions": "^1.17.0",
+		"@opentelemetry/resources": "^1.17.0",
+		"lodash": "^4.17.21"
+	},
+	"devDependencies": {
+		"ts-toolbelt": "^9.6.0",
+		"@tsconfig/node16": "^1.0.3",
+		"@types/lodash": "^4.14.191",
+		"@types/node": "^16.18.39",
+		"dotenv-cli": "^7.2.1",
+		"esbuild": "^0.19.4",
+		"dotenv": "^16.3.1",
+		"ts-essentials": "^9.3.0",
+		"tsx": "^3.12.10",
+		"vitest": "^0.34.4",
+		"typescript": "^5.1.6"
+	}
+}
