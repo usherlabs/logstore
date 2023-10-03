@@ -6,6 +6,12 @@ import merge2 from 'merge2';
 import { pipeline, Readable, Transform } from 'stream';
 import { v1 as uuidv1 } from 'uuid';
 
+import { observeCassandraStorage } from '../../telemetry/metrics/cassandraCounters';
+import {
+	addNewBytesEvent,
+	addNewMessageEvent,
+} from '../../telemetry/metrics/generalNodeActions';
+import { StartActiveSpan } from '../../telemetry/utils/activeSpanDecorator';
 import { BatchManager } from './BatchManager';
 import { Bucket, BucketId } from './Bucket';
 import { BucketManager, BucketManagerOptions } from './BucketManager';
@@ -55,6 +61,7 @@ export class LogStore extends EventEmitter {
 	bucketManager: BucketManager;
 	batchManager: BatchManager;
 	pendingStores: Map<string, NodeJS.Timeout>;
+	unobserveCassandraStorage?: () => void;
 
 	constructor(cassandraClient: Client, opts: LogStoreOptions) {
 		super();
@@ -75,8 +82,12 @@ export class LogStore extends EventEmitter {
 			useTtl: this.opts.useTtl,
 		});
 		this.pendingStores = new Map();
+		this.unobserveCassandraStorage = observeCassandraStorage(
+			this.cassandraClient
+		);
 	}
 
+	@StartActiveSpan()
 	async store(streamMessage: StreamMessage): Promise<boolean> {
 		logger.debug('Store message');
 
@@ -118,6 +129,7 @@ export class LogStore extends EventEmitter {
 		});
 	}
 
+	@StartActiveSpan()
 	requestLast(
 		streamId: string,
 		partition: number,
@@ -227,6 +239,7 @@ export class LogStore extends EventEmitter {
 		return resultStream;
 	}
 
+	@StartActiveSpan()
 	requestFrom(
 		streamId: string,
 		partition: number,
@@ -257,6 +270,7 @@ export class LogStore extends EventEmitter {
 		);
 	}
 
+	@StartActiveSpan()
 	requestRange(
 		streamId: string,
 		partition: number,
@@ -311,13 +325,29 @@ export class LogStore extends EventEmitter {
 		metricsContext.addMetrics('broker.plugin.logStore', metrics);
 		this.on('read', (streamMessage: StreamMessage) => {
 			metrics.readMessagesPerSecond.record(1);
-			metrics.readBytesPerSecond.record(streamMessage.getContent(false).length);
+			addNewMessageEvent({
+				type: 'read',
+				qty: 1,
+			});
+			const bytes = streamMessage.getContent(false).length;
+			metrics.readBytesPerSecond.record(bytes);
+			addNewBytesEvent({
+				type: 'read',
+				qty: bytes,
+			});
 		});
 		this.on('write', (streamMessage: StreamMessage) => {
 			metrics.writeMessagesPerSecond.record(1);
-			metrics.writeBytesPerSecond.record(
-				streamMessage.getContent(false).length
-			);
+			addNewMessageEvent({
+				type: 'write',
+				qty: 1,
+			});
+			const bytes = streamMessage.getContent(false).length;
+			metrics.writeBytesPerSecond.record(bytes);
+			addNewBytesEvent({
+				type: 'write',
+				qty: bytes,
+			});
 		});
 	}
 
@@ -331,9 +361,11 @@ export class LogStore extends EventEmitter {
 
 		this.bucketManager.stop();
 		this.batchManager.stop();
+		this.unobserveCassandraStorage?.();
 		return this.cassandraClient.shutdown();
 	}
 
+	@StartActiveSpan()
 	private fetchRange(
 		streamId: string,
 		partition: number,
@@ -658,6 +690,7 @@ export class LogStore extends EventEmitter {
 		return count;
 	}
 
+	@StartActiveSpan()
 	async getTotalBytesInStream(
 		streamId: string,
 		partition: number
