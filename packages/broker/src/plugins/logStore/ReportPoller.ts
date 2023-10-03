@@ -24,7 +24,7 @@ const logger = new Logger(module);
 const REPORT_TRESHOLD_MULTIPLIER = 0.5;
 
 export class ReportPoller {
-	private readonly kyvePool: KyvePool;
+	protected readonly kyvePool: KyvePool;
 	private readonly poolConfig: StrictConfig['pool'];
 	private readonly signer: Signer;
 	private readonly publisher: BroadbandPublisher;
@@ -41,7 +41,7 @@ export class ReportPoller {
 
 	constructor(
 		kyvePool: KyvePool,
-		config: StrictConfig,
+		config: Pick<StrictConfig, 'pool'>,
 		signer: Signer,
 		publisher: BroadbandPublisher,
 		subscriber: BroadbandSubscriber
