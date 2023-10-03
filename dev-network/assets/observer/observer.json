@@ -1,0 +1,56 @@
+{
+	"$schema": "https://schema.streamr.network/config-v2.schema.json",
+	"client": {
+		"logLevel": "trace",
+		"auth": {
+			"privateKey": "0x2222222222222222222222222222222222222222222222222222222222222222"
+		},
+		"network": {
+			"id": "0x1563915e194d8cfba1943570603f7606a3115508",
+			"trackers": {
+				"contractAddress": "0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF"
+			},
+			"location": {
+				"latitude": 60.19,
+				"longitude": 24.95,
+				"country": "Finland",
+				"city": "Helsinki"
+			},
+			"webrtcDisallowPrivateAddresses": false
+		},
+		"contracts": {
+			"streamRegistryChainAddress": "0x6cCdd5d866ea766f6DF5965aA98DeCCD629ff222",
+			"streamStorageRegistryChainAddress": "0xd04af489677001444280366Dd0885B03dAaDe71D",
+			"storageNodeRegistryChainAddress": "0x231b810D98702782963472e1D60a25496999E75D",
+			"logStoreNodeManagerChainAddress": "0x85ac4C8E780eae81Dd538053D596E382495f7Db9",
+			"logStoreStoreManagerChainAddress": "0x8560200b8E7477FB09281A0566B50fa6E7a66a34",
+			"streamRegistryChainRPCs": {
+				"chainId": 8997,
+				"rpcs": [
+					{
+						"url": "http://10.200.10.1:8546"
+					}
+				]
+			},
+			"mainChainRPCs": {
+				"chainId": 8995,
+				"rpcs": [
+					{
+						"url": "http://10.200.10.1:8545"
+					}
+				]
+			},
+			"theGraphUrl": "http://10.200.10.1:8000/subgraphs/name/streamr-dev/network-contracts",
+			"logStoreTheGraphUrl": "http://10.200.10.1:8000/subgraphs/name/logstore-dev/network-contracts"
+		},
+		"metrics": false
+	},
+	"pool": {
+		"id": "0",
+		"url": "http://logstore-kyve:1317",
+		"pollInterval": 60000
+	},
+	"plugins": {
+		"observer": {}
+	}
+}

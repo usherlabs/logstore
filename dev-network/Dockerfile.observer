@@ -1,0 +1,8 @@
+FROM logstore-base
+
+USER root
+
+USER node
+WORKDIR /home/node/logstore
+
+CMD [ "start-in-docker" ]
