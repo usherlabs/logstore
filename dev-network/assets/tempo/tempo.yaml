@@ -1,0 +1,34 @@
+auth_enabled: false  # Authentication. TODO
+
+server:
+  http_listen_port: 3200  # Port for HTTP API
+
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory  # In-memory ring store. For production, consider using etcd or Consul.
+      replication_factor: 1  # Number of the replicas for the ingested data.
+    final_sleep: 0s  # Time to sleep between shutdown and exiting the ingester.
+
+distributor:
+  receivers:  # Supported protocols for tracing ingestion.
+    jaeger:
+      protocols:
+        grpc:
+        thrift_binary:
+        thrift_compact:
+    zipkin:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+storage:
+  trace:
+    backend: local  # local storage backend. For production, we might want to use cloud
+    wal:
+      path: /tmp/tempo/wal  # Write-ahead log (WAL) directory path. Make sure to mount this directory in Docker.
+    local:
+      path: /tmp/tempo/traces  # Traces storage directory path. Make sure to mount this directory in Docker.
+

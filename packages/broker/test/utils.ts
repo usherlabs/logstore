@@ -5,6 +5,7 @@ import {
 	Stream,
 	StreamMetadata,
 } from '@logsn/client';
+import { metrics, trace } from '@opentelemetry/api';
 import { TEST_CONFIG } from '@streamr/network-node';
 import { startTracker, Tracker } from '@streamr/network-tracker';
 import {
@@ -17,6 +18,7 @@ import _ from 'lodash';
 
 import { Broker, createBroker as createLogStoreBroker } from '../src/broker';
 import { Config } from '../src/config/config';
+import { metricReader, sdk } from '../src/telemetry/setup/setupSdk';
 
 export const STREAMR_DOCKER_DEV_HOST =
 	process.env.STREAMR_DOCKER_DEV_HOST || '127.0.0.1';
@@ -165,4 +167,24 @@ export async function sleep(ms = 0): Promise<void> {
 	return new Promise((resolve) => {
 		setTimeout(resolve, ms);
 	});
+}
+
+export function addOpentelemetry() {
+	const meter = metrics.getMeter('test-logstore');
+	const tracer = trace.getTracer('test-logstore');
+	jest.setMock('../src/telemetry/globalTelemetryObjects', () => ({
+		meter: meter,
+		tracer: tracer,
+	}));
+
+	beforeAll(async () => {
+		sdk.start();
+	});
+	afterAll(async () => {
+		const collection = await metricReader?.collect();
+		await metricReader?.forceFlush();
+		await sdk.shutdown();
+	});
+
+	return { meter, tracer };
 }

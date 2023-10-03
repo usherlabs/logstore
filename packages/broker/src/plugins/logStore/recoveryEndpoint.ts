@@ -42,7 +42,7 @@ export const createRecoveryEndpoint = (
 	const metrics = {
 		recoveryRequestsPerSecond: new RateMetric(),
 	};
-	metricsContext.addMetrics('broker.plugin.logstore', metrics);
+	metricsContext.addMetrics('broker.plugin.logStore', metrics);
 	return {
 		path: `/recovery`,
 		method: 'post',

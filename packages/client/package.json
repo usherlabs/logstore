@@ -10,9 +10,6 @@
 		"url": "git+https://github.com/usherlabs/logstore.git",
 		"directory": "packages/client"
 	},
-	"types": "./dist/types/src/index.d.ts",
-	"main": "./dist/src/exports-commonjs.js",
-	"browser": "./dist/logstore-client.web.js",
 	"exports": {
 		"browser": "./dist/logstore-client.web.js",
 		"default": {
@@ -20,6 +17,9 @@
 			"require": "./dist/src/exports-commonjs.js"
 		}
 	},
+	"types": "./dist/types/src/index.d.ts",
+	"main": "./dist/src/exports-commonjs.js",
+	"browser": "./dist/logstore-client.web.js",
 	"files": [
 		"dist"
 	],

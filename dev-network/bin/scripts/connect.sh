@@ -20,7 +20,9 @@ $SSH \
   -L 443:localhost:443 \
   -L 1317:localhost:1317 \
   -L 3000:localhost:3000 \
+  -L 3300:localhost:3300 \
   -L 4001:localhost:4001 \
+  -L 4317:localhost:4317 \
   -L 5432:localhost:5432 \
   -L 7771:localhost:7771 \
   -L 7772:localhost:7772 \

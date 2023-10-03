@@ -339,6 +339,105 @@ services:
       logstore-deploy-contracts:
         condition: service_completed_successfully
 
+  logstore-observer:
+    container_name: logstore-observer
+    hostname: logstore-observer
+    image: logstore-observer
+    build:
+      context: ../
+      dockerfile: ./dev-network/Dockerfile.observer
+    restart: always
+    networks:
+      - streamr-network
+    env_file:
+      - ./assets/observer/.env.observer
+    volumes:
+      - type: bind
+        source: ./assets/observer/start-in-docker.sh
+        target: /usr/local/bin/start-in-docker
+      - type: bind
+        source: ./assets/observer/observer.json
+        target: /home/node/.logstore/config/observer.json
+    depends_on:
+      logstore-base:
+        condition: service_completed_successfully
+      logstore-deploy-subgraph:
+        condition: service_completed_successfully
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
+
+  logstore-grafana:
+    image: grafana/grafana:latest
+    container_name: logstore-grafana
+    hostname: logstore-grafana
+    restart: always
+    networks:
+      - streamr-network
+    ports:
+      - '3300:3000'
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - logstore-prometheus
+
+  opentelemetry-collector:
+    image: otel/opentelemetry-collector:0.85.0
+    container_name: opentelemetry-collector
+    hostname: opentelemetry-collector
+    restart: always
+    ports:
+      - '4317:4317'
+    networks:
+      - streamr-network
+    volumes:
+      - ./assets/opentelemetry-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    command: ['--config=/etc/otel-collector-config.yaml']
+
+  logstore-prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: logstore-prometheus
+    hostname: logstore-prometheus
+    restart: always
+    networks:
+      - streamr-network
+    command:
+      [
+        '--config.file=/etc/prometheus/prometheus.yml',
+        '--storage.tsdb.path=/prometheus',
+        '--web.enable-admin-api',
+      ]
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./assets/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - type: volume
+        source: data-logstore-prometheus
+        target: /prometheus
+        volume:
+          nocopy: false
+    depends_on:
+      - opentelemetry-collector
+
+  tempo:
+    image: grafana/tempo:main-6c7e07d # Use the latest version
+    container_name: tempo
+    hostname: tempo
+    restart: always
+    networks:
+      - streamr-network
+    ports:
+      - '3200:3200' # Tempo's default port
+    command: ['-config.file=/etc/tempo/tempo.yaml']
+    volumes:
+      - ./assets/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - type: volume
+        source: data-tempo
+        target: /tmp/tempo
+        volume:
+          nocopy: false
+    depends_on:
+      - opentelemetry-collector
+
   logstore-vector:
     container_name: logstore-vector
     hostname: logstore-vector
@@ -365,3 +464,6 @@ volumes:
   data-heartbeat:
   data-logstore-deploy-contracts:
   data-logstore-deploy-subgraph:
+  data-logstore-prometheus:
+  grafana-storage:
+  data-tempo:
