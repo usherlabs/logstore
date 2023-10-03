@@ -1,7 +1,7 @@
 {
 	"$schema": "https://schema.streamr.network/config-v2.schema.json",
 	"client": {
-		"logLevel": "trace",
+		"logLevel": "debug",
 		"auth": {
 			"privateKey": "0x2222222222222222222222222222222222222222222222222222222222222222"
 		},
