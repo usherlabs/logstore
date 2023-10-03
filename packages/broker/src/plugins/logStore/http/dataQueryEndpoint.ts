@@ -3,6 +3,7 @@
  */
 import { QueryRequest, QueryType } from '@logsn/protocol';
 import { getQueryManagerContract } from '@logsn/shared';
+import { api } from '@opentelemetry/sdk-node';
 import {
 	Logger,
 	MetricsContext,
@@ -17,6 +18,10 @@ import { v4 as uuid } from 'uuid';
 
 import { StrictConfig } from '../../../config/config';
 import { HttpServerEndpoint } from '../../../Plugin';
+import { ctx } from '../../../telemetry/context';
+import { globalTelemetryObjects } from '../../../telemetry/globalTelemetryObjects';
+import { addNewQueryEvent } from '../../../telemetry/metrics/generalNodeActions';
+import { withActiveSpan } from '../../../telemetry/utils/withActiveSpan';
 import { createBasicAuthenticatorMiddleware } from '../authentication';
 import { ConsensusResponse } from '../Consensus';
 import { ConsensusManager } from '../ConsensusManger';
@@ -155,7 +160,13 @@ const getDataForLastRequest = async (
 	consensusManager: ConsensusManager,
 	metrics: MetricsDefinition
 ) => {
-	metrics.resendLastQueriesPerSecond.record(1);
+	const span = globalTelemetryObjects.startSpan('data for last request', {
+		attributes: { type: 'last' },
+	});
+	// set active span
+	api.trace.setSpan(api.context.active(), span);
+
+	metrics.queryLastQueriesPerSecond.record(1);
 	const count = getCountForLastRequest(req);
 	if (count === 'NOT_A_NUMBER') {
 		sendError(`Query parameter "count" not a number: ${req.query.count}`, res);
@@ -177,9 +188,9 @@ const getDataForLastRequest = async (
 	const consensus = await consensusManager.getConsensus(queryMessage);
 
 	const data = logStore.requestLast(streamId, partition, count!);
+	span.end();
 	return { data, consensus };
 };
-
 const getDataForFromRequest = async (
 	req: FromRequest,
 	streamId: string,
@@ -189,7 +200,7 @@ const getDataForFromRequest = async (
 	consensusManager: ConsensusManager,
 	metrics: MetricsDefinition
 ) => {
-	metrics.resendFromQueriesPerSecond.record(1);
+	metrics.queryFromQueriesPerSecond.record(1);
 	const fromTimestamp = parseIntIfExists(req.query.fromTimestamp);
 	const fromSequenceNumber =
 		parseIntIfExists(req.query.fromSequenceNumber) || MIN_SEQUENCE_NUMBER_VALUE;
@@ -253,7 +264,7 @@ const getDataForRangeRequest = async (
 	consensusManager: ConsensusManager,
 	metrics: MetricsDefinition
 ) => {
-	metrics.resendRangeQueriesPerSecond.record(1);
+	metrics.queryRangeQueriesPerSecond.record(1);
 	const fromTimestamp = parseIntIfExists(req.query.fromTimestamp);
 	const toTimestamp = parseIntIfExists(req.query.toTimestamp);
 	const fromSequenceNumber =
@@ -369,27 +380,29 @@ const getDataForRequest = async (
 		| typeof getDataForRangeRequest
 	>
 ) => {
-	const [req, streamId, partition, res, logStore, consensusManager, metrics] =
-		args;
-	const rest = [
-		streamId,
-		partition,
-		res,
-		logStore,
-		consensusManager,
-		metrics,
-	] as const;
-	const reqType = getRequestType(req);
-	switch (reqType.type) {
-		case 'last':
-			return getDataForLastRequest(reqType.req, ...rest);
-		case 'from':
-			return getDataForFromRequest(reqType.req, ...rest);
-		case 'range':
-			return getDataForRangeRequest(reqType.req, ...rest);
-		default:
-			throw new Error(`Unknown query type: ${reqType}`);
-	}
+	return withActiveSpan('getDataForRequest', async () => {
+		const [req, streamId, partition, res, logStore, consensusManager, metrics] =
+			args;
+		const rest = [
+			streamId,
+			partition,
+			res,
+			logStore,
+			consensusManager,
+			metrics,
+		] as const;
+		const reqType = getRequestType(req);
+		switch (reqType.type) {
+			case 'last':
+				return getDataForLastRequest(reqType.req, ...rest);
+			case 'from':
+				return getDataForFromRequest(reqType.req, ...rest);
+			case 'range':
+				return getDataForRangeRequest(reqType.req, ...rest);
+			default:
+				throw new Error(`Unknown query type: ${reqType}`);
+		}
+	});
 };
 
 const createHandler = (
@@ -457,17 +470,46 @@ export const createDataQueryEndpoint = (
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
 	const metrics = {
-		resendLastQueriesPerSecond: new RateMetric(),
-		resendFromQueriesPerSecond: new RateMetric(),
-		resendRangeQueriesPerSecond: new RateMetric(),
+		queryLastQueriesPerSecond: new RateMetric(),
+		queryFromQueriesPerSecond: new RateMetric(),
+		queryRangeQueriesPerSecond: new RateMetric(),
 	};
-	metricsContext.addMetrics('broker.plugin.logstore', metrics);
+	metricsContext.addMetrics('broker.plugin.logStore', metrics);
 	return {
 		path: `/streams/:id/data/partitions/:partition/:queryType`,
 		method: 'get',
 		requestHandlers: [
 			createBasicAuthenticatorMiddleware(),
+			otelMiddleware,
 			createHandler(config, logStore, consensusManager, metrics),
 		],
 	};
+};
+
+const otelMiddleware = (req: Request, res: Response, next: () => void) => {
+	globalTelemetryObjects.startActiveSpan(
+		'logstore.http.query',
+		async (span) => {
+			ctx.operation.enterWith('user_request');
+			ctx.queryType.enterWith(req.params.queryType as QueryType);
+
+			res.once('finish', () => {
+				addNewQueryEvent({
+					qty: 1,
+					statusCode: res.statusCode.toString(),
+				});
+				span?.end();
+			});
+
+			res.once('close', () => {
+				span?.end();
+			});
+
+			res.once('error', () => {
+				span?.end();
+			});
+
+			next();
+		}
+	);
 };

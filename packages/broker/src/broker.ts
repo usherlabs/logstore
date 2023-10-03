@@ -19,6 +19,7 @@ import { generateMnemonicFromAddress } from './helpers/generateMnemonicFromAddre
 import { startServer as startHttpServer, stopServer } from './httpServer';
 import { HttpServerEndpoint, Plugin, PluginOptions } from './Plugin';
 import { createPlugin } from './pluginRegistry';
+import { ctx } from './telemetry/context';
 
 const logger = new Logger(module);
 
@@ -101,6 +102,9 @@ export const createBroker = async (
 	return {
 		getNode,
 		start: async () => {
+			const nodeId = (await logStoreClient.getNode()).getNodeId();
+			ctx.nodeInfo.enterWith({ id: nodeId });
+
 			logger.info(`Starting LogStore broker version ${CURRENT_VERSION}`);
 			await Promise.all(plugins.map((plugin) => plugin.start()));
 			const httpServerEndpoints = plugins.flatMap((plugin: Plugin<any>) => {
@@ -119,7 +123,6 @@ export const createBroker = async (
 				);
 			}
 
-			const nodeId = (await logStoreClient.getNode()).getNodeId();
 			const brokerAddress = await logStoreClient.getAddress();
 			const mnemonic = generateMnemonicFromAddress(
 				toEthereumAddress(brokerAddress)
