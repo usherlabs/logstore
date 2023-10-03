@@ -2,10 +2,10 @@ import { Stream } from '@logsn/client';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 
-// import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
+import { observeMessageMetricsCollector } from '../../telemetry/metrics/observeMessageMetricsCollector';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { ConsensusManager } from './ConsensusManger';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
@@ -62,6 +62,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly queryRequestHandler: QueryRequestHandler;
 	private readonly reportPoller: ReportPoller;
 	private readonly messageListener: MessageListener;
+	private stopSharingWithTelemetryCollector?: () => void;
 
 	private seqNum: number = 0;
 
@@ -185,10 +186,14 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.logMetrics.bind(this),
 			METRICS_INTERVAL
 		);
+		this.stopSharingWithTelemetryCollector = observeMessageMetricsCollector(
+			this.messageMetricsCollector
+		);
 	}
 
 	async stop(): Promise<void> {
 		clearInterval(this.metricsTimer);
+		this.stopSharingWithTelemetryCollector?.();
 
 		await Promise.all([
 			this.messageMetricsCollector.stop(),

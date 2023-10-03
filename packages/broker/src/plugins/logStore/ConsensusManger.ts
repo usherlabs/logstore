@@ -10,6 +10,8 @@ import { Logger } from '@streamr/utils';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
+import { ctx } from '../../telemetry/context';
+import { StartActiveSpan } from '../../telemetry/utils/activeSpanDecorator';
 import { Consensus } from './Consensus';
 
 const logger = new Logger(module);
@@ -33,6 +35,7 @@ export class ConsensusManager {
 		await this.subscriber.unsubscribe();
 	}
 
+	@StartActiveSpan()
 	public async getConsensus(queryRequest: QueryRequest) {
 		const requestPublisherId = await this.publisher.getAddress();
 		const awaitingResponses = (await this.nodeManager.totalNodes()).toNumber();
@@ -55,6 +58,7 @@ export class ConsensusManager {
 	}
 
 	private onMessage(content: unknown, metadata: MessageMetadata) {
+		ctx.operation.enterWith('consensus');
 		const systemMessage = SystemMessage.deserialize(content);
 		if (systemMessage.messageType != SystemMessageType.QueryResponse) {
 			return;

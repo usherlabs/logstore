@@ -16,6 +16,8 @@ import { Readable } from 'stream';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
+import { ctx } from '../../telemetry/context';
+import { StartActiveSpan } from '../../telemetry/utils/activeSpanDecorator';
 import {
 	LogStore,
 	MAX_SEQUENCE_NUMBER_VALUE,
@@ -46,12 +48,14 @@ export class QueryRequestHandler {
 		await this.subscriber.unsubscribe();
 	}
 
+	@StartActiveSpan()
 	private async onMessage(content: unknown, metadata: MessageMetadata) {
 		const systemMessage = SystemMessage.deserialize(content);
 
 		if (systemMessage.messageType !== SystemMessageType.QueryRequest) {
 			return;
 		}
+		ctx.operation.enterWith('query_request');
 
 		const queryRequest = systemMessage as QueryRequest;
 		logger.debug(

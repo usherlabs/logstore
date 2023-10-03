@@ -13,6 +13,7 @@ import {
 } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
 
+import { ctx } from '../../telemetry/context';
 import { SystemCache } from './SystemCache';
 
 const INTERVAL = 100;
@@ -49,6 +50,7 @@ export class SystemRecovery {
 	}
 
 	private async onMessage(message: unknown) {
+		ctx.operation.enterWith('recovery');
 		const systemMessage = SystemMessage.deserialize(message);
 		if (systemMessage.messageType !== SystemMessageType.RecoveryRequest) {
 			return;
