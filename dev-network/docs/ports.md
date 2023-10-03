@@ -7,10 +7,12 @@
 | 443   | Streamr APP                     | streamr-dev-nginx                    | Streamr  |
 | 1317  | KYVE REST API                   | logstore-nginx                       | LogStore |
 | 1984  | Arweave                         | logstore-arweave                     | LogStore |
+| 3300  | Grafana                         | logstore-grafana                     | Logstore |
 | 3306  | MySql                           | streamr-dev-mysql                    | Streamr  |
 | 3333  |                                 | streamr-dev-platform                 | Streamr  |
 | 3334  |                                 | streamr-dev-network-explorer         | Streamr  |
 | 4001  |                                 | streamr-dev-stream-metrics-index     | Streamr  |
+| 4317  | OpenTelemetry Collector         | opentelemetry-collector              | LogStore |
 | 5001  |                                 | streamr-dev-ipfs                     | Streamr  |
 | 5432  |                                 | streamr-dev-postgres                 | Streamr  |
 | 6379  | Redis                           | streamr-dev-redis                    | Streamr  |
