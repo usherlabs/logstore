@@ -39,5 +39,8 @@
 		"@ethersproject/bignumber": "^5.7.0",
 		"@ethersproject/bytes": "^5.7.0",
 		"@ethersproject/solidity": "^5.7.0"
+	},
+	"peerDependencies": {
+		"@opentelemetry/api": "^1.0.0"
 	}
 }
