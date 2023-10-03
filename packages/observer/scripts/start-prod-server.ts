@@ -9,9 +9,11 @@ import { createObserver } from '../src/observer';
 const homeDir = os.homedir();
 const configFilename = 'observer.json';
 
-const fullConfigPath = `${homeDir}/.logstore/config/${configFilename}`;
+const defaultConfigPath = `${homeDir}/.logstore/config/${configFilename}`;
 
-const content = JSON.parse(fs.readFileSync(fullConfigPath, 'utf8')) as
+const configPath = process.env.CONFIG_PATH ?? defaultConfigPath;
+
+const content = JSON.parse(fs.readFileSync(configPath, 'utf8')) as
 	| Config
 	| undefined;
 
