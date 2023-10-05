@@ -1,43 +1,43 @@
 import { Serializer } from '../abstracts/Serializer';
-import { QueryResponse } from './QueryResponse';
+import { QueryPropagate } from './QueryPropagate';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
 
 const VERSION = 1;
 
-export default class QueryResponseSerializerV1 extends Serializer<QueryResponse> {
-	toArray(message: QueryResponse): any[] {
+export default class QueryPropagateSerializerV1 extends Serializer<QueryPropagate> {
+	toArray(message: QueryPropagate): any[] {
 		return [
 			VERSION,
-			SystemMessageType.QueryResponse,
+			SystemMessageType.QueryPropagate,
 			message.seqNum,
 			message.requestId,
 			message.requestPublisherId,
-			JSON.stringify(Array.from(message.hashMap.entries())),
+			message.payload,
 		];
 	}
 
-	fromArray(arr: any[]): QueryResponse {
+	fromArray(arr: any[]): QueryPropagate {
 		const [
 			version,
 			_messageType,
 			seqNum,
 			requestId,
 			requestPublisherId,
-			hashMap,
+			payload,
 		] = arr;
 
-		return new QueryResponse({
+		return new QueryPropagate({
 			version,
 			seqNum,
 			requestId,
 			requestPublisherId,
-			hashMap: new Map(JSON.parse(hashMap)),
+			payload,
 		});
 	}
 }
 
 SystemMessage.registerSerializer(
 	VERSION,
-	SystemMessageType.QueryResponse,
-	new QueryResponseSerializerV1()
+	SystemMessageType.QueryPropagate,
+	new QueryPropagateSerializerV1()
 );

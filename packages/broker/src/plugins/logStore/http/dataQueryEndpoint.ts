@@ -18,9 +18,8 @@ import { v4 as uuid } from 'uuid';
 import { StrictConfig } from '../../../config/config';
 import { HttpServerEndpoint } from '../../../Plugin';
 import { createBasicAuthenticatorMiddleware } from '../authentication';
-import { ConsensusResponse } from '../Consensus';
-import { ConsensusManager } from '../ConsensusManger';
 import { LogStore } from '../LogStore';
+import { PropagationClient } from '../PropagationClient';
 import { Format, getFormat } from './DataQueryFormat';
 import {
 	MessageLimitTransform,
@@ -44,7 +43,6 @@ function parseIntIfExists(x: string | undefined): number | undefined {
 
 const sendSuccess = (
 	data: Readable,
-	consensus: ConsensusResponse[],
 	format: Format,
 	version: number | undefined,
 	streamId: string,
@@ -56,7 +54,6 @@ const sendSuccess = (
 			'Content-Type': isStreamRequest(req)
 				? 'text/event-stream'
 				: format.contentType,
-			Consensus: JSON.stringify(consensus),
 		});
 	});
 	data.once('error', () => {
@@ -152,7 +149,7 @@ const getDataForLastRequest = async (
 	partition: number,
 	res: Response,
 	logStore: LogStore,
-	consensusManager: ConsensusManager,
+	propagationClient: PropagationClient,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendLastQueriesPerSecond.record(1);
@@ -163,7 +160,7 @@ const getDataForLastRequest = async (
 	}
 
 	const requestId = uuid();
-	const queryMessage = new QueryRequest({
+	const queryRequest = new QueryRequest({
 		seqNum: seqNum++,
 		requestId,
 		consumerId: req.consumer!,
@@ -174,10 +171,10 @@ const getDataForLastRequest = async (
 			last: count,
 		},
 	});
-	const consensus = await consensusManager.getConsensus(queryMessage);
+	await propagationClient.propagate(queryRequest);
 
 	const data = logStore.requestLast(streamId, partition, count!);
-	return { data, consensus };
+	return { data /*, consensus*/ };
 };
 
 const getDataForFromRequest = async (
@@ -186,7 +183,7 @@ const getDataForFromRequest = async (
 	partition: number,
 	res: Response,
 	logStore: LogStore,
-	consensusManager: ConsensusManager,
+	propagationClient: PropagationClient,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendFromQueriesPerSecond.record(1);
@@ -214,7 +211,7 @@ const getDataForFromRequest = async (
 		: undefined;
 
 	const requestId = uuid();
-	const queryMessage = new QueryRequest({
+	const queryRequest = new QueryRequest({
 		seqNum: seqNum++,
 		requestId,
 		consumerId: req.consumer!,
@@ -231,7 +228,7 @@ const getDataForFromRequest = async (
 		},
 	});
 
-	const consensus = await consensusManager.getConsensus(queryMessage);
+	await propagationClient.propagate(queryRequest);
 
 	const data = logStore.requestFrom(
 		streamId,
@@ -241,7 +238,7 @@ const getDataForFromRequest = async (
 		publisherId,
 		limitOrUndefinedIfInfinity
 	);
-	return { data, consensus };
+	return { data /*, consensus*/ };
 };
 
 const getDataForRangeRequest = async (
@@ -250,7 +247,7 @@ const getDataForRangeRequest = async (
 	partition: number,
 	res: Response,
 	logStore: LogStore,
-	consensusManager: ConsensusManager,
+	propagationClient: PropagationClient,
 	metrics: MetricsDefinition
 ) => {
 	metrics.resendRangeQueriesPerSecond.record(1);
@@ -307,7 +304,7 @@ const getDataForRangeRequest = async (
 		: undefined;
 
 	const requestId = uuid();
-	const queryMessage = new QueryRequest({
+	const queryRequest = new QueryRequest({
 		seqNum: seqNum++,
 		requestId,
 		consumerId: req.consumer!,
@@ -329,7 +326,7 @@ const getDataForRangeRequest = async (
 		},
 	});
 
-	const consensus = await consensusManager.getConsensus(queryMessage);
+	await propagationClient.propagate(queryRequest);
 
 	const data = logStore.requestRange(
 		streamId,
@@ -342,7 +339,7 @@ const getDataForRangeRequest = async (
 		msgChainId,
 		limitOrUndefinedIfInfinity
 	);
-	return { data, consensus };
+	return { data };
 };
 
 const getRequestType = (
@@ -369,14 +366,14 @@ const getDataForRequest = async (
 		| typeof getDataForRangeRequest
 	>
 ) => {
-	const [req, streamId, partition, res, logStore, consensusManager, metrics] =
+	const [req, streamId, partition, res, logStore, systemPublisher, metrics] =
 		args;
 	const rest = [
 		streamId,
 		partition,
 		res,
 		logStore,
-		consensusManager,
+		systemPublisher,
 		metrics,
 	] as const;
 	const reqType = getRequestType(req);
@@ -395,7 +392,7 @@ const getDataForRequest = async (
 const createHandler = (
 	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
-	consensusManager: ConsensusManager,
+	propagationClient: PropagationClient,
 	metrics: MetricsDefinition
 ): RequestHandler => {
 	return async (req: Request, res: Response) => {
@@ -430,19 +427,11 @@ const createHandler = (
 				partition,
 				res,
 				logStore,
-				consensusManager,
+				propagationClient,
 				metrics
 			);
 			if (response) {
-				sendSuccess(
-					response.data,
-					response.consensus,
-					format,
-					version,
-					streamId,
-					req,
-					res
-				);
+				sendSuccess(response.data, format, version, streamId, req, res);
 			}
 		} catch (error) {
 			sendError(error, res);
@@ -453,7 +442,7 @@ const createHandler = (
 export const createDataQueryEndpoint = (
 	config: Pick<StrictConfig, 'client'>,
 	logStore: LogStore,
-	consensusManager: ConsensusManager,
+	propagationClient: PropagationClient,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
 	const metrics = {
@@ -467,7 +456,7 @@ export const createDataQueryEndpoint = (
 		method: 'get',
 		requestHandlers: [
 			createBasicAuthenticatorMiddleware(),
-			createHandler(config, logStore, consensusManager, metrics),
+			createHandler(config, logStore, propagationClient, metrics),
 		],
 	};
 };

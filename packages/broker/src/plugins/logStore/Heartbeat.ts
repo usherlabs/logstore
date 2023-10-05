@@ -4,9 +4,10 @@ import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 
 const INTERVAL = 1 * 1000;
-const THRESHOLD = 10 * 1000;
+const THRESHOLD = 60 * 1000;
 
 export class Heartbeat {
+	private clientId?: EthereumAddress;
 	private brokers: Map<EthereumAddress, number>;
 	private timer?: NodeJS.Timer;
 
@@ -17,7 +18,8 @@ export class Heartbeat {
 		this.brokers = new Map();
 	}
 
-	public async start() {
+	public async start(clientId: EthereumAddress) {
+		this.clientId = clientId;
 		await this.subscriber.subscribe(this.onMessage.bind(this));
 		this.timer = setInterval(this.onInterval.bind(this), INTERVAL);
 	}
@@ -32,10 +34,9 @@ export class Heartbeat {
 
 	public get onlineBrokers() {
 		const result: EthereumAddress[] = [];
-		for (const broker of this.brokers) {
-			const timestamp = broker[1];
+		for (const [broker, timestamp] of this.brokers) {
 			if (Date.now() - timestamp <= THRESHOLD) {
-				result.push();
+				result.push(broker);
 			}
 		}
 
@@ -47,6 +48,10 @@ export class Heartbeat {
 	}
 
 	private async onMessage(_: unknown, metadata: MessageMetadata) {
+		if (metadata.publisherId === this.clientId) {
+			return;
+		}
+
 		this.brokers.set(metadata.publisherId, metadata.timestamp);
 	}
 }

@@ -1,4 +1,4 @@
-import { StreamMessage } from '@streamr/protocol';
+import { MessageID, StreamMessage } from '@streamr/protocol';
 import { Logger, MetricsContext, RateMetric } from '@streamr/utils';
 import { auth, Client, tracker, types } from 'cassandra-driver';
 import { EventEmitter } from 'events';
@@ -299,6 +299,29 @@ export class LogStore extends EventEmitter {
 			msgChainId,
 			limit
 		);
+	}
+
+	requestPayloadByMessageId(messageId: string) {
+		const {
+			streamId,
+			streamPartition,
+			timestamp,
+			sequenceNumber,
+			publisherId,
+			msgChainId,
+		} = MessageID.fromArray(JSON.parse(messageId));
+		const readableStream = this.fetchRange(
+			streamId,
+			streamPartition,
+			timestamp,
+			sequenceNumber,
+			streamPartition,
+			sequenceNumber,
+			publisherId,
+			msgChainId
+		);
+
+		return readableStream.read() as string;
 	}
 
 	enableMetrics(metricsContext: MetricsContext): void {

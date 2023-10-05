@@ -1,34 +1,37 @@
 import assert from 'assert';
 
 import { SystemMessage, SystemMessageType } from '../src/system';
-import { QueryResponse } from '../src/system/QueryResponse';
-import '../src/system/QueryResponseSerializerV1';
+import { QueryPropagate } from '../src/system/QueryPropagate';
+import '../src/system/QueryPropagateSerializerV1';
 
 const VERSION = 1;
 
-const hashMap = new Map<string, string>();
-hashMap.set('firstMessageId', 'firstMessageHash');
-hashMap.set('secondeMessageId', 'secondeMessageHash');
+const payload: [string, string][] = [];
+payload.push(['firstMessageId', 'firstMessageHash']);
+payload.push(['secondeMessageId', 'secondeMessageHash']);
 
 // Message definitions
-const message = new QueryResponse({
+const message = new QueryPropagate({
 	version: VERSION,
 	seqNum: 1234,
 	requestId: 'requestId',
 	requestPublisherId: 'requestPublisherId',
-	hashMap,
+	payload,
 });
 
 const serializedMessage = JSON.stringify([
 	VERSION,
-	SystemMessageType.QueryResponse,
+	SystemMessageType.QueryPropagate,
 	1234,
 	'requestId',
 	'requestPublisherId',
-	'[["firstMessageId","firstMessageHash"],["secondeMessageId","secondeMessageHash"]]',
+	[
+		['firstMessageId', 'firstMessageHash'],
+		['secondeMessageId', 'secondeMessageHash'],
+	],
 ]);
 
-describe('QueryResponseSerializerV1', () => {
+describe('QueryPropagateSerializerV1', () => {
 	describe('deserialize', () => {
 		it('correctly parses messages', () => {
 			assert.deepStrictEqual(

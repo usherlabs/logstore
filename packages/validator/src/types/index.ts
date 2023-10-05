@@ -3,6 +3,7 @@ import { MessageMetadata } from '@logsn/client';
 import type {
 	IReportV1,
 	ProofOfMessageStored,
+	QueryPropagate,
 	QueryRequest,
 	QueryResponse,
 } from '@logsn/protocol';
@@ -49,12 +50,16 @@ export type StreamrMessage = {
 	metadata: MessageMetadata;
 };
 
+export type QueryRequestMessage = Omit<StreamrMessage, 'content'> & {
+	content: QueryRequest;
+};
+
 export type QueryResponseMessage = Omit<StreamrMessage, 'content'> & {
 	content: QueryResponse;
 };
 
-export type QueryRequestMessage = Omit<StreamrMessage, 'content'> & {
-	content: QueryRequest;
+export type QueryPropagateMessage = Omit<StreamrMessage, 'content'> & {
+	content: QueryPropagate;
 };
 
 export type ProofOfMessageStoredMessage = Omit<StreamrMessage, 'content'> & {

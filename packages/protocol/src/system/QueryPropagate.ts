@@ -4,28 +4,27 @@ import {
 	SystemMessageType,
 } from './SystemMessage';
 
-interface QueryResponseOptions extends SystemMessageOptions {
+interface QueryPropagateOptions extends SystemMessageOptions {
 	requestId: string;
 	requestPublisherId: string;
-	hashMap: Map<string, string>;
+	payload: [string, string][];
 }
 
-export class QueryResponse extends SystemMessage {
+export class QueryPropagate extends SystemMessage {
 	requestId: string;
 	requestPublisherId: string;
-	hashMap: Map<string, string>;
+	payload: [string, string][];
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
 		seqNum,
 		requestId,
 		requestPublisherId,
-		hashMap,
-	}: QueryResponseOptions) {
-		super(version, SystemMessageType.QueryResponse, seqNum);
-
+		payload,
+	}: QueryPropagateOptions) {
+		super(version, SystemMessageType.QueryPropagate, seqNum);
 		this.requestId = requestId;
 		this.requestPublisherId = requestPublisherId;
-		this.hashMap = hashMap;
+		this.payload = payload;
 	}
 }

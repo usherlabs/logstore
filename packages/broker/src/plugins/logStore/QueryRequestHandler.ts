@@ -9,8 +9,8 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
-import { Logger } from '@streamr/utils';
-import { Signer } from 'ethers';
+import { createSignaturePayload } from '@streamr/protocol';
+import { EthereumAddress, Logger } from '@streamr/utils';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
 
@@ -21,22 +21,27 @@ import {
 	MAX_SEQUENCE_NUMBER_VALUE,
 	MIN_SEQUENCE_NUMBER_VALUE,
 } from './LogStore';
+import { PropagationClient } from './PropagationClient';
+import { PropagationServer } from './PropagationServer';
 
 const logger = new Logger(module);
 
 export class QueryRequestHandler {
 	private seqNum: number = 0;
 	private logStore?: LogStore;
+	private clientId?: EthereumAddress;
 
 	constructor(
 		private readonly publisher: BroadbandPublisher,
 		private readonly subscriber: BroadbandSubscriber,
-		private readonly signer: Signer
+		private readonly propagationClient: PropagationClient,
+		private readonly propagationServer: PropagationServer
 	) {
 		//
 	}
 
-	public async start(logStore: LogStore) {
+	public async start(clientId: EthereumAddress, logStore: LogStore) {
+		this.clientId = clientId;
 		this.logStore = logStore;
 
 		await this.subscriber.subscribe(this.onMessage.bind(this));
@@ -107,31 +112,41 @@ export class QueryRequestHandler {
 				throw new Error('Unknown QueryType');
 		}
 
-		const { size, hash } = await this.hashResponse(
-			queryRequest.requestId,
-			readableStream
-		);
-
+		const hashMap = await this.getHashMap(readableStream);
 		const queryResponse = new QueryResponse({
 			seqNum: this.seqNum++,
 			requestId: queryRequest.requestId,
-			size,
-			hash,
-			signature: await this.signer.signMessage(hash),
+			requestPublisherId: metadata.publisherId,
+			hashMap,
 		});
+
 		await this.publisher.publish(queryResponse.serialize());
+
+		if (metadata.publisherId === this.clientId) {
+			await this.propagationClient.setPrimaryResponse(queryResponse);
+		} else {
+			await this.propagationServer.setForeignResponse(queryResponse);
+		}
 	}
 
-	private hashResponse = async (id: string, data: Readable) => {
-		let size = 0;
-		let hash = keccak256(Uint8Array.from(Buffer.from(id)));
+	private async getHashMap(data: Readable) {
+		const hashMap: Map<string, string> = new Map();
+
 		for await (const chunk of data) {
 			const streamMessage = chunk as StreamMessage;
-			const content = streamMessage.getContent(false);
-			size += Buffer.byteLength(content, 'utf8');
-			hash = keccak256(Uint8Array.from(Buffer.from(hash + content)));
+			const payload = createSignaturePayload({
+				messageId: streamMessage.getMessageID(),
+				serializedContent: streamMessage.getSerializedContent(),
+				prevMsgRef: streamMessage.prevMsgRef ?? undefined,
+				newGroupKey: streamMessage.newGroupKey ?? undefined,
+			});
+
+			const messageId = streamMessage.getMessageID().serialize();
+			const messageHash = keccak256(Uint8Array.from(Buffer.from(payload)));
+
+			hashMap.set(messageId, messageHash);
 		}
-		hash = keccak256(Uint8Array.from(Buffer.from(hash + size)));
-		return { size, hash };
-	};
+
+		return hashMap;
+	}
 }

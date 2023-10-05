@@ -2,12 +2,10 @@ import { Stream } from '@logsn/client';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 
-// import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
-import { ConsensusManager } from './ConsensusManger';
 import { Heartbeat } from './Heartbeat';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
@@ -15,6 +13,8 @@ import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 import { MessageListener } from './MessageListener';
 import { MessageMetricsCollector } from './MessageMetricsCollector';
+import { PropagationClient } from './PropagationClient';
+import { PropagationServer } from './PropagationServer';
 import { QueryRequestHandler } from './QueryRequestHandler';
 import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
@@ -58,8 +58,9 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly heartbeat: Heartbeat;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
-	private readonly consensusManager: ConsensusManager;
 	private readonly queryRequestHandler: QueryRequestHandler;
+	private readonly propagationClient: PropagationClient;
+	private readonly propagationServer: PropagationServer;
 	private readonly reportPoller: ReportPoller;
 	private readonly messageListener: MessageListener;
 
@@ -120,16 +121,24 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.systemCache
 		);
 
+		this.propagationClient = new PropagationClient(
+			this.logStore!,
+			this.heartbeat,
+			this.systemPublisher,
+			this.systemSubscriber
+		);
+
+		this.propagationServer = new PropagationServer(
+			this.logStore!,
+			this.systemPublisher,
+			this.systemSubscriber
+		);
+
 		this.queryRequestHandler = new QueryRequestHandler(
 			this.systemPublisher,
 			this.systemSubscriber,
-			this.signer
-		);
-
-		this.consensusManager = new ConsensusManager(
-			this.nodeManger,
-			this.systemPublisher,
-			this.systemSubscriber
+			this.propagationClient,
+			this.propagationServer
 		);
 
 		this.reportPoller = new ReportPoller(
@@ -146,10 +155,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	}
 
 	async start(): Promise<void> {
-		await this.heartbeat.start();
+		const clientId = await this.logStoreClient.getAddress();
+
+		await this.heartbeat.start(clientId);
 		await this.systemCache.start();
 		await this.systemRecovery.start();
-		await this.consensusManager.start();
+		await this.propagationClient.start();
+		await this.propagationServer.start();
 
 		const abortController = new AbortController();
 		// start the report polling process
@@ -163,14 +175,17 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
 		this.messageListener.start(this.logStore, this.logStoreConfig);
 
-		await this.queryRequestHandler.start(this.logStore!);
+		await this.queryRequestHandler.start(
+			await this.logStoreClient.getAddress(),
+			this.logStore!
+		);
 		await this.messageMetricsCollector.start();
 
 		this.addHttpServerEndpoint(
 			createDataQueryEndpoint(
 				this.brokerConfig,
 				this.logStore,
-				this.consensusManager,
+				this.propagationClient,
 				metricsContext
 			)
 		);
@@ -191,7 +206,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.messageMetricsCollector.stop(),
 			this.heartbeat.stop(),
 			this.messageListener.stop(),
-			this.consensusManager.stop(),
+			this.propagationClient.stop(),
+			this.propagationServer.stop(),
 			this.queryRequestHandler.stop(),
 			this.systemCache.stop(),
 			this.systemRecovery.stop(),

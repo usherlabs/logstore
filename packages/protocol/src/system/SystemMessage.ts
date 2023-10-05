@@ -13,10 +13,11 @@ export enum SystemMessageType {
 	ProofOfMessageStored = 0,
 	QueryRequest = 1,
 	QueryResponse = 2,
-	ProofOfReport = 3,
-	RecoveryRequest = 4,
-	RecoveryResponse = 5,
-	RecoveryComplete = 6,
+	QueryPropagate = 3,
+	ProofOfReport = 4,
+	RecoveryRequest = 5,
+	RecoveryResponse = 6,
+	RecoveryComplete = 7,
 }
 
 export interface SystemMessageOptions {
