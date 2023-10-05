@@ -10,7 +10,6 @@ const serializerByVersionAndType: Record<
 const LATEST_VERSION = 1;
 
 export enum SystemMessageType {
-	ProofOfMessageStored = 0,
 	QueryRequest = 1,
 	QueryResponse = 2,
 	QueryPropagate = 3,

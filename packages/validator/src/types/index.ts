@@ -2,7 +2,6 @@ import type { IRuntime } from '@kyvejs/protocol';
 import { MessageMetadata } from '@logsn/client';
 import type {
 	IReportV1,
-	ProofOfMessageStored,
 	QueryPropagate,
 	QueryRequest,
 	QueryResponse,
@@ -62,16 +61,13 @@ export type QueryPropagateMessage = Omit<StreamrMessage, 'content'> & {
 	content: QueryPropagate;
 };
 
-export type ProofOfMessageStoredMessage = Omit<StreamrMessage, 'content'> & {
-	content: ProofOfMessageStored;
-};
-
 // ? The following REPORT interface is specific to the Validator. It is then serialized after generation.
 export type ValidatorReportEvent = {
 	id: string;
 	hash: string;
 	size: number;
 };
+
 export interface IValidatorReport
 	extends Pick<IReportV1, 'id' | 'height' | 'events'> {
 	treasury: Decimal;

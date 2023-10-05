@@ -99,12 +99,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.heartbeatSubscriber
 		);
 
-		this.messageListener = new MessageListener(
-			this.logStoreClient,
-			this.systemSubscriber,
-			this.systemPublisher,
-			this.nodeManger
-		);
+		this.messageListener = new MessageListener(this.logStoreClient);
 
 		this.messageMetricsCollector = new MessageMetricsCollector(
 			this.logStoreClient,

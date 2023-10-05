@@ -33,10 +33,6 @@ import Validator from './validator';
 
 const METRICS_SUBJECTS: MessageMetricsSubject[] = [
 	{
-		subject: 'ProofOfMessageStored',
-		type: SystemMessageType.ProofOfMessageStored,
-	},
-	{
 		subject: 'ProofOfReport',
 		type: SystemMessageType.ProofOfReport,
 	},

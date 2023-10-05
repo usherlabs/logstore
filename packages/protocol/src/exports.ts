@@ -1,6 +1,5 @@
 // Serializers are imported because of their side effects: they statically register themselves to the factory class
 import './report/ReportSerializerV1';
-import './system/ProofOfMessageStoredSerializerV1';
 import './system/ProofOfReportSerializerV1';
 import './system/QueryPropagateSerializerV1';
 import './system/QueryRequestSerializerV1';
