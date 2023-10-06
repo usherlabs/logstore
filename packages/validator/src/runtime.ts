@@ -26,15 +26,12 @@ import {
 } from './shared/MessageMetricsSummary';
 import { rollingConfig } from './shared/rollingConfig';
 import { SystemListener, TimeIndexer } from './threads';
+import { Heartbeat } from './threads/Heartbeat';
 import { SystemRecovery } from './threads/SystemRecovery';
 import { IConfig, IRuntimeExtended } from './types';
 import Validator from './validator';
 
 const METRICS_SUBJECTS: MessageMetricsSubject[] = [
-	{
-		subject: 'ProofOfMessageStored',
-		type: SystemMessageType.ProofOfMessageStored,
-	},
 	{
 		subject: 'ProofOfReport',
 		type: SystemMessageType.ProofOfReport,
@@ -46,6 +43,10 @@ const METRICS_SUBJECTS: MessageMetricsSubject[] = [
 	{
 		subject: 'QueryResponse',
 		type: SystemMessageType.QueryResponse,
+	},
+	{
+		subject: 'QueryPropagate',
+		type: SystemMessageType.QueryPropagate,
 	},
 	{
 		subject: 'RecoveryRequest',
@@ -67,6 +68,7 @@ export default class Runtime implements IRuntimeExtended {
 	public name = appPackageName;
 	public version = appVersion;
 	public config: IConfig = {
+		heartbeatStreamId: '',
 		recoveryStreamId: '',
 		systemStreamId: '',
 		sources: [],
@@ -76,6 +78,7 @@ export default class Runtime implements IRuntimeExtended {
 			readMultiplier: 0.05, // 5% of the write. For comparison AWS Serverless DynamoDB read fees are 20% of the write fees, prorated to the nearest 4kb
 		},
 	};
+	public heartbeat: Heartbeat;
 	public listener: SystemListener;
 	public time: TimeIndexer;
 	private _startBlockNumber: number;
@@ -103,6 +106,10 @@ export default class Runtime implements IRuntimeExtended {
 			},
 		});
 
+		const heartbeatStream = await logStoreClient.getStream(
+			this.config.heartbeatStreamId
+		);
+
 		const systemStream = await logStoreClient.getStream(
 			this.config.systemStreamId
 		);
@@ -111,12 +118,19 @@ export default class Runtime implements IRuntimeExtended {
 			this.config.recoveryStreamId
 		);
 
+		const heartbeatSubscriber = new BroadbandSubscriber(
+			logStoreClient,
+			heartbeatStream
+		);
+
 		const systemSubscriber = new BroadbandSubscriber(
 			logStoreClient,
 			systemStream
 		);
 
 		const messageMetricsSummary = new MessageMetricsSummary(METRICS_SUBJECTS);
+
+		this.heartbeat = new Heartbeat(heartbeatSubscriber);
 
 		const recovery = new SystemRecovery(
 			logStoreClient,
@@ -142,6 +156,7 @@ export default class Runtime implements IRuntimeExtended {
 			core.logger
 		);
 
+		await this.heartbeat.start();
 		await this.time.start();
 		await this.listener.start();
 
@@ -191,6 +206,10 @@ export default class Runtime implements IRuntimeExtended {
 			systemContracts.nodeManagerAddress ===
 			'0x85ac4C8E780eae81Dd538053D596E382495f7Db9';
 
+		const heartbeatStreamId = isDevNetwork
+			? `${systemContracts.nodeManagerAddress}/heartbeat`
+			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-heartbeat';
+
 		const recoveryStreamId = isDevNetwork
 			? `${systemContracts.nodeManagerAddress}/recovery`
 			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-recovery';
@@ -202,6 +221,7 @@ export default class Runtime implements IRuntimeExtended {
 		this.config = {
 			...this.config,
 			...config,
+			heartbeatStreamId,
 			recoveryStreamId,
 			systemStreamId,
 		};

@@ -10,15 +10,13 @@ const serializerByVersionAndType: Record<
 const LATEST_VERSION = 1;
 
 export enum SystemMessageType {
-	ProofOfMessageStored = 0,
 	QueryRequest = 1,
 	QueryResponse = 2,
-	ProofOfReport = 3,
-	RollCallRequest = 4,
-	RollCallResponse = 5,
-	RecoveryRequest = 6,
-	RecoveryResponse = 7,
-	RecoveryComplete = 8,
+	QueryPropagate = 3,
+	ProofOfReport = 4,
+	RecoveryRequest = 5,
+	RecoveryResponse = 6,
+	RecoveryComplete = 7,
 }
 
 export interface SystemMessageOptions {

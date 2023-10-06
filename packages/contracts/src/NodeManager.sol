@@ -15,12 +15,12 @@ import {LogStoreQueryManager} from "./QueryManager.sol";
 import {LogStoreReportManager} from "./ReportManager.sol";
 
 contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+    string public constant LOGSTORE_HEARTBEAT_STREAM_ID_PATH = "/heartbeat";
     string public constant LOGSTORE_RECOVERY_STREAM_ID_PATH = "/recovery";
-    string public constant LOGSTORE_ROLLCALL_STREAM_ID_PATH = "/rollcall";
     string public constant LOGSTORE_SYSTEM_STREAM_ID_PATH = "/system";
     /* solhint-disable quotes */
+    string public constant LOGSTORE_HEARTBEAT_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
     string public constant LOGSTORE_RECOVERY_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
-    string public constant LOGSTORE_ROLLCALL_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
     string public constant LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
     /* solhint-enable quotes */
 
@@ -77,8 +77,8 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     mapping(address => mapping(address => uint256)) public delegatesOf;
     address public headNode;
     address public tailNode;
+    string internal heartbeatStreamId;
     string internal recoveryStreamId;
-    string internal rollcallStreamId;
     string internal systemStreamId;
     IERC20Upgradeable internal stakeToken;
     LogStoreManager private _storeManager;
@@ -108,19 +108,19 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         stakeRequiredAmount = stakeRequiredAmount_;
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
 
+        // HeartBeat Stream
+        streamrRegistry.createStream(LOGSTORE_HEARTBEAT_STREAM_ID_PATH, LOGSTORE_HEARTBEAT_STREAM_METADATA_JSON_STRING);
+        heartbeatStreamId = string(
+            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_HEARTBEAT_STREAM_ID_PATH)
+        );
+        streamrRegistry.grantPublicPermission(heartbeatStreamId, IStreamRegistry.PermissionType.Subscribe);
+
         // Recovery Stream
         streamrRegistry.createStream(LOGSTORE_RECOVERY_STREAM_ID_PATH, LOGSTORE_RECOVERY_STREAM_METADATA_JSON_STRING);
         recoveryStreamId = string(
             abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_RECOVERY_STREAM_ID_PATH)
         );
         streamrRegistry.grantPublicPermission(recoveryStreamId, IStreamRegistry.PermissionType.Subscribe);
-
-        // RollCall Stream
-        streamrRegistry.createStream(LOGSTORE_ROLLCALL_STREAM_ID_PATH, LOGSTORE_ROLLCALL_STREAM_METADATA_JSON_STRING);
-        rollcallStreamId = string(
-            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_ROLLCALL_STREAM_ID_PATH)
-        );
-        streamrRegistry.grantPublicPermission(rollcallStreamId, IStreamRegistry.PermissionType.Subscribe);
 
         // System Stream
         streamrRegistry.createStream(LOGSTORE_SYSTEM_STREAM_ID_PATH, LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING);
@@ -394,12 +394,12 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
 
     function _checkAndGrantAccess(address node) internal {
         if (nodes[node].stake >= stakeRequiredAmount) {
+            streamrRegistry.grantPermission(heartbeatStreamId, node, IStreamRegistry.PermissionType.Publish);
             streamrRegistry.grantPermission(recoveryStreamId, node, IStreamRegistry.PermissionType.Publish);
-            streamrRegistry.grantPermission(rollcallStreamId, node, IStreamRegistry.PermissionType.Publish);
             streamrRegistry.grantPermission(systemStreamId, node, IStreamRegistry.PermissionType.Publish);
         } else {
+            streamrRegistry.revokePermission(heartbeatStreamId, node, IStreamRegistry.PermissionType.Publish);
             streamrRegistry.revokePermission(recoveryStreamId, node, IStreamRegistry.PermissionType.Publish);
-            streamrRegistry.revokePermission(rollcallStreamId, node, IStreamRegistry.PermissionType.Publish);
             streamrRegistry.revokePermission(systemStreamId, node, IStreamRegistry.PermissionType.Publish);
         }
     }

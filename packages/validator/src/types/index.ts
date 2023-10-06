@@ -2,7 +2,7 @@ import type { IRuntime } from '@kyvejs/protocol';
 import { MessageMetadata } from '@logsn/client';
 import type {
 	IReportV1,
-	ProofOfMessageStored,
+	QueryPropagate,
 	QueryRequest,
 	QueryResponse,
 } from '@logsn/protocol';
@@ -21,6 +21,7 @@ export interface IRuntimeExtended extends IRuntime {
 }
 
 export interface IConfig {
+	heartbeatStreamId: string;
 	recoveryStreamId: string;
 	systemStreamId: string;
 	sources: string[];
@@ -48,16 +49,16 @@ export type StreamrMessage = {
 	metadata: MessageMetadata;
 };
 
-export type QueryResponseMessage = Omit<StreamrMessage, 'content'> & {
-	content: QueryResponse;
-};
-
 export type QueryRequestMessage = Omit<StreamrMessage, 'content'> & {
 	content: QueryRequest;
 };
 
-export type ProofOfMessageStoredMessage = Omit<StreamrMessage, 'content'> & {
-	content: ProofOfMessageStored;
+export type QueryResponseMessage = Omit<StreamrMessage, 'content'> & {
+	content: QueryResponse;
+};
+
+export type QueryPropagateMessage = Omit<StreamrMessage, 'content'> & {
+	content: QueryPropagate;
 };
 
 // ? The following REPORT interface is specific to the Validator. It is then serialized after generation.
@@ -66,6 +67,7 @@ export type ValidatorReportEvent = {
 	hash: string;
 	size: number;
 };
+
 export interface IValidatorReport
 	extends Pick<IReportV1, 'id' | 'height' | 'events'> {
 	treasury: Decimal;

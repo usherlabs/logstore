@@ -159,6 +159,67 @@ describe('cassanda-queries', () => {
 		logStore.bucketManager.cassandraClient = proxyClient;
 	});
 
+	describe('requestByMessageId', () => {
+		it('single happy path', async () => {
+			const resultStream = logStore.requestByMessageId(
+				MOCK_MESSAGES[0].messageId.serialize()
+			);
+			const contentValues = await streamToContentValues(resultStream);
+			expect(contentValues).toEqual([1]);
+		});
+
+		it('multiple happy path', async () => {
+			const resultStream = logStore.requestByMessageIds(
+				MOCK_MESSAGES.map((msg) => msg.messageId.serialize())
+			);
+			const contentValues = await streamToContentValues(resultStream);
+			expect(contentValues).toEqual([1, 2, 3]);
+		});
+
+		it('multiple happy path received in same order', async () => {
+			const resultStream = logStore.requestByMessageIds(
+				[2, 1, 3].map((i) => MOCK_MESSAGES[i - 1].messageId.serialize())
+			);
+			const contentValues = await streamToContentValues(resultStream);
+			expect(contentValues).toEqual([2, 1, 3]);
+		});
+
+		it('multiple with more than one bucket', async () => {
+			const MOCK_MESSAGES_2 = [4, 5, 6].map((contentValue: number) =>
+				createMockMessage(contentValue)
+			);
+			await Promise.all(MOCK_MESSAGES_2.map((msg) => logStore.store(msg)));
+			await waitForStoredMessageCount(
+				MOCK_MESSAGES.length + MOCK_MESSAGES_2.length
+			);
+
+			const resultStream = logStore.requestByMessageIds(
+				[...MOCK_MESSAGES, ...MOCK_MESSAGES_2].map((msg) =>
+					msg.messageId.serialize()
+				)
+			);
+
+			const contentValues = await streamToContentValues(resultStream);
+			expect(contentValues).toEqual([1, 2, 3, 4, 5, 6]);
+		});
+
+		it('not found', async () => {
+			const resultStream = logStore.requestByMessageId(
+				createMockMessage(999).messageId.serialize()
+			);
+			const contentValues = await streamToContentValues(resultStream);
+			expect(contentValues).toEqual([]);
+		});
+
+		it('not found in the middle', async () => {
+			const resultStream = logStore.requestByMessageIds(
+				[1, 999, 3].map((i) => createMockMessage(i).messageId.serialize())
+			);
+			const contentValues = await streamToContentValues(resultStream);
+			expect(contentValues).toEqual([1, 3]);
+		});
+	});
+
 	describe('requestLast', () => {
 		it('happy path', async () => {
 			const resultStream = logStore.requestLast(MOCK_STREAM_ID, 0, 2);

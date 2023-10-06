@@ -42,9 +42,8 @@ const testOneMessagePayload = {
 				new QueryResponse({
 					seqNum: 1234,
 					requestId: 'queryRequestId',
-					size: 1024,
-					hash: 'HASH_0001',
-					signature: 'SIGNATURE_0001',
+					requestPublisherId: 'requestPublisherId',
+					hashMap: new Map(),
 				}),
 				{
 					streamId: 'streamId',
@@ -71,9 +70,8 @@ const testOneMessagePayload = {
 		`${SystemMessageType.QueryResponse},` +
 		`1234,` +
 		`\\"queryRequestId\\",` +
-		`1024,` +
-		`\\"HASH_0001\\",` +
-		`\\"SIGNATURE_0001\\"` +
+		`\\"requestPublisherId\\",` +
+		`\\"[]\\"` +
 		`]",` +
 		`[` +
 		`"streamId",` +

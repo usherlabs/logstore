@@ -2,22 +2,22 @@ import { Stream } from '@logsn/client';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
 
-// import reportData from '../../../test/unit/plugins/logStore/data/report.json';
 import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
-import { ConsensusManager } from './ConsensusManger';
+import { Heartbeat } from './Heartbeat';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
 import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 import { MessageListener } from './MessageListener';
 import { MessageMetricsCollector } from './MessageMetricsCollector';
+import { PropagationClient } from './PropagationClient';
+import { PropagationServer } from './PropagationServer';
 import { QueryRequestHandler } from './QueryRequestHandler';
 import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
-import { RollCall } from './RollCall';
 import { SystemCache } from './SystemCache';
 import { SystemRecovery } from './SystemRecovery';
 
@@ -51,19 +51,18 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 	private readonly systemSubscriber: BroadbandSubscriber;
 	private readonly systemPublisher: BroadbandPublisher;
-	private readonly rollcallSubscriber: BroadbandSubscriber;
-	private readonly rollcallPublisher: BroadbandPublisher;
+	private readonly heartbeatPublisher: BroadbandPublisher;
+	private readonly heartbeatSubscriber: BroadbandSubscriber;
 	private readonly kyvePool: KyvePool;
 	private readonly messageMetricsCollector: MessageMetricsCollector;
-	private readonly rollCall: RollCall;
+	private readonly heartbeat: Heartbeat;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
-	private readonly consensusManager: ConsensusManager;
 	private readonly queryRequestHandler: QueryRequestHandler;
+	private readonly propagationClient: PropagationClient;
+	private readonly propagationServer: PropagationServer;
 	private readonly reportPoller: ReportPoller;
 	private readonly messageListener: MessageListener;
-
-	private seqNum: number = 0;
 
 	private metricsTimer?: NodeJS.Timer;
 
@@ -85,33 +84,27 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.brokerConfig.pool.id
 		);
 
-		this.rollcallPublisher = new BroadbandPublisher(
+		this.heartbeatSubscriber = new BroadbandSubscriber(
 			this.logStoreClient,
-			this.rollCallStream
+			this.heartbeatStream
 		);
 
-		this.rollcallSubscriber = new BroadbandSubscriber(
+		this.heartbeatPublisher = new BroadbandPublisher(
 			this.logStoreClient,
-			this.rollCallStream
+			this.heartbeatStream
 		);
 
-		this.messageListener = new MessageListener(
-			this.logStoreClient,
-			this.systemSubscriber,
-			this.systemPublisher,
-			this.nodeManger
+		this.heartbeat = new Heartbeat(
+			this.heartbeatPublisher,
+			this.heartbeatSubscriber
 		);
+
+		this.messageListener = new MessageListener(this.logStoreClient);
 
 		this.messageMetricsCollector = new MessageMetricsCollector(
 			this.logStoreClient,
 			this.systemSubscriber,
-			this.rollcallSubscriber,
 			this.recoveryStream
-		);
-
-		this.rollCall = new RollCall(
-			this.rollcallPublisher,
-			this.rollcallSubscriber
 		);
 
 		this.systemCache = new SystemCache(this.systemSubscriber, this.kyvePool);
@@ -123,16 +116,24 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.systemCache
 		);
 
+		this.propagationClient = new PropagationClient(
+			this.logStore!,
+			this.heartbeat,
+			this.systemPublisher,
+			this.systemSubscriber
+		);
+
+		this.propagationServer = new PropagationServer(
+			this.logStore!,
+			this.systemPublisher,
+			this.systemSubscriber
+		);
+
 		this.queryRequestHandler = new QueryRequestHandler(
 			this.systemPublisher,
 			this.systemSubscriber,
-			this.signer
-		);
-
-		this.consensusManager = new ConsensusManager(
-			this.nodeManger,
-			this.systemPublisher,
-			this.systemSubscriber
+			this.propagationClient,
+			this.propagationServer
 		);
 
 		this.reportPoller = new ReportPoller(
@@ -149,10 +150,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	}
 
 	async start(): Promise<void> {
-		await this.rollCall.start();
+		const clientId = await this.logStoreClient.getAddress();
+
+		await this.heartbeat.start(clientId);
 		await this.systemCache.start();
 		await this.systemRecovery.start();
-		await this.consensusManager.start();
+		await this.propagationClient.start();
+		await this.propagationServer.start();
 
 		const abortController = new AbortController();
 		// start the report polling process
@@ -166,19 +170,22 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
 		this.messageListener.start(this.logStore, this.logStoreConfig);
 
-		await this.queryRequestHandler.start(this.logStore!);
+		await this.queryRequestHandler.start(
+			await this.logStoreClient.getAddress(),
+			this.logStore!
+		);
 		await this.messageMetricsCollector.start();
 
 		this.addHttpServerEndpoint(
 			createDataQueryEndpoint(
 				this.brokerConfig,
 				this.logStore,
-				this.consensusManager,
+				this.propagationClient,
 				metricsContext
 			)
 		);
 		this.addHttpServerEndpoint(
-			createRecoveryEndpoint(this.systemStream, this.rollCall, metricsContext)
+			createRecoveryEndpoint(this.systemStream, this.heartbeat, metricsContext)
 		);
 
 		this.metricsTimer = setInterval(
@@ -192,10 +199,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 		await Promise.all([
 			this.messageMetricsCollector.stop(),
+			this.heartbeat.stop(),
 			this.messageListener.stop(),
-			this.consensusManager.stop(),
+			this.propagationClient.stop(),
+			this.propagationServer.stop(),
 			this.queryRequestHandler.stop(),
-			this.rollCall.stop(),
 			this.systemCache.stop(),
 			this.systemRecovery.stop(),
 			this.logStore!.close(),
