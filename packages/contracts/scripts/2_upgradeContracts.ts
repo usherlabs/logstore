@@ -1,14 +1,11 @@
-import hre, { ethers as hEthers, network, upgrades } from 'hardhat';
+import hre, { upgrades } from 'hardhat';
 
 import contractAddresses from '../address.json';
 import { getChainId } from '../utils/functions';
 
 async function main() {
-	const chainId =
-		(await getChainId()) as unknown as keyof typeof contractAddresses;
-	console.log({
-		chainId,
-	});
+	const chainId = String(await getChainId()) as keyof typeof contractAddresses;
+
 	// upgrade the token-manager contract
 	const tokenManagerContract = await hre.ethers.getContractFactory('LSAN');
 	const upgradedLockerContract = await upgrades.upgradeProxy(
