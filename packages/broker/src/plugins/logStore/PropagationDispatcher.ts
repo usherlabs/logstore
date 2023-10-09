@@ -26,7 +26,7 @@ export class PropagationDispatcher {
 	 */
 	public async setForeignResponse(queryResponse: QueryResponse) {
 		this.foreignResponses.set(queryResponse.requestId, queryResponse);
-		await this.checkAndExecutePropagation(queryResponse.requestId);
+		await this.checkAndDispatchPropagate(queryResponse.requestId);
 	}
 
 	/**
@@ -35,10 +35,10 @@ export class PropagationDispatcher {
 	 */
 	public async setPrimaryResponse(queryResponse: QueryResponse) {
 		this.primaryResponses.set(queryResponse.requestId, queryResponse);
-		await this.checkAndExecutePropagation(queryResponse.requestId);
+		await this.checkAndDispatchPropagate(queryResponse.requestId);
 	}
 
-	private async checkAndExecutePropagation(requestId: RequestId) {
+	private async checkAndDispatchPropagate(requestId: RequestId) {
 		const primaryResponse = this.primaryResponses.get(requestId);
 		const foreignResponse = this.foreignResponses.get(requestId);
 
