@@ -1,41 +1,32 @@
 import { MessageMetadata } from '@logsn/client';
 import {
-	QueryRequest,
 	QueryResponse,
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
-import { Logger } from '@streamr/utils';
-import { Signer } from 'ethers';
+import { EthereumAddress, Logger } from '@streamr/utils';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import { Heartbeat } from './Heartbeat';
-import { LogStore } from './LogStore';
+import { PropagationDispatcher } from './PropagationDispatcher';
+import { PropagationResolver } from './PropagationResolver';
 
 const logger = new Logger(module);
 
 export class QueryResponseManager {
-	private logStore?: LogStore;
-
-	private pendingPrimaryNodeQueryResponses = new Map<string, QueryResponse>();
-	private pendingOwnQueryResponsesVerificationsToPropagate = new Map<
-		string,
-		QueryResponse
-	>();
+	private clientId?: EthereumAddress;
 
 	constructor(
 		private readonly publisher: BroadbandPublisher,
 		private readonly subscriber: BroadbandSubscriber,
-		private readonly heartbeat: Heartbeat,
-		private readonly signer: Signer
+		private readonly propagationResolver: PropagationResolver,
+		private readonly propagationDispatcher: PropagationDispatcher
 	) {
 		//
 	}
 
-	public async start(logStore: LogStore) {
-		this.logStore = logStore;
-
+	public async start(clientId: EthereumAddress) {
+		this.clientId = clientId;
 		await this.subscriber.subscribe(this.onMessage.bind(this));
 	}
 
@@ -57,41 +48,30 @@ export class QueryResponseManager {
 			metadata
 		);
 
-		this.checkAndAddPrimaryNodeQueryResponse(queryResponse);
-	}
-
-	public checkAndAddPrimaryNodeQueryResponse(queryResponse: QueryResponse) {
-		if (this.isPrimaryNodeResponse(queryResponse)) {
-			this.pendingPrimaryNodeQueryResponses.set(
-				queryResponse.requestId,
-				queryResponse
-			);
+		if (queryResponse.requestPublisherId === metadata.publisherId) {
+			// Received QueryResponses produced by the same node that issued the QueryRequest (i.e. primary node),
+			// useful to add to the dispatcher as we want to compare to our own responses
+			// when we are the foreign node to dispatch QueryPropagate if necessary
+			this.propagationDispatcher.setPrimaryResponse(queryResponse);
+		} else {
+			// Received QueryResponses produced by other nodes, useful to add to the resolver
+			// as we want to compare to our own responses when we are the primary node
+			// and we need to know if we have received all responses and propagations
+			// accordingly
+			this.propagationResolver.setForeignResponse(queryResponse, metadata);
 		}
 	}
 
-	private addOwnQueryResponse(queryResponse: QueryResponse) {
-		this.pendingOwnQueryResponsesVerificationsToPropagate.set(
-			queryResponse.requestId,
-			queryResponse
-		);
-	}
-
-	public checkIfPropagateIsNeeded({
-		primaryNodeQueryResponse,
-		ownQueryResponse,
-	}: {
-		primaryNodeQueryResponse: QueryResponse;
-		ownQueryResponse: QueryResponse;
-	}): boolean {
-		throw new Error('not implemented');
-	}
-
-	public waitForConsensus(queryRequest: QueryRequest) {}
-
-	private isPrimaryNodeResponse(queryResponse: QueryResponse): boolean {}
-
-	public publishQueryResponse(queryResponse: QueryResponse) {
-		this.addOwnQueryResponse(queryResponse);
+	public async publishQueryResponse(queryResponse: QueryResponse) {
+		if (queryResponse.requestPublisherId === this.clientId) {
+			// We are now responding to our own QueryRequest, so we need to add it to the resolver
+			// as we may need to wait for other nodes to respond and wait their propagations
+			this.propagationResolver.setPrimaryResponse(queryResponse);
+		} else {
+			// We are responding to a QueryRequest issued by another node, so we need to add it to the dispatcher
+			// as we will need to compare this to the response we receive from the primary node
+			await this.propagationDispatcher.setForeignResponse(queryResponse);
+		}
 		return this.publisher.publish(queryResponse.serialize());
 	}
 }

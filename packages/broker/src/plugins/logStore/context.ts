@@ -1,5 +1,7 @@
+import { EthereumAddress } from '@streamr/utils';
 import { AsyncLocalStorage } from 'async_hooks';
 
+import { PropagationResolver } from './PropagationResolver';
 import { QueryRequestManager } from './QueryRequestManager';
 
 /**
@@ -16,5 +18,7 @@ import { QueryRequestManager } from './QueryRequestManager';
  * It does not share context between different log store instances.
  */
 export const logStoreContext = new AsyncLocalStorage<{
-	queryRequestHandler: QueryRequestManager;
+	clientId: EthereumAddress;
+	queryRequestManager: QueryRequestManager;
+	propagationResolver: PropagationResolver;
 }>();

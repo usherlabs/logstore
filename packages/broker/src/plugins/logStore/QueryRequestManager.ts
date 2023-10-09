@@ -1,50 +1,35 @@
 import { MessageMetadata, StreamMessage } from '@logsn/client';
-import {
-	QueryFromOptions,
-	QueryLastOptions,
-	QueryRangeOptions,
-	QueryRequest,
-	QueryResponse,
-	QueryType,
-	SystemMessage,
-	SystemMessageType,
-} from '@logsn/protocol';
-import { Signer, utils } from 'ethers';
+import { QueryFromOptions, QueryLastOptions, QueryRangeOptions, QueryRequest, QueryResponse, QueryType, SystemMessage, SystemMessageType } from '@logsn/protocol';
 import { createSignaturePayload } from '@streamr/protocol';
-import { EthereumAddress, Logger } from '@streamr/utils';
+import { Logger } from '@streamr/utils';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
 
+
+
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import {
-	LogStore,
-	MAX_SEQUENCE_NUMBER_VALUE,
-	MIN_SEQUENCE_NUMBER_VALUE,
-} from './LogStore';
+import { LogStore, MAX_SEQUENCE_NUMBER_VALUE, MIN_SEQUENCE_NUMBER_VALUE } from './LogStore';
+import { PropagationResolver } from './PropagationResolver';
 import { QueryResponseManager } from './QueryResponseManager';
-import { PropagationClient } from './PropagationClient';
-import { PropagationServer } from './PropagationServer';
+
 
 const logger = new Logger(module);
 
 export class QueryRequestManager {
 	private seqNum: number = 0;
 	private logStore?: LogStore;
-	private clientId?: EthereumAddress;
 
 	constructor(
 		private readonly queryResponseManager: QueryResponseManager,
+		private readonly propagationResolver: PropagationResolver,
 		private readonly publisher: BroadbandPublisher,
-		private readonly subscriber: BroadbandSubscriber,
-		private readonly propagationClient: PropagationClient,
-		private readonly propagationServer: PropagationServer
+		private readonly subscriber: BroadbandSubscriber
 	) {
 		//
 	}
 
-	public async start(clientId: EthereumAddress, logStore: LogStore) {
-		this.clientId = clientId;
+	public async start(logStore: LogStore) {
 		this.logStore = logStore;
 
 		await this.subscriber.subscribe(this.onMessage.bind(this));
@@ -67,29 +52,27 @@ export class QueryRequestManager {
 			content,
 			metadata
 		);
-		const readableStream = this.processQueryRequest(queryRequest);
+		const readableStream = this.getDataForQueryRequest(queryRequest);
 
-		const { size, hash } = await this.hashResponse(
-			queryRequest.requestId,
-			readableStream
-		);
-
+		const hashMap = await this.getHashMap(readableStream);
 		const queryResponse = new QueryResponse({
 			seqNum: this.seqNum++,
 			requestId: queryRequest.requestId,
-			size,
-			hash,
-			signature: await this.signer.signMessage(hash),
+			requestPublisherId: metadata.publisherId,
+			hashMap,
 		});
+
 		await this.queryResponseManager.publishQueryResponse(queryResponse);
-		utils.recoverAddress(hash, queryResponse.signature);
 	}
 
-	public publishQueryRequest(queryRequest: QueryRequest) {
-		return this.publisher.publish(queryRequest.serialize());
+	public async publishQueryRequestAndWaitForPropagateResolution(
+		queryRequest: QueryRequest
+	) {
+		await this.publisher.publish(queryRequest.serialize());
+		await this.propagationResolver.waitForPropagateResolution(queryRequest);
 	}
 
-	public processQueryRequest(queryRequest: QueryRequest) {
+	public getDataForQueryRequest(queryRequest: QueryRequest) {
 		let readableStream: Readable;
 		switch (queryRequest.queryType) {
 			case QueryType.Last: {
@@ -137,21 +120,7 @@ export class QueryRequestManager {
 				throw new Error('Unknown QueryType');
 		}
 
-		const hashMap = await this.getHashMap(readableStream);
-		const queryResponse = new QueryResponse({
-			seqNum: this.seqNum++,
-			requestId: queryRequest.requestId,
-			requestPublisherId: metadata.publisherId,
-			hashMap,
-		});
-
-		await this.publisher.publish(queryResponse.serialize());
-
-		if (metadata.publisherId === this.clientId) {
-			await this.propagationClient.setPrimaryResponse(queryResponse);
-		} else {
-			await this.propagationServer.setForeignResponse(queryResponse);
-		}
+		return readableStream;
 	}
 
 	private async getHashMap(data: Readable) {

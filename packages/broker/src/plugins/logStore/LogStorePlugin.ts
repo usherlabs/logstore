@@ -14,10 +14,10 @@ import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 import { MessageListener } from './MessageListener';
 import { MessageMetricsCollector } from './MessageMetricsCollector';
-import { PropagationClient } from './PropagationClient';
-import { PropagationServer } from './PropagationServer';
-import { ConsensusManager } from './query/ConsensusManger';
+import { PropagationDispatcher } from './PropagationDispatcher';
+import { PropagationResolver } from './PropagationResolver';
 import { QueryRequestManager } from './QueryRequestManager';
+import { QueryResponseManager } from './QueryResponseManager';
 import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
 import { SystemCache } from './SystemCache';
@@ -60,9 +60,10 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly heartbeat: Heartbeat;
 	private readonly systemCache: SystemCache;
 	private readonly systemRecovery: SystemRecovery;
-	private readonly queryRequestHandler: QueryRequestManager;
-	private readonly propagationClient: PropagationClient;
-	private readonly propagationServer: PropagationServer;
+	private readonly queryRequestManager: QueryRequestManager;
+	private readonly queryResponseManager: QueryResponseManager;
+	private readonly propagationResolver: PropagationResolver;
+	private readonly propagationDispatcher: PropagationDispatcher;
 	private readonly reportPoller: ReportPoller;
 	private readonly messageListener: MessageListener;
 
@@ -118,24 +119,29 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.systemCache
 		);
 
-		this.propagationClient = new PropagationClient(
+		this.propagationResolver = new PropagationResolver(
 			this.logStore!,
 			this.heartbeat,
-			this.systemPublisher,
 			this.systemSubscriber
 		);
 
-		this.propagationServer = new PropagationServer(
+		this.propagationDispatcher = new PropagationDispatcher(
 			this.logStore!,
-			this.systemPublisher,
-			this.systemSubscriber
+			this.systemPublisher
 		);
 
-		this.queryRequestHandler = new QueryRequestManager(
+		this.queryResponseManager = new QueryResponseManager(
 			this.systemPublisher,
 			this.systemSubscriber,
-			this.propagationClient,
-			this.propagationServer
+			this.propagationResolver,
+			this.propagationDispatcher
+		);
+
+		this.queryRequestManager = new QueryRequestManager(
+			this.queryResponseManager,
+			this.propagationResolver,
+			this.systemPublisher,
+			this.systemSubscriber
 		);
 
 		this.reportPoller = new ReportPoller(
@@ -154,11 +160,16 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	async start(): Promise<void> {
 		const clientId = await this.logStoreClient.getAddress();
 
+		logStoreContext.enterWith({
+			queryRequestManager: this.queryRequestManager,
+			propagationResolver: this.propagationResolver,
+			clientId,
+		});
+
 		await this.heartbeat.start(clientId);
 		await this.systemCache.start();
 		await this.systemRecovery.start();
-		await this.propagationClient.start();
-		await this.propagationServer.start();
+		await this.propagationResolver.start();
 
 		const abortController = new AbortController();
 		// start the report polling process
@@ -172,10 +183,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
 		this.messageListener.start(this.logStore, this.logStoreConfig);
 
-		await this.queryRequestHandler.start(
-			await this.logStoreClient.getAddress(),
-			this.logStore!
-		);
+		await this.queryRequestManager.start(this.logStore!);
+		await this.queryResponseManager.start(clientId);
 		await this.messageMetricsCollector.start();
 
 		this.addHttpServerEndpoint(
@@ -198,9 +207,9 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.messageMetricsCollector.stop(),
 			this.heartbeat.stop(),
 			this.messageListener.stop(),
-			this.propagationClient.stop(),
-			this.propagationServer.stop(),
-			this.queryRequestHandler.stop(),
+			this.propagationResolver.stop(),
+			this.queryRequestManager.stop(),
+			this.queryResponseManager.stop(),
 			this.systemCache.stop(),
 			this.systemRecovery.stop(),
 			this.logStore!.close(),

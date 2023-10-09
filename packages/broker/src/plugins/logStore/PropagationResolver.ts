@@ -8,7 +8,6 @@ import {
 } from '@logsn/protocol';
 import { StreamMessage } from '@streamr/protocol';
 
-import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { Heartbeat } from './Heartbeat';
 import { LogStore } from './LogStore';
@@ -18,7 +17,7 @@ type RequestId = string;
 const TIMEOUT = 5 * 1000;
 const RESPONSES_THRESHOLD = 1.0;
 
-class QueryState {
+class QueryPropagationState {
 	private primaryResponseHashMap: Map<string, string>;
 	private awaitingMessageIds: Map<string, string>;
 	private respondedBrokers: Map<EthereumAddress, boolean>;
@@ -35,7 +34,11 @@ class QueryState {
 		}
 	}
 
-	public onResponse(queryResponse: QueryResponse, metadata: MessageMetadata) {
+	public onForeignQueryResponse(
+		queryResponse: QueryResponse,
+		metadata: MessageMetadata
+	) {
+		// We add here the messageIds that are not in the primary response
 		for (const [messageId, messageHash] of queryResponse.hashMap) {
 			if (!this.primaryResponseHashMap.has(messageId)) {
 				this.awaitingMessageIds.set(messageId, messageHash);
@@ -58,6 +61,10 @@ class QueryState {
 		return messages;
 	}
 
+	/**
+	 * We know if we are ready if we have received responses from sufficient brokers
+	 * that previously said that this query was missing messages
+	 */
 	public get isReady() {
 		if (this.respondedBrokers.size === 0) {
 			return true;
@@ -79,17 +86,19 @@ class QueryState {
 	}
 }
 
-export class PropagationClient {
-	private readonly queryStates: Map<RequestId, QueryState>;
+export class PropagationResolver {
+	private readonly queryPropagationStateMap: Map<
+		RequestId,
+		QueryPropagationState
+	>;
 	private readonly queryCallbacks: Map<RequestId, () => void>;
 
 	constructor(
 		private readonly logStore: LogStore,
 		private readonly heartbeat: Heartbeat,
-		private readonly publisher: BroadbandPublisher,
 		private readonly subscriber: BroadbandSubscriber
 	) {
-		this.queryStates = new Map<RequestId, QueryState>();
+		this.queryPropagationStateMap = new Map<RequestId, QueryPropagationState>();
 		this.queryCallbacks = new Map<RequestId, () => void>();
 	}
 
@@ -101,13 +110,11 @@ export class PropagationClient {
 		await this.subscriber.unsubscribe();
 	}
 
-	public async propagate(queryRequest: QueryRequest) {
-		await this.publisher.publish(queryRequest.serialize());
-
+	public async waitForPropagateResolution(queryRequest: QueryRequest) {
 		let timeout: NodeJS.Timeout;
 
 		return Promise.race([
-			new Promise((_, reject) => {
+			new Promise<void>((_, reject) => {
 				timeout = setTimeout(() => {
 					this.clean(queryRequest.requestId);
 					reject('Propagation timeout');
@@ -122,45 +129,54 @@ export class PropagationClient {
 		]);
 	}
 
+	private onMessage(content: unknown, metadata: MessageMetadata) {
+		const systemMessage = SystemMessage.deserialize(content);
+
+		if (systemMessage.messageType !== SystemMessageType.QueryPropagate) {
+			return;
+		}
+
+		this.onQueryPropagate(systemMessage as QueryPropagate, metadata);
+	}
+
+	/**
+	 * These are responses produced by this own node running this code, which happens
+	 * to be the primary node handling the request.
+	 * @param queryResponse
+	 */
 	public setPrimaryResponse(queryResponse: QueryResponse) {
-		const queryState = new QueryState(
+		const queryState = new QueryPropagationState(
 			queryResponse,
 			this.heartbeat.onlineBrokers
 		);
 
-		this.queryStates.set(queryResponse.requestId, queryState);
+		this.queryPropagationStateMap.set(queryResponse.requestId, queryState);
 
+		// it may be ready if there are no other brokers responding here
 		this.finishIfReady(queryState, queryResponse.requestId);
 	}
 
-	private onMessage(content: unknown, metadata: MessageMetadata) {
-		const systemMessage = SystemMessage.deserialize(content);
-
-		switch (systemMessage.messageType) {
-			case SystemMessageType.QueryResponse:
-				this.onQueryResponse(systemMessage as QueryResponse, metadata);
-				break;
-			case SystemMessageType.QueryPropagate:
-				this.onQueryPropagate(systemMessage as QueryPropagate, metadata);
-				break;
-		}
-	}
-
-	private async onQueryResponse(
+	/**
+	 * These are responses produced by other nodes, trying to see if my response
+	 * has any missing messages
+	 * @param queryResponse
+	 * @param metadata
+	 */
+	public async setForeignResponse(
 		queryResponse: QueryResponse,
 		metadata: MessageMetadata
 	) {
-		if (queryResponse.requestPublisherId === metadata.publisherId) {
-			return;
-		}
-
-		const queryState = this.queryStates.get(queryResponse.requestId);
+		const queryState = this.queryPropagationStateMap.get(
+			queryResponse.requestId
+		);
 		if (!queryState) {
 			return;
 		}
 
-		queryState.onResponse(queryResponse, metadata);
+		queryState.onForeignQueryResponse(queryResponse, metadata);
 
+		// May be ready if this response was the last one missing, and it produced
+		// no propagation requirement
 		this.finishIfReady(queryState, queryResponse.requestId);
 	}
 
@@ -172,7 +188,9 @@ export class PropagationClient {
 			return;
 		}
 
-		const queryState = this.queryStates.get(queryPropagate.requestId);
+		const queryState = this.queryPropagationStateMap.get(
+			queryPropagate.requestId
+		);
 		if (!queryState) {
 			return;
 		}
@@ -184,10 +202,17 @@ export class PropagationClient {
 			await this.logStore.store(message);
 		}
 
+		// May be ready if this propagation was the last one missing.
 		this.finishIfReady(queryState, queryPropagate.requestId);
 	}
 
-	private finishIfReady(queryState: QueryState, requestId: RequestId) {
+	// It may be ready if
+	// - we received all necessary responses from sufficient brokers
+	// - we have no more missing messages waiting for propagation.
+	private finishIfReady(
+		queryState: QueryPropagationState,
+		requestId: RequestId
+	) {
 		if (queryState.isReady) {
 			const callback = this.queryCallbacks.get(requestId);
 
@@ -199,7 +224,7 @@ export class PropagationClient {
 	}
 
 	private clean(requestId: RequestId) {
-		this.queryStates.delete(requestId);
+		this.queryPropagationStateMap.delete(requestId);
 		this.queryCallbacks.delete(requestId);
 	}
 }
