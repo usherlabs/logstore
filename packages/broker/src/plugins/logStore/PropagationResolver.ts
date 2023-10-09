@@ -1,4 +1,4 @@
-import { EthereumAddress, MessageMetadata } from '@logsn/client';
+import { EthereumAddress, MessageMetadata, verify } from '@logsn/client';
 import {
 	QueryPropagate,
 	QueryRequest,
@@ -6,7 +6,7 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
-import { StreamMessage } from '@streamr/protocol';
+import { createSignaturePayload, StreamMessage } from '@streamr/protocol';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { Heartbeat } from './Heartbeat';
@@ -51,14 +51,39 @@ class QueryPropagationState {
 	public onPropagate(queryPropagate: QueryPropagate) {
 		const messages: [string, string][] = [];
 
-		for (const [messageId, content] of queryPropagate.payload) {
-			if (this.awaitingMessageIds.has(messageId)) {
-				messages.push([messageId, content]);
-				this.awaitingMessageIds.delete(messageId);
+		for (const [messageIdStr, serializedMessage] of queryPropagate.payload) {
+			if (this.awaitingMessageIds.has(messageIdStr)) {
+				const isVerified = this.verifyPropagatedMessage(serializedMessage);
+				if (isVerified) {
+					messages.push([messageIdStr, serializedMessage]);
+				}
+
+				// we delete the message from the awaiting list regardless of verification result
+				this.awaitingMessageIds.delete(messageIdStr);
 			}
 		}
 
 		return messages;
+	}
+
+	private verifyPropagatedMessage(serializedMessage: string) {
+		const message = StreamMessage.deserialize(serializedMessage);
+		const messageId = message.getMessageID();
+		const prevMsgRef = message.getPreviousMessageRef() ?? undefined;
+		const newGroupKey = message.getNewGroupKey() ?? undefined;
+		const serializedContent = message.getSerializedContent();
+
+		const messagePayload = createSignaturePayload({
+			messageId,
+			serializedContent,
+			prevMsgRef,
+			newGroupKey,
+		});
+
+		const messagePublisherAddress = message.getPublisherId();
+		const messageSignature = message.signature;
+
+		return verify(messagePublisherAddress, messagePayload, messageSignature);
 	}
 
 	/**
