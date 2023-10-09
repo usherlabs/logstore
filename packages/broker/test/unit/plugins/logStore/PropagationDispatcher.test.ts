@@ -1,4 +1,4 @@
-import { MessageListener, MessageMetadata } from '@logsn/client';
+import { MessageListener, MessageMetadata, sign } from '@logsn/client';
 import { QueryPropagate, QueryResponse } from '@logsn/protocol';
 import {
 	createSignaturePayload,
@@ -6,7 +6,9 @@ import {
 	StreamMessage,
 	toStreamID,
 } from '@streamr/protocol';
+import { fastWallet } from '@streamr/test-utils';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
+import { Wallet } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 
 import { Heartbeat } from '../../../../src/plugins/logStore/Heartbeat';
@@ -19,9 +21,7 @@ import { BroadbandSubscriber } from '../../../../src/shared/BroadbandSubscriber'
 
 const streamId = toStreamID('testStream');
 const streamPartition = 0;
-const streamPublisher = toEthereumAddress(
-	'0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-);
+const streamPublisher = fastWallet();
 const primaryBrokerId = toEthereumAddress(
 	'0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 );
@@ -55,21 +55,30 @@ const requestId = 'aaaa-bbbb-cccc';
 function buildMsg(
 	timestamp: number,
 	sequenceNumber: number,
-	publisherId: EthereumAddress,
+	publisherWallet: Wallet,
 	msgChainId = '1',
 	content: any = {}
 ) {
+	const publisherId = toEthereumAddress(publisherWallet.address);
+	const messageID = new MessageID(
+		toStreamID(streamId),
+		streamPartition,
+		timestamp,
+		sequenceNumber,
+		publisherId,
+		msgChainId
+	);
+	const serializedContent = JSON.stringify(content);
+	const payload = createSignaturePayload({
+		messageId: messageID,
+		serializedContent,
+	});
+	const signature = sign(payload, publisherWallet.privateKey);
+
 	return new StreamMessage({
-		messageId: new MessageID(
-			toStreamID(streamId),
-			streamPartition,
-			timestamp,
-			sequenceNumber,
-			publisherId,
-			msgChainId
-		),
-		content: JSON.stringify(content),
-		signature: 'signature',
+		messageId: messageID,
+		content: serializedContent,
+		signature: signature,
 	});
 }
 

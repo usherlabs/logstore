@@ -1,4 +1,4 @@
-import { MessageListener, MessageMetadata } from '@logsn/client';
+import { MessageListener, MessageMetadata, sign } from '@logsn/client';
 import {
 	QueryPropagate,
 	QueryRequest,
@@ -11,7 +11,9 @@ import {
 	StreamMessage,
 	toStreamID,
 } from '@streamr/protocol';
+import { fastWallet } from '@streamr/test-utils';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
+import { Wallet } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 
 import { Heartbeat } from '../../../../src/plugins/logStore/Heartbeat';
@@ -27,9 +29,7 @@ const TIMEOUT = 10 * 1000;
 
 const streamId = toStreamID('testStream');
 const streamPartition = 0;
-const streamPublisher = toEthereumAddress(
-	'0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-);
+const streamPublisher = fastWallet();
 const primaryBrokerId = toEthereumAddress(
 	'0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 );
@@ -43,35 +43,60 @@ const foreignBrokerId_2 = toEthereumAddress(
 const msg_1 = buildMsg(100200301, 0, streamPublisher);
 const msg_2 = buildMsg(100200302, 0, streamPublisher);
 const msg_3 = buildMsg(100200303, 0, streamPublisher);
+const msg_corrupted = buildMsg(
+	100200304,
+	0,
+	streamPublisher,
+	undefined,
+	undefined,
+	true
+);
 
 const msgId_1 = msg_1.getMessageID().serialize();
 const msgId_2 = msg_2.getMessageID().serialize();
 const msgId_3 = msg_3.getMessageID().serialize();
+const msgId_corrupted = msg_corrupted.getMessageID().serialize();
 
 const msgHashMap_1: [string, string] = [msgId_1, hashMsg(msg_1)];
 const msgHashMap_2: [string, string] = [msgId_2, hashMsg(msg_2)];
 const msgHashMap_3: [string, string] = [msgId_3, hashMsg(msg_3)];
+const msgHashMap_corrupted: [string, string] = [
+	msgId_corrupted,
+	hashMsg(msg_corrupted),
+];
 
 const requestId = 'aaaa-bbbb-cccc';
 
 function buildMsg(
 	timestamp: number,
 	sequenceNumber: number,
-	publisherId: EthereumAddress,
+	publisherWallet: Wallet,
 	msgChainId = '1',
-	content: any = {}
+	content: any = {},
+	corrupted = false
 ) {
+	const publisherId = toEthereumAddress(
+		corrupted ? fastWallet().address : publisherWallet.address
+	);
+	const messageID = new MessageID(
+		toStreamID(streamId),
+		streamPartition,
+		timestamp,
+		sequenceNumber,
+		publisherId,
+		msgChainId
+	);
+	const serializedContent = JSON.stringify(content);
+	const payload = createSignaturePayload({
+		messageId: messageID,
+		serializedContent,
+	});
+	const signature = sign(payload, publisherWallet.privateKey);
+
 	return new StreamMessage({
-		messageId: new MessageID(
-			toStreamID(streamId),
-			streamPartition,
-			timestamp,
-			sequenceNumber,
-			publisherId,
-			msgChainId
-		),
-		content: JSON.stringify(content),
-		signature: 'signature',
+		messageId: messageID,
+		content: serializedContent,
+		signature: signature,
 	});
 }
 
@@ -341,6 +366,55 @@ describe(PropagationResolver, () => {
 			expect(logStore.store).toBeCalledTimes(2);
 			expect(logStore.store).toBeCalledWith(msg_2);
 			expect(logStore.store).toBeCalledWith(msg_3);
+		},
+		TIMEOUT
+	);
+
+	it(
+		'drops propagated corrupted propagated messages',
+		async () => {
+			onlineBrokers = [foreignBrokerId_1, foreignBrokerId_2];
+
+			// this runs once we await propagationResolver.propagate()
+			setImmediate(() => {
+				const primaryResponse = buildQueryResponse(primaryBrokerId, [
+					msgHashMap_1,
+				]);
+				propagationResolver.setPrimaryResponse(primaryResponse);
+
+				emulateQueryResponse(primaryBrokerId, foreignBrokerId_1, [
+					msgHashMap_1,
+					msgHashMap_2,
+					msgHashMap_3,
+				]);
+
+				emulateQueryResponse(primaryBrokerId, foreignBrokerId_2, [
+					msgHashMap_1,
+					msgHashMap_2,
+					msgHashMap_3,
+					msgHashMap_corrupted,
+				]);
+
+				emulateQueryPropagate(primaryBrokerId, foreignBrokerId_1, [
+					[msgId_2, msg_2.serialize()],
+					[msgId_3, msg_3.serialize()],
+				]);
+
+				emulateQueryPropagate(primaryBrokerId, foreignBrokerId_1, [
+					[msgId_2, msg_2.serialize()],
+					[msgId_3, msg_3.serialize()],
+					[msgId_corrupted, msg_corrupted.serialize()],
+				]);
+			});
+
+			await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+				queryRequest
+			);
+
+			expect(logStore.store).toBeCalledTimes(2);
+			expect(logStore.store).toBeCalledWith(msg_2);
+			expect(logStore.store).toBeCalledWith(msg_3);
+			expect(logStore.store).not.toBeCalledWith(msg_corrupted);
 		},
 		TIMEOUT
 	);
