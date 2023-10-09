@@ -10,6 +10,7 @@ const logger = new Logger(module);
 const CACHE_MESSAGE_TYPES = [
 	SystemMessageType.QueryRequest,
 	SystemMessageType.QueryResponse,
+	SystemMessageType.QueryPropagate,
 	SystemMessageType.ProofOfReport,
 ];
 
