@@ -8,10 +8,13 @@ import {
 } from '../dataQueryEndpoint';
 import { getMessageLimitForRequest } from '../messageLimiter';
 import { FromRequest } from '../requestTypes';
+import { QueryRequestBag } from './common';
 import { seqNumQueryRequest } from './seqNumQueryRequestState';
-import { DataForRequest } from './shared';
 
-export const getFromQueryRequest = ({
+/**
+ * Get QueryRequest of 'from' type from the request.
+ */
+export const getForFromQueryRequest = ({
 	req,
 	streamId,
 	partition,
@@ -21,7 +24,7 @@ export const getFromQueryRequest = ({
 	streamId: string;
 	partition: number;
 	metrics: MetricsDefinition;
-}): DataForRequest => {
+}): QueryRequestBag => {
 	metrics.resendFromQueriesPerSecond.record(1);
 	const fromTimestamp = parseIntIfExists(req.query.fromTimestamp);
 	const fromSequenceNumber =

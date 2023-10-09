@@ -5,8 +5,8 @@ import { v4 as uuid } from 'uuid';
 import { parseIntIfExists } from '../dataQueryEndpoint';
 import { getMessageLimitForRequest } from '../messageLimiter';
 import { LastRequest } from '../requestTypes';
+import { QueryRequestBag } from './common';
 import { seqNumQueryRequest } from './seqNumQueryRequestState';
-import { DataForRequest } from './shared';
 
 const getCountForLastRequest = (req: LastRequest) => {
 	const count =
@@ -23,7 +23,10 @@ const getCountForLastRequest = (req: LastRequest) => {
 	return Math.min(count, messageLimitForARequest);
 };
 
-export const getLastQueryRequest = ({
+/**
+ * Get QueryRequest of 'last' type from the request.
+ */
+export const getForLastQueryRequest = ({
 	req,
 	streamId,
 	partition,
@@ -33,7 +36,7 @@ export const getLastQueryRequest = ({
 	streamId: string;
 	partition: number;
 	metrics: MetricsDefinition;
-}): DataForRequest => {
+}): QueryRequestBag => {
 	metrics.resendLastQueriesPerSecond.record(1);
 	const count = getCountForLastRequest(req);
 	if (count === 'NOT_A_NUMBER') {

@@ -3,7 +3,6 @@
  */
 import { getQueryManagerContract } from '@logsn/shared';
 import {
-	Logger,
 	MetricsContext,
 	MetricsDefinition,
 	RateMetric,
@@ -16,16 +15,12 @@ import { StrictConfig } from '../../../config/config';
 import { HttpServerEndpoint } from '../../../Plugin';
 import { createBasicAuthenticatorMiddleware } from '../authentication';
 import { logStoreContext } from '../context';
-import { LogStore } from '../LogStore';
-import { PropagationClient } from '../PropagationClient';
 import { getFormat } from './DataQueryFormat';
-import { getFromQueryRequest } from './getDataForRequest/getFromQueryRequest';
-import { getLastQueryRequest } from './getDataForRequest/getLastQueryRequest';
-import { getRangeQueryRequest } from './getDataForRequest/getRangeQueryRequest';
+import { getForFromQueryRequest } from './getDataForRequest/getForFromQueryRequest';
+import { getForLastQueryRequest } from './getDataForRequest/getForLastQueryRequest';
+import { getForRangeQueryRequest } from './getDataForRequest/getForRangeQueryRequest';
 import { sendError, sendSuccess } from './httpHelpers';
 import { FromRequest, LastRequest, RangeRequest } from './requestTypes';
-
-const logger = new Logger(module);
 
 // TODO: move this to protocol-js
 export const MIN_SEQUENCE_NUMBER_VALUE = 0;
@@ -59,34 +54,34 @@ const getRequestType = (
 
 const getDataForRequest = async (
 	arg: Parameters<
-		| typeof getLastQueryRequest
-		| typeof getFromQueryRequest
-		| typeof getRangeQueryRequest
+		| typeof getForLastQueryRequest
+		| typeof getForFromQueryRequest
+		| typeof getForRangeQueryRequest
 	>[0],
 	{ res }: { res: Response }
 ) => {
 	const { req, ...rest } = arg;
 	const reqType = getRequestType(req);
-	let response;
+	let queryRequestBag;
 	switch (reqType.type) {
 		case 'last': {
-			response = getLastQueryRequest({ req: reqType.req, ...rest });
+			queryRequestBag = getForLastQueryRequest({ req: reqType.req, ...rest });
 			break;
 		}
 		case 'from': {
-			response = getFromQueryRequest({ req: reqType.req, ...rest });
+			queryRequestBag = getForFromQueryRequest({ req: reqType.req, ...rest });
 			break;
 		}
 		case 'range': {
-			response = getRangeQueryRequest({ req: reqType.req, ...rest });
+			queryRequestBag = getForRangeQueryRequest({ req: reqType.req, ...rest });
 			break;
 		}
 		default:
 			throw new Error(`Unknown query type: ${reqType}`);
 	}
 
-	if ('error' in response) {
-		sendError(response.error?.message, res);
+	if ('error' in queryRequestBag) {
+		sendError(queryRequestBag.error?.message, res);
 		return;
 	} else {
 		const store = logStoreContext.getStore();
@@ -94,10 +89,15 @@ const getDataForRequest = async (
 			throw new Error('Used store before it was initialized');
 		}
 
-		const { queryRequestHandler } = store;
+		const { queryRequestManager } = store;
 
-		queryRequestHandler.publishQueryRequest(response.queryRequest);
-		const data = queryRequestHandler.processQueryRequest(response.queryRequest);
+		queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+			queryRequestBag.queryRequest
+		);
+
+		const data = queryRequestManager.getDataForQueryRequest(
+			queryRequestBag.queryRequest
+		);
 
 		return { data };
 	}
@@ -105,8 +105,6 @@ const getDataForRequest = async (
 
 const createHandler = (
 	config: Pick<StrictConfig, 'client'>,
-	logStore: LogStore,
-	propagationClient: PropagationClient,
 	metrics: MetricsDefinition
 ): RequestHandler => {
 	return async (req: Request, res: Response) => {

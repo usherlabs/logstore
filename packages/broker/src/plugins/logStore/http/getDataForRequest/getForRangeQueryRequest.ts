@@ -9,10 +9,13 @@ import {
 } from '../dataQueryEndpoint';
 import { getMessageLimitForRequest } from '../messageLimiter';
 import { RangeRequest } from '../requestTypes';
+import { QueryRequestBag } from './common';
 import { seqNumQueryRequest } from './seqNumQueryRequestState';
-import { DataForRequest } from './shared';
 
-export const getRangeQueryRequest = ({
+/**
+ * Get QueryRequest of 'range' type from the request.
+ */
+export const getForRangeQueryRequest = ({
 	req,
 	streamId,
 	partition,
@@ -22,7 +25,7 @@ export const getRangeQueryRequest = ({
 	streamId: string;
 	partition: number;
 	metrics: MetricsDefinition;
-}): DataForRequest => {
+}): QueryRequestBag => {
 	metrics.resendRangeQueriesPerSecond.record(1);
 	const fromTimestamp = parseIntIfExists(req.query.fromTimestamp);
 	const toTimestamp = parseIntIfExists(req.query.toTimestamp);

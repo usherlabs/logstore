@@ -1,5 +1,5 @@
 import { QueryRequest } from '@logsn/protocol';
 
-export type DataForRequest =
+export type QueryRequestBag =
 	| { queryRequest: QueryRequest }
 	| { error: { message: string } };
