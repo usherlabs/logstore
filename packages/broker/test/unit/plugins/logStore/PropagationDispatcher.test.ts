@@ -9,8 +9,11 @@ import {
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import { keccak256 } from 'ethers/lib/utils';
 
+import { Heartbeat } from '../../../../src/plugins/logStore/Heartbeat';
 import { LogStore } from '../../../../src/plugins/logStore/LogStore';
-import { PropagationServer } from '../../../../src/plugins/logStore/PropagationServer';
+import { PropagationDispatcher } from '../../../../src/plugins/logStore/PropagationDispatcher';
+import { PropagationResolver } from '../../../../src/plugins/logStore/PropagationResolver';
+import { QueryResponseManager } from '../../../../src/plugins/logStore/QueryResponseManager';
 import { BroadbandPublisher } from '../../../../src/shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../../../src/shared/BroadbandSubscriber';
 
@@ -105,13 +108,18 @@ function buildQueryPropagate(
 	});
 }
 
-describe(PropagationServer, () => {
+describe(PropagationDispatcher, () => {
 	let logStore: LogStore;
 	let publisher: BroadbandPublisher;
 	let subscriber: BroadbandSubscriber;
-	let propagationServer: PropagationServer;
+	let propagationDispatcher: PropagationDispatcher;
+	let queryResponseManager: QueryResponseManager;
 
-	let subscriberOnMessage: MessageListener;
+	const listeners = new Set<MessageListener>();
+
+	const broadcastToListeners = (message: string, metadata: MessageMetadata) => {
+		listeners.forEach((listener) => listener(message, metadata));
+	};
 
 	const emulateQueryResponse = (
 		requestPublisherId: EthereumAddress,
@@ -129,7 +137,7 @@ describe(PropagationServer, () => {
 			signature: '',
 		};
 
-		subscriberOnMessage(queryResponse.serialize(), metadata);
+		broadcastToListeners(queryResponse.serialize(), metadata);
 	};
 
 	beforeEach(() => {
@@ -147,11 +155,34 @@ describe(PropagationServer, () => {
 
 		subscriber = {
 			subscribe: jest.fn().mockImplementation((onMessage) => {
-				subscriberOnMessage = onMessage;
+				listeners.add(onMessage);
 			}),
-		} as unknown as BroadbandSubscriber;
+			unsubscribe: async () => {
+				// will destroy all, but we're ok as it happens between tests
+				listeners.clear();
+			},
+		} satisfies Partial<BroadbandSubscriber> as unknown as BroadbandSubscriber;
 
-		propagationServer = new PropagationServer(logStore, publisher, subscriber);
+		propagationDispatcher = new PropagationDispatcher(logStore, publisher);
+
+		const propagationResolver = new PropagationResolver(
+			logStore,
+			{} as unknown as Heartbeat,
+			subscriber
+		);
+
+		queryResponseManager = new QueryResponseManager(
+			publisher,
+			subscriber,
+			propagationResolver,
+			propagationDispatcher
+		);
+
+		queryResponseManager.start(primaryBrokerId);
+	});
+
+	afterEach(() => {
+		queryResponseManager.stop();
 	});
 
 	it('do not propagate if no missing messages', async () => {
@@ -161,15 +192,13 @@ describe(PropagationServer, () => {
 			msgHashMap_3,
 		]);
 
-		await propagationServer.start();
-
 		emulateQueryResponse(primaryBrokerId, foreignBrokerId_1, [
 			msgHashMap_1,
 			msgHashMap_2,
 			msgHashMap_3,
 		]);
 
-		await propagationServer.setForeignResponse(foreignQueryResponse);
+		await propagationDispatcher.setForeignResponse(foreignQueryResponse);
 
 		expect(publisher.publish).toBeCalledTimes(0);
 	});
@@ -181,14 +210,12 @@ describe(PropagationServer, () => {
 			msgHashMap_3,
 		]);
 
-		await propagationServer.start();
-
 		emulateQueryResponse(primaryBrokerId, primaryBrokerId, [
 			msgHashMap_1,
 			msgHashMap_2,
 		]);
 
-		await propagationServer.setForeignResponse(foreignQueryResponse);
+		await propagationDispatcher.setForeignResponse(foreignQueryResponse);
 
 		const queryPropagate = buildQueryPropagate(primaryBrokerId, [
 			[msgId_3, msg_3.serialize()],
