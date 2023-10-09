@@ -160,6 +160,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	async start(): Promise<void> {
 		const clientId = await this.logStoreClient.getAddress();
 
+		// Context permits usage of this object in the current execution context
+		// i.e. getting the queryRequestManager inside our http endpoint handlers
 		logStoreContext.enterWith({
 			queryRequestManager: this.queryRequestManager,
 			propagationResolver: this.propagationResolver,
