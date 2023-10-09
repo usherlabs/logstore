@@ -91,7 +91,7 @@ const getDataForRequest = async (
 
 		const { queryRequestManager } = store;
 
-		queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+		await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
 			queryRequestBag.queryRequest
 		);
 
