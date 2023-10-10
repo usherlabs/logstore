@@ -14,7 +14,7 @@ import { Request, RequestHandler, Response } from 'express';
 import { StrictConfig } from '../../../config/config';
 import { HttpServerEndpoint } from '../../../Plugin';
 import { createBasicAuthenticatorMiddleware } from '../authentication';
-import { logStoreContext } from '../context';
+import { LogStoreContext, logStoreContext } from '../context';
 import { getFormat } from './DataQueryFormat';
 import { getForFromQueryRequest } from './getDataForRequest/getForFromQueryRequest';
 import { getForLastQueryRequest } from './getDataForRequest/getForLastQueryRequest';
@@ -153,10 +153,19 @@ const createHandler = (
 	};
 };
 
+function injectLogstoreContextMiddleware(
+	ctx: LogStoreContext | undefined
+): RequestHandler {
+	return (_req, _res, next) => {
+		ctx ? logStoreContext.run(ctx, () => next()) : () => next();
+	};
+}
+
 export const createDataQueryEndpoint = (
 	config: Pick<StrictConfig, 'client'>,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
+	const ctx = logStoreContext.getStore();
 	const metrics = {
 		resendLastQueriesPerSecond: new RateMetric(),
 		resendFromQueriesPerSecond: new RateMetric(),
@@ -167,6 +176,9 @@ export const createDataQueryEndpoint = (
 		path: `/streams/:id/data/partitions/:partition/:queryType`,
 		method: 'get',
 		requestHandlers: [
+			// We need to inject it here, because the execution context from
+			// below is usually created after the endpoint is created.
+			injectLogstoreContextMiddleware(ctx),
 			createBasicAuthenticatorMiddleware(),
 			createHandler(config, metrics),
 		],
