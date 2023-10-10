@@ -324,29 +324,6 @@ export class LogStore extends EventEmitter {
 		);
 	}
 
-	requestPayloadByMessageId(messageId: string) {
-		const {
-			streamId,
-			streamPartition,
-			timestamp,
-			sequenceNumber,
-			publisherId,
-			msgChainId,
-		} = MessageID.fromArray(JSON.parse(messageId));
-		const readableStream = this.fetchRange(
-			streamId,
-			streamPartition,
-			timestamp,
-			sequenceNumber,
-			streamPartition,
-			sequenceNumber,
-			publisherId,
-			msgChainId
-		);
-
-		return readableStream.read() as string;
-	}
-
 	enableMetrics(metricsContext: MetricsContext): void {
 		const metrics = {
 			readMessagesPerSecond: new RateMetric(),

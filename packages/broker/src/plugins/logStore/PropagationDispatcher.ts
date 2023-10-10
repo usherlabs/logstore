@@ -65,7 +65,7 @@ export class PropagationDispatcher {
 		// Read the messages from the LogStore
 		const messages: [string, string][] = [];
 		for (const messageId of messageIds) {
-			const message = this.logStore.requestPayloadByMessageId(messageId);
+			const message = this.logStore.requestByMessageId(messageId).read();
 			messages.push([messageId, message]);
 		}
 
