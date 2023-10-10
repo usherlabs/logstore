@@ -41,23 +41,22 @@ const createPlainTextFormat = (
 	};
 };
 
-export const toObject = (msg: StreamMessage<any>): any => {
+export const toObject = (msg: StreamMessage<any>) => {
 	return {
-		streamId: msg.getStreamId(),
-		streamPartition: msg.getStreamPartition(),
-		timestamp: msg.getTimestamp(),
-		sequenceNumber: msg.getSequenceNumber(),
-		publisherId: msg.getPublisherId(),
-		msgChainId: msg.getMsgChainId(),
-		messageType: msg.messageType,
-		contentType: msg.contentType,
-		encryptionType: msg.encryptionType,
-		groupKeyId: msg.groupKeyId,
+		metadata: {
+			id: msg.getMessageID(),
+			prevMsgRef: msg.getPreviousMessageRef(),
+			messageType: msg.messageType,
+			contentType: msg.contentType,
+			encryptionType: msg.encryptionType,
+			groupKeyId: msg.groupKeyId,
+			newGroupKey: msg.getNewGroupKey(),
+			signature: msg.signature,
+		},
 		content:
 			msg.encryptionType === EncryptionType.NONE
 				? msg.getParsedContent()
 				: msg.getSerializedContent(),
-		signature: msg.signature,
 	};
 };
 
