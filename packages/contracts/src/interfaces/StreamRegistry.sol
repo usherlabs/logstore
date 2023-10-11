@@ -23,4 +23,6 @@ interface IStreamRegistry {
     function revokePermission(string calldata streamId, address user, PermissionType permissionType) external;
 
     function exists(string calldata streamId) external view returns (bool);
+
+    function deleteStream(string calldata streamId) external;
 }

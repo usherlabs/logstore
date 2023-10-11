@@ -112,6 +112,9 @@ const config = {
 				blockNumber: 8800522,
 			},
 		},
+		development: {
+			url: 'http://localhost:8545', // Connect to hardhat dev
+		},
 		// avalanche: getChainConfig('avalanche'),
 		// bsc: getChainConfig('bsc'),
 		// mainnet: getChainConfig('eth-mainnet'),

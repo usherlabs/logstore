@@ -29,6 +29,19 @@
           "type": "string"
         }
       ],
+      "name": "deleteStream",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "streamId",
+          "type": "string"
+        }
+      ],
       "name": "exists",
       "outputs": [
         {

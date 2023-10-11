@@ -15,14 +15,6 @@ import {LogStoreQueryManager} from "./QueryManager.sol";
 import {LogStoreReportManager} from "./ReportManager.sol";
 
 contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
-    string public constant LOGSTORE_HEARTBEAT_STREAM_ID_PATH = "/heartbeat";
-    string public constant LOGSTORE_RECOVERY_STREAM_ID_PATH = "/recovery";
-    string public constant LOGSTORE_SYSTEM_STREAM_ID_PATH = "/system";
-    /* solhint-disable quotes */
-    string public constant LOGSTORE_HEARTBEAT_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
-    string public constant LOGSTORE_RECOVERY_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
-    string public constant LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING = '{ "partitions": 1 }';
-    /* solhint-enable quotes */
 
     event NodeUpdated(address indexed nodeAddress, string metadata, bool indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
@@ -38,6 +30,8 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
     event ReportProcessed(string id);
+    event StreamAdded(string key, string path, string permissions, string streamId);
+    event StreamRemoved(string key, string path, string permissions, string streamId);
 
     enum WhitelistState {
         None,
@@ -53,17 +47,32 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         address prev;
         uint256 stake;
     }
+    struct Stream {
+        string key;
+        string path;
+        string metadata;
+        uint index;
+    }
 
     modifier onlyWhitelist() {
         require(!requiresWhitelist || whitelist[msg.sender] == WhitelistState.Approved, "error_notApproved");
         _;
     }
-
     modifier onlyStaked() {
         require(isStaked(msg.sender), "error_stakeRequired");
         _;
     }
 
+    IERC20Upgradeable internal stakeToken;
+    LogStoreManager private _storeManager;
+    LogStoreQueryManager private _queryManager;
+    LogStoreReportManager private _reportManager;
+    IStreamRegistry private streamrRegistry;
+    mapping(address => Node) public nodes;
+    mapping(address => WhitelistState) public whitelist;
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public delegatesOf;
+    mapping(string => Stream) public streamInformation;
     bool public requiresWhitelist;
     uint256 public totalSupply;
     uint256 public treasurySupply;
@@ -71,20 +80,9 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     address public stakeTokenAddress;
     uint256 public totalNodes;
     uint256 public startBlockNumber; // A block number for when the Log Store process starts
-    mapping(address => Node) public nodes;
-    mapping(address => WhitelistState) public whitelist;
-    mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) public delegatesOf;
     address public headNode;
     address public tailNode;
-    string internal heartbeatStreamId;
-    string internal recoveryStreamId;
-    string internal systemStreamId;
-    IERC20Upgradeable internal stakeToken;
-    LogStoreManager private _storeManager;
-    LogStoreQueryManager private _queryManager;
-    LogStoreReportManager private _reportManager;
-    IStreamRegistry private streamrRegistry;
+    string[] public streams;
 
     function initialize(
         address owner_,
@@ -93,7 +91,8 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         uint256 stakeRequiredAmount_,
         address streamrRegistryAddress_,
         address[] memory initialNodes,
-        string[] calldata initialMetadata
+        string[] calldata initialMetadata,
+        string[3][] calldata initialStreams
     ) public initializer {
         require(initialNodes.length == initialMetadata.length, "error_badTrackerData");
         require(stakeTokenAddress_ != address(0) && stakeRequiredAmount_ > 0, "error_badTrackerData");
@@ -108,26 +107,11 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         stakeRequiredAmount = stakeRequiredAmount_;
         streamrRegistry = IStreamRegistry(streamrRegistryAddress_);
 
-        // HeartBeat Stream
-        streamrRegistry.createStream(LOGSTORE_HEARTBEAT_STREAM_ID_PATH, LOGSTORE_HEARTBEAT_STREAM_METADATA_JSON_STRING);
-        heartbeatStreamId = string(
-            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_HEARTBEAT_STREAM_ID_PATH)
-        );
-        streamrRegistry.grantPublicPermission(heartbeatStreamId, IStreamRegistry.PermissionType.Subscribe);
-
-        // Recovery Stream
-        streamrRegistry.createStream(LOGSTORE_RECOVERY_STREAM_ID_PATH, LOGSTORE_RECOVERY_STREAM_METADATA_JSON_STRING);
-        recoveryStreamId = string(
-            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_RECOVERY_STREAM_ID_PATH)
-        );
-        streamrRegistry.grantPublicPermission(recoveryStreamId, IStreamRegistry.PermissionType.Subscribe);
-
-        // System Stream
-        streamrRegistry.createStream(LOGSTORE_SYSTEM_STREAM_ID_PATH, LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING);
-        systemStreamId = string(
-            abi.encodePacked(StringsUpgradeable.toHexString(address(this)), LOGSTORE_SYSTEM_STREAM_ID_PATH)
-        );
-        streamrRegistry.grantPublicPermission(systemStreamId, IStreamRegistry.PermissionType.Subscribe);
+        // register all the streams provided
+        uint numOfStreamsProvided = initialStreams.length;
+        for (uint i = 0; i < numOfStreamsProvided; i++) {
+            _registerStream(initialStreams[i][0], initialStreams[i][1], initialStreams[i][2]);
+        }
 
         for (uint i = 0; i < initialNodes.length; i++) {
             upsertNodeAdmin(initialNodes[i], initialMetadata[i]);
@@ -135,8 +119,44 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         transferOwnership(owner_);
     }
 
-    /// @dev required by the OZ UUPS module
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    function createStream(string memory key, string memory path, string memory permissions) public onlyOwner {
+        _registerStream(key, path, permissions);
+
+        // register all qualified nodes with permission to use this stream
+        address[] memory registeredNodeAddresses = nodeAddresses();
+        string memory streamId = _generateStreamId(path);
+
+        uint nodeLength = registeredNodeAddresses.length;
+        for (uint i = 0; i < nodeLength; i++) {
+            address node = registeredNodeAddresses[i];
+            if (nodes[node].stake >= stakeRequiredAmount) {
+                streamrRegistry.grantPermission(streamId, node, IStreamRegistry.PermissionType.Publish);
+            } else {
+                streamrRegistry.revokePermission(streamId, node, IStreamRegistry.PermissionType.Publish);
+            }
+        }
+    }
+
+    function deleteStream(string memory key) public onlyOwner {
+        // get the stream ans the stream id
+        Stream storage streamDetail = streamInformation[key];
+        require(bytes(streamDetail.key).length > 0, "STREAM_NOT_REGISTERED");
+        string memory streamId = _generateStreamId(streamDetail.path);
+        emit StreamRemoved(streamDetail.key, streamDetail.path, streamDetail.metadata, streamId);
+
+        // remove the stream from the array and mapping
+        uint streamToDeleteIndex = streamDetail.index;
+        string memory lastStream = streams[streams.length - 1];
+
+        streamInformation[lastStream].index = streamToDeleteIndex;
+        streams[streamToDeleteIndex] = lastStream; //replace the stream to delete with the last stream
+
+        streams.pop(); //delete the last stream from the array
+        delete streamInformation[key]; //delete the stream information of the key to be deleted
+
+        // delete the stream
+        streamrRegistry.deleteStream(streamId);
+    }
 
     function registerStoreManager(address contractAddress) public onlyOwner {
         _storeManager = LogStoreManager(contractAddress);
@@ -329,6 +349,41 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         withdraw(amount);
     }
 
+    function nodeAddresses() public view returns (address[] memory resultAddresses) {
+        resultAddresses = new address[](totalNodes);
+
+        if (headNode == address(0)) {
+            return resultAddresses;
+        }
+
+        address tailAddress = headNode;
+        uint256 index = 0;
+        do {
+            resultAddresses[index] = tailAddress;
+
+            tailAddress = nodes[tailAddress].next;
+            index++;
+        } while (tailAddress != address(0));
+
+        return resultAddresses;
+    }
+
+    function nodeStake(address node) public view returns (uint256) {
+        return nodes[node].stake;
+    }
+
+    function isStaked(address node) public view returns (bool) {
+        return stakeRequiredAmount > 0 && nodes[node].stake >= stakeRequiredAmount;
+    }
+
+    function streamExists(string calldata streamId) public view returns (bool) {
+        return streamrRegistry.exists(streamId);
+    }
+
+    function getAllStreams() public view returns (string[] memory) {
+        return streams;
+    }
+
     function _upsertNode(address nodeAddress, string calldata metadata_) internal {
         Node storage foundNode = nodes[nodeAddress];
         bool isNew = false;
@@ -393,41 +448,37 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     }
 
     function _checkAndGrantAccess(address node) internal {
-        if (nodes[node].stake >= stakeRequiredAmount) {
-            streamrRegistry.grantPermission(heartbeatStreamId, node, IStreamRegistry.PermissionType.Publish);
-            streamrRegistry.grantPermission(recoveryStreamId, node, IStreamRegistry.PermissionType.Publish);
-            streamrRegistry.grantPermission(systemStreamId, node, IStreamRegistry.PermissionType.Publish);
-        } else {
-            streamrRegistry.revokePermission(heartbeatStreamId, node, IStreamRegistry.PermissionType.Publish);
-            streamrRegistry.revokePermission(recoveryStreamId, node, IStreamRegistry.PermissionType.Publish);
-            streamrRegistry.revokePermission(systemStreamId, node, IStreamRegistry.PermissionType.Publish);
+        uint streamNum = streams.length;
+        for (uint i = 0; i < streamNum; i++) {
+            string memory streamId = _generateStreamId(streamInformation[streams[i]].path);
+            if (nodes[node].stake >= stakeRequiredAmount) {
+                streamrRegistry.grantPermission(streamId, node, IStreamRegistry.PermissionType.Publish);
+            } else {
+                streamrRegistry.revokePermission(streamId, node, IStreamRegistry.PermissionType.Publish);
+            }
         }
     }
 
-    function nodeAddresses() public view returns (address[] memory resultAddresses) {
-        resultAddresses = new address[](totalNodes);
+    function _registerStream(string memory key, string memory path, string memory permissions) internal {
+        // get the stream ans the stream id
+        Stream storage streamDetails = streamInformation[key];
+        require(bytes(streamDetails.key).length == 0, "STREAM_ALREADY_REGISTERED");
 
-        if (headNode == address(0)) {
-            return resultAddresses;
-        }
+        // create the stream
+        streamrRegistry.createStream(path, permissions);
+        string memory streamId = _generateStreamId(path);
+        streamrRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Subscribe);
 
-        address tailAddress = headNode;
-        uint256 index = 0;
-        do {
-            resultAddresses[index] = tailAddress;
-
-            tailAddress = nodes[tailAddress].next;
-            index++;
-        } while (tailAddress != address(0));
-
-        return resultAddresses;
+        // register the stream into the smart contracts
+        streams.push(key);
+        streamInformation[key] = Stream({path: path, metadata: permissions, key: key, index: streams.length - 1});
+        emit StreamAdded(key, path, permissions, streamId);
     }
 
-    function nodeStake(address node) public view returns (uint256) {
-        return nodes[node].stake;
+    function _generateStreamId(string memory streamPath) public view returns (string memory) {
+        return string(abi.encodePacked(StringsUpgradeable.toHexString(address(this)), streamPath));
     }
 
-    function isStaked(address node) public view returns (bool) {
-        return stakeRequiredAmount > 0 && nodes[node].stake >= stakeRequiredAmount;
-    }
+    /// @dev required by the OZ UUPS module
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 }
