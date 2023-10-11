@@ -7,7 +7,12 @@ import {
 } from '@logsn/shared';
 import { Message, Stream, StreamPermission } from '@logsn/streamr-client';
 import type { ErrorSignal } from '@logsn/streamr-client/dist/types/src/utils/Signal';
-import { MessageID, StreamMessage, toStreamID } from '@streamr/protocol';
+import {
+	MessageID,
+	MessageRef,
+	StreamMessage,
+	toStreamID,
+} from '@streamr/protocol';
 import { fastWallet, fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { toEthereumAddress, wait, waitForCondition } from '@streamr/utils';
 import axios from 'axios';
@@ -95,6 +100,10 @@ describe('query', () => {
 			consumerClient?.destroy(),
 		]);
 	}, TIMEOUT);
+
+	afterEach(async () => {
+		jest.clearAllMocks();
+	});
 
 	describe('private stream', () => {
 		let stream: Stream;
@@ -244,81 +253,86 @@ describe('query', () => {
 			async () => {
 				const errorListener = jest.fn();
 
-				try {
-					const numOfMessagesForThisTest = 2;
-					await publishMessages(numOfMessagesForThisTest);
+				const numOfMessagesForThisTest = 2;
+				await publishMessages(numOfMessagesForThisTest);
 
-					// spy on node-fetch to fake a bad response
-					fetchSpy.mockImplementation(async (_url, _init) => {
-						const response = await originalFetch(_url, _init);
-						// let's alter the first message from the body stream
-						const original = response.body;
-						const transformed = original.pipe(
-							new Transform({
-								objectMode: true,
-								final(callback: (error?: Error | null) => void) {
-									callback();
-								},
-								transform(
-									chunk: Uint8Array,
-									encoding: BufferEncoding,
-									done: TransformCallback
-								) {
-									try {
-										const streamMessage = StreamMessage.deserialize(
-											chunk.toString()
-										);
+				// spy on node-fetch to fake a bad response
+				fetchSpy.mockImplementation(async (_url, _init) => {
+					const response = await originalFetch(_url, _init);
+					// let's alter the first message from the body stream
+					const original = response.body;
+					let msgCount = 0;
+					const transformed = original.pipe(
+						new Transform({
+							objectMode: true,
+							final(callback: (error?: Error | null) => void) {
+								callback();
+							},
+							transform(
+								chunk: Uint8Array,
+								encoding: BufferEncoding,
+								done: TransformCallback
+							) {
+								try {
+									const streamMessage = StreamMessage.deserialize(
+										chunk.toString()
+									);
 
+									if (msgCount === 0) {
 										// modifies message to make it fail
 										streamMessage.messageId.publisherId = toEthereumAddress(
 											fastWallet().address
 										);
-
-										const altered = streamMessage.serialize();
-										const alteredBuffer = Buffer.from(altered, encoding);
-										this.push(alteredBuffer, encoding);
-									} catch (e) {
-										this.push(chunk, encoding);
-									} finally {
-										done();
 									}
-								},
-							})
-						);
 
-						return new fetch.Response(transformed, {
-							headers: response.headers,
-							status: response.status,
-							statusText: response.statusText,
-						});
+									const altered = streamMessage.serialize();
+									const alteredBuffer = Buffer.from(altered, encoding);
+									this.push(alteredBuffer, encoding);
+								} catch (e) {
+									this.push(chunk, encoding);
+								} finally {
+									msgCount++;
+									done();
+								}
+							},
+						})
+					);
+
+					return new fetch.Response(transformed, {
+						headers: response.headers,
+						status: response.status,
+						statusText: response.statusText,
 					});
+				});
 
-					const messages: Message[] = [];
+				const messages: Message[] = [];
 
-					const messagesQuery = await consumerClient.query(
-						{
-							streamId: stream.id,
-							partition: 0,
-						},
-						{ last: numOfMessagesForThisTest }
-					);
+				const messagesQuery = await consumerClient.query(
+					{
+						streamId: stream.id,
+						partition: 0,
+					},
+					{ last: numOfMessagesForThisTest }
+				);
 
-					// for some reason we can't just surround everything and catch errors
-					// there are some data pipelines that make it hard
-					// @ts-ignore
-					const signal: ErrorSignal = messagesQuery.onError;
-					// @ts-ignore
-					signal.listeners = [errorListener];
+				// for some reason we can't just surround everything and catch errors
+				// there are some data pipelines that make it hard
+				// @ts-ignore
+				const signal: ErrorSignal = messagesQuery.onError;
+				// @ts-ignore
+				signal.listeners = [errorListener];
 
-					// using this form to ensure that the iterator is done before the test ends
-					for await (const message of messagesQuery) {
-						messages.push(message);
-					}
-				} finally {
-					expect(errorListener.mock.calls[0][0].message).toMatch(
-						'Signature validation failed'
-					);
+				// using this form to ensure that the iterator is done before the test ends
+				for await (const message of messagesQuery) {
+					messages.push(message);
 				}
+
+				// 1 message should be corrupted only
+				expect(messages).toHaveLength(numOfMessagesForThisTest - 1);
+				expect(errorListener.mock.calls[0][0].message).toMatch(
+					'Signature validation failed'
+				);
+				expect(messages[0].content).toMatchObject({ messageNo: 1 });
 			},
 			TIMEOUT
 		);
@@ -358,20 +372,26 @@ describe('query', () => {
 					console.log('HTTP RESPONSE:', resp);
 
 					expect(resp.messages).toHaveLength(NUM_OF_LAST_MESSAGES);
-					const data = resp.messages.map(
+					const _data = resp.messages.map(
 						({
-							streamId,
-							streamPartition,
-							timestamp,
-							sequenceNumber,
-							publisherId,
-							msgChainId,
-							messageType,
-							contentType,
-							encryptionType,
-							groupKeyId,
+							metadata: {
+								id: {
+									streamId,
+									streamPartition,
+									timestamp,
+									sequenceNumber,
+									publisherId,
+									msgChainId,
+								},
+								newGroupKey,
+								prevMsgRef,
+								messageType,
+								contentType,
+								encryptionType,
+								groupKeyId,
+								signature,
+							},
 							content,
-							signature,
 						}) =>
 							new StreamMessage({
 								messageId: new MessageID(
@@ -386,12 +406,22 @@ describe('query', () => {
 								encryptionType,
 								groupKeyId,
 								signature,
+								newGroupKey,
+								prevMsgRef: prevMsgRef
+									? new MessageRef(
+											prevMsgRef?.timestamp,
+											prevMsgRef?.sequenceNumber
+									  )
+									: undefined,
 								contentType,
 								messageType,
 							})
 					);
-
-					expect(data[0]).toMatchObject({ messageNo: 0 });
+					// TODO: expose decrypt method. For this, we need to expose Decrypt class
+					//   from @logsn/streamr-client
+					// const decryptedData = await consumerClient.decrypt(data[0]);
+					//
+					// expect(decryptedData.getContent()).toMatchObject({ messageNo: 0 });
 				},
 				TIMEOUT
 			);
