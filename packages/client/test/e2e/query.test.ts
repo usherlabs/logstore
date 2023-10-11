@@ -5,7 +5,7 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
-import { Message, Stream, StreamPermission } from '@logsn/streamr-client';
+import { Stream, StreamPermission } from '@logsn/streamr-client';
 import type { ErrorSignal } from '@logsn/streamr-client/dist/types/src/utils/Signal';
 import {
 	MessageID,
@@ -23,6 +23,7 @@ import { Transform, TransformCallback } from 'stream';
 
 import { CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
+import { LogStoreMessage } from '../../src/LogStoreMessageStream';
 import { createTestStream } from '../test-utils/utils';
 
 const originalFetch = fetch.default;
@@ -305,7 +306,7 @@ describe('query', () => {
 					});
 				});
 
-				const messages: Message[] = [];
+				const messages: LogStoreMessage[] = [];
 
 				const messagesQuery = await consumerClient.query(
 					{
