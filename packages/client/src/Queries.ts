@@ -17,6 +17,7 @@ import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
 import { LogStoreClientConfigInjectionToken } from './Config';
 import { HttpUtil } from './HttpUtil';
+import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
 import { counterId } from './utils/utils';
 
@@ -163,10 +164,10 @@ export class Queries implements IResends {
 		this.logger = loggerFactory.createLogger(module);
 	}
 
-	query(
+	async query(
 		streamPartId: StreamPartID,
 		options: QueryOptions
-	): Promise<MessageStream> {
+	): Promise<LogStoreMessageStream> {
 		if (isQueryLast(options)) {
 			return this.last(streamPartId, {
 				count: options.last,
@@ -174,17 +175,19 @@ export class Queries implements IResends {
 		}
 
 		if (isQueryRange(options)) {
-			return this.range(streamPartId, {
-				fromTimestamp: new Date(options.from.timestamp).getTime(),
-				fromSequenceNumber: options.from.sequenceNumber,
-				toTimestamp: new Date(options.to.timestamp).getTime(),
-				toSequenceNumber: options.to.sequenceNumber,
-				publisherId:
-					options.publisherId !== undefined
-						? toEthereumAddress(options.publisherId)
-						: undefined,
-				msgChainId: options.msgChainId,
-			});
+			return new LogStoreMessageStream(
+				await this.range(streamPartId, {
+					fromTimestamp: new Date(options.from.timestamp).getTime(),
+					fromSequenceNumber: options.from.sequenceNumber,
+					toTimestamp: new Date(options.to.timestamp).getTime(),
+					toSequenceNumber: options.to.sequenceNumber,
+					publisherId:
+						options.publisherId !== undefined
+							? toEthereumAddress(options.publisherId)
+							: undefined,
+					msgChainId: options.msgChainId,
+				})
+			);
 		}
 
 		if (isQueryFrom(options)) {
@@ -211,7 +214,7 @@ export class Queries implements IResends {
 		queryType: QueryType,
 		streamPartId: StreamPartID,
 		query: HttpApiQueryDict
-	): Promise<MessageStream> {
+	): Promise<LogStoreMessageStream> {
 		const loggerIdx = counterId('fetchStream');
 		this.logger.debug(
 			'[%s] fetching query %s for %s with options %o',
@@ -247,17 +250,17 @@ export class Queries implements IResends {
 				);
 			})
 		);
-		return messageStream;
+		return new LogStoreMessageStream(messageStream);
 	}
 
-	async last(
+	private async last(
 		streamPartId: StreamPartID,
 		{ count }: { count: number }
-	): Promise<MessageStream> {
+	): Promise<LogStoreMessageStream> {
 		if (count <= 0) {
 			const emptyStream = new MessageStream();
 			emptyStream.endWrite();
-			return emptyStream;
+			return new LogStoreMessageStream(emptyStream);
 		}
 
 		return this.fetchStream(QueryType.Last, streamPartId, {
@@ -265,7 +268,7 @@ export class Queries implements IResends {
 		});
 	}
 
-	async from(
+	private async from(
 		streamPartId: StreamPartID,
 		{
 			fromTimestamp,
@@ -276,7 +279,7 @@ export class Queries implements IResends {
 			fromSequenceNumber?: number;
 			publisherId?: EthereumAddress;
 		}
-	): Promise<MessageStream> {
+	): Promise<LogStoreMessageStream> {
 		return this.fetchStream(QueryType.From, streamPartId, {
 			fromTimestamp,
 			fromSequenceNumber,
@@ -284,6 +287,9 @@ export class Queries implements IResends {
 		});
 	}
 
+	/**
+	 * @internal
+	 */
 	async range(
 		streamPartId: StreamPartID,
 		{
@@ -302,14 +308,21 @@ export class Queries implements IResends {
 			msgChainId?: string;
 		}
 	): Promise<MessageStream> {
-		return this.fetchStream(QueryType.Range, streamPartId, {
-			fromTimestamp,
-			fromSequenceNumber,
-			toTimestamp,
-			toSequenceNumber,
-			publisherId,
-			msgChainId,
-		});
+		const logStoreStream = await this.fetchStream(
+			QueryType.Range,
+			streamPartId,
+			{
+				fromTimestamp,
+				fromSequenceNumber,
+				toTimestamp,
+				toSequenceNumber,
+				publisherId,
+				msgChainId,
+			}
+		);
+		// This is still returning messageStream, as to be a valid Resend class,
+		// it must not ovewrite this type. It is used when we create the subscription pipeline
+		return logStoreStream.messageStream;
 	}
 
 	createUrl(
