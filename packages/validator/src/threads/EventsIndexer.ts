@@ -5,8 +5,11 @@ import type {
 	DataStoredEvent,
 	StoreUpdatedEvent,
 } from '@logsn/contracts/dist/src/StoreManager.sol/LogStoreManager';
+import {
+	transactionSplitProtocol,
+	transactionSplitUtilsV0,
+} from '@logsn/protocol';
 import axios from 'axios';
-import { Base64 } from 'js-base64';
 import type { RootDatabase } from 'lmdb';
 import { isEmpty, range } from 'lodash';
 import path from 'path';
@@ -136,11 +139,12 @@ export class EventsIndexer {
 		const eventsTxIds: string[] = [];
 		for (let j = 0; j < results.finalized_bundles.length; j++) {
 			const fb = results.finalized_bundles[j];
-			if (fb.storage_id.startsWith('v0_')) {
-				const encodedId = fb.storage_id.substring(3, fb.storage_id.length);
-				const txIds = Base64.decode(encodedId).split(',');
-				if (txIds.length > 2) {
-					eventsTxIds.push(txIds.at(-1));
+
+			if (transactionSplitProtocol.isSplit(fb.storage_id)) {
+				const txIds = transactionSplitProtocol.getTransactionIds(fb.storage_id);
+				const eventsTx = transactionSplitUtilsV0.getEventsTransactions(txIds);
+				if (eventsTx) {
+					eventsTxIds.push(eventsTx);
 				}
 			}
 		}

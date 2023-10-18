@@ -1,8 +1,8 @@
 import { BundleTag, IStorageProvider } from '@kyvejs/protocol';
 import ArweaveClient from '@logsn/arweave';
 import { JWKInterface } from '@logsn/arweave/node/lib/wallet';
+import { transactionSplitProtocol } from '@logsn/protocol';
 import axios from 'axios';
-import { Base64 } from 'js-base64';
 
 import { Slogger } from '../../utils/slogger';
 import { GzipSplit } from '../compression/GzipSplit';
@@ -98,11 +98,7 @@ export class ArweaveSplit implements IStorageProvider {
 		// Transaction Ids are empty until they're signed.
 		const transactionIds = transactions.map((tx) => tx.id);
 
-		// ? The prefix is meant to provide context to the storageId.
-		// ? ie. for Now, we're using this Version 0 of this storage identifier protocol
-		// TODO: Move this storage id protocol into `protocol` package to standardise.
-		const prefix = `v0_`;
-		const storageId = prefix + Base64.encode(transactionIds.join(','), true);
+		const storageId = transactionSplitProtocol.getStorageId(transactionIds);
 
 		for (const tx of transactions) {
 			await this.arweaveClient.transactions.post(tx);
@@ -118,10 +114,8 @@ export class ArweaveSplit implements IStorageProvider {
 	}
 
 	async retrieveBundle(storageId: string, timeout: number) {
-		const isTxSplit = storageId.startsWith('v0_');
-		if (isTxSplit) {
-			const encodedId = storageId.substring(3, storageId.length);
-			const ids = Base64.decode(encodedId).split(',');
+		if (transactionSplitProtocol.isSplit(storageId)) {
+			const ids = transactionSplitProtocol.getTransactionIds(storageId);
 			const buffers: Buffer[] = [];
 			for (const id of ids) {
 				const { data } = await axios.get(`https://arweave.net/${id}`, {

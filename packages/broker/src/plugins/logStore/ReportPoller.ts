@@ -4,6 +4,7 @@ import {
 	SystemMessage,
 	SystemMessageType,
 	SystemReport,
+	transactionSplitProtocol,
 } from '@logsn/protocol';
 import {
 	getNodeManagerContract,
@@ -12,7 +13,6 @@ import {
 import { Logger, scheduleAtInterval } from '@streamr/utils';
 import axios from 'axios';
 import { ethers, Signer, Wallet } from 'ethers';
-import { Base64 } from 'js-base64';
 
 import { StrictConfig } from '../../config/config';
 import { decompressData } from '../../helpers/decompressFile';
@@ -151,10 +151,9 @@ export class ReportPoller {
 		);
 		const storageId = response.finalized_bundle.storage_id;
 		let arweaveTxId = storageId;
-		const isTxSplit = storageId.startsWith('v0_');
+		const isTxSplit = transactionSplitProtocol.isSplit(storageId);
 		if (isTxSplit) {
-			const encodedId = storageId.substring(3, storageId.length);
-			const txIds = Base64.decode(encodedId).split(',');
+			const txIds = transactionSplitProtocol.getTransactionIds(storageId);
 			// ? For v0_ decoded tx ids are comma separated, like so: messages,report,events
 			if (typeof txIds[1] === 'undefined') {
 				logger.error(

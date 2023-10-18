@@ -14,3 +14,4 @@ export * from './interfaces/report.v1';
 export * from './report/SystemReport';
 export * from './system';
 export * from './utils/hex';
+export * from './utils/storage/transactionSplit';
