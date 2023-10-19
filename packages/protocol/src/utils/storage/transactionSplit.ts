@@ -49,6 +49,7 @@ const transactionSplitProtocol = {
 		transactionIds: string[],
 		version: TransactionSplitVersion = LATEST_VERSION
 	): StorageId => {
+		if (!transactionIds.length) throw new Error('No transactionIds');
 		return encodeDict[version](transactionIds);
 	},
 	getTransactionIds: (storageId: StorageId): string[] => {
