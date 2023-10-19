@@ -131,8 +131,6 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
             address node = registeredNodeAddresses[i];
             if (nodes[node].stake >= stakeRequiredAmount) {
                 streamrRegistry.grantPermission(streamId, node, IStreamRegistry.PermissionType.Publish);
-            } else {
-                streamrRegistry.revokePermission(streamId, node, IStreamRegistry.PermissionType.Publish);
             }
         }
     }
