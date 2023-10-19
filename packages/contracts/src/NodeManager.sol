@@ -13,8 +13,10 @@ import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 import {LogStoreManager} from "./StoreManager.sol";
 import {LogStoreQueryManager} from "./QueryManager.sol";
 import {LogStoreReportManager} from "./ReportManager.sol";
+import {AccessControlUpgradeable} from  "./access/AccessControl.sol";
 
-contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+
+contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable, AccessControlUpgradeable {
     string public constant LOGSTORE_HEARTBEAT_STREAM_ID_PATH = "/heartbeat";
     string public constant LOGSTORE_RECOVERY_STREAM_ID_PATH = "/recovery";
     string public constant LOGSTORE_SYSTEM_STREAM_ID_PATH = "/system";
@@ -101,6 +103,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         __Ownable_init();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
+        __AccessControl_init(owner_);
 
         requiresWhitelist = requiresWhitelist_;
         stakeToken = IERC20Upgradeable(stakeTokenAddress_);
@@ -150,11 +153,11 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         _reportManager = LogStoreReportManager(contractAddress);
     }
 
-    function upsertNodeAdmin(address node, string calldata metadata_) public onlyOwner {
+    function upsertNodeAdmin(address node, string calldata metadata_) public isAuthorized(Role.DEV) {
         _upsertNode(node, metadata_);
     }
 
-    function removeNodeAdmin(address nodeAddress) public onlyOwner {
+    function removeNodeAdmin(address nodeAddress) public isAuthorized(Role.DEV) {
         _removeNode(nodeAddress);
     }
 
@@ -168,17 +171,17 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         require(success == true, "error_unsuccessfulWithdraw");
     }
 
-    function whitelistApproveNode(address nodeAddress) public onlyOwner {
+    function whitelistApproveNode(address nodeAddress) public isAuthorized(Role.DEV) {
         whitelist[nodeAddress] = WhitelistState.Approved;
         emit NodeWhitelistApproved(nodeAddress);
     }
 
-    function whitelistRejectNode(address nodeAddress) public onlyOwner {
+    function whitelistRejectNode(address nodeAddress) public isAuthorized(Role.DEV) {
         whitelist[nodeAddress] = WhitelistState.Rejected;
         emit NodeWhitelistRejected(nodeAddress);
     }
 
-    function kickNode(address nodeAddress) public onlyOwner {
+    function kickNode(address nodeAddress) public isAuthorized(Role.DEV) {
         whitelistRejectNode(nodeAddress);
         removeNodeAdmin(nodeAddress);
     }

@@ -10,7 +10,10 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC20Upgradeable {
+import {AccessControlUpgradeable} from  "../access/AccessControl.sol";
+
+
+contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable, ERC20Upgradeable, AccessControlUpgradeable {
 	uint256 public weiPerByte; // In 18 decimal format -- ie. Wei
 	uint256 public multiplier;
 	uint256 public minimumDeposit;
@@ -42,6 +45,8 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 		__ERC20_init("Log Store Alpha Network Token", "LSAN");
 		__UUPSUpgradeable_init();
 		__ReentrancyGuard_init();
+		__AccessControl_init(msg.sender);
+		
 
 		// initiate the blacklist/whitelist
 		for (uint256 i = 0; i < _blacklist.length; i++) {
@@ -59,44 +64,44 @@ contract LSAN is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyG
 	}
 
 	// ---------- Admin functions
-	function mintTokens(address account, uint256 amount) public onlyOwner {
+	function mintTokens(address account, uint256 amount) public isAuthorized(Role.DEV) {
 		_mint(account, amount);
 	}
 
-	function mintManyTokens(address[] memory _addresses, uint256 amount) public onlyOwner {
+	function mintManyTokens(address[] memory _addresses, uint256 amount)  public isAuthorized(Role.DEV) {
 		for (uint256 i = 0; i < _addresses.length; i++) {
 			_mint(_addresses[i], amount);
 		}
 	}
 
-	function burn(address account, uint256 amount) public onlyOwner {
+	function burn(address account, uint256 amount)  public isAuthorized(Role.DEV) {
 		_burn(account, amount);
 	}
 
-	function addBlacklist(address _address) public onlyOwner {
+	function addBlacklist(address _address)  public isAuthorized(Role.DEV) {
 		blacklist[_address] = true;
 	}
 
-	function removeBlacklist(address _address) public onlyOwner {
+	function removeBlacklist(address _address)  public isAuthorized(Role.DEV) {
 		blacklist[_address] = false;
 	}
 
-	function addWhitelist(address _from, address _to) public onlyOwner {
+	function addWhitelist(address _from, address _to)  public isAuthorized(Role.DEV) {
 		whitelist[_from][_to] = true;
 	}
 
-	function removeWhitelist(address _from, address _to) public onlyOwner {
+	function removeWhitelist(address _from, address _to)  public isAuthorized(Role.DEV) {
 		whitelist[_from][_to] = false;
 	}
 
-	function massAddWhitelist(address[] memory _fromAddresses, address[] memory _toAddresses) public onlyOwner {
+	function massAddWhitelist(address[] memory _fromAddresses, address[] memory _toAddresses)  public isAuthorized(Role.DEV) {
 		require(_fromAddresses.length == _toAddresses.length, "LSAN: Invalid parameters for mass update");
 		for(uint256 i = 0; i < _fromAddresses.length; i ++){
 			addWhitelist(_fromAddresses[i], _toAddresses[i]);
 		}
 	}
 
-	function massRemoveWhitelist(address[] memory _fromAddresses, address[] memory _toAddresses) public onlyOwner {
+	function massRemoveWhitelist(address[] memory _fromAddresses, address[] memory _toAddresses)  public isAuthorized(Role.DEV) {
 		require(_fromAddresses.length == _toAddresses.length, "LSAN: Invalid parameters for mass update");
 		for(uint256 i = 0; i < _fromAddresses.length; i ++){
 			removeWhitelist(_fromAddresses[i], _toAddresses[i]);
