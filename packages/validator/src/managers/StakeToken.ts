@@ -13,13 +13,7 @@ export class StakeToken {
 		public chain: ChainSources
 	) {}
 
-	public async getPrice(
-		timestamp: number,
-		provider?: ethers.providers.Provider
-	) {
-		if (provider) {
-			return getTokenPrice(this.address, timestamp, provider);
-		}
+	public async getPrice(timestamp: number) {
 		const tokenPrice = await this.chain.use((source) => {
 			return getTokenPrice(this.address, timestamp, source.provider);
 		});
@@ -31,9 +25,7 @@ export class StakeToken {
 		timestamp: number
 	): Promise<BigNumber> {
 		// Price is of stake token in USD
-		const price = await this.chain.use((source) => {
-			return this.getPrice(timestamp, source.provider);
-		});
+		const price = await this.getPrice(timestamp);
 
 		return ethers.utils.parseUnits(
 			// reduce precision to max allowed to prevent errors

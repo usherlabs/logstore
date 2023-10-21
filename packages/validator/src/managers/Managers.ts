@@ -9,7 +9,10 @@ export class Managers {
 	public node: NodeManager;
 	public report: ReportManager;
 
-	constructor(public chain: ChainSources, public indexer: EventsIndexer) {
+	constructor(
+		public chain: ChainSources,
+		public indexer: EventsIndexer
+	) {
 		this.node = new NodeManager(chain, indexer);
 		this.store = new StoreManager(chain, indexer);
 		this.report = new ReportManager(chain, indexer);
