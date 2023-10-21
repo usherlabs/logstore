@@ -5,6 +5,7 @@ import {
 	ICompression,
 	MAX_BUNDLE_BYTE_SIZE,
 } from '@kyvejs/protocol';
+import _ from 'lodash';
 
 import { bufferSplit } from '../../utils/buffer';
 import { gunzip, gzip } from '../../utils/gzip';

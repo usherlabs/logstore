@@ -397,17 +397,6 @@ const filterEventsByBlock = (
 	return eventList.filter((ev) => ev.blockNumber === blockNumber);
 };
 
-// Helper function to update the indexEvent object
-const updateIndexEvent = (
-	indexEvent: Events,
-	eventType: EventSelect,
-	eventsInBlock: any
-) => {
-	if (eventsInBlock.length > 0) {
-		indexEvent[eventType] = eventsInBlock;
-	}
-};
-
 export const fetchContractEvents = async (
 	source: IChainSource,
 	contractName: keyof ChainSourceContracts,
@@ -423,12 +412,12 @@ export const fetchContractEvents = async (
 	);
 };
 
-const getContractName = (eventType: EventSelect): string => {
+const getContractName = (eventType: EventSelect) => {
 	const eventToContractMap = {
 		[EventSelect.StoreUpdated]: 'store',
 		[EventSelect.StakeDelegateUpdated]: 'node',
 		[EventSelect.DataStored]: 'store',
-	} satisfies {
+	} as const satisfies {
 		[key in EventSelect]: string;
 	};
 	return eventToContractMap[eventType];
