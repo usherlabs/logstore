@@ -1,6 +1,7 @@
 import {
 	bundleToBytes,
 	bytesToBundle,
+	DataItem,
 	ICompression,
 	MAX_BUNDLE_BYTE_SIZE,
 } from '@kyvejs/protocol';
@@ -10,6 +11,29 @@ import { gunzip, gzip } from '../../utils/gzip';
 import { Slogger } from '../../utils/slogger';
 
 const gzipSplitPrimaryDelimiter = Buffer.from('!!!!-------:LS_PD:-------!!!!');
+
+function componentsFromBundle(bundle: DataItem[]): {
+	report: { [key: string]: unknown };
+	events: { [key: string]: unknown } | undefined;
+	messages: DataItem[];
+} {
+	const lastItem = bundle[bundle.length - 1];
+	const report = lastItem.value.r;
+	const events = lastItem.value.e;
+
+	const remainingProps = _.omit(lastItem.value, 'r', 'e');
+
+	// Construct the messages with the modified last item
+	const messages = [
+		...bundle.slice(0, bundle.length - 1),
+		{
+			...lastItem,
+			value: remainingProps,
+		},
+	];
+
+	return { report, events, messages };
+}
 
 export class GzipSplit implements ICompression {
 	public name = 'LogStoreGzipSplit';
@@ -33,18 +57,12 @@ export class GzipSplit implements ICompression {
 
 	async compress(data: Buffer) {
 		const bundle = bytesToBundle(data);
-
-		const lastItem = bundle.at(-1);
-		const report = lastItem.value.r;
-		const events = lastItem.value.e;
-		delete bundle[bundle.length - 1].value.r;
-		delete bundle[bundle.length - 1].value.e;
-
-		const messagesBuffer = bundleToBytes(bundle);
-		const reportBuffer = Buffer.from(JSON.stringify(report));
+		const { report, events, messages } = componentsFromBundle(bundle);
+		const messagesBuffer = bundleToBytes(messages);
+		const reportBuffer = bundleToBytes(report as any);
 		const promises = [gzip(messagesBuffer), gzip(reportBuffer)];
 		if (events) {
-			const eventsBuffer = Buffer.from(JSON.stringify(events));
+			const eventsBuffer = bundleToBytes(events as any);
 			promises.push(gzip(eventsBuffer));
 		}
 		const zips = await Promise.all(promises);
