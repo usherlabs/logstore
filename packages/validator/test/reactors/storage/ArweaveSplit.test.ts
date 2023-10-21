@@ -1,34 +1,24 @@
-import { bundleToBytes, bytesToBundle, DataItem } from '@kyvejs/protocol';
+import { bundleToBytes, bytesToBundle } from '@kyvejs/protocol';
 import { BigNumber } from 'ethers';
 import * as fs from 'fs';
 import path from 'path';
 import { Logger } from 'tslog';
 
+
+
 import { compressionFactory } from '../../../src/reactors/compression';
 import { storageProviderFactory } from '../../../src/reactors/storageProviders';
 import { Slogger } from '../../../src/utils/slogger';
+import { mockBundle } from '../../utils/bundle';
 
-const messages: DataItem[] = [
-	{ key: '0', value: { m: [] } },
-	{ key: '1689263977', value: { m: [] } },
-];
-const report = {
-	s: true,
-	v: 1,
-	id: '1689263977',
-	height: 713,
-	treasury: '0x00',
-	streams: [],
-	consumers: [],
-	nodes: {},
-	delegates: {},
-	events: { queries: [], storage: [] },
-};
 
 /**
  * For this to work, NODE_TLS_REJECT_UNAUTHORIZED=0 is set on jest.config.js file
  * to run before tests instantiation. Otherwise, if it is set after tests instantiation,
  * it won't work.
+ *
+ * Note: these tests run against arweave.net. But if you in the development process,
+ * you usually remap it to run against localhost on /etc/hosts file.
  */
 describe('Reactors - Storage: ArweaveSplit', () => {
 	const filepath = path.join(
@@ -54,10 +44,7 @@ describe('Reactors - Storage: ArweaveSplit', () => {
 	});
 
 	it('should compress, upload, download & decompress raw data and evaluate the same values', async () => {
-		const bundle = [...messages];
-		bundle[bundle.length - 1].value.r = report;
-
-		const compressed = await compression.compress(bundleToBytes(bundle));
+		const compressed = await compression.compress(bundleToBytes(mockBundle));
 
 		const tx = await storageProvider.saveBundle(compressed, [
 			{ name: 'type', value: 'test' },
@@ -69,6 +56,6 @@ describe('Reactors - Storage: ArweaveSplit', () => {
 
 		const dBundle = bytesToBundle(res2);
 
-		expect(bundle).toEqual(dBundle);
+		expect(dBundle).toEqual(mockBundle);
 	});
 });
