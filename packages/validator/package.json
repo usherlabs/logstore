@@ -52,6 +52,10 @@
 		"shelljs": "^0.8.5"
 	},
 	"devDependencies": {
+		"ethereum-waffle": "^4.0.10",
+		"@ethereum-waffle/mock-contract": "^4.0.4",
+		"@ethereum-waffle/jest": "^3.3.2",
+		"@ethereum-waffle/provider": "^4.0.5",
 		"@ethersproject/bignumber": "^5.7.0",
 		"@kyvejs/sdk": "^1.0.1",
 		"@kyvejs/types": "^1.0.3",
@@ -60,6 +64,7 @@
 		"@types/fs-extra": "^11.0.1",
 		"@types/jest": "^29.5.1",
 		"@types/node": "^18.7.18",
+		"@types/lodash": "^4.14.200",
 		"@types/shelljs": "^0.8.12",
 		"del-cli": "^5.0.0",
 		"dotenv": "^16.0.3",
@@ -75,7 +80,7 @@
 		"tsconfig-paths": "^4.1.0",
 		"tslib": "^2.5.0",
 		"tslog": "^3.3.4",
-		"typescript": "^5.1.6",
+		"typescript": "^5.2.2",
 		"uint8arrays": "^3"
 	}
 }
