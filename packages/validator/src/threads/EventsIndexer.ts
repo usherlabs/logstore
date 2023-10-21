@@ -1,30 +1,47 @@
 import { KyveLCDClientType } from '@kyvejs/sdk';
 import { QueryFinalizedBundlesResponse } from '@kyvejs/types/lcd/kyve/query/v1beta1/bundles';
 import type { StakeDelegateUpdatedEvent } from '@logsn/contracts/dist/src/NodeManager.sol/LogStoreNodeManager';
-import type {
-	DataStoredEvent,
-	StoreUpdatedEvent,
-} from '@logsn/contracts/dist/src/StoreManager.sol/LogStoreManager';
-import {
-	transactionSplitProtocol,
-	transactionSplitUtilsV0,
-} from '@logsn/protocol';
+import type { DataStoredEvent, StoreUpdatedEvent } from '@logsn/contracts/dist/src/StoreManager.sol/LogStoreManager';
+import { transactionSplitProtocol, transactionSplitUtilsV0 } from '@logsn/protocol';
 import axios from 'axios';
+import type { BaseContract } from 'ethers';
 import type { RootDatabase } from 'lmdb';
 import { isEmpty, range } from 'lodash';
 import path from 'path';
 import { BehaviorSubject, filter, firstValueFrom } from 'rxjs';
 import type { Logger } from 'tslog';
 
-import type { ChainSources } from '../sources';
+
+
+import type { ChainSources, IChainSource } from '../sources';
 import { Database } from '../utils/database';
 import { gunzip } from '../utils/gzip';
 
-export enum EventSelect {
-	StoreUpdated,
-	StakeDelegateUpdated,
-	DataStored,
-}
+
+// ===== Type Safety Utils =====
+type ChainSourceContracts = IChainSource['contracts'];
+type ResolvedManagerTypes =
+	ChainSourceContracts[keyof ChainSourceContracts] extends () => Promise<
+		infer C extends BaseContract
+	>
+		? C
+		: never;
+type ExtractFilterKeysFrom<T> = T extends { filters: infer Filters }
+	? keyof Filters
+	: never;
+
+type UnionOfFilterKeys = ExtractFilterKeysFrom<ResolvedManagerTypes>;
+// =============================
+
+export const EventSelect = {
+	StoreUpdated: 'StoreUpdated',
+	StakeDelegateUpdated: 'StakeDelegateUpdated',
+	DataStored: 'DataStored',
+} as const satisfies {
+	[key in UnionOfFilterKeys]?: key;
+};
+
+export type EventSelect = (typeof EventSelect)[keyof typeof EventSelect];
 
 const EventSelectKeys = Object.keys(EventSelect)
 	.map((key) => EventSelect[key])
@@ -33,7 +50,7 @@ const createEmptyEventSelect = () =>
 	EventSelectKeys.reduce((acc, curr) => {
 		acc[curr] = [];
 		return acc;
-	}, {});
+	}, {} as Required<Events>);
 
 type BlockNumber = number;
 type Events = {
@@ -43,7 +60,7 @@ type Events = {
 	// ? We can add more here later... however, we'll need to handle data migrations within the validator node for upgrades
 	// ? ie. An upgrade where the next bundle collects all events since start block - we can split the txs up too
 };
-type EventsByBlock = {
+export type EventsByBlock = {
 	v: Events;
 	k: BlockNumber;
 };
@@ -58,9 +75,9 @@ type DB = RootDatabase<Events, BlockNumber>;
  * This index makes the Validator way more reliable and efficient at managing correlation between blocks and time
  */
 export class EventsIndexer {
-	protected _cachePath: string;
-	private _db!: DB;
-	private $ready = new BehaviorSubject(false);
+	protected eventCachePath: string;
+	private eventsDB!: DB;
+	private isReadySubject = new BehaviorSubject(false);
 	private _latestColdBlockNumber: number; // Latest block number that is cold-stored
 
 	constructor(
@@ -71,7 +88,7 @@ export class EventsIndexer {
 		protected kyve: KyveLCDClientType[],
 		protected logger: Logger
 	) {
-		this._cachePath = path.join(homeDir, '.logstore-events');
+		this.eventCachePath = path.join(homeDir, '.logstore-events');
 	}
 
 	public get latestBlockNumber() {
@@ -100,8 +117,8 @@ export class EventsIndexer {
 	}
 
 	private initializeDB(): void {
-		const dbPath = path.join(this._cachePath, 'cache');
-		this._db = Database.create('events-index', dbPath) as DB;
+		const dbPath = path.join(this.eventCachePath, 'cache');
+		this.eventsDB = Database.create('events-index', dbPath) as DB;
 	}
 
 	private logStartupInfo(): void {
@@ -113,13 +130,15 @@ export class EventsIndexer {
 	}
 
 	private markAsReady(): void {
-		this.$ready.next(true);
+		this.isReadySubject.next(true);
 		this.logger.debug('EventsIndexer: Ready!');
 	}
 
 	// will return once ready
 	public async ready() {
-		return firstValueFrom(this.$ready.pipe(filter((ready) => ready === true)));
+		return firstValueFrom(
+			this.isReadySubject.pipe(filter((ready) => ready === true))
+		);
 	}
 
 	private async queryClient(client: KyveLCDClientType, nextKey?: string) {
@@ -133,12 +152,12 @@ export class EventsIndexer {
 		});
 	}
 
-	private processResults(
-		results: Pick<QueryFinalizedBundlesResponse, 'finalized_bundles'>
+	private getEventTxFromFinalizedBundles(
+		finalizedBundles: QueryFinalizedBundlesResponse['finalized_bundles']
 	) {
 		const eventsTxIds: string[] = [];
-		for (let j = 0; j < results.finalized_bundles.length; j++) {
-			const fb = results.finalized_bundles[j];
+		for (let j = 0; j < finalizedBundles.length; j++) {
+			const fb = finalizedBundles[j];
 
 			if (transactionSplitProtocol.isSplit(fb.storage_id)) {
 				const txIds = transactionSplitProtocol.getTransactionIds(fb.storage_id);
@@ -146,15 +165,22 @@ export class EventsIndexer {
 				if (eventsTx) {
 					eventsTxIds.push(eventsTx);
 				}
+			} else {
+				this.logger.error(
+					`Unable to extract transaction id's from storage_id: ${fb.storage_id}`
+				);
 			}
 		}
 		return eventsTxIds;
 	}
 
-	private validateClientResults(reqCounts: number[], reqTotals: number[]) {
+	private validateClientResults(
+		bundleCounts: number[],
+		bundleTotals: number[]
+	) {
 		if (
-			!reqCounts.every((n) => n === reqCounts[0]) ||
-			!reqTotals.every((n) => n === reqTotals[0])
+			!bundleCounts.every((n) => n === bundleCounts[0]) ||
+			!bundleTotals.every((n) => n === bundleTotals[0])
 		) {
 			throw new Error('Receiving different results from Kyve LCD clients');
 		}
@@ -173,84 +199,107 @@ export class EventsIndexer {
 				await db.put(event.k, event.v);
 			}
 		});
-		return events.at(-1).k;
+		return events;
+	}
+
+	private async queryFromRPC(
+		filterEvents: EventSelect[],
+		fromBlockNumber: number,
+		toBlockNumber: number
+	) {
+		const events = await this.chain.use(async (source) => {
+			const eventsFromThisRPC = createEmptyEventSelect();
+
+			// we use for..of here to ensure we wait for each event type to be fetched
+			// in sequence, not in parallel, to ensure we don't overload the RPC
+			for (const eventType of filterEvents) {
+				eventsFromThisRPC[eventType] = await fetchContractEvents(
+					source,
+					getContractName(eventType),
+					eventType,
+					fromBlockNumber,
+					toBlockNumber
+				);
+			}
+			return eventsFromThisRPC;
+		});
+
+		if (isEmpty(events)) {
+			return [];
+		}
+
+		// Add new events to results if we have new events.
+		const blockRange = range(fromBlockNumber, toBlockNumber + 1);
+
+		const eventsOrNull = await Promise.all(
+			// for each block number, let's get the events in that block,
+			// separate them by type, and add them to the results
+			blockRange.map(async (blockNumber) => {
+				const eventIndexForBlock = filterEvents.reduce((acc, eventType) => {
+					const eventsInBlock = filterEventsByBlock(
+						events[eventType],
+						blockNumber
+					);
+					if (eventsInBlock.length > 0) {
+						return { ...acc, [eventType]: eventsInBlock };
+					}
+					return acc;
+				}, {} as Events);
+
+				return isEmpty(eventIndexForBlock)
+					? null
+					: { block: blockNumber, value: eventIndexForBlock };
+			})
+		);
+
+		return eventsOrNull.filter(Boolean);
 	}
 
 	/**
 	 * Performs a query against RPC Endpoints, and (optionally) combines with previous events for full history
 	 *
 	 * To be used in Runtime summarize to fetch all events that have not been previously stored in a bundle
+	 * Side effect: Stores events queried from RPC in the database
 	 */
-	public async query(eventsToFilterFor: EventSelect[], toBlockNumber?: number) {
+	public async query(filterEvents: EventSelect[], toBlockNumber?: number) {
 		// ? If the index already exists, check it's latest data.
-		const results: { block: BlockNumber; value: Events }[] = [];
-		for (const { key: key, value } of this._db.getRange()) {
-			const finalValue: Events = {};
-			if (
-				eventsToFilterFor.includes(EventSelect.StoreUpdated) &&
-				value.StoreUpdated
-			) {
-				finalValue.StoreUpdated = value.StoreUpdated;
-			}
-			if (
-				eventsToFilterFor.includes(EventSelect.StakeDelegateUpdated) &&
-				value.StakeDelegateUpdated
-			) {
-				finalValue.StakeDelegateUpdated = value.StakeDelegateUpdated;
-			}
-			if (
-				eventsToFilterFor.includes(EventSelect.DataStored) &&
-				value.DataStored
-			) {
-				finalValue.DataStored = value.DataStored;
-			}
-			if (!isEmpty(finalValue)) {
-				results.push({ block: key, value: finalValue });
-			}
-		}
 
-		const latestBlockNumber = this.latestBlockNumber;
-		if (toBlockNumber && toBlockNumber > latestBlockNumber) {
-			const fromBlockNumber = latestBlockNumber + 1;
+		// ==== Fetching from cache ====
+		const resultsFromCache = this.db()
+			// gets all events from the database
+			.getRange()
+			// filters out events that are not in the filterEvents array
+			.map(({ key, value }) => {
+				const eventsOfThisBlock = filterEvents.reduce((acc, event) => {
+					return value[event] ? { ...acc, [event]: value[event] } : acc;
+				}, {} as Events);
+				return isEmpty(eventsOfThisBlock)
+					? null
+					: { block: key, value: eventsOfThisBlock };
+			})
+			// filters out null values
+			.filter(Boolean).asArray;
 
-			const newEvents = await this.chain.use(async (source) => {
-				const events: Events = createEmptyEventSelect();
-				for (const eventType of eventsToFilterFor) {
-					events[eventType] = await queryContract(
-						source,
-						getContractName(eventType),
-						eventType,
-						fromBlockNumber,
-						toBlockNumber
-					);
-				}
-				return events;
-			});
+		// ==== Fetching from RPC looking for new events not yet indexed on our Cache ====
+		// We do it only if the query requires
+		const isFetchingFromRPCRequired =
+			toBlockNumber && toBlockNumber > this.latestBlockNumber;
+		const resultsFromRPC = isFetchingFromRPCRequired
+			? await this.queryFromRPC(
+					filterEvents,
+					this.latestBlockNumber + 1,
+					toBlockNumber
+			  )
+			: [];
 
-			if (!isEmpty(newEvents)) {
-				// Add new events to results.
-				const blockRange = range(fromBlockNumber, toBlockNumber + 1);
-				for (const blockNumber of blockRange) {
-					const indexEvent: Events = {};
-					for (const eventType of eventsToFilterFor) {
-						const eventsInBlock = filterEventsByType(
-							newEvents[eventType],
-							blockNumber
-						);
-						updateIndexEvent(indexEvent, eventType, eventsInBlock);
-					}
+		await Promise.all(
+			// in this case, if we manage to fetch from rpc, we'll also index on our cache as a side effect
+			resultsFromRPC.map((eventsByBlock) =>
+				this.db().put(eventsByBlock.block, eventsByBlock.value)
+			)
+		);
 
-					if (!isEmpty(indexEvent)) {
-						results.push({ block: blockNumber, value: indexEvent });
-
-						// index new event
-						await this.db().put(blockNumber, indexEvent);
-					}
-				}
-			}
-		}
-
-		return results;
+		return [...resultsFromCache, ...resultsFromRPC];
 	}
 
 	/**
@@ -259,7 +308,7 @@ export class EventsIndexer {
 	public prepare(lock = false) {
 		const events: EventsByBlock[] = [];
 		// ? Start from the block number after the latest block number stored to cold store.
-		for (const { key, value } of this._db.getRange({
+		for (const { key, value } of this.db().getRange({
 			start:
 				this._latestColdBlockNumber > 0 ? this._latestColdBlockNumber + 1 : 0,
 		})) {
@@ -275,10 +324,10 @@ export class EventsIndexer {
 	}
 
 	protected db() {
-		if (!this._db) {
+		if (!this.eventsDB) {
 			throw new Error('Database is not initialised');
 		}
-		return this._db;
+		return this.eventsDB;
 	}
 
 	/**
@@ -288,39 +337,51 @@ export class EventsIndexer {
 	private async hydrate() {
 		this.logger.info('EventsIndexer: Hydrating...');
 
-		let count = 0;
-		let total = -1;
-		const reqNextKeys: string[] = Array(this.kyve.length).fill(undefined);
+		// Initialize count of processed bundles and total bundles to process
+		let processedBundlesCount = 0;
+		// -1 to ensure the while loop is entered, as the total to process is unknown initially.
+		let totalToProcess = -1;
+		const nextKeys: string[] = Array(this.kyve.length).fill(undefined); // Holds pagination keys for querying clients
 
-		while (count < total || total < 0) {
-			const reqCounts: number[] = [];
-			const reqTotals: number[] = [];
-			const eventsTxIds: string[] = [];
+		// The loop continues until all bundles are processed or if the total to process is still unknown.
+		while (processedBundlesCount < totalToProcess || totalToProcess < 0) {
+			const bundleCountsList: number[] = []; // Holds the count of bundles processed in the current iteration for each client
+			const bundleTotalsList: number[] = []; // Holds the total count of bundles to process for each client
+			const eventsTxIds: string[] = []; // Holds transaction IDs of events to be processed
 
+			// Iterating through each client to query for bundles and process the results.
 			for (let i = 0; i < this.kyve.length; i++) {
 				const client = this.kyve[i];
-				const results = await this.queryClient(client, reqNextKeys[i]);
+				const results = await this.queryClient(client, nextKeys[i]); // Query client for bundles
 
-				reqCounts.push(results.finalized_bundles.length);
-				reqTotals.push(parseInt(results.pagination.total, 10));
-				reqNextKeys[i] = results.pagination.next_key;
-				eventsTxIds.push(...this.processResults(results));
+				// Update lists with data from current iteration
+				bundleCountsList.push(results.finalized_bundles.length);
+				bundleTotalsList.push(parseInt(results.pagination.total, 10));
+				nextKeys[i] = results.pagination.next_key;
+				eventsTxIds.push(
+					...this.getEventTxFromFinalizedBundles(results.finalized_bundles)
+				);
 			}
 
-			this.validateClientResults(reqCounts, reqTotals);
+			// Validate that all clients return consistent results
+			this.validateClientResults(bundleCountsList, bundleTotalsList);
 
-			total = reqTotals[0];
-			count += reqCounts[0];
+			// Updating the total bundles to process and incrementing the processed bundles count for progress tracking.
+			totalToProcess = bundleTotalsList[0];
+			processedBundlesCount += bundleCountsList[0];
 			this.logger.info(
-				`EventsIndexer: Hydrate - Total: ${total}, Count: ${count}`
+				`EventsIndexer: Hydrate - Total: ${totalToProcess}, Count: ${processedBundlesCount}`
 			);
 
+			// Skip to the next iteration if no event transaction IDs are found, to avoid unnecessary processing.
 			if (eventsTxIds.length === 0) {
 				continue;
 			}
 
+			// Fetching and processing events for the first transaction ID found, to begin event processing.
 			const txId = eventsTxIds[0];
-			this._latestColdBlockNumber = await this.fetchAndProcessEvents(txId);
+			const events = await this.fetchAndProcessEvents(txId);
+			this._latestColdBlockNumber = events.at(-1).k; // Update the latest block number that is cold-stored
 		}
 
 		this.logger.info('EventsIndexer: Hydration complete!');
@@ -328,24 +389,31 @@ export class EventsIndexer {
 }
 
 // Helper function to filter events by type
-const filterEventsByType = (eventList, eventType) => {
-	return eventList.filter((ev) => ev.blockNumber === eventType);
+const filterEventsByBlock = (
+	eventList: Events[keyof Events],
+	blockNumber: number
+) => {
+	// this is only possible on TS>=5.2
+	return eventList.filter((ev) => ev.blockNumber === blockNumber);
 };
 
 // Helper function to update the indexEvent object
-const updateIndexEvent = (indexEvent, eventType, eventsInBlock) => {
+const updateIndexEvent = (
+	indexEvent: Events,
+	eventType: EventSelect,
+	eventsInBlock: any
+) => {
 	if (eventsInBlock.length > 0) {
 		indexEvent[eventType] = eventsInBlock;
 	}
 };
 
-// Helper function to query contract
-const queryContract = async (
-	source,
-	contractName,
-	filterName,
-	fromBlockNumber,
-	toBlockNumber
+export const fetchContractEvents = async (
+	source: IChainSource,
+	contractName: keyof ChainSourceContracts,
+	filterName: EventSelect,
+	fromBlockNumber: number,
+	toBlockNumber: number
 ) => {
 	const contract = await source.contracts[contractName]();
 	return await contract.queryFilter(
