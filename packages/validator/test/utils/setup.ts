@@ -21,7 +21,6 @@ import {
 import { fastPrivateKey } from '@streamr/test-utils';
 import { wait } from '@streamr/utils';
 import { ethers } from 'ethers';
-import path from 'path';
 import { register } from 'prom-client';
 import { ILogObject, Logger } from 'tslog';
 import { fromString } from 'uint8arrays';
@@ -30,6 +29,7 @@ import { StakeToken } from '../../src/managers/StakeToken';
 import Runtime from '../../src/runtime';
 import { Arweave } from '../../src/utils/arweave';
 import Validator from '../../src/validator';
+import { testHomeDir } from './constants';
 
 const {
 	DISABLE_DEBUG_LOGS,
@@ -142,7 +142,7 @@ export async function setupTests() {
 	v['waitForCacheContinuation'] = jest.fn();
 
 	// Set home value
-	v['home'] = path.join(__dirname, '../cache');
+	v['home'] = testHomeDir;
 
 	// Ensure that all prom calls are setup
 	await v['setupMetrics']();
