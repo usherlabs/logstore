@@ -86,7 +86,6 @@ function buildQueryResponse(
 	messages: [string, string][]
 ) {
 	return new QueryResponse({
-		seqNum: 0,
 		requestId,
 		requestPublisherId,
 		hashMap: new Map<string, string>(messages),

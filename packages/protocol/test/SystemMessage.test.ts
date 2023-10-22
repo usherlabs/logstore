@@ -8,7 +8,7 @@ import ValidationError from '../src/errors/ValidationError';
 import { SystemMessage, SystemMessageType } from '../src/system';
 
 const VERSION = 123;
-const TYPE = 0;
+const TYPE = 1;
 const SEQ_NUM = 1234;
 
 class TestSystemMessage extends SystemMessage {}
@@ -17,7 +17,7 @@ const msg = () => {
 	return new TestSystemMessage(VERSION, TYPE, SEQ_NUM);
 };
 
-describe('SystemMessage', () => {
+describe(SystemMessage, () => {
 	let serializer: Serializer<SystemMessage>;
 
 	beforeEach(() => {

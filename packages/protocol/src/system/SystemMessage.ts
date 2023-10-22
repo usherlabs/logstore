@@ -21,7 +21,7 @@ export enum SystemMessageType {
 
 export interface SystemMessageOptions {
 	version?: number;
-	seqNum: number;
+	seqNum?: number;
 }
 
 export class SystemMessage {
