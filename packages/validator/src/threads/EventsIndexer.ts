@@ -1,37 +1,31 @@
 import { KyveLCDClientType } from '@kyvejs/sdk';
 import { QueryFinalizedBundlesResponse } from '@kyvejs/types/lcd/kyve/query/v1beta1/bundles';
-import type { StakeDelegateUpdatedEvent } from '@logsn/contracts/dist/src/NodeManager.sol/LogStoreNodeManager';
-import type { DataStoredEvent, StoreUpdatedEvent } from '@logsn/contracts/dist/src/StoreManager.sol/LogStoreManager';
-import { transactionSplitProtocol, transactionSplitUtilsV0 } from '@logsn/protocol';
+import {
+	LogStoreManager__factory,
+	LogStoreNodeManager__factory,
+} from '@logsn/contracts';
+import { TypedEvent } from '@logsn/contracts/dist/common';
+import {
+	transactionSplitProtocol,
+	transactionSplitUtilsV0,
+} from '@logsn/protocol';
 import axios from 'axios';
-import type { BaseContract } from 'ethers';
+import { deepCopy } from 'ethers/lib/utils';
 import type { RootDatabase } from 'lmdb';
 import { isEmpty, range } from 'lodash';
 import path from 'path';
 import { BehaviorSubject, filter, firstValueFrom } from 'rxjs';
 import type { Logger } from 'tslog';
 
-
-
 import type { ChainSources, IChainSource } from '../sources';
 import { Database } from '../utils/database';
 import { gunzip } from '../utils/gzip';
-
-
-// ===== Type Safety Utils =====
-type ChainSourceContracts = IChainSource['contracts'];
-type ResolvedManagerTypes =
-	ChainSourceContracts[keyof ChainSourceContracts] extends () => Promise<
-		infer C extends BaseContract
-	>
-		? C
-		: never;
-type ExtractFilterKeysFrom<T> = T extends { filters: infer Filters }
-	? keyof Filters
-	: never;
-
-type UnionOfFilterKeys = ExtractFilterKeysFrom<ResolvedManagerTypes>;
-// =============================
+import {
+	ChainSourceContracts,
+	Events,
+	SerializedEvent,
+	UnionOfFilterKeys,
+} from './EventsIndexerTypes';
 
 export const EventSelect = {
 	StoreUpdated: 'StoreUpdated',
@@ -40,12 +34,12 @@ export const EventSelect = {
 } as const satisfies {
 	[key in UnionOfFilterKeys]?: key;
 };
-
 export type EventSelect = (typeof EventSelect)[keyof typeof EventSelect];
 
 const EventSelectKeys = Object.keys(EventSelect)
 	.map((key) => EventSelect[key])
 	.filter((value) => typeof value === 'string') as string[];
+
 const createEmptyEventSelect = () =>
 	EventSelectKeys.reduce((acc, curr) => {
 		acc[curr] = [];
@@ -53,18 +47,12 @@ const createEmptyEventSelect = () =>
 	}, {} as Required<Events>);
 
 type BlockNumber = number;
-type Events = {
-	StoreUpdated?: StoreUpdatedEvent[];
-	StakeDelegateUpdated?: StakeDelegateUpdatedEvent[];
-	DataStored?: DataStoredEvent[];
-	// ? We can add more here later... however, we'll need to handle data migrations within the validator node for upgrades
-	// ? ie. An upgrade where the next bundle collects all events since start block - we can split the txs up too
-};
+type DB = RootDatabase<Events, BlockNumber>;
+
 export type EventsByBlock = {
 	v: Events;
 	k: BlockNumber;
 };
-type DB = RootDatabase<Events, BlockNumber>;
 
 /**
  * Class to manage an index of blocks and their timestamps
@@ -330,6 +318,51 @@ export class EventsIndexer {
 		return this.eventsDB;
 	}
 
+	public static deserializeEvent = <E extends TypedEvent<any, any>>(
+		event: SerializedEvent<E>
+	): E => {
+		const eventName = event['event'];
+		if (!(eventName in EventSelect)) {
+			throw new Error(`Event ${eventName} is not supported`);
+		}
+		// get contract name
+		const contractName = getContractName(eventName as EventSelect);
+
+		// get contract
+		const iface = nameToContractInterfaceMap[contractName];
+		const { ...eventCopy } = <E>deepCopy(event);
+
+		// see ethersproject/contracts `addContractWait` for reference on following code
+
+		const parsed = iface.parseLog(eventCopy);
+		eventCopy.args = parsed.args as E['args'];
+		eventCopy.decode = (data: string, topics?: Array<any>) => {
+			return iface.decodeEventLog(parsed.eventFragment, data, topics);
+		};
+
+		eventCopy.event = parsed.name;
+		eventCopy.eventSignature = parsed.signature;
+
+		// Useful operations
+		eventCopy.removeListener = () => {
+			return null;
+		};
+
+		eventCopy.getBlock = () => {
+			throw new Error('Not implemented when running from a deserialized event');
+		};
+
+		eventCopy.getTransaction = () => {
+			throw new Error('Not implemented when running from a deserialized event');
+		};
+
+		eventCopy.getTransactionReceipt = () => {
+			throw new Error('Not implemented when running from a deserialized event');
+		};
+
+		return eventCopy;
+	};
+
 	/**
 	 * Fetch all storage ids that include indexed events.
 	 * Load all events into cache
@@ -412,13 +445,18 @@ export const fetchContractEvents = async (
 	);
 };
 
+const eventToContractMap = {
+	[EventSelect.StoreUpdated]: 'store',
+	[EventSelect.StakeDelegateUpdated]: 'node',
+	[EventSelect.DataStored]: 'store',
+} as const satisfies {
+	[key in EventSelect]: string;
+};
+const nameToContractInterfaceMap = {
+	store: LogStoreManager__factory.createInterface(),
+	node: LogStoreNodeManager__factory.createInterface(),
+	report: LogStoreNodeManager__factory.createInterface(),
+};
 const getContractName = (eventType: EventSelect) => {
-	const eventToContractMap = {
-		[EventSelect.StoreUpdated]: 'store',
-		[EventSelect.StakeDelegateUpdated]: 'node',
-		[EventSelect.DataStored]: 'store',
-	} as const satisfies {
-		[key in EventSelect]: string;
-	};
 	return eventToContractMap[eventType];
 };
