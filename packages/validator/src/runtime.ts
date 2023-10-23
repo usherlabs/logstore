@@ -1,5 +1,5 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
-import { DataItem, sha256, sleep } from '@kyvejs/protocol';
+import { DataItem, sha256 } from '@kyvejs/protocol';
 import {
 	CONFIG_TEST,
 	LogStoreClient,
@@ -7,7 +7,7 @@ import {
 } from '@logsn/client';
 import ContractAddresses from '@logsn/contracts/address.json';
 import { SystemMessageType } from '@logsn/protocol';
-import { ethers } from 'ethers';
+// import { ethers } from 'ethers';
 import fse from 'fs-extra';
 
 import { Item } from './core/item';
@@ -28,7 +28,7 @@ import { rollingConfig } from './shared/rollingConfig';
 import { ChainSources } from './sources';
 import { EventsIndexer, SystemListener, TimeIndexer } from './threads';
 import { Heartbeat } from './threads/Heartbeat';
-import { SystemRecovery } from './threads/SystemRecovery';
+// import { SystemRecovery } from './threads/SystemRecovery';
 import { IConfig, IRuntimeExtended } from './types';
 import { Slogger } from './utils/slogger';
 import Validator from './validator';
@@ -109,7 +109,7 @@ export default class Runtime implements IRuntimeExtended {
 
 		// core.logger.debug('Streamr Config', streamrConfig);
 		const privateKey = getEvmPrivateKey(); // The Validator needs to stake in QueryManager
-		const signer = new ethers.Wallet(privateKey);
+		// const signer = new ethers.Wallet(privateKey);
 		const logStoreClient = new LogStoreClient({
 			...clientConfig,
 			auth: {
@@ -125,9 +125,9 @@ export default class Runtime implements IRuntimeExtended {
 			this.config.systemStreamId
 		);
 
-		const recoveryStream = await logStoreClient.getStream(
-			this.config.recoveryStreamId
-		);
+		// const recoveryStream = await logStoreClient.getStream(
+		// 	this.config.recoveryStreamId
+		// );
 
 		const heartbeatSubscriber = new BroadbandSubscriber(
 			logStoreClient,
@@ -143,14 +143,14 @@ export default class Runtime implements IRuntimeExtended {
 
 		this.heartbeat = new Heartbeat(heartbeatSubscriber);
 
-		const recovery = new SystemRecovery(
-			logStoreClient,
-			recoveryStream,
-			signer,
-			messageMetricsSummary,
-			core.logger,
-			this
-		);
+		// const recovery = new SystemRecovery(
+		// 	logStoreClient,
+		// 	recoveryStream,
+		// 	signer,
+		// 	messageMetricsSummary,
+		// 	core.logger,
+		// 	this
+		// );
 
 		let startKey = parseInt(core.pool.data.current_key, 10) || 0;
 		if (startKey) {
@@ -171,7 +171,7 @@ export default class Runtime implements IRuntimeExtended {
 			homeDir,
 			logStoreClient,
 			systemSubscriber,
-			recovery,
+			// recovery,
 			messageMetricsSummary,
 			core.logger
 		);
@@ -195,49 +195,54 @@ export default class Runtime implements IRuntimeExtended {
 	}
 
 	async ready(core: Validator, syncPoolState: () => Promise<void>) {
-		const getCurrentKeyMs = async () => {
-			/* eslint-disable */
-			const nextKey = core.pool.data!.current_key
-				? await this.nextKey(core, core.pool.data!.current_key)
-				: core.pool.data!.start_key;
-			/* eslint-enable */
+		// const getCurrentKeyMs = async () => {
+		// 	/* eslint-disable */
+		// 	const nextKey = core.pool.data!.current_key
+		// 		? await this.nextKey(core, core.pool.data!.current_key)
+		// 		: core.pool.data!.start_key;
+		// 	/* eslint-enable */
+		//
+		// 	return parseInt(nextKey, 10) * 1000;
+		// };
 
-			return parseInt(nextKey, 10) * 1000;
-		};
+		// const listenerHasValidData = async () => {
+		// 	let currentKeyMs = await getCurrentKeyMs();
+		// 	if (!currentKeyMs) {
+		// 		// If the pool hasn't started yet, then this check can pass.
+		// 		return;
+		// 	}
+		// 	// If the pool has started, then the currentKey > listener.startTime to proceed.
+		// 	// ie. Listener should start before the start of the bundle.
+		// 	while (
+		// 		!this.listener.startTimestamp ||
+		// 		this.listener.startTimestamp > currentKeyMs
+		// 	) {
+		// 		if (!this.listener.startTimestamp) {
+		// 			core.logger.info(
+		// 				'SystemListener is not started yet. Sleeping for 10 seconds...'
+		// 			);
+		// 			await sleep(10 * 1000);
+		// 		} else {
+		// 			const sleepMs = this.listener.startTimestamp - currentKeyMs + 1000;
+		// 			core.logger.info(
+		// 				`SystemListener.startTime (${
+		// 					this.listener.startTimestamp
+		// 				}) is greater than currentKeyMs (${currentKeyMs}). Sleeping for ${(
+		// 					sleepMs / 1000
+		// 				).toFixed(2)} seconds...`
+		// 			);
+		// 			await sleep(sleepMs);
+		// 		}
+		// 		await syncPoolState();
+		// 		currentKeyMs = await getCurrentKeyMs();
+		// 	}
+		// };
 
-		const listenerHasValidData = async () => {
-			let currentKeyMs = await getCurrentKeyMs();
-			if (!currentKeyMs) {
-				// If the pool hasn't started yet, then this check can pass.
-				return;
-			}
-			// If the pool has started, then the currentKey > listener.startTime to proceed. ie. Listener should start before the start of the bundle.
-			while (
-				!this.listener.startTimestamp ||
-				this.listener.startTimestamp > currentKeyMs
-			) {
-				if (!this.listener.startTimestamp) {
-					core.logger.info(
-						'SystemListener is not started yet. Sleeping for 10 seconds...'
-					);
-					await sleep(10 * 1000);
-				} else {
-					const sleepMs = this.listener.startTimestamp - currentKeyMs + 1000;
-					core.logger.info(
-						`SystemListener.startTime (${
-							this.listener.startTimestamp
-						}) is greater than currentKeyMs (${currentKeyMs}). Sleeping for ${(
-							sleepMs / 1000
-						).toFixed(2)} seconds...`
-					);
-					await sleep(sleepMs);
-				}
-				await syncPoolState();
-				currentKeyMs = await getCurrentKeyMs();
-			}
-		};
-
-		await Promise.all([this.events.ready(), listenerHasValidData()]);
+		await Promise.all([
+			this.events.ready(),
+			// listenerHasValidData(),
+			this.time.ready(),
+		]);
 	}
 
 	async validateSetConfig(rawConfig: string): Promise<void> {

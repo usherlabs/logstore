@@ -1,21 +1,19 @@
 // import chokidar from 'chokidar';
 import { sha256 } from '@kyvejs/protocol';
 import { LogStoreClient, MessageMetadata } from '@logsn/client';
-import {
-	QueryPropagate,
-	QueryRequest,
-	QueryResponse,
-	SystemMessage,
-	SystemMessageType,
-} from '@logsn/protocol';
+import { QueryPropagate, QueryRequest, QueryResponse, SystemMessage, SystemMessageType } from '@logsn/protocol';
 import fse from 'fs-extra';
 import path from 'path';
 import type { Logger } from 'tslog';
 
+
+
 import { BroadbandSubscriber } from '../shared/BroadbandSubscriber';
 import { MessageMetricsSummary } from '../shared/MessageMetricsSummary';
 import { SystemDb } from './SystemDb';
-import { SystemRecovery } from './SystemRecovery';
+
+
+// import { SystemRecovery } from './SystemRecovery';
 
 const LISTENING_MESSAGE_TYPES = [
 	SystemMessageType.QueryRequest,
@@ -26,14 +24,14 @@ const LISTENING_MESSAGE_TYPES = [
 export class SystemListener {
 	private readonly _cachePath: string;
 	private readonly _db: SystemDb;
-	private _latestTimestamp: number;
+	// private _latestTimestamp: number;
 	private _startTimestamp: number;
 
 	constructor(
 		homeDir: string,
 		private readonly _client: LogStoreClient,
 		private readonly _systemSubscriber: BroadbandSubscriber,
-		private readonly _systemRecovery: SystemRecovery,
+		// private readonly _systemRecovery: SystemRecovery,
 		private readonly messageMetricsSummary: MessageMetricsSummary,
 		private readonly logger: Logger
 	) {
@@ -64,7 +62,7 @@ export class SystemListener {
 				setImmediate(() => this.onMessage(content, metadata))
 			);
 
-			await this._systemRecovery.start(this.onSystemMessage.bind(this));
+			// await this._systemRecovery.start(this.onSystemMessage.bind(this));
 
 			// Store a timestamp for when the listener starts so that the Node must have a timestamp < bundle_start_key to pariticpate.
 			this._startTimestamp = Date.now();
@@ -76,19 +74,19 @@ export class SystemListener {
 	}
 
 	public async stop() {
-		await this._systemRecovery.stop();
+		// await this._systemRecovery.stop();
 		await this._systemSubscriber.unsubscribe();
 	}
 
-	public get latestTimestamp() {
-		if (!this._systemRecovery.progress.isComplete) {
-			return this._systemRecovery.progress.timestamp;
-		}
-		return Math.max(
-			this._latestTimestamp || 0,
-			this._systemRecovery.progress.timestamp
-		);
-	}
+	// public get latestTimestamp() {
+	// if (!this._systemRecovery.progress.isComplete) {
+	// 	return this._systemRecovery.progress.timestamp;
+	// }
+	// return Math.max(
+	// 	this._latestTimestamp || 0,
+	// 	this._systemRecovery.progress.timestamp
+	// );
+	// }
 
 	private async onMessage(
 		content: unknown,
@@ -101,7 +99,7 @@ export class SystemListener {
 			return;
 		}
 
-		this._latestTimestamp = metadata.timestamp;
+		// this._latestTimestamp = metadata.timestamp;
 
 		await this.onSystemMessage(systemMessage, metadata);
 	}
