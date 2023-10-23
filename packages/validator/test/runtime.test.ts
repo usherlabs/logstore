@@ -168,7 +168,6 @@ describe('Runtime', () => {
 			expect(
 				typeof firstItemKeyInt === 'number' && !isNaN(firstItemKeyInt)
 			).toBe(true);
-			// expect(lastItem.key.startsWith(reportPrefix)).toBe(true);
 			expect(firstItem.value['m']).toEqual(mockItemValue);
 
 			// last before stopping round
