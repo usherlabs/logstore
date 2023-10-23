@@ -1,8 +1,5 @@
 import 'dotenv/config';
 
-import Runtime from './runtime';
-import Validator from './validator';
+import { validator } from './validatorSetup';
 
-const runtime = new Runtime();
-const validator = new Validator(runtime);
 validator.bootstrap();

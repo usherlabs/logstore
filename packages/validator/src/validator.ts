@@ -1,13 +1,21 @@
 import { Validator as KyveValidator } from '@kyvejs/protocol';
 import { validateDataAvailability as runKyveValidateDataAvailability } from '@kyvejs/protocol/dist/src/methods';
+import { TLogLevelName } from 'tslog';
+
+
 
 import { compressionFactory } from './reactors/compression';
 import { storageProviderFactory } from './reactors/storageProviders';
 import { IRuntimeExtended } from './types';
 
+
 // Hook into this method
 // Intentionally do not call Kyve's ValidateDataAvailability method
 export async function validateDataAvailability(this: Validator): Promise<void> {
+	const envLogLevel = process.env.LOG_LEVEL as undefined | TLogLevelName;
+	this.logger.setSettings({
+		minLevel: envLogLevel ? envLogLevel : this.logger.settings.minLevel,
+	});
 	if (this.runtime.setup) {
 		await this.runtime.setup(this, this.home);
 	}
