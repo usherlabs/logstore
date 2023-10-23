@@ -1,8 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 
 import type { ChainSources } from '../sources';
-import type { EventsIndexer } from '../threads';
-import { EventSelect } from '../threads';
+import { EventSelect, EventsIndexer } from '../threads';
 
 export class StoreManager {
 	constructor(
@@ -20,7 +19,8 @@ export class StoreManager {
 
 		const stores: { id: string; amount: BigNumber }[] = [];
 		events.forEach((event) => {
-			event.value.StoreUpdated.forEach((e) => {
+			event.value.StoreUpdated.forEach((rawEvt) => {
+				const e = EventsIndexer.deserializeEvent(rawEvt);
 				const storeId = e.args.store.toString();
 				const amount = e.args.amount;
 				const sIndex = stores.findIndex((s) => s.id === storeId);
@@ -34,7 +34,8 @@ export class StoreManager {
 				stores[sIndex].amount = stores[sIndex].amount.add(amount);
 			});
 
-			event.value.DataStored.forEach((e) => {
+			event.value.DataStored.forEach((rawEvt) => {
+				const e = EventsIndexer.deserializeEvent(rawEvt);
 				const storeId = e.args.store.toString();
 				const amount = e.args.fees as BigNumber;
 				const sIndex = stores.findIndex((s) => s.id === storeId);

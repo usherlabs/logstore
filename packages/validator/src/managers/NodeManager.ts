@@ -3,8 +3,7 @@ import { LSAN__factory } from '@logsn/contracts';
 import { StakeDelegateUpdatedEvent } from '@logsn/contracts/dist/src/NodeManager.sol/LogStoreNodeManager';
 
 import type { ChainSources } from '../sources';
-import type { EventsIndexer } from '../threads';
-import { EventSelect } from '../threads';
+import { EventSelect, EventsIndexer } from '../threads';
 import { IBrokerNode } from '../types';
 import { Slogger } from '../utils/slogger';
 import { StakeToken } from './StakeToken';
@@ -89,9 +88,10 @@ export class NodeManager {
 		);
 		const stakeDelegateUpdatedEvents: StakeDelegateUpdatedEvent[] = [];
 		events.forEach((ev) => {
-			ev.value.StakeDelegateUpdated.forEach((stuEv) => {
-				if (stuEv.args.node === nodeAddress) {
-					stakeDelegateUpdatedEvents.push(stuEv);
+			ev.value.StakeDelegateUpdated.forEach((rawEvt) => {
+				const evt = EventsIndexer.deserializeEvent(rawEvt);
+				if (evt.args.node === nodeAddress) {
+					stakeDelegateUpdatedEvents.push(evt);
 				}
 			});
 		});
