@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import fse from 'fs-extra';
 import type { RootDatabase } from 'lmdb';
 import path from 'path';
+import { BehaviorSubject, filter, firstValueFrom } from 'rxjs';
 import shell from 'shelljs';
 import type { Logger } from 'tslog';
 
@@ -40,6 +41,7 @@ export class TimeIndexer {
 	private _running: boolean = false;
 	private _latestTimestamp: number;
 	private _childProcesses: ChildProcess[] = [];
+	private isReadySubject = new BehaviorSubject(false);
 
 	constructor(
 		homeDir: string,
@@ -58,6 +60,17 @@ export class TimeIndexer {
 
 	public get latestTimestamp() {
 		return this._latestTimestamp;
+	}
+
+	private markAsReady(): void {
+		this.isReadySubject.next(true);
+		this.logger.debug('Time Indexer: Ready!');
+	}
+
+	public async ready() {
+		return firstValueFrom(
+			this.isReadySubject.pipe(filter((ready) => ready === true))
+		);
 	}
 
 	public async start(): Promise<void> {
@@ -113,6 +126,7 @@ export class TimeIndexer {
 			this.logger.info('TimeIndexer: Start Block Number: ', startBlock);
 
 			await this.etl(startBlock);
+			this.markAsReady();
 		} catch (e) {
 			this.logger.error(`Unexpected error indexing blocks by time...`);
 			this.logger.error(e);
@@ -142,13 +156,15 @@ export class TimeIndexer {
 		if (res.b > 0 && res.s.length > 0) {
 			return res.b;
 		} else {
-			throw new Error('Could not find time indexed blocks for timestamp');
+			throw new Error(
+				'Could not find time indexed blocks for timestamp: ' + timestamp
+			);
 		}
 	}
 
 	protected db() {
 		if (!this._db) {
-			throw new Error('Database is not initialised');
+			throw new Error('Database is not initialized');
 		}
 		return this._db;
 	}
@@ -217,7 +233,7 @@ export class TimeIndexer {
 								entry.includes(`Writing last synced block`) ||
 								entry.includes(`Current block`)
 							) {
-								this.logger.debug(`TimeIndexer (${source}):`, entry);
+								this.logger.silly(`TimeIndexer (${source}):`, entry);
 							}
 						} else {
 							this.logger.error(`TimeIndexer (${source}):`, entry);
@@ -272,7 +288,7 @@ export class TimeIndexer {
 								}
 							});
 
-							this.logger.debug(
+							this.logger.silly(
 								`TimeIndexer (${source}): Indexed ${
 									db.get(timestamp).b
 								} at time ${timestamp}`
