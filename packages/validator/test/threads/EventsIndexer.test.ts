@@ -30,8 +30,11 @@ const mockAxiosResponseForBundle = async (data: any) => {
 };
 
 describe('EventsIndexer', () => {
+	const cleanupFns = new Set<() => void>();
 	afterEach(() => {
 		jest.clearAllMocks();
+		cleanupFns.forEach((fn) => fn());
+		cleanupFns.clear();
 	});
 
 	it('queryContract mock', async () => {
@@ -148,6 +151,7 @@ describe('EventsIndexer', () => {
 		createDBSpy.mockImplementationOnce((...args) => {
 			const db = Database.create(...args);
 			db.clearSync();
+			cleanupFns.add(() => db.clearSync());
 			return db;
 		});
 		const getCreatedDb = () => {
