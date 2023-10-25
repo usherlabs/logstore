@@ -88,7 +88,6 @@ function buildQueryResponse(
 	messages: [string, string][]
 ) {
 	return new QueryResponse({
-		seqNum: 0,
 		requestId,
 		requestPublisherId,
 		hashMap: new Map<string, string>(messages),
@@ -100,7 +99,6 @@ function buildQueryPropagate(
 	messages: [string, string][]
 ) {
 	return new QueryPropagate({
-		seqNum: 0,
 		requestId,
 		requestPublisherId,
 		payload: messages,
@@ -118,7 +116,6 @@ describe(PropagationClient, () => {
 	let subscriberOnMessage: MessageListener;
 
 	const queryRequest = new QueryRequest({
-		seqNum: 0,
 		requestId,
 		consumerId: primaryBrokerId,
 		streamId,

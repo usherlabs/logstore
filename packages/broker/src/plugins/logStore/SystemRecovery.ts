@@ -72,36 +72,35 @@ export class SystemRecovery {
 	private async processRequest(requestId: string, from: number, to: number) {
 		const cacheRecords = this.cache.get(from, to);
 
-		let seqNum: number = 0;
+		let count: number = 0;
 		const payload: [SystemMessage, MessageMetadata][] = [];
 		for await (const cacheRecord of cacheRecords) {
 			payload.push([cacheRecord.message, cacheRecord.metadata]);
 
 			if (payload.length === PAYLOAD_LIMIT) {
-				await this.sendResponse(requestId, seqNum++, payload.splice(0));
+				await this.sendResponse(requestId, payload.splice(0));
 				await new Promise((resolve) => setTimeout(resolve, INTERVAL));
 			}
 
-			if (seqNum === RESPONSE_LIMIT) {
+			if (count === RESPONSE_LIMIT) {
 				break;
 			}
 		}
 
 		if (payload.length > 0) {
-			await this.sendResponse(requestId, seqNum++, payload);
+			count++;
+			await this.sendResponse(requestId, payload);
 		}
 
-		await this.sendComplete(requestId, seqNum, seqNum < RESPONSE_LIMIT);
+		await this.sendComplete(requestId, count < RESPONSE_LIMIT);
 	}
 
 	private async sendResponse(
 		requestId: string,
-		seqNum: number,
 		payload: [SystemMessage, MessageMetadata][]
 	) {
 		const recoveryResponse = new RecoveryResponse({
 			requestId,
-			seqNum,
 			payload,
 		});
 
@@ -118,14 +117,9 @@ export class SystemRecovery {
 		);
 	}
 
-	private async sendComplete(
-		requestId: string,
-		seqNum: number,
-		isFulfilled: boolean
-	) {
+	private async sendComplete(requestId: string, isFulfilled: boolean) {
 		const recoveryComplete = new RecoveryComplete({
 			requestId,
-			seqNum,
 			isFulfilled,
 		});
 

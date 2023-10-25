@@ -12,6 +12,8 @@ interface ProofOfReportOptions extends SystemMessageOptions {
 	signature: string;
 }
 
+let messageSeqNum = 0;
+
 export class ProofOfReport extends SystemMessage {
 	address: string;
 	hash: string; // Hash of report - shared regardless of time
@@ -21,7 +23,7 @@ export class ProofOfReport extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
-		seqNum,
+		seqNum = messageSeqNum++,
 		address,
 		hash,
 		toth,

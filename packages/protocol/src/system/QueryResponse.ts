@@ -10,6 +10,8 @@ interface QueryResponseOptions extends SystemMessageOptions {
 	hashMap: Map<string, string>;
 }
 
+let messageSeqNum = 0;
+
 export class QueryResponse extends SystemMessage {
 	requestId: string;
 	requestPublisherId: string;
@@ -17,7 +19,7 @@ export class QueryResponse extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
-		seqNum,
+		seqNum = messageSeqNum++,
 		requestId,
 		requestPublisherId,
 		hashMap,
