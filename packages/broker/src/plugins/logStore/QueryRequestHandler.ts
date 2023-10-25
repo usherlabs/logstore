@@ -27,7 +27,6 @@ import { PropagationServer } from './PropagationServer';
 const logger = new Logger(module);
 
 export class QueryRequestHandler {
-	private seqNum: number = 0;
 	private logStore?: LogStore;
 	private clientId?: EthereumAddress;
 
@@ -114,7 +113,6 @@ export class QueryRequestHandler {
 
 		const hashMap = await this.getHashMap(readableStream);
 		const queryResponse = new QueryResponse({
-			seqNum: this.seqNum++,
 			requestId: queryRequest.requestId,
 			requestPublisherId: metadata.publisherId,
 			hashMap,

@@ -31,8 +31,6 @@ import { isStreamRequest } from './utils';
 
 const logger = new Logger(module);
 
-let seqNum: number = 0;
-
 // TODO: move this to protocol-js
 export const MIN_SEQUENCE_NUMBER_VALUE = 0;
 export const MAX_SEQUENCE_NUMBER_VALUE = 2147483647;
@@ -161,7 +159,6 @@ const getDataForLastRequest = async (
 
 	const requestId = uuid();
 	const queryRequest = new QueryRequest({
-		seqNum: seqNum++,
 		requestId,
 		consumerId: req.consumer!,
 		streamId,
@@ -212,7 +209,6 @@ const getDataForFromRequest = async (
 
 	const requestId = uuid();
 	const queryRequest = new QueryRequest({
-		seqNum: seqNum++,
 		requestId,
 		consumerId: req.consumer!,
 		streamId,
@@ -305,7 +301,6 @@ const getDataForRangeRequest = async (
 
 	const requestId = uuid();
 	const queryRequest = new QueryRequest({
-		seqNum: seqNum++,
 		requestId,
 		consumerId: req.consumer!,
 		streamId,

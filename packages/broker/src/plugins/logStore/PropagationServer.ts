@@ -16,7 +16,6 @@ export class PropagationServer {
 	//TODO: Set a TTL and clean the Responses by a timer
 	private primaryResponses: Map<RequestId, QueryResponse>;
 	private foreignResponses: Map<RequestId, QueryResponse>;
-	private seqNum: number = 0;
 
 	constructor(
 		private readonly logStore: LogStore,
@@ -88,7 +87,6 @@ export class PropagationServer {
 		const queryPropagate = new QueryPropagate({
 			requestId,
 			requestPublisherId: primaryResponse.requestPublisherId,
-			seqNum: this.seqNum++,
 			payload: messages,
 		});
 
