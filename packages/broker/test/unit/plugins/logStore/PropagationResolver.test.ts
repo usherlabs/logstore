@@ -1,4 +1,4 @@
-import { MessageListener, MessageMetadata } from '@logsn/client';
+import { MessageListener, MessageMetadata, sign } from '@logsn/client';
 import {
 	QueryPropagate,
 	QueryRequest,
@@ -11,12 +11,17 @@ import {
 	StreamMessage,
 	toStreamID,
 } from '@streamr/protocol';
+import { fastWallet } from '@streamr/test-utils';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
+import { Wallet } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 
 import { Heartbeat } from '../../../../src/plugins/logStore/Heartbeat';
 import { LogStore } from '../../../../src/plugins/logStore/LogStore';
-import { PropagationClient } from '../../../../src/plugins/logStore/PropagationClient';
+import { PropagationDispatcher } from '../../../../src/plugins/logStore/PropagationDispatcher';
+import { PropagationResolver } from '../../../../src/plugins/logStore/PropagationResolver';
+import { QueryRequestManager } from '../../../../src/plugins/logStore/QueryRequestManager';
+import { QueryResponseManager } from '../../../../src/plugins/logStore/QueryResponseManager';
 import { BroadbandPublisher } from '../../../../src/shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../../../src/shared/BroadbandSubscriber';
 
@@ -24,9 +29,7 @@ const TIMEOUT = 10 * 1000;
 
 const streamId = toStreamID('testStream');
 const streamPartition = 0;
-const streamPublisher = toEthereumAddress(
-	'0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-);
+const streamPublisher = fastWallet();
 const primaryBrokerId = toEthereumAddress(
 	'0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 );
@@ -40,35 +43,60 @@ const foreignBrokerId_2 = toEthereumAddress(
 const msg_1 = buildMsg(100200301, 0, streamPublisher);
 const msg_2 = buildMsg(100200302, 0, streamPublisher);
 const msg_3 = buildMsg(100200303, 0, streamPublisher);
+const msg_corrupted = buildMsg(
+	100200304,
+	0,
+	streamPublisher,
+	undefined,
+	undefined,
+	true
+);
 
 const msgId_1 = msg_1.getMessageID().serialize();
 const msgId_2 = msg_2.getMessageID().serialize();
 const msgId_3 = msg_3.getMessageID().serialize();
+const msgId_corrupted = msg_corrupted.getMessageID().serialize();
 
 const msgHashMap_1: [string, string] = [msgId_1, hashMsg(msg_1)];
 const msgHashMap_2: [string, string] = [msgId_2, hashMsg(msg_2)];
 const msgHashMap_3: [string, string] = [msgId_3, hashMsg(msg_3)];
+const msgHashMap_corrupted: [string, string] = [
+	msgId_corrupted,
+	hashMsg(msg_corrupted),
+];
 
 const requestId = 'aaaa-bbbb-cccc';
 
 function buildMsg(
 	timestamp: number,
 	sequenceNumber: number,
-	publisherId: EthereumAddress,
+	publisherWallet: Wallet,
 	msgChainId = '1',
-	content: any = {}
+	content: any = {},
+	corrupted = false
 ) {
+	const publisherId = toEthereumAddress(
+		corrupted ? fastWallet().address : publisherWallet.address
+	);
+	const messageID = new MessageID(
+		toStreamID(streamId),
+		streamPartition,
+		timestamp,
+		sequenceNumber,
+		publisherId,
+		msgChainId
+	);
+	const serializedContent = JSON.stringify(content);
+	const payload = createSignaturePayload({
+		messageId: messageID,
+		serializedContent,
+	});
+	const signature = sign(payload, publisherWallet.privateKey);
+
 	return new StreamMessage({
-		messageId: new MessageID(
-			toStreamID(streamId),
-			streamPartition,
-			timestamp,
-			sequenceNumber,
-			publisherId,
-			msgChainId
-		),
-		content: JSON.stringify(content),
-		signature: 'signature',
+		messageId: messageID,
+		content: serializedContent,
+		signature: signature,
 	});
 }
 
@@ -107,15 +135,17 @@ function buildQueryPropagate(
 	});
 }
 
-describe(PropagationClient, () => {
+describe(PropagationResolver, () => {
 	let logStore: LogStore;
 	let heartbeat: Heartbeat;
 	let publisher: BroadbandPublisher;
 	let subscriber: BroadbandSubscriber;
 	let onlineBrokers: EthereumAddress[];
-	let propagationClient: PropagationClient;
+	let propagationResolver: PropagationResolver;
+	let queryResponseManager: QueryResponseManager;
+	let queryRequestManager: QueryRequestManager;
 
-	let subscriberOnMessage: MessageListener;
+	const listeners = new Set<MessageListener>();
 
 	const queryRequest = new QueryRequest({
 		seqNum: 0,
@@ -129,6 +159,10 @@ describe(PropagationClient, () => {
 			to: { timestamp: 100200300, sequenceNumber: 0 },
 		},
 	});
+
+	const broadcastToListeners = (message: string, metadata: MessageMetadata) => {
+		listeners.forEach((listener) => listener(message, metadata));
+	};
 
 	const emulateQueryResponse = (
 		requestPublisherId: EthereumAddress,
@@ -146,7 +180,7 @@ describe(PropagationClient, () => {
 			signature: '',
 		};
 
-		subscriberOnMessage(queryResponse.serialize(), metadata);
+		broadcastToListeners(queryResponse.serialize(), metadata);
 	};
 
 	const emulateQueryPropagate = (
@@ -165,39 +199,69 @@ describe(PropagationClient, () => {
 			signature: '',
 		};
 
-		subscriberOnMessage(queryPropagate.serialize(), metadata);
+		broadcastToListeners(queryPropagate.serialize(), metadata);
 	};
+
+	afterEach(async () => {
+		await propagationResolver.stop();
+		await queryResponseManager.stop();
+		await queryRequestManager.stop();
+	});
 
 	beforeEach(async () => {
 		logStore = {
 			store: jest.fn().mockImplementation((_message: StreamMessage) => {
 				return true;
 			}),
-		} as unknown as LogStore;
+		} satisfies Partial<LogStore> as unknown as LogStore;
 
-		heartbeat = {} as unknown as Heartbeat;
+		heartbeat = {} satisfies Partial<Heartbeat> as unknown as Heartbeat;
 		Object.defineProperty(heartbeat, 'onlineBrokers', {
 			get: jest.fn().mockImplementation(() => onlineBrokers),
 		});
 
 		publisher = {
 			publish: jest.fn(),
-		} as unknown as BroadbandPublisher;
+		} satisfies Partial<BroadbandPublisher> as unknown as BroadbandPublisher;
 
 		subscriber = {
 			subscribe: jest.fn().mockImplementation((onMessage) => {
-				subscriberOnMessage = onMessage;
+				listeners.add(onMessage);
 			}),
-		} as unknown as BroadbandSubscriber;
+			unsubscribe: async () => {
+				// will destroy all, but we're ok as it happens between tests
+				listeners.clear();
+			},
+		} satisfies Partial<BroadbandSubscriber> as unknown as BroadbandSubscriber;
 
-		propagationClient = new PropagationClient(
+		propagationResolver = new PropagationResolver(
 			logStore,
 			heartbeat,
+			subscriber
+		);
+
+		const propagationDispatcher = new PropagationDispatcher(
+			logStore,
+			publisher
+		);
+
+		queryResponseManager = new QueryResponseManager(
+			publisher,
+			subscriber,
+			propagationResolver,
+			propagationDispatcher
+		);
+
+		queryRequestManager = new QueryRequestManager(
+			queryResponseManager,
+			propagationResolver,
 			publisher,
 			subscriber
 		);
 
-		await propagationClient.start();
+		await propagationResolver.start();
+		await queryResponseManager.start(primaryBrokerId);
+		await queryRequestManager.start(logStore);
 	});
 
 	it(
@@ -205,17 +269,19 @@ describe(PropagationClient, () => {
 		async () => {
 			onlineBrokers = [];
 
-			// this runs once we await propagationClient.propagate()
+			// this runs once we await propagationResolver.propagate()
 			setImmediate(() => {
 				const primaryResponse = buildQueryResponse(primaryBrokerId, [
 					msgHashMap_1,
 					msgHashMap_2,
 					msgHashMap_3,
 				]);
-				propagationClient.setPrimaryResponse(primaryResponse);
+				propagationResolver.setPrimaryResponse(primaryResponse);
 			});
 
-			await propagationClient.propagate(queryRequest);
+			await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+				queryRequest
+			);
 
 			expect(publisher.publish).toBeCalledTimes(1);
 		},
@@ -227,14 +293,14 @@ describe(PropagationClient, () => {
 		async () => {
 			onlineBrokers = [foreignBrokerId_1, foreignBrokerId_2];
 
-			// this runs once we await propagationClient.propagate()
+			// this runs once we await propagationResolver.propagate()
 			setImmediate(() => {
 				const primaryResponse = buildQueryResponse(primaryBrokerId, [
 					msgHashMap_1,
 					msgHashMap_2,
 					msgHashMap_3,
 				]);
-				propagationClient.setPrimaryResponse(primaryResponse);
+				propagationResolver.setPrimaryResponse(primaryResponse);
 
 				emulateQueryResponse(primaryBrokerId, foreignBrokerId_1, [
 					msgHashMap_1,
@@ -249,7 +315,9 @@ describe(PropagationClient, () => {
 				]);
 			});
 
-			await propagationClient.propagate(queryRequest);
+			await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+				queryRequest
+			);
 
 			expect(publisher.publish).toBeCalledTimes(1);
 		},
@@ -261,12 +329,12 @@ describe(PropagationClient, () => {
 		async () => {
 			onlineBrokers = [foreignBrokerId_1, foreignBrokerId_2];
 
-			// this runs once we await propagationClient.propagate()
+			// this runs once we await propagationResolver.propagate()
 			setImmediate(() => {
 				const primaryResponse = buildQueryResponse(primaryBrokerId, [
 					msgHashMap_1,
 				]);
-				propagationClient.setPrimaryResponse(primaryResponse);
+				propagationResolver.setPrimaryResponse(primaryResponse);
 
 				emulateQueryResponse(primaryBrokerId, foreignBrokerId_1, [
 					msgHashMap_1,
@@ -291,7 +359,9 @@ describe(PropagationClient, () => {
 				]);
 			});
 
-			await propagationClient.propagate(queryRequest);
+			await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+				queryRequest
+			);
 
 			expect(logStore.store).toBeCalledTimes(2);
 			expect(logStore.store).toBeCalledWith(msg_2);
@@ -301,21 +371,74 @@ describe(PropagationClient, () => {
 	);
 
 	it(
-		'fails with propagation timeout',
+		'drops propagated corrupted propagated messages',
 		async () => {
-			onlineBrokers = [foreignBrokerId_1];
+			onlineBrokers = [foreignBrokerId_1, foreignBrokerId_2];
 
-			// this runs once we await propagationClient.propagate()
+			// this runs once we await propagationResolver.propagate()
 			setImmediate(() => {
 				const primaryResponse = buildQueryResponse(primaryBrokerId, [
 					msgHashMap_1,
 				]);
-				propagationClient.setPrimaryResponse(primaryResponse);
+				propagationResolver.setPrimaryResponse(primaryResponse);
+
+				emulateQueryResponse(primaryBrokerId, foreignBrokerId_1, [
+					msgHashMap_1,
+					msgHashMap_2,
+					msgHashMap_3,
+				]);
+
+				emulateQueryResponse(primaryBrokerId, foreignBrokerId_2, [
+					msgHashMap_1,
+					msgHashMap_2,
+					msgHashMap_3,
+					msgHashMap_corrupted,
+				]);
+
+				emulateQueryPropagate(primaryBrokerId, foreignBrokerId_1, [
+					[msgId_2, msg_2.serialize()],
+					[msgId_3, msg_3.serialize()],
+				]);
+
+				emulateQueryPropagate(primaryBrokerId, foreignBrokerId_1, [
+					[msgId_2, msg_2.serialize()],
+					[msgId_3, msg_3.serialize()],
+					[msgId_corrupted, msg_corrupted.serialize()],
+				]);
+			});
+
+			await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+				queryRequest
+			);
+
+			expect(logStore.store).toBeCalledTimes(2);
+			expect(logStore.store).toBeCalledWith(msg_2);
+			expect(logStore.store).toBeCalledWith(msg_3);
+			expect(logStore.store).not.toBeCalledWith(msg_corrupted);
+		},
+		TIMEOUT
+	);
+
+	it(
+		'fails with propagation timeout',
+		async () => {
+			onlineBrokers = [foreignBrokerId_1];
+
+			// this runs once we await propagationResolver.propagate()
+			setImmediate(() => {
+				const primaryResponse = buildQueryResponse(primaryBrokerId, [
+					msgHashMap_1,
+				]);
+				propagationResolver.setPrimaryResponse(primaryResponse);
 			});
 
 			try {
-				await propagationClient.propagate(queryRequest);
+				await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+					queryRequest
+				);
 			} catch (err) {
+				// yet the publish should have been called
+				expect(publisher.publish).toBeCalledTimes(1);
 				expect(err).toMatch('Propagation timeout');
 			}
 		},

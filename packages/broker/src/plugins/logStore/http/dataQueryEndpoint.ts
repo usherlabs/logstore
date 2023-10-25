@@ -1,10 +1,8 @@
 /**
  * Endpoints for RESTful data requests
  */
-import { QueryRequest, QueryType } from '@logsn/protocol';
 import { getQueryManagerContract } from '@logsn/shared';
 import {
-	Logger,
 	MetricsContext,
 	MetricsDefinition,
 	RateMetric,
@@ -12,336 +10,31 @@ import {
 } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { Request, RequestHandler, Response } from 'express';
-import { pipeline, Readable } from 'stream';
-import { v4 as uuid } from 'uuid';
 
 import { StrictConfig } from '../../../config/config';
 import { HttpServerEndpoint } from '../../../Plugin';
 import { createBasicAuthenticatorMiddleware } from '../authentication';
-import { LogStore } from '../LogStore';
-import { PropagationClient } from '../PropagationClient';
-import { Format, getFormat } from './DataQueryFormat';
-import {
-	MessageLimitTransform,
-	ResponseTransform,
-	StreamResponseTransform,
-} from './dataTransformers';
-import { getMessageLimitForRequest } from './messageLimiter';
-import { isStreamRequest } from './utils';
-
-const logger = new Logger(module);
-
-let seqNum: number = 0;
+import { LogStoreContext, logStoreContext } from '../context';
+import { getFormat } from './DataQueryFormat';
+import { getForFromQueryRequest } from './getDataForRequest/getForFromQueryRequest';
+import { getForLastQueryRequest } from './getDataForRequest/getForLastQueryRequest';
+import { getForRangeQueryRequest } from './getDataForRequest/getForRangeQueryRequest';
+import { sendError, sendSuccess } from './httpHelpers';
+import { FromRequest, LastRequest, RangeRequest } from './requestTypes';
 
 // TODO: move this to protocol-js
 export const MIN_SEQUENCE_NUMBER_VALUE = 0;
 export const MAX_SEQUENCE_NUMBER_VALUE = 2147483647;
 
-function parseIntIfExists(x: string | undefined): number | undefined {
+export function parseIntIfExists(x: string | undefined): number | undefined {
 	return x === undefined ? undefined : parseInt(x);
 }
 
-const sendSuccess = (
-	data: Readable,
-	format: Format,
-	version: number | undefined,
-	streamId: string,
-	req: Request,
-	res: Response
-) => {
-	data.once('readable', () => {
-		res.writeHead(200, {
-			'Content-Type': isStreamRequest(req)
-				? 'text/event-stream'
-				: format.contentType,
-		});
-	});
-	data.once('error', () => {
-		if (!res.headersSent) {
-			res.status(500).json({
-				error: 'Failed to fetch data!',
-			});
-		}
-	});
-
-	const responseTransform = isStreamRequest(req)
-		? new StreamResponseTransform(format, version)
-		: new ResponseTransform(format, version);
-
-	const messageLimitForRequest = getMessageLimitForRequest(req);
-
-	const messageLimitTransform = new MessageLimitTransform(
-		messageLimitForRequest
-	);
-
-	messageLimitTransform.onMessageLimitReached(({ nextMessage }) => {
-		if (responseTransform instanceof ResponseTransform) {
-			responseTransform.setMetadata({
-				hasNext: true,
-				nextTimestamp: nextMessage.getTimestamp(),
-			});
-		}
-	});
-
-	pipeline(data, messageLimitTransform, responseTransform, res, (err) => {
-		if (err !== undefined && err !== null) {
-			logger.error(`Pipeline error in DataQueryEndpoints: ${streamId}`, err);
-		}
-	});
-};
-
-const sendError = (message: string, res: Response) => {
-	logger.error(message);
-	res.status(400).json({
-		error: message,
-	});
-};
-
-type BaseRequest<Q> = Request<
-	Record<string, any>,
-	any,
-	any,
-	Q,
-	Record<string, any>
->;
-
-type LastRequest = BaseRequest<{
-	count?: string;
-}>;
-
-type FromRequest = BaseRequest<{
-	fromTimestamp?: string;
-	fromSequenceNumber?: string;
-	publisherId?: string;
-}>;
-
-type RangeRequest = BaseRequest<{
-	fromTimestamp?: string;
-	toTimestamp?: string;
-	fromSequenceNumber?: string;
-	toSequenceNumber?: string;
-	publisherId?: string;
-	msgChainId?: string;
-	fromOffset?: string; // no longer supported
-	toOffset?: string; // no longer supported
-}>;
-
-export type QueryHttpRequest = LastRequest | FromRequest | RangeRequest;
-
-const getCountForLastRequest = (req: LastRequest) => {
-	const count =
-		req.query.count === undefined ? 1 : parseIntIfExists(req.query.count) ?? 1;
-
-	if (Number.isNaN(count)) {
-		return 'NOT_A_NUMBER' as const;
-	}
-
-	// Added 1 because we want to know later if there are more events, so we
-	// may add a metadata field to the response
-	const messageLimitForARequest = getMessageLimitForRequest(req) + 1;
-
-	return Math.min(count, messageLimitForARequest);
-};
-
-const getDataForLastRequest = async (
-	req: LastRequest,
-	streamId: string,
-	partition: number,
-	res: Response,
-	logStore: LogStore,
-	propagationClient: PropagationClient,
-	metrics: MetricsDefinition
-) => {
-	metrics.resendLastQueriesPerSecond.record(1);
-	const count = getCountForLastRequest(req);
-	if (count === 'NOT_A_NUMBER') {
-		sendError(`Query parameter "count" not a number: ${req.query.count}`, res);
-		return;
-	}
-
-	const requestId = uuid();
-	const queryRequest = new QueryRequest({
-		seqNum: seqNum++,
-		requestId,
-		consumerId: req.consumer!,
-		streamId,
-		partition,
-		queryType: QueryType.Last,
-		queryOptions: {
-			last: count,
-		},
-	});
-	await propagationClient.propagate(queryRequest);
-
-	const data = logStore.requestLast(streamId, partition, count!);
-	return { data /*, consensus*/ };
-};
-
-const getDataForFromRequest = async (
-	req: FromRequest,
-	streamId: string,
-	partition: number,
-	res: Response,
-	logStore: LogStore,
-	propagationClient: PropagationClient,
-	metrics: MetricsDefinition
-) => {
-	metrics.resendFromQueriesPerSecond.record(1);
-	const fromTimestamp = parseIntIfExists(req.query.fromTimestamp);
-	const fromSequenceNumber =
-		parseIntIfExists(req.query.fromSequenceNumber) || MIN_SEQUENCE_NUMBER_VALUE;
-	const { publisherId } = req.query;
-	if (fromTimestamp === undefined) {
-		sendError('Query parameter "fromTimestamp" required.', res);
-		return;
-	}
-	if (Number.isNaN(fromTimestamp)) {
-		sendError(
-			`Query parameter "fromTimestamp" not a number: ${req.query.fromTimestamp}`,
-			res
-		);
-		return;
-	}
-
-	// Added 1 because we want to know later if there are more events, so we
-	// may add a metadata field to the response
-	const messageLimitForRequest = getMessageLimitForRequest(req) + 1;
-	const limitOrUndefinedIfInfinity = isFinite(messageLimitForRequest)
-		? messageLimitForRequest
-		: undefined;
-
-	const requestId = uuid();
-	const queryRequest = new QueryRequest({
-		seqNum: seqNum++,
-		requestId,
-		consumerId: req.consumer!,
-		streamId,
-		partition,
-		queryType: QueryType.From,
-		queryOptions: {
-			from: {
-				timestamp: fromTimestamp,
-				sequenceNumber: fromSequenceNumber,
-			},
-			limit: limitOrUndefinedIfInfinity,
-			publisherId,
-		},
-	});
-
-	await propagationClient.propagate(queryRequest);
-
-	const data = logStore.requestFrom(
-		streamId,
-		partition,
-		fromTimestamp,
-		fromSequenceNumber,
-		publisherId,
-		limitOrUndefinedIfInfinity
-	);
-	return { data /*, consensus*/ };
-};
-
-const getDataForRangeRequest = async (
-	req: RangeRequest,
-	streamId: string,
-	partition: number,
-	res: Response,
-	logStore: LogStore,
-	propagationClient: PropagationClient,
-	metrics: MetricsDefinition
-) => {
-	metrics.resendRangeQueriesPerSecond.record(1);
-	const fromTimestamp = parseIntIfExists(req.query.fromTimestamp);
-	const toTimestamp = parseIntIfExists(req.query.toTimestamp);
-	const fromSequenceNumber =
-		parseIntIfExists(req.query.fromSequenceNumber) || MIN_SEQUENCE_NUMBER_VALUE;
-	const toSequenceNumber =
-		parseIntIfExists(req.query.toSequenceNumber) || MAX_SEQUENCE_NUMBER_VALUE;
-	const { publisherId, msgChainId } = req.query;
-	if (req.query.fromOffset !== undefined || req.query.toOffset !== undefined) {
-		sendError(
-			'Query parameters "fromOffset" and "toOffset" are no longer supported. Please use "fromTimestamp" and "toTimestamp".',
-			res
-		);
-		return;
-	}
-	if (fromTimestamp === undefined) {
-		sendError('Query parameter "fromTimestamp" required.', res);
-		return;
-	}
-	if (Number.isNaN(fromTimestamp)) {
-		sendError(
-			`Query parameter "fromTimestamp" not a number: ${req.query.fromTimestamp}`,
-			res
-		);
-		return;
-	}
-	if (toTimestamp === undefined) {
-		// eslint-disable-next-line max-len
-		sendError(
-			'Query parameter "toTimestamp" required as well. To request all messages since a timestamp, use the endpoint /streams/:id/data/partitions/:partition/from',
-			res
-		);
-		return;
-	}
-	if (Number.isNaN(toTimestamp)) {
-		sendError(
-			`Query parameter "toTimestamp" not a number: ${req.query.toTimestamp}`,
-			res
-		);
-		return;
-	}
-	if ((publisherId && !msgChainId) || (!publisherId && msgChainId)) {
-		sendError('Invalid combination of "publisherId" and "msgChainId"', res);
-		return;
-	}
-
-	// Added 1 because we want to know later if there are more events, so we
-	// may add a metadata field to the response
-	const messageLimitForRequest = getMessageLimitForRequest(req) + 1;
-	const limitOrUndefinedIfInfinity = isFinite(messageLimitForRequest)
-		? messageLimitForRequest
-		: undefined;
-
-	const requestId = uuid();
-	const queryRequest = new QueryRequest({
-		seqNum: seqNum++,
-		requestId,
-		consumerId: req.consumer!,
-		streamId,
-		partition,
-		queryType: QueryType.Range,
-		queryOptions: {
-			from: {
-				timestamp: fromTimestamp,
-				sequenceNumber: fromSequenceNumber,
-			},
-			to: {
-				timestamp: toTimestamp,
-				sequenceNumber: toSequenceNumber,
-			},
-			limit: limitOrUndefinedIfInfinity,
-			publisherId,
-			msgChainId,
-		},
-	});
-
-	await propagationClient.propagate(queryRequest);
-
-	const data = logStore.requestRange(
-		streamId,
-		partition,
-		fromTimestamp,
-		fromSequenceNumber,
-		toTimestamp,
-		toSequenceNumber,
-		publisherId,
-		msgChainId,
-		limitOrUndefinedIfInfinity
-	);
-	return { data };
-};
-
+/**
+ * Determines the type of request based on the provided parameter.
+ * Intention here is to befriend with TypeScript and make sure that the request
+ * type is known at compile time.
+ */
 const getRequestType = (
 	req: LastRequest | FromRequest | RangeRequest
 ):
@@ -360,39 +53,58 @@ const getRequestType = (
 };
 
 const getDataForRequest = async (
-	...args: Parameters<
-		| typeof getDataForLastRequest
-		| typeof getDataForFromRequest
-		| typeof getDataForRangeRequest
-	>
+	arg: Parameters<
+		| typeof getForLastQueryRequest
+		| typeof getForFromQueryRequest
+		| typeof getForRangeQueryRequest
+	>[0],
+	{ res }: { res: Response }
 ) => {
-	const [req, streamId, partition, res, logStore, systemPublisher, metrics] =
-		args;
-	const rest = [
-		streamId,
-		partition,
-		res,
-		logStore,
-		systemPublisher,
-		metrics,
-	] as const;
+	const { req, ...rest } = arg;
 	const reqType = getRequestType(req);
+	let queryRequestBag;
 	switch (reqType.type) {
-		case 'last':
-			return getDataForLastRequest(reqType.req, ...rest);
-		case 'from':
-			return getDataForFromRequest(reqType.req, ...rest);
-		case 'range':
-			return getDataForRangeRequest(reqType.req, ...rest);
+		case 'last': {
+			queryRequestBag = getForLastQueryRequest({ req: reqType.req, ...rest });
+			break;
+		}
+		case 'from': {
+			queryRequestBag = getForFromQueryRequest({ req: reqType.req, ...rest });
+			break;
+		}
+		case 'range': {
+			queryRequestBag = getForRangeQueryRequest({ req: reqType.req, ...rest });
+			break;
+		}
 		default:
 			throw new Error(`Unknown query type: ${reqType}`);
+	}
+
+	if ('error' in queryRequestBag) {
+		sendError(queryRequestBag.error?.message, res);
+		return;
+	} else {
+		const store = logStoreContext.getStore();
+		if (!store) {
+			throw new Error('Used store before it was initialized');
+		}
+
+		const { queryRequestManager } = store;
+
+		await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+			queryRequestBag.queryRequest
+		);
+
+		const data = queryRequestManager.getDataForQueryRequest(
+			queryRequestBag.queryRequest
+		);
+
+		return { data };
 	}
 };
 
 const createHandler = (
 	config: Pick<StrictConfig, 'client'>,
-	logStore: LogStore,
-	propagationClient: PropagationClient,
 	metrics: MetricsDefinition
 ): RequestHandler => {
 	return async (req: Request, res: Response) => {
@@ -422,13 +134,15 @@ const createHandler = (
 		const version = parseIntIfExists(req.query.version as string);
 		try {
 			const response = await getDataForRequest(
-				req,
-				streamId,
-				partition,
-				res,
-				logStore,
-				propagationClient,
-				metrics
+				{
+					req,
+					streamId,
+					partition,
+					metrics,
+				},
+				{
+					res,
+				}
 			);
 			if (response) {
 				sendSuccess(response.data, format, version, streamId, req, res);
@@ -439,12 +153,19 @@ const createHandler = (
 	};
 };
 
+function injectLogstoreContextMiddleware(
+	ctx: LogStoreContext | undefined
+): RequestHandler {
+	return (_req, _res, next) => {
+		ctx ? logStoreContext.run(ctx, () => next()) : () => next();
+	};
+}
+
 export const createDataQueryEndpoint = (
 	config: Pick<StrictConfig, 'client'>,
-	logStore: LogStore,
-	propagationClient: PropagationClient,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
+	const ctx = logStoreContext.getStore();
 	const metrics = {
 		resendLastQueriesPerSecond: new RateMetric(),
 		resendFromQueriesPerSecond: new RateMetric(),
@@ -455,8 +176,11 @@ export const createDataQueryEndpoint = (
 		path: `/streams/:id/data/partitions/:partition/:queryType`,
 		method: 'get',
 		requestHandlers: [
+			// We need to inject it here, because the execution context from
+			// below is usually created after the endpoint is created.
+			injectLogstoreContextMiddleware(ctx),
 			createBasicAuthenticatorMiddleware(),
-			createHandler(config, logStore, propagationClient, metrics),
+			createHandler(config, metrics),
 		],
 	};
 };

@@ -1,47 +1,35 @@
 import { MessageMetadata, StreamMessage } from '@logsn/client';
-import {
-	QueryFromOptions,
-	QueryLastOptions,
-	QueryRangeOptions,
-	QueryRequest,
-	QueryResponse,
-	QueryType,
-	SystemMessage,
-	SystemMessageType,
-} from '@logsn/protocol';
+import { QueryFromOptions, QueryLastOptions, QueryRangeOptions, QueryRequest, QueryResponse, QueryType, SystemMessage, SystemMessageType } from '@logsn/protocol';
 import { createSignaturePayload } from '@streamr/protocol';
-import { EthereumAddress, Logger } from '@streamr/utils';
+import { Logger } from '@streamr/utils';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
 
+
+
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import {
-	LogStore,
-	MAX_SEQUENCE_NUMBER_VALUE,
-	MIN_SEQUENCE_NUMBER_VALUE,
-} from './LogStore';
-import { PropagationClient } from './PropagationClient';
-import { PropagationServer } from './PropagationServer';
+import { LogStore, MAX_SEQUENCE_NUMBER_VALUE, MIN_SEQUENCE_NUMBER_VALUE } from './LogStore';
+import { PropagationResolver } from './PropagationResolver';
+import { QueryResponseManager } from './QueryResponseManager';
+
 
 const logger = new Logger(module);
 
-export class QueryRequestHandler {
+export class QueryRequestManager {
 	private seqNum: number = 0;
 	private logStore?: LogStore;
-	private clientId?: EthereumAddress;
 
 	constructor(
+		private readonly queryResponseManager: QueryResponseManager,
+		private readonly propagationResolver: PropagationResolver,
 		private readonly publisher: BroadbandPublisher,
-		private readonly subscriber: BroadbandSubscriber,
-		private readonly propagationClient: PropagationClient,
-		private readonly propagationServer: PropagationServer
+		private readonly subscriber: BroadbandSubscriber
 	) {
 		//
 	}
 
-	public async start(clientId: EthereumAddress, logStore: LogStore) {
-		this.clientId = clientId;
+	public async start(logStore: LogStore) {
 		this.logStore = logStore;
 
 		await this.subscriber.subscribe(this.onMessage.bind(this));
@@ -64,7 +52,27 @@ export class QueryRequestHandler {
 			content,
 			metadata
 		);
+		const readableStream = this.getDataForQueryRequest(queryRequest);
 
+		const hashMap = await this.getHashMap(readableStream);
+		const queryResponse = new QueryResponse({
+			seqNum: this.seqNum++,
+			requestId: queryRequest.requestId,
+			requestPublisherId: metadata.publisherId,
+			hashMap,
+		});
+
+		await this.queryResponseManager.publishQueryResponse(queryResponse);
+	}
+
+	public async publishQueryRequestAndWaitForPropagateResolution(
+		queryRequest: QueryRequest
+	) {
+		await this.publisher.publish(queryRequest.serialize());
+		await this.propagationResolver.waitForPropagateResolution(queryRequest);
+	}
+
+	public getDataForQueryRequest(queryRequest: QueryRequest) {
 		let readableStream: Readable;
 		switch (queryRequest.queryType) {
 			case QueryType.Last: {
@@ -112,21 +120,7 @@ export class QueryRequestHandler {
 				throw new Error('Unknown QueryType');
 		}
 
-		const hashMap = await this.getHashMap(readableStream);
-		const queryResponse = new QueryResponse({
-			seqNum: this.seqNum++,
-			requestId: queryRequest.requestId,
-			requestPublisherId: metadata.publisherId,
-			hashMap,
-		});
-
-		await this.publisher.publish(queryResponse.serialize());
-
-		if (metadata.publisherId === this.clientId) {
-			await this.propagationClient.setPrimaryResponse(queryResponse);
-		} else {
-			await this.propagationServer.setForeignResponse(queryResponse);
-		}
+		return readableStream;
 	}
 
 	private async getHashMap(data: Readable) {
