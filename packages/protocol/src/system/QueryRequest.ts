@@ -59,6 +59,8 @@ interface QueryRequestOptions extends SystemMessageOptions {
 	queryOptions: QueryOptions;
 }
 
+let messageSeqNum = 0;
+
 export class QueryRequest extends SystemMessage {
 	requestId: string;
 	consumerId: string;
@@ -69,7 +71,7 @@ export class QueryRequest extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
-		seqNum,
+		seqNum = messageSeqNum++,
 		requestId,
 		consumerId,
 		streamId,

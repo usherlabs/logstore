@@ -13,7 +13,10 @@ const LATEST_VERSION = ReportSerializerVersions.V1;
 
 type IReport = IReportV1 | IReportV1Serialized;
 export class SystemReport {
-	constructor(protected report: IReport, protected version = LATEST_VERSION) {
+	constructor(
+		protected report: IReport,
+		protected version = LATEST_VERSION
+	) {
 		if (!('s' in report && 'v' in report)) {
 			throw new ValidationError('Invalid Report Payload');
 		}
@@ -66,7 +69,6 @@ export class SystemReport {
 
 	// ? Produce a hash based on the time of the ProofOfReport
 	async toProof(
-		seqNum: number,
 		signer: Signer,
 		// ? Create a Timestamp for Proof Of Report - Compatible with On-Chain Verification
 		// Tried using Streamr Message Timestamp, but hash/signature mechanism is difficult to replicate on-chain
@@ -78,7 +80,6 @@ export class SystemReport {
 		const signature = await signer.signMessage(arrayify(toth));
 
 		return new ProofOfReport({
-			seqNum,
 			hash: this.toHash(),
 			address: await signer.getAddress(),
 			toth, // Time-based one-time hash

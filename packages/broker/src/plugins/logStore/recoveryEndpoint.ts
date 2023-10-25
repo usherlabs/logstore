@@ -9,8 +9,6 @@ import { Heartbeat } from './Heartbeat';
 
 const logger = new Logger(module);
 
-let seqNum: number = 0;
-
 const createHandler = (
 	systemStream: Stream,
 	heartbeat: Heartbeat
@@ -19,7 +17,6 @@ const createHandler = (
 		const { requestId, from, to } = req.body;
 
 		const recoveryRequest = new RecoveryRequest({
-			seqNum: seqNum++,
 			requestId,
 			from,
 			to,

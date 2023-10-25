@@ -10,6 +10,8 @@ interface RecoveryRequestOptions extends SystemMessageOptions {
 	to: number;
 }
 
+let messageSeqNum = 0;
+
 export class RecoveryRequest extends SystemMessage {
 	requestId: string;
 	from: number;
@@ -17,7 +19,7 @@ export class RecoveryRequest extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
-		seqNum,
+		seqNum = messageSeqNum++,
 		requestId,
 		from,
 		to,
