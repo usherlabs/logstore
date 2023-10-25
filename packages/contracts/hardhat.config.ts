@@ -113,9 +113,7 @@ const config = {
 			},
 		},
 		development: {
-			url: 'http://localhost:8545', // Connect to dev
-			gas: 21000000,
-			gasPrice: 50000000000000,
+			url: 'http://localhost:8545', // Connect to hardhat dev
 		},
 		// avalanche: getChainConfig('avalanche'),
 		// bsc: getChainConfig('bsc'),
