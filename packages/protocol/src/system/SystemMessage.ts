@@ -2,6 +2,12 @@ import { Serializer } from '../abstracts/Serializer';
 import UnsupportedTypeError from '../errors/UnsupportedTypeError';
 import UnsupportedVersionError from '../errors/UnsupportedVersionError';
 import { validateIsInteger } from '../utils/validations';
+import type { ProofOfReport } from './ProofOfReport';
+import type { QueryMetadataRequest } from './QueryMetadataRequest';
+import type { QueryMetadataResponse } from './QueryMetadataResponse';
+import type { QueryPropagate } from './QueryPropagate';
+import type { QueryRequest } from './QueryRequest';
+import type { QueryResponse } from './QueryResponse';
 
 const serializerByVersionAndType: Record<
 	string,
@@ -14,10 +20,18 @@ export enum SystemMessageType {
 	QueryResponse = 2,
 	QueryPropagate = 3,
 	ProofOfReport = 4,
-	RecoveryRequest = 5,
-	RecoveryResponse = 6,
-	RecoveryComplete = 7,
+	QueryMetadataRequest = 5,
+	QueryMetadataResponse = 6,
 }
+
+export type SystemMessageTypeMap = {
+	[SystemMessageType.QueryRequest]: QueryRequest;
+	[SystemMessageType.QueryResponse]: QueryResponse;
+	[SystemMessageType.QueryPropagate]: QueryPropagate;
+	[SystemMessageType.ProofOfReport]: ProofOfReport;
+	[SystemMessageType.QueryMetadataRequest]: QueryMetadataRequest;
+	[SystemMessageType.QueryMetadataResponse]: QueryMetadataResponse;
+};
 
 export interface SystemMessageOptions {
 	version?: number;

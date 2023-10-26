@@ -1,4 +1,6 @@
 import { ProofOfReport } from './ProofOfReport';
+import { QueryMetadataRequest } from './QueryMetadataRequest';
+import { QueryMetadataResponse } from './QueryMetadataResponse';
 import { QueryPropagate } from './QueryPropagate';
 import {
 	QueryFromOptions,
@@ -9,9 +11,7 @@ import {
 	QueryType,
 } from './QueryRequest';
 import { QueryResponse } from './QueryResponse';
-import { RecoveryComplete } from './RecoveryComplete';
-import { RecoveryRequest } from './RecoveryRequest';
-import { RecoveryResponse } from './RecoveryResponse';
+import type { SystemMessageTypeMap } from './SystemMessage';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
 
 export {
@@ -24,9 +24,9 @@ export {
 	QueryRequest,
 	QueryResponse,
 	QueryType,
-	RecoveryComplete,
-	RecoveryRequest,
-	RecoveryResponse,
 	SystemMessage,
 	SystemMessageType,
+	QueryMetadataResponse,
+	QueryMetadataRequest,
+	SystemMessageTypeMap,
 };

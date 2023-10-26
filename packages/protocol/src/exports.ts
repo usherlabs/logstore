@@ -4,9 +4,6 @@ import './system/ProofOfReportSerializerV1';
 import './system/QueryPropagateSerializerV1';
 import './system/QueryRequestSerializerV1';
 import './system/QueryResponseSerializerV1';
-import './system/RecoveryCompleteSerializerV1';
-import './system/RecoveryRequestSerializerV1';
-import './system/RecoveryResponseSerializerV1';
 
 export * from './errors';
 export * from './interfaces/report.common';

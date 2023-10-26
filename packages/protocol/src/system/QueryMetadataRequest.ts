@@ -4,13 +4,13 @@ import {
 	SystemMessageType,
 } from './SystemMessage';
 
-interface RecoveryRequestOptions extends SystemMessageOptions {
+interface QueryMetadataRequestOptions extends SystemMessageOptions {
 	requestId: string;
 	from: number;
 	to: number;
 }
 
-export class RecoveryRequest extends SystemMessage {
+export class QueryMetadataRequest extends SystemMessage {
 	requestId: string;
 	from: number;
 	to: number;
@@ -21,8 +21,8 @@ export class RecoveryRequest extends SystemMessage {
 		requestId,
 		from,
 		to,
-	}: RecoveryRequestOptions) {
-		super(version, SystemMessageType.RecoveryRequest, seqNum);
+	}: QueryMetadataRequestOptions) {
+		super(version, SystemMessageType.QueryMetadataRequest, seqNum);
 		this.requestId = requestId;
 		this.from = from;
 		this.to = to;
