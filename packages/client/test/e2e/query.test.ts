@@ -318,9 +318,9 @@ describe('query', () => {
 
 				// for some reason we can't just surround everything and catch errors
 				// there are some data pipelines that make it hard
-				// @ts-ignore
-				const signal: ErrorSignal = messagesQuery.onError;
-				// @ts-ignore
+				// @ts-expect-error this is marked as @internal
+				const signal: ErrorSignal = messagesQuery.messageStream.onError;
+				// @ts-expect-error mocking
 				signal.listeners = [errorListener];
 
 				// using this form to ensure that the iterator is done before the test ends
