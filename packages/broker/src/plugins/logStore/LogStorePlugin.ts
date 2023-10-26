@@ -45,6 +45,9 @@ export interface LogStorePluginConfig {
 		clusterSize: number;
 		myIndexInCluster: number;
 	};
+	experimental?: {
+		enableReportDigest?: boolean;
+	};
 }
 
 export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
@@ -173,9 +176,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		await this.systemRecovery.start();
 		await this.propagationResolver.start();
 
-		const abortController = new AbortController();
-		// start the report polling process
-		this.reportPoller.start(abortController.signal);
+		if (this.pluginConfig.experimental?.enableReportDigest) {
+			// start the report polling process
+			const abortController = new AbortController();
+			this.reportPoller.start(abortController.signal);
+		}
 
 		const metricsContext = (
 			await this.logStoreClient!.getNode()
