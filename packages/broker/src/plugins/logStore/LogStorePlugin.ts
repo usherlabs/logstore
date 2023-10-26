@@ -46,7 +46,7 @@ export interface LogStorePluginConfig {
 		myIndexInCluster: number;
 	};
 	experimental?: {
-		enableReportDigest?: boolean;
+		enableValidator?: boolean;
 	};
 }
 
@@ -172,14 +172,14 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		});
 
 		await this.heartbeat.start(clientId);
-		await this.systemCache.start();
-		await this.systemRecovery.start();
 		await this.propagationResolver.start();
 
-		if (this.pluginConfig.experimental?.enableReportDigest) {
+		if (this.pluginConfig.experimental?.enableValidator) {
 			// start the report polling process
 			const abortController = new AbortController();
 			this.reportPoller.start(abortController.signal);
+			await this.systemCache.start();
+			await this.systemRecovery.start();
 		}
 
 		const metricsContext = (
@@ -197,9 +197,16 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.addHttpServerEndpoint(
 			createDataQueryEndpoint(this.brokerConfig, metricsContext)
 		);
-		this.addHttpServerEndpoint(
-			createRecoveryEndpoint(this.systemStream, this.heartbeat, metricsContext)
-		);
+
+		if (this.pluginConfig.experimental?.enableValidator) {
+			this.addHttpServerEndpoint(
+				createRecoveryEndpoint(
+					this.systemStream,
+					this.heartbeat,
+					metricsContext
+				)
+			);
+		}
 
 		this.metricsTimer = setInterval(
 			this.logMetrics.bind(this),
@@ -210,6 +217,10 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	async stop(): Promise<void> {
 		clearInterval(this.metricsTimer);
 
+		const stopValidatorComponents = async () => {
+			await Promise.all([this.systemCache.stop(), this.systemRecovery.stop()]);
+		};
+
 		await Promise.all([
 			this.messageMetricsCollector.stop(),
 			this.heartbeat.stop(),
@@ -217,10 +228,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.propagationResolver.stop(),
 			this.queryRequestManager.stop(),
 			this.queryResponseManager.stop(),
-			this.systemCache.stop(),
-			this.systemRecovery.stop(),
 			this.logStore!.close(),
 			this.logStoreConfig!.destroy(),
+			this.pluginConfig.experimental?.enableValidator
+				? stopValidatorComponents()
+				: Promise.resolve(),
 		]);
 	}
 
