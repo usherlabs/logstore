@@ -53,16 +53,11 @@ export const createBroker = async (
 		? toStreamID('/heartbeat', nodeManagerAddress)
 		: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-heartbeat';
 
-	const recoveryStreamId = isDevNetwork
-		? toStreamID('/recovery', nodeManagerAddress)
-		: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-recovery';
-
 	const systemStreamId = isDevNetwork
 		? toStreamID('/system', nodeManagerAddress)
 		: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-system';
 
 	const heartbeatStream = await logStoreClient.getStream(heartbeatStreamId);
-	const recoveryStream = await logStoreClient.getStream(recoveryStreamId);
 	const systemStream = await logStoreClient.getStream(systemStreamId);
 
 	const privateKey = (config.client!.auth as PrivateKeyAuthConfig).privateKey;
@@ -79,7 +74,6 @@ export const createBroker = async (
 			name,
 			logStoreClient,
 			heartbeatStream,
-			recoveryStream,
 			systemStream,
 			brokerConfig: config,
 			signer,

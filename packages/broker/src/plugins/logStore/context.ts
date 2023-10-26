@@ -1,14 +1,14 @@
 import { EthereumAddress } from '@streamr/utils';
 import { AsyncLocalStorage } from 'async_hooks';
 
-
-
 import { PropagationResolver } from './PropagationResolver';
+import { QueryMetadataManager } from './QueryMetadataManager';
 import { QueryRequestManager } from './QueryRequestManager';
 
 export type LogStoreContext = {
 	clientId: EthereumAddress;
 	queryRequestManager: QueryRequestManager;
+	queryMetadataManager: QueryMetadataManager;
 	propagationResolver: PropagationResolver;
 };
 /**

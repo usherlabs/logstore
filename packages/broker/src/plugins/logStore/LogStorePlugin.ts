@@ -9,6 +9,7 @@ import PLUGIN_CONFIG_SCHEMA from './config.schema.json';
 import { logStoreContext } from './context';
 import { Heartbeat } from './Heartbeat';
 import { createDataQueryEndpoint } from './http/dataQueryEndpoint';
+import { createProveQueriesEndpoint } from './http/proveQueriesEndpoint';
 import { KyvePool } from './KyvePool';
 import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
@@ -16,12 +17,11 @@ import { MessageListener } from './MessageListener';
 import { MessageMetricsCollector } from './MessageMetricsCollector';
 import { PropagationDispatcher } from './PropagationDispatcher';
 import { PropagationResolver } from './PropagationResolver';
+import { QueryMetadataManager } from './QueryMetadataManager';
 import { QueryRequestManager } from './QueryRequestManager';
 import { QueryResponseManager } from './QueryResponseManager';
-import { createRecoveryEndpoint } from './recoveryEndpoint';
 import { ReportPoller } from './ReportPoller';
 import { SystemCache } from './SystemCache';
-import { SystemRecovery } from './SystemRecovery';
 
 const METRICS_INTERVAL = 60 * 1000;
 
@@ -59,7 +59,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly messageMetricsCollector: MessageMetricsCollector;
 	private readonly heartbeat: Heartbeat;
 	private readonly systemCache: SystemCache;
-	private readonly systemRecovery: SystemRecovery;
+	private readonly queryMetadataManager: QueryMetadataManager;
 	private readonly queryRequestManager: QueryRequestManager;
 	private readonly queryResponseManager: QueryResponseManager;
 	private readonly propagationResolver: PropagationResolver;
@@ -105,16 +105,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.messageListener = new MessageListener(this.logStoreClient);
 
 		this.messageMetricsCollector = new MessageMetricsCollector(
-			this.logStoreClient,
-			this.systemSubscriber,
-			this.recoveryStream
+			this.systemSubscriber
 		);
 
 		this.systemCache = new SystemCache(this.systemSubscriber, this.kyvePool);
 
-		this.systemRecovery = new SystemRecovery(
+		this.queryMetadataManager = new QueryMetadataManager(
 			this.logStoreClient,
-			this.recoveryStream,
 			this.systemStream,
 			this.systemCache
 		);
@@ -163,6 +160,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		// Context permits usage of this object in the current execution context
 		// i.e. getting the queryRequestManager inside our http endpoint handlers
 		logStoreContext.enterWith({
+			queryMetadataManager: this.queryMetadataManager,
 			queryRequestManager: this.queryRequestManager,
 			propagationResolver: this.propagationResolver,
 			clientId,
@@ -170,7 +168,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 		await this.heartbeat.start(clientId);
 		await this.systemCache.start();
-		await this.systemRecovery.start();
+		await this.queryMetadataManager.start();
 		await this.propagationResolver.start();
 
 		const abortController = new AbortController();
@@ -193,7 +191,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			createDataQueryEndpoint(this.brokerConfig, metricsContext)
 		);
 		this.addHttpServerEndpoint(
-			createRecoveryEndpoint(this.systemStream, this.heartbeat, metricsContext)
+			createProveQueriesEndpoint(this.systemStream, metricsContext)
 		);
 
 		this.metricsTimer = setInterval(
@@ -213,7 +211,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.queryRequestManager.stop(),
 			this.queryResponseManager.stop(),
 			this.systemCache.stop(),
-			this.systemRecovery.stop(),
+			this.queryMetadataManager.stop(),
 			this.logStore!.close(),
 			this.logStoreConfig!.destroy(),
 		]);

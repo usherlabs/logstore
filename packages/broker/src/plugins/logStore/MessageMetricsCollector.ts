@@ -1,9 +1,4 @@
-import {
-	LogStoreClient,
-	MessageMetadata,
-	Stream,
-	Subscription,
-} from '@logsn/client';
+import { MessageMetadata } from '@logsn/client';
 import { SystemMessageType } from '@logsn/protocol';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
@@ -30,31 +25,24 @@ const METRICS_SUBJECTS: MessageMetricsSubject[] = [
 		type: SystemMessageType.QueryPropagate,
 	},
 	{
-		subject: 'RecoveryRequest',
-		type: SystemMessageType.RecoveryRequest,
+		subject: 'QueryMetadataRequest',
+		type: SystemMessageType.QueryMetadataRequest,
+	},
+	{
+		subject: 'QueryMetadataResponse',
+		type: SystemMessageType.QueryMetadataResponse,
 	},
 ];
 
 export class MessageMetricsCollector {
 	private readonly messageMetricsSummary: MessageMetricsSummary;
 
-	private recoverySubscription?: Subscription;
-
-	constructor(
-		private readonly client: LogStoreClient,
-		private readonly systemSubscriber: BroadbandSubscriber,
-		private readonly recoveryStream: Stream
-	) {
+	constructor(private readonly systemSubscriber: BroadbandSubscriber) {
 		this.messageMetricsSummary = new MessageMetricsSummary(METRICS_SUBJECTS);
 	}
 
 	public async start() {
 		await this.systemSubscriber.subscribe(this.onSystemMessage.bind(this));
-
-		this.recoverySubscription = await this.client.subscribe(
-			this.recoveryStream,
-			this.onRecoveryMessage.bind(this)
-		);
 	}
 
 	public get summary() {
@@ -62,16 +50,10 @@ export class MessageMetricsCollector {
 	}
 
 	public async stop() {
-		await this.recoverySubscription?.unsubscribe();
-
 		await this.systemSubscriber.unsubscribe();
 	}
 
 	private async onSystemMessage(message: unknown, metadata: MessageMetadata) {
-		this.messageMetricsSummary.update(message, metadata);
-	}
-
-	private async onRecoveryMessage(message: unknown, metadata: MessageMetadata) {
 		this.messageMetricsSummary.update(message, metadata);
 	}
 }
