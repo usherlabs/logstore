@@ -7,8 +7,10 @@ import {
 } from '@logsn/client';
 import ContractAddresses from '@logsn/contracts/address.json';
 import { SystemMessageType } from '@logsn/protocol';
+import { ethers } from 'ethers';
 // import { ethers } from 'ethers';
 import fse from 'fs-extra';
+import { Logger } from 'tslog';
 
 import { Item } from './core/item';
 import { Report } from './core/report';
@@ -28,9 +30,11 @@ import { rollingConfig } from './shared/rollingConfig';
 import { ChainSources } from './sources';
 import { EventsIndexer, SystemListener, TimeIndexer } from './threads';
 import { Heartbeat } from './threads/Heartbeat';
+import { QueryMetadataManager } from './threads/queryMetadata/QueryMetadataManager';
 // import { SystemRecovery } from './threads/SystemRecovery';
 import { IConfig, IRuntimeExtended } from './types';
 import { Slogger } from './utils/slogger';
+import { validatorContext } from './utils/validatorContext';
 import Validator from './validator';
 
 const METRICS_SUBJECTS: MessageMetricsSubject[] = [
@@ -51,27 +55,23 @@ const METRICS_SUBJECTS: MessageMetricsSubject[] = [
 		type: SystemMessageType.QueryPropagate,
 	},
 	{
-		subject: 'RecoveryRequest',
-		type: SystemMessageType.RecoveryRequest,
+		subject: 'QueryMetadataResponse',
+		type: SystemMessageType.QueryMetadataResponse,
 	},
 	{
-		subject: 'RecoveryResponse',
-		type: SystemMessageType.RecoveryResponse,
-	},
-	{
-		subject: 'RecoveryComplete',
-		type: SystemMessageType.RecoveryComplete,
+		subject: 'QueryMetadataRequest',
+		type: SystemMessageType.QueryMetadataRequest,
 	},
 ];
 const METRICS_INTERVAL = 60 * 1000;
 
 export default class Runtime implements IRuntimeExtended {
+	public validator: Validator;
 	private _homeDir: string;
 	public name = appPackageName;
 	public version = appVersion;
 	public config: IConfig = {
 		heartbeatStreamId: '',
-		recoveryStreamId: '',
 		systemStreamId: '',
 		sources: [],
 		fees: {
@@ -86,12 +86,19 @@ export default class Runtime implements IRuntimeExtended {
 	public time: TimeIndexer;
 	public events: EventsIndexer;
 	public managers: Managers;
+	public signer: ethers.Wallet;
+	public logger: Logger;
+	public queryMetadataManager: QueryMetadataManager;
+	public logStoreClient: LogStoreClient;
 	private _startKey: number;
 	private _startBlockNumber: number;
 
 	async setup(core: Validator, homeDir: string) {
 		Slogger.register(core.logger);
 		core.logger.debug('Home Directory:', homeDir);
+
+		this.validator = core;
+		this.logger = core.logger;
 
 		this.chain = new ChainSources(this.config.sources);
 
@@ -109,7 +116,7 @@ export default class Runtime implements IRuntimeExtended {
 
 		// core.logger.debug('Streamr Config', streamrConfig);
 		const privateKey = getEvmPrivateKey(); // The Validator needs to stake in QueryManager
-		// const signer = new ethers.Wallet(privateKey);
+		this.signer = new ethers.Wallet(privateKey);
 		const logStoreClient = new LogStoreClient({
 			...clientConfig,
 			auth: {
@@ -139,6 +146,8 @@ export default class Runtime implements IRuntimeExtended {
 			systemStream
 		);
 
+		this.queryMetadataManager = new QueryMetadataManager(homeDir, this);
+
 		const messageMetricsSummary = new MessageMetricsSummary(METRICS_SUBJECTS);
 
 		this.heartbeat = new Heartbeat(heartbeatSubscriber);
@@ -152,11 +161,6 @@ export default class Runtime implements IRuntimeExtended {
 		// 	this
 		// );
 
-		let startKey = parseInt(core.pool.data.current_key, 10) || 0;
-		if (startKey) {
-			startKey -= rollingConfig(startKey).prev.keyStep;
-		}
-
 		this.events = new EventsIndexer(
 			homeDir,
 			core.pool.id,
@@ -167,16 +171,16 @@ export default class Runtime implements IRuntimeExtended {
 		);
 		this.time = new TimeIndexer(homeDir, startBlock, this.chain, core.logger);
 
+		this.logStoreClient = logStoreClient;
+
 		this.listener = new SystemListener(
-			homeDir,
 			logStoreClient,
 			systemSubscriber,
-			// recovery,
 			messageMetricsSummary,
 			core.logger
 		);
 
-		this.managers = new Managers(this.chain, this.events);
+		this.managers = new Managers(this);
 
 		setInterval(
 			() =>
@@ -188,9 +192,13 @@ export default class Runtime implements IRuntimeExtended {
 	}
 
 	async runThreads() {
+		validatorContext.enterWith({
+			runtime: this,
+		});
 		await this.heartbeat.start();
 		await this.time.start();
 		await this.listener.start();
+		this.queryMetadataManager.start();
 		await this.events.start();
 	}
 
@@ -241,6 +249,8 @@ export default class Runtime implements IRuntimeExtended {
 		await Promise.all([
 			this.events.ready(),
 			// listenerHasValidData(),
+			// If the timestamp returned is greater than timestamp at which the Validator joined the Pool,
+			// then it should await the state of the Query Metadata process to complete, before retrying.
 			this.time.ready(),
 		]);
 	}
@@ -284,10 +294,6 @@ export default class Runtime implements IRuntimeExtended {
 			? `${systemContracts.nodeManagerAddress}/heartbeat`
 			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-heartbeat';
 
-		const recoveryStreamId = isDevNetwork
-			? `${systemContracts.nodeManagerAddress}/recovery`
-			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-recovery';
-
 		const systemStreamId = isDevNetwork
 			? `${systemContracts.nodeManagerAddress}/system`
 			: '0xa156eda7dcd689ac725ce9595d4505bf28256454/alpha-system';
@@ -296,7 +302,6 @@ export default class Runtime implements IRuntimeExtended {
 			...this.config,
 			...config,
 			heartbeatStreamId,
-			recoveryStreamId,
 			systemStreamId,
 		};
 	}
@@ -316,14 +321,28 @@ export default class Runtime implements IRuntimeExtended {
 		}
 
 		// -------- Produce the Data Item --------
-		const fromKey = (keyInt - rollingConfig(keyInt).prev.keyStep).toString();
+		const fromKey = this.getPreviousKeyForDataItemKey(key);
 		const item = new Item(this, core.logger, fromKey, key);
 		const messages = await item.generate();
+		const queryProcess = this.queryMetadataManager.getOrCreateProcess({
+			fromKey: +fromKey,
+			toKey: +key,
+		});
+		await queryProcess.startNewProcessIfNeeded();
 
 		return {
 			key,
 			value: { m: messages },
 		};
+	}
+
+	public getPreviousKeyForDataItemKey(key: string): string {
+		const keyInt = parseInt(key, 10);
+		if (!keyInt) {
+			return null;
+		}
+
+		return (keyInt - rollingConfig(keyInt).prev.keyStep).toString();
 	}
 
 	// https://github.com/KYVENetwork/kyvejs/tree/main/common/protocol/src/methods/helpers/saveGetTransformDataItem.ts#L33

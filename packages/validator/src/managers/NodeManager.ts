@@ -1,17 +1,26 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { LSAN__factory } from '@logsn/contracts';
+import type {
+	ProveQueriesRequestBody,
+	ProveQueriesResponse,
+} from '@logsn/broker/src/plugins/logStore/http/proveQueriesEndpoint';
+import { NodeMetadata } from '@logsn/client';
+import { LogStoreNodeManager, LSAN__factory } from '@logsn/contracts';
 import { StakeDelegateUpdatedEvent } from '@logsn/contracts/dist/src/NodeManager.sol/LogStoreNodeManager';
+import axios from 'axios';
+import { Base64 } from 'js-base64';
 
-import type { ChainSources } from '../sources';
+import type { IChainSource } from '../sources';
 import { EventSelect, EventsIndexer } from '../threads';
-import { IBrokerNode } from '../types';
+import { IBrokerNode, IRuntimeExtended } from '../types';
 import { Slogger } from '../utils/slogger';
 import { StakeToken } from './StakeToken';
 
 export class NodeManager {
 	constructor(
-		protected chain: ChainSources,
-		protected indexer: EventsIndexer
+		protected core: Pick<
+			IRuntimeExtended,
+			'events' | 'chain' | 'heartbeat' | 'logStoreClient' | 'signer' | 'logger'
+		>
 	) {}
 
 	async getBrokerNodes(
@@ -19,7 +28,7 @@ export class NodeManager {
 		minStakeRequirement?: BigNumber
 	): Promise<Array<IBrokerNode>> {
 		// get all the node addresses
-		const baseNodes = await this.chain.use(async (source) => {
+		const baseNodes = await this.core.chain.use(async (source) => {
 			const contract = await source.contracts.node();
 			const nodeAddresses = await contract.nodeAddresses({
 				blockTag: toBlockNumber,
@@ -27,28 +36,7 @@ export class NodeManager {
 
 			// get more details for each node's address
 			const nodesData = await Promise.all(
-				nodeAddresses.map(async (nodeAddress) => {
-					const nodeDetail = await contract.nodes(nodeAddress, {
-						blockTag: toBlockNumber,
-					});
-
-					Slogger.instance.debug(
-						`Delegates for Node Address from source ${source.provider.connection.url}`,
-						{
-							nodeAddress,
-						}
-					);
-
-					return {
-						id: nodeAddress,
-						index: nodeDetail.index.toNumber(),
-						metadata: nodeDetail.metadata,
-						lastSeen: nodeDetail.lastSeen.toNumber(),
-						next: nodeDetail.next,
-						prev: nodeDetail.prev,
-						stake: nodeDetail.stake,
-					};
-				})
+				nodeAddresses.map(this.getNodeData(contract, toBlockNumber, source))
 			);
 
 			// Filter out all nodes fetched which have a stake > minstake
@@ -72,6 +60,48 @@ export class NodeManager {
 		return final;
 	}
 
+	private getNodeData(
+		contract: LogStoreNodeManager,
+		toBlockNumber: number,
+		source: IChainSource
+	) {
+		return async (nodeAddress) => {
+			const nodeDetail = await contract.nodes(nodeAddress, {
+				blockTag: toBlockNumber,
+			});
+
+			Slogger.instance.debug(
+				`Delegates for Node Address from source ${source.provider.connection.url}`,
+				{
+					nodeAddress,
+				}
+			);
+
+			return {
+				id: nodeAddress,
+				index: nodeDetail.index.toNumber(),
+				metadata: nodeDetail.metadata,
+				lastSeen: nodeDetail.lastSeen.toNumber(),
+				next: nodeDetail.next,
+				prev: nodeDetail.prev,
+				stake: nodeDetail.stake,
+			};
+		};
+	}
+
+	async getBrokerEndpoint(): Promise<string> {
+		const onlineBrokers = this.core.heartbeat.onlineBrokers;
+		const randomBrokerAddress =
+			onlineBrokers[Math.floor(Math.random() * onlineBrokers.length)];
+
+		return await this.core.chain.use(async (source) => {
+			const contract = await source.contracts.node();
+			const node = await contract.nodes(randomBrokerAddress);
+			const metadata = JSON.parse(node.metadata) as NodeMetadata;
+			return metadata.http;
+		});
+	}
+
 	/**
 	 * Get all delegates and their corresponding amounts for a nodeAddress at a blockNumber
 	 *
@@ -82,7 +112,7 @@ export class NodeManager {
 		nodeAddress: string,
 		toBlockNumber: number
 	): Promise<Record<string, BigNumber>> {
-		const events = await this.indexer.query(
+		const events = await this.core.events.query(
 			[EventSelect.StakeDelegateUpdated],
 			toBlockNumber
 		);
@@ -113,7 +143,7 @@ export class NodeManager {
 	}
 
 	async getStakeToken(blockNumber?: number) {
-		const tokenData = await this.chain.use(async (source) => {
+		const tokenData = await this.core.chain.use(async (source) => {
 			const contract = await source.contracts.node();
 			const minStakeRequirement: BigNumber = await contract.stakeRequiredAmount(
 				{ blockTag: blockNumber }
@@ -143,9 +173,39 @@ export class NodeManager {
 			tokenData.symbol,
 			tokenData.decimals,
 			tokenData.minStakeRequirement,
-			this.chain
+			this.core.chain
 		);
 
 		return stakeToken;
+	}
+
+	private async getAuthorizationHeader() {
+		const authUser = await this.core.logStoreClient.getAddress();
+		const authPassword = await this.core.signer.signMessage(authUser);
+		return `Basic ${Base64.encode(`${authUser}:${authPassword}`)}`;
+	}
+
+	public get callEndpoint() {
+		return {
+			proveQueries: async (args: ProveQueriesRequestBody) => {
+				const endpoint = `${await this.getBrokerEndpoint()}/prove/queries`;
+
+				this.core.logger.debug(
+					'Calling recovery enpoint',
+					JSON.stringify({
+						endpoint,
+						requestId,
+						from,
+						to,
+					})
+				);
+
+				const headers = { Authorization: await this.getAuthorizationHeader() };
+
+				return axios.post(endpoint, args, {
+					headers,
+				}) as Promise<ProveQueriesResponse>;
+			},
+		};
 	}
 }

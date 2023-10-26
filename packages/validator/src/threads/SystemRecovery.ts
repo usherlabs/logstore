@@ -6,12 +6,7 @@ import {
 	Stream,
 	Subscription,
 } from '@logsn/client';
-import {
-	RecoveryComplete,
-	RecoveryResponse,
-	SystemMessage,
-	SystemMessageType,
-} from '@logsn/protocol';
+import { SystemMessage } from '@logsn/protocol';
 import axios from 'axios';
 import { randomUUID } from 'crypto';
 import { Signer } from 'ethers';
@@ -28,8 +23,8 @@ const RESTART_DELAY = 30 * 1000;
 const ACTIVITY_TIMEOUT = 30 * 1000;
 
 const LISTENING_MESSAGE_TYPES = [
-	SystemMessageType.RecoveryResponse,
-	SystemMessageType.RecoveryComplete,
+	// SystemMessageType.RecoveryResponse,
+	// SystemMessageType.RecoveryComplete,
 ];
 
 interface RecoveryProgress {
@@ -45,15 +40,16 @@ interface RecoverySummary {
 	isFulfilled: boolean;
 }
 
+// TODO remove system recovery for 0.0.3
 export class SystemRecovery {
 	private requestId: string;
 	private toTimestamp: number;
 	private toBlockNumber: number;
 	private subscription?: Subscription;
-	private onSystemMessage?: (
-		systemMessage: SystemMessage,
-		metadata: MessageMetadata
-	) => Promise<void>;
+	// private onSystemMessage?: (
+	// 	systemMessage: SystemMessage,
+	// 	metadata: MessageMetadata
+	// ) => Promise<void>;
 
 	private progresses: Map<EthereumAddress, RecoveryProgress> = new Map();
 	private isRestarting: boolean = false;
@@ -76,19 +72,15 @@ export class SystemRecovery {
 		);
 	}
 
-	public async start(
-		onSystemMessage: (
-			systemMessage: SystemMessage,
-			metadata: MessageMetadata
-		) => Promise<void>
-	) {
+	public async start() {
+		// ) => Promise<void> // 	metadata: MessageMetadata // 	systemMessage: SystemMessage, // onSystemMessage: (
 		this.logger.info('Starting SystemRecovery ...');
 		this.toBlockNumber = this.runtime.time.find(
 			// TODO is this correct? finding from latest possible timestamp, or at creation time?
 			this.runtime.time.latestTimestamp
 		);
 
-		this.onSystemMessage = onSystemMessage;
+		// this.onSystemMessage = onSystemMessage;
 		this.subscription = await this.client.subscribe(
 			this.stream,
 			this.onRecoveryMessage.bind(this)
@@ -231,12 +223,12 @@ export class SystemRecovery {
 			return;
 		}
 
-		const recoveryMessage = systemMessage as
-			| RecoveryResponse
-			| RecoveryComplete;
-		if (recoveryMessage.requestId != this.requestId) {
-			return;
-		}
+		// const recoveryMessage = systemMessage as
+		// 	| RecoveryResponse
+		// 	| RecoveryComplete;
+		// if (recoveryMessage.requestId != this.requestId) {
+		// 	return;
+		// }
 
 		let progress = this.progresses.get(metadata.publisherId);
 		if (!progress) {
@@ -245,26 +237,26 @@ export class SystemRecovery {
 		}
 
 		try {
-			switch (systemMessage.messageType) {
-				case SystemMessageType.RecoveryResponse: {
-					const recoveryResponse = systemMessage as RecoveryResponse;
-					await this.processRecoveryResponse(
-						recoveryResponse,
-						metadata,
-						progress
-					);
-					break;
-				}
-				case SystemMessageType.RecoveryComplete: {
-					const recoveryComplete = systemMessage as RecoveryComplete;
-					await this.processRecoveryComplete(
-						recoveryComplete,
-						metadata,
-						progress
-					);
-					break;
-				}
-			}
+			// switch (systemMessage.messageType) {
+			// 	case SystemMessageType.RecoveryResponse: {
+			// 		const recoveryResponse = systemMessage as RecoveryResponse;
+			// 		await this.processRecoveryResponse(
+			// 			recoveryResponse,
+			// 			metadata,
+			// 			progress
+			// 		);
+			// 		break;
+			// 	}
+			// 	case SystemMessageType.RecoveryComplete: {
+			// 		const recoveryComplete = systemMessage as RecoveryComplete;
+			// 		await this.processRecoveryComplete(
+			// 			recoveryComplete,
+			// 			metadata,
+			// 			progress
+			// 		);
+			// 		break;
+			// 	}
+			// }
 
 			this.activityTimeout.update();
 		} catch (error: any) {
@@ -280,74 +272,74 @@ export class SystemRecovery {
 		}
 	}
 
-	private async processRecoveryResponse(
-		recoveryResponse: RecoveryResponse,
-		metadata: MessageMetadata,
-		progress: RecoveryProgress
-	) {
-		this.logger.debug(
-			`Processing RecoveryResponse ${JSON.stringify({
-				publisherId: metadata.publisherId,
-				seqNum: recoveryResponse.seqNum,
-				payloadLength: recoveryResponse.payload.length,
-			})}`
-		);
+	// private async processRecoveryResponse(
+	// 	recoveryResponse: RecoveryResponse,
+	// 	metadata: MessageMetadata,
+	// 	progress: RecoveryProgress
+	// ) {
+	// 	this.logger.debug(
+	// 		`Processing RecoveryResponse ${JSON.stringify({
+	// 			publisherId: metadata.publisherId,
+	// 			seqNum: recoveryResponse.seqNum,
+	// 			payloadLength: recoveryResponse.payload.length,
+	// 		})}`
+	// 	);
+	//
+	// 	if (recoveryResponse.seqNum - progress.lastSeqNum > 1) {
+	// 		throw new Error(
+	// 			`RecoveryResponse has unexpected seqNum ${JSON.stringify({
+	// 				seqNum: recoveryResponse.seqNum,
+	// 			})}`
+	// 		);
+	// 	}
+	//
+	// 	for await (const [msg, msgMetadata] of recoveryResponse.payload) {
+	// 		await this.onSystemMessage?.(msg, msgMetadata as MessageMetadata);
+	// 		progress.timestamp = msgMetadata.timestamp;
+	// 	}
+	//
+	// 	progress.lastSeqNum = recoveryResponse.seqNum;
+	// }
 
-		if (recoveryResponse.seqNum - progress.lastSeqNum > 1) {
-			throw new Error(
-				`RecoveryResponse has unexpected seqNum ${JSON.stringify({
-					seqNum: recoveryResponse.seqNum,
-				})}`
-			);
-		}
-
-		for await (const [msg, msgMetadata] of recoveryResponse.payload) {
-			await this.onSystemMessage?.(msg, msgMetadata as MessageMetadata);
-			progress.timestamp = msgMetadata.timestamp;
-		}
-
-		progress.lastSeqNum = recoveryResponse.seqNum;
-	}
-
-	private async processRecoveryComplete(
-		recoveryComplete: RecoveryComplete,
-		metadata: MessageMetadata,
-		progress: RecoveryProgress
-	) {
-		this.logger.debug(
-			`Processing RecoveryComplete ${JSON.stringify({
-				publisherId: metadata.publisherId,
-				seqNum: recoveryComplete.seqNum,
-			})}`
-		);
-
-		if (recoveryComplete.seqNum - progress.lastSeqNum > 1) {
-			throw new Error(
-				`RecoveryComplete has unexpected seqNum ${JSON.stringify({
-					seqNum: recoveryComplete.seqNum,
-				})}`
-			);
-		}
-
-		// if no recovery messages received
-		if (progress.timestamp === undefined) {
-			progress.timestamp = metadata.timestamp;
-		}
-
-		progress.isComplete = true;
-		progress.isFulfilled = recoveryComplete.isFulfilled;
-
-		if (this.progress.isComplete) {
-			if (this.progress.isFulfilled) {
-				this.logger.info('Successfully complete Recovery');
-				setImmediate(this.stop.bind(this));
-			} else {
-				this.logger.info(
-					'Successfully complete Recovery Round. Sending next Request.'
-				);
-				this.activityTimeout.stop();
-				setImmediate(this.callRecoveryEndpoint.bind(this));
-			}
-		}
-	}
+	// private async processRecoveryComplete(
+	// 	recoveryComplete: RecoveryComplete,
+	// 	metadata: MessageMetadata,
+	// 	progress: RecoveryProgress
+	// ) {
+	// 	this.logger.debug(
+	// 		`Processing RecoveryComplete ${JSON.stringify({
+	// 			publisherId: metadata.publisherId,
+	// 			seqNum: recoveryComplete.seqNum,
+	// 		})}`
+	// 	);
+	//
+	// 	if (recoveryComplete.seqNum - progress.lastSeqNum > 1) {
+	// 		throw new Error(
+	// 			`RecoveryComplete has unexpected seqNum ${JSON.stringify({
+	// 				seqNum: recoveryComplete.seqNum,
+	// 			})}`
+	// 		);
+	// 	}
+	//
+	// 	// if no recovery messages received
+	// 	if (progress.timestamp === undefined) {
+	// 		progress.timestamp = metadata.timestamp;
+	// 	}
+	//
+	// 	progress.isComplete = true;
+	// 	progress.isFulfilled = recoveryComplete.isFulfilled;
+	//
+	// 	if (this.progress.isComplete) {
+	// 		if (this.progress.isFulfilled) {
+	// 			this.logger.info('Successfully complete Recovery');
+	// 			setImmediate(this.stop.bind(this));
+	// 		} else {
+	// 			this.logger.info(
+	// 				'Successfully complete Recovery Round. Sending next Request.'
+	// 			);
+	// 			this.activityTimeout.stop();
+	// 			setImmediate(this.callRecoveryEndpoint.bind(this));
+	// 		}
+	// 	}
+	// }
 }

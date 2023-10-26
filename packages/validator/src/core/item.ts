@@ -24,7 +24,7 @@ type BundleMessageMetadata = {
 	signature: string;
 };
 
-export type BundleMessage = {
+type BundleMessage = {
 	content: unknown;
 	metadata: BundleMessageMetadata;
 };
@@ -44,7 +44,20 @@ export class Item {
 		return `${streamId}/${streamPartition}/${timestamp}/${sequenceNumber}`;
 	};
 
-	// eslint-disable-next-line
+	// TODO start proof of queries fetch:
+	// 	- start proof of queries fetch between same timestamps as DataItem (request to /prove/queries)
+	//  - check if timestamp returned is greater than timestamp which this validator joined the network, if so
+	//   then should not take action here
+
+	// TODO wait for messages on alive brokers
+	//  - listen to the network for system messages with the metadata flush
+	//  - verify QueryMetadata
+	//  - cache this QueryMetadata
+
+	async requestProofOfQueries(): Promise<void> {
+		// await this.
+	}
+
 	public async generate(): Promise<BundleMessage[]> {
 		const { toKey, fromKey } = this;
 
@@ -53,7 +66,7 @@ export class Item {
 			return [];
 		}
 
-		const toBlock = await this.runtime.time.find(toKeyInt);
+		const toBlock = this.runtime.time.find(toKeyInt);
 
 		// Fetch full store list
 		const stores = await this.runtime.managers.store.getStores(toBlock);

@@ -1,5 +1,4 @@
-import { ChainSources } from '../sources';
-import { EventsIndexer } from '../threads';
+import { IRuntimeExtended } from '../types';
 import { NodeManager } from './NodeManager';
 import { ReportManager } from './ReportManager';
 import { StoreManager } from './StoreManager';
@@ -10,11 +9,12 @@ export class Managers {
 	public report: ReportManager;
 
 	constructor(
-		public chain: ChainSources,
-		public indexer: EventsIndexer
+		public core: Pick<IRuntimeExtended, 'chain' | 'events' | 'heartbeat'> &
+			ConstructorParameters<typeof NodeManager>[0]
 	) {
-		this.node = new NodeManager(chain, indexer);
-		this.store = new StoreManager(chain, indexer);
-		this.report = new ReportManager(chain, indexer);
+		const { chain, events } = this.core;
+		this.node = new NodeManager(core);
+		this.store = new StoreManager(chain, events);
+		this.report = new ReportManager(chain, events);
 	}
 }
