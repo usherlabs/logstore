@@ -6,7 +6,7 @@ import hre from 'hardhat';
 import path from 'path';
 import redstone from 'redstone-api';
 
-import ContractAddresses from '../address.json';
+// import ContractAddresses from '../address.json';
 import { STREAMR_REGISTRY_ADDRESS } from './addresses';
 
 export const getChainId = async () =>

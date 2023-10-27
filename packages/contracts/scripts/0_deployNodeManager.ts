@@ -1,4 +1,4 @@
-import { Wallet } from 'ethers';
+import { Contract, Wallet } from 'ethers';
 import hre from 'hardhat';
 
 import {
@@ -22,109 +22,179 @@ async function main() {
 	const [signer] = await hre.ethers.getSigners();
 
 	// --------------------------- deploy the LSAN token
+	let tokenManagerContract: Contract;
+	let tokenManagerAddress: string = '';
+	const tokenManager = await hre.ethers.getContractFactory('LSAN');
 	const safeAddress =
 		hre.network.config.chainId === 137 ? SAFE_ADDRESS : signer.address;
-	const tokenManager = await hre.ethers.getContractFactory('LSAN');
-	const weiPerByte = await getWeiPerByte();
-	console.log('Wei Per Byte:', weiPerByte.toNumber());
-	console.log('MATIC Per Byte:', hre.ethers.utils.formatEther(weiPerByte));
-	const tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
-		safeAddress,
-		weiPerByte,
-		[],
-		[],
-	]);
-	await tokenManagerContract.deployed();
-	const tokenManagerAddress = tokenManagerContract.address;
-	console.log(`tokenManagerAddress deployed to ${tokenManagerAddress}`, {
-		safeAddress,
-	});
+	console.log('Starting the LSAN deployment...');
+	while (!tokenManagerAddress) {
+		try {
+			const weiPerByte = await getWeiPerByte();
+			console.log('Wei Per Byte:', weiPerByte.toNumber());
+			console.log('MATIC Per Byte:', hre.ethers.utils.formatEther(weiPerByte));
+			tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
+				safeAddress,
+				weiPerByte,
+				[],
+				[],
+			]);
+			await tokenManagerContract.deployed();
+			tokenManagerAddress = tokenManagerContract.address;
+			console.log(`tokenManagerAddress deployed to ${tokenManagerAddress}`, {
+				safeAddress,
+			});
+		} catch (e) {
+			// Handle error on contract deployment
+			console.error(e);
+			console.log('\n Trying LSAN deployment again...');
+		}
+	}
 	// --------------------------- deploy the LSAN token
 
 	// --------------------------- deploy the node manager contract --------------------------- //
 	console.log('Using LSAN TOKEN token as Stake Token...');
+	console.log('Starting the LogStoreNodeManager deployment...');
 	const stakeTokenAddress = tokenManagerAddress;
-	const nodeManagerContractParams = await getNodeManagerInputParameters(
-		stakeTokenAddress
-	);
-	const nodeManagerArtifact = await hre.ethers.getContractFactory(
-		'LogStoreNodeManager'
-	);
-	const nodeManagerContract = await hre.upgrades.deployProxy(
-		nodeManagerArtifact,
-		nodeManagerContractParams
-	);
-	await nodeManagerContract.deployed();
-	const { address: nodeManagerAddress } = nodeManagerContract;
-	console.log(`LogStoreNodeManager deployed to ${nodeManagerAddress}`);
+	let nodeManagerContract: Contract;
+	let nodeManagerAddress: string = '';
+	while (!nodeManagerAddress) {
+		try {
+			const nodeManagerContractParams = await getNodeManagerInputParameters(
+				stakeTokenAddress
+			);
+			const nodeManagerArtifact = await hre.ethers.getContractFactory(
+				'LogStoreNodeManager'
+			);
+			nodeManagerContract = await hre.upgrades.deployProxy(
+				nodeManagerArtifact,
+				nodeManagerContractParams
+			);
+			await nodeManagerContract.deployed();
+			nodeManagerAddress = nodeManagerContract.address;
+			console.log(`LogStoreNodeManager deployed to ${nodeManagerAddress}`);
+		} catch (e) {
+			// Handle error on contract deployment
+			console.error(e);
+			console.log('\n Trying LogStoreNodeManager deployment again...');
+		}
+	}
 	// --------------------------- deploy the node manager contract --------------------------- //
 
 	// --------------------------- deploy the store manager --------------------------- //
-	const storeManagerContractParams = await getStoreManagerInputParameters(
-		nodeManagerAddress,
-		stakeTokenAddress
-	);
-	const storeManagerArtifact = await hre.ethers.getContractFactory(
-		'LogStoreManager'
-	);
-	const storeManagerContract = await hre.upgrades.deployProxy(
-		storeManagerArtifact,
-		storeManagerContractParams
-	);
-	await storeManagerContract.deployed();
-	const { address: storeManagerAddress } = storeManagerContract;
-	console.log(`LogStoreStoreManager deployed to ${storeManagerAddress}`);
+	console.log('Starting the LogStoreManager deployment...');
+	let storeManagerAddress: string = '';
+	while (!storeManagerAddress) {
+		try {
+			const storeManagerContractParams = await getStoreManagerInputParameters(
+				nodeManagerAddress,
+				stakeTokenAddress
+			);
+			const storeManagerArtifact = await hre.ethers.getContractFactory(
+				'LogStoreManager'
+			);
+			const storeManagerContract = await hre.upgrades.deployProxy(
+				storeManagerArtifact,
+				storeManagerContractParams
+			);
+			await storeManagerContract.deployed();
+			storeManagerAddress = storeManagerContract.address;
+			console.log(`LogStoreManager deployed to ${storeManagerAddress}`);
+		} catch (e) {
+			// Handle error on contract deployment
+			console.error(e);
+			console.log('\n Trying LogStoreManager deployment again...');
+		}
+	}
 	// --------------------------- deploy the store manager --------------------------- //
 
 	// --------------------------- deploy the query manager contract --------------------------- //
-	const queryManagerContractParams = await getQueryManagerInputParameters(
-		nodeManagerAddress,
-		stakeTokenAddress
-	);
-	const queryManagerArtifact = await hre.ethers.getContractFactory(
-		'LogStoreQueryManager'
-	);
-	const queryManagerContract = await hre.upgrades.deployProxy(
-		queryManagerArtifact,
-		queryManagerContractParams
-	);
-	await queryManagerContract.deployed();
-	const { address: queryManagerAddress } = queryManagerContract;
-	console.log(`LogStoreQueryManager deployed to ${queryManagerAddress}`);
+	console.log('Starting the LogStoreQueryManager deployment...');
+	let queryManagerAddress: string = '';
+	while (!queryManagerAddress) {
+		try {
+			const queryManagerContractParams = await getQueryManagerInputParameters(
+				nodeManagerAddress,
+				stakeTokenAddress
+			);
+			const queryManagerArtifact = await hre.ethers.getContractFactory(
+				'LogStoreQueryManager'
+			);
+			const queryManagerContract = await hre.upgrades.deployProxy(
+				queryManagerArtifact,
+				queryManagerContractParams
+			);
+			await queryManagerContract.deployed();
+			queryManagerAddress = queryManagerContract.address;
+			console.log(`LogStoreQueryManager deployed to ${queryManagerAddress}`);
+		} catch (e) {
+			// Handle error on contract deployment
+			console.error(e);
+			console.log('\n Trying LogStoreQueryManager deployment again...');
+		}
+	}
+
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- deploy the report manager contract --------------------------- //
-	// Get block time of chain id
+	let verifySigLibDeployed = false;
+	let verifySigLib: Contract;
 	const reportTimeBuffer = 60 * 1000;
-	const Lib = await hre.ethers.getContractFactory('VerifySignature');
-	const lib = await Lib.deploy();
-	await lib.deployed();
-	// deploy contract
-	const reportManager = await hre.ethers.getContractFactory(
-		'LogStoreReportManager',
-		{
-			libraries: {
-				VerifySignature: lib.address,
-			},
+	while (!verifySigLibDeployed) {
+		try {
+			// Get block time of chain id
+			const Lib = await hre.ethers.getContractFactory('VerifySignature');
+			verifySigLib = await Lib.deploy();
+			await verifySigLib.deployed();
+			console.log(
+				`VerifySignature Library deployed to ${verifySigLib.address}`
+			);
+			verifySigLibDeployed = true;
+		} catch (e) {
+			// Handle error on contract deployment
+			console.error(e);
+			console.log('\n Trying VerifySignature Library deployment again...');
 		}
-	);
-	const reportManagerContract = await hre.upgrades.deployProxy(
-		reportManager,
-		[signer.address, nodeManagerAddress, reportTimeBuffer, 0],
-		{
-			unsafeAllowLinkedLibraries: true,
+	}
+
+	console.log('Starting the LogStoreReportManager deployment...');
+	let reportManagerAddress: string = '';
+	while (!reportManagerAddress) {
+		try {
+			const reportManager = await hre.ethers.getContractFactory(
+				'LogStoreReportManager',
+				{
+					libraries: {
+						VerifySignature: verifySigLib!.address,
+					},
+				}
+			);
+			const reportManagerContract = await hre.upgrades.deployProxy(
+				reportManager,
+				[signer.address, nodeManagerAddress, reportTimeBuffer, 0],
+				{
+					unsafeAllowLinkedLibraries: true,
+				}
+			);
+			await reportManagerContract.deployed();
+			reportManagerAddress = reportManagerContract.address;
+			console.log(`LogStoreReportManager deployed to ${reportManagerAddress}`, {
+				nodeManagerAddress,
+				reportTimeBuffer,
+			});
+		} catch (e) {
+			// Handle error on contract deployment
+			console.error(e);
+			console.log('\n Trying LogStoreReportManager deployment again...');
 		}
-	);
-	await reportManagerContract.deployed();
-	const { address: reportManagerAddress } = reportManagerContract;
-	console.log(`LogStoreReportManager deployed to ${reportManagerAddress}`, {
-		nodeManagerAddress,
-		reportTimeBuffer,
-	});
+	}
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //
 	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
+		console.log(
+			'-------- !!! Performing DEV TOKEN minting process for TEST accounts...'
+		);
 		const token = await tokenManager.attach(stakeTokenAddress);
 
 		const wallets: string[] = [];
@@ -213,7 +283,7 @@ async function main() {
 				);
 
 				const whitelistTx =
-					await tokenManagerContract.functions.massAddWhitelist(
+					await tokenManagerContract!.functions.massAddWhitelist(
 						wallets,
 						wallets.map((_) => nodeManagerAddress)
 					);
@@ -276,29 +346,29 @@ async function main() {
 	// --------------------------- write addresses to file --------------------------- //
 	// initialise nodemanager contract with sub contracts
 	const registerQueryManagerTx =
-		await nodeManagerContract.functions.registerQueryManager(
+		await nodeManagerContract!.functions.registerQueryManager(
 			queryManagerAddress
 		);
 	await registerQueryManagerTx.wait();
 
 	const registerStoreManagerTx =
-		await nodeManagerContract.functions.registerStoreManager(
+		await nodeManagerContract!.functions.registerStoreManager(
 			storeManagerAddress
 		);
 	await registerStoreManagerTx.wait();
 
 	const registerReportManagerTx =
-		await nodeManagerContract.functions.registerReportManager(
+		await nodeManagerContract!.functions.registerReportManager(
 			reportManagerAddress
 		);
 	await registerReportManagerTx.wait();
 
 	// adjust initial values within AlphaNet TokenManager
-	const blacklistTx = await tokenManagerContract.functions.addBlacklist(
+	const blacklistTx = await tokenManagerContract!.functions.addBlacklist(
 		nodeManagerAddress
 	);
 	await blacklistTx.wait();
-	const whitelistTx = await tokenManagerContract.functions.massAddWhitelist(
+	const whitelistTx = await tokenManagerContract!.functions.massAddWhitelist(
 		[storeManagerAddress, queryManagerAddress],
 		[nodeManagerAddress, nodeManagerAddress]
 	);
