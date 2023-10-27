@@ -13,9 +13,15 @@ import {StringsUpgradeable} from "./lib/StringsUpgradeable.sol";
 import {LogStoreManager} from "./StoreManager.sol";
 import {LogStoreQueryManager} from "./QueryManager.sol";
 import {LogStoreReportManager} from "./ReportManager.sol";
-import {AccessControlUpgradeable} from  "./access/AccessControl.sol";
+import {AccessControlUpgradeable} from "./access/AccessControl.sol";
 
-contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable, AccessControlUpgradeable {
+contract LogStoreNodeManager is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    AccessControlUpgradeable
+{
     event NodeUpdated(address indexed nodeAddress, string metadata, bool indexed isNew, uint lastSeen);
     event NodeRemoved(address indexed nodeAddress);
     event StakeDelegateUpdated(
@@ -82,6 +88,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
     uint256 public startBlockNumber; // A block number for when the Log Store process starts
     address public headNode;
     address public tailNode;
+    // ? Streams managed within the NodeManager.sol Contract are Systems Streams used to coordinate gossip over the Network
     string[] public streams;
 
     function initialize(
@@ -120,7 +127,11 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         transferOwnership(owner_);
     }
 
-    function createStream(string memory key, string memory path, string memory permissions) public onlyOwner {
+    function createStream(
+        string memory key,
+        string memory path,
+        string memory permissions
+    ) public isAuthorized(Role.DEV) {
         _registerStream(key, path, permissions);
 
         // register all qualified nodes with permission to use this stream
@@ -136,7 +147,7 @@ contract LogStoreNodeManager is Initializable, UUPSUpgradeable, OwnableUpgradeab
         }
     }
 
-    function deleteStream(string memory key) public onlyOwner {
+    function deleteStream(string memory key) public isAuthorized(Role.DEV) {
         // get the stream ans the stream id
         Stream storage streamDetail = streamInformation[key];
         require(bytes(streamDetail.key).length > 0, "STREAM_NOT_REGISTERED");
