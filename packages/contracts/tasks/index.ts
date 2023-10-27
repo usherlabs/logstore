@@ -1,5 +1,6 @@
 import './balance';
 import './gas';
+import './grant-role';
 import './min-stake-amount';
 import './mint-many-tokens';
 import './mint-tokens';
