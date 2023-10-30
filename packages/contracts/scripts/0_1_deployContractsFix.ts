@@ -16,7 +16,7 @@ const SAFE_ADDRESS: string =
 async function main() {
 	const [signer] = await hre.ethers.getSigners();
 
-	const tokenManagerAddress = '0xceb09e8cfc96dd0ea9081c4cfa7092c06153461a';
+	const tokenManagerAddress = '0x365Bdc64E2aDb50E43E56a53B7Cc438d48D0f0DD';
 	const nodeManagerAddress = '0xeb21022d952e5De09C30bfda9E6352FFA95F67bE';
 	const verifySigLibAddress = '0x21Fe01489651157a92F618B6A1Cf652EaB482547';
 
@@ -31,14 +31,16 @@ async function main() {
 	// --------------------------- deploy the LSAN token
 	const tokenManagerContract = await hre.ethers.getContractAt(
 		'LSAN',
-		tokenManagerAddress
+		tokenManagerAddress,
+		signer
 	);
 	// --------------------------- deploy the LSAN token
 
 	// --------------------------- deploy the node manager contract --------------------------- //
 	const nodeManagerContract = await hre.ethers.getContractAt(
 		'LogStoreNodeManager',
-		nodeManagerAddress
+		nodeManagerAddress,
+		signer
 	);
 	// --------------------------- deploy the node manager contract --------------------------- //
 
