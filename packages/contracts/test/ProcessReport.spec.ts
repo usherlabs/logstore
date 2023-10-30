@@ -500,8 +500,6 @@ describe('ProcessReport (ReportManager x NodeManager)', async function () {
 		);
 		const [queryTotalSupply] =
 			await queryManagerContract.functions.totalSupply();
-		expect(+queryUserBalance)
-			.to.equal(0)
-			.to.equal(+queryTotalSupply);
+		expect(+queryUserBalance).to.equal(0).to.equal(+queryTotalSupply);
 	});
 });

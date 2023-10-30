@@ -7,11 +7,11 @@
     "reportManagerAddress": "0x17e39306bEcd53D3a2bAf16350D54E4283e59d40"
   },
   "137": {
-    "tokenManagerAddress": "0x365Bdc64E2aDb50E43E56a53B7Cc438d48D0f0DD",
+    "tokenManagerAddress": "0xceb09e8cfc96dd0ea9081c4cfa7092c06153461a",
     "nodeManagerAddress": "0xeb21022d952e5De09C30bfda9E6352FFA95F67bE",
-    "storeManagerAddress": "0x0E683DA5342B52a586F58e2829dcc5775Eb458de",
-    "queryManagerAddress": "0x0E683DA5342B52a586F58e2829dcc5775Eb458de",
-    "reportManagerAddress": "0x0E683DA5342B52a586F58e2829dcc5775Eb458de"
+    "storeManagerAddress": "0x2d3E079B3329baF96DFb6eB176D41a6D894E388e",
+    "queryManagerAddress": "0x37444ddbfcE5Ab8622735A6F4a4a46a9e9dA78f9",
+    "reportManagerAddress": "0x8cF286229AEa248Ea4a13D2C5df071C6482488b5"
   },
   "8997": {
     "nodeManagerAddress": "0x85ac4C8E780eae81Dd538053D596E382495f7Db9",
