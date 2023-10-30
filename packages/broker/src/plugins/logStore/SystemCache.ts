@@ -19,6 +19,7 @@ const DEFAULT_SRINK_INTERVAL = 2 * 60 * 1000;
 export class SystemCache {
 	private shrinkTimeout?: NodeJS.Timeout;
 
+	// TODO: We may need to replace this in-memory cache with LMDB in the future.
 	private records: {
 		message: SystemMessage;
 		metadata: MessageMetadata;

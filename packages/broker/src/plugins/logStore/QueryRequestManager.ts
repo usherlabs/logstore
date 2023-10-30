@@ -17,7 +17,6 @@ import { QueryResponseManager } from './QueryResponseManager';
 const logger = new Logger(module);
 
 export class QueryRequestManager {
-	private seqNum: number = 0;
 	private logStore?: LogStore;
 
 	constructor(

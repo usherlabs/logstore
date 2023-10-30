@@ -17,29 +17,29 @@ services:
         bind:
           propagation: rprivate
 
-  logstore-arweave:
-    container_name: logstore-arweave
-    hostname: logstore-arweave
-    image: logstore-arweave
-    build:
-      context: '.'
-      dockerfile: ./Dockerfile.arweave
-    restart: always
-    ports:
-      - '1984:1984'
-    networks:
-      - streamr-network
+  # logstore-arweave:
+  #   container_name: logstore-arweave
+  #   hostname: logstore-arweave
+  #   image: logstore-arweave
+  #   build:
+  #     context: '.'
+  #     dockerfile: ./Dockerfile.arweave
+  #   restart: always
+  #   ports:
+  #     - '1984:1984'
+  #   networks:
+  #     - streamr-network
 
-  logstore-kyve:
-    container_name: logstore-kyve
-    hostname: logstore-kyve
-    image: logstore-kyve
-    build:
-      context: '.'
-      dockerfile: ./Dockerfile.kyve
-    restart: always
-    networks:
-      - streamr-network
+  # logstore-kyve:
+  #   container_name: logstore-kyve
+  #   hostname: logstore-kyve
+  #   image: logstore-kyve
+  #   build:
+  #     context: '.'
+  #     dockerfile: ./Dockerfile.kyve
+  #   restart: always
+  #   networks:
+  #     - streamr-network
 
   logstore-nginx:
     container_name: logstore-nginx
@@ -60,9 +60,9 @@ services:
         aliases:
           - arweave.net
           - sidechain
-    depends_on:
-      - logstore-arweave
-      - logstore-kyve
+    # depends_on:
+    #   - logstore-arweave
+    #   - logstore-kyve
 
   logstore-base:
     container_name: logstore-base
@@ -208,109 +208,109 @@ services:
       logstore-deploy-contracts:
         condition: service_completed_successfully
 
-  logstore-validator-1:
-    container_name: logstore-validator-1
-    hostname: logstore-validator-1
-    image: logstore-validator
-    build:
-      context: ../
-      dockerfile: ./dev-network/Dockerfile.validator
-    restart: always
-    networks:
-      - streamr-network
-    volumes:
-      - type: bind
-        source: ./assets/validator/start-in-docker.sh
-        target: /usr/local/bin/start-in-docker
-    env_file:
-      - ./assets/validator/.env.validator-1
-    depends_on:
-      logstore-base:
-        condition: service_completed_successfully
-      logstore-kyve:
-        condition: service_started
-      logstore-deploy-contracts:
-        condition: service_completed_successfully
-      logstore-broker-1:
-        condition: service_started
+  # logstore-validator-1:
+  #   container_name: logstore-validator-1
+  #   hostname: logstore-validator-1
+  #   image: logstore-validator
+  #   build:
+  #     context: ../
+  #     dockerfile: ./dev-network/Dockerfile.validator
+  #   restart: always
+  #   networks:
+  #     - streamr-network
+  #   volumes:
+  #     - type: bind
+  #       source: ./assets/validator/start-in-docker.sh
+  #       target: /usr/local/bin/start-in-docker
+  #   env_file:
+  #     - ./assets/validator/.env.validator-1
+  #   depends_on:
+  #     logstore-base:
+  #       condition: service_completed_successfully
+  #     logstore-kyve:
+  #       condition: service_started
+  #     logstore-deploy-contracts:
+  #       condition: service_completed_successfully
+  #     logstore-broker-1:
+  #       condition: service_started
 
-  logstore-validator-2:
-    container_name: logstore-validator-2
-    hostname: logstore-validator-2
-    image: logstore-validator
-    build:
-      context: ../
-      dockerfile: ./dev-network/Dockerfile.validator
-    restart: always
-    networks:
-      - streamr-network
-    volumes:
-      - type: bind
-        source: ./assets/validator/start-in-docker.sh
-        target: /usr/local/bin/start-in-docker
-    env_file:
-      - ./assets/validator/.env.validator-2
-    depends_on:
-      logstore-base:
-        condition: service_completed_successfully
-      logstore-kyve:
-        condition: service_started
-      logstore-deploy-contracts:
-        condition: service_completed_successfully
-      logstore-broker-2:
-        condition: service_started
+  # logstore-validator-2:
+  #   container_name: logstore-validator-2
+  #   hostname: logstore-validator-2
+  #   image: logstore-validator
+  #   build:
+  #     context: ../
+  #     dockerfile: ./dev-network/Dockerfile.validator
+  #   restart: always
+  #   networks:
+  #     - streamr-network
+  #   volumes:
+  #     - type: bind
+  #       source: ./assets/validator/start-in-docker.sh
+  #       target: /usr/local/bin/start-in-docker
+  #   env_file:
+  #     - ./assets/validator/.env.validator-2
+  #   depends_on:
+  #     logstore-base:
+  #       condition: service_completed_successfully
+  #     logstore-kyve:
+  #       condition: service_started
+  #     logstore-deploy-contracts:
+  #       condition: service_completed_successfully
+  #     logstore-broker-2:
+  #       condition: service_started
 
-  logstore-validator-3:
-    container_name: logstore-validator-3
-    hostname: logstore-validator-3
-    image: logstore-validator
-    build:
-      context: ../
-      dockerfile: ./dev-network/Dockerfile.validator
-    restart: always
-    networks:
-      - streamr-network
-    volumes:
-      - type: bind
-        source: ./assets/validator/start-in-docker.sh
-        target: /usr/local/bin/start-in-docker
-    env_file:
-      - ./assets/validator/.env.validator-3
-    depends_on:
-      logstore-base:
-        condition: service_completed_successfully
-      logstore-kyve:
-        condition: service_started
-      logstore-deploy-contracts:
-        condition: service_completed_successfully
-      logstore-broker-3:
-        condition: service_started
+  # logstore-validator-3:
+  #   container_name: logstore-validator-3
+  #   hostname: logstore-validator-3
+  #   image: logstore-validator
+  #   build:
+  #     context: ../
+  #     dockerfile: ./dev-network/Dockerfile.validator
+  #   restart: always
+  #   networks:
+  #     - streamr-network
+  #   volumes:
+  #     - type: bind
+  #       source: ./assets/validator/start-in-docker.sh
+  #       target: /usr/local/bin/start-in-docker
+  #   env_file:
+  #     - ./assets/validator/.env.validator-3
+  #   depends_on:
+  #     logstore-base:
+  #       condition: service_completed_successfully
+  #     logstore-kyve:
+  #       condition: service_started
+  #     logstore-deploy-contracts:
+  #       condition: service_completed_successfully
+  #     logstore-broker-3:
+  #       condition: service_started
 
-  logstore-validator-4:
-    container_name: logstore-validator-4
-    hostname: logstore-validator-4
-    image: logstore-validator
-    build:
-      context: ../
-      dockerfile: ./dev-network/Dockerfile.validator
-    restart: always
-    networks:
-      - streamr-network
-    volumes:
-      - type: bind
-        source: ./assets/validator/start-in-docker.sh
-        target: /usr/local/bin/start-in-docker
-    env_file:
-      - ./assets/validator/.env.validator-4
-    depends_on:
-      logstore-base:
-        condition: service_completed_successfully
-      logstore-kyve:
-        condition: service_started
-      logstore-deploy-contracts:
-        condition: service_completed_successfully
-      logstore-broker-3:
-        condition: service_started
+  # logstore-validator-4:
+  #   container_name: logstore-validator-4
+  #   hostname: logstore-validator-4
+  #   image: logstore-validator
+  #   build:
+  #     context: ../
+  #     dockerfile: ./dev-network/Dockerfile.validator
+  #   restart: always
+  #   networks:
+  #     - streamr-network
+  #   volumes:
+  #     - type: bind
+  #       source: ./assets/validator/start-in-docker.sh
+  #       target: /usr/local/bin/start-in-docker
+  #   env_file:
+  #     - ./assets/validator/.env.validator-4
+  #   depends_on:
+  #     logstore-base:
+  #       condition: service_completed_successfully
+  #     logstore-kyve:
+  #       condition: service_started
+  #     logstore-deploy-contracts:
+  #       condition: service_completed_successfully
+  #     logstore-broker-3:
+  #       condition: service_started
 
   logstore-heartbeat:
     container_name: logstore-heartbeat
@@ -339,21 +339,21 @@ services:
       logstore-deploy-contracts:
         condition: service_completed_successfully
 
-  logstore-vector:
-    container_name: logstore-vector
-    hostname: logstore-vector
-    build:
-      context: ../
-      dockerfile: ./dev-network/Dockerfile.vector
-      args:
-        - NODE_ID=${NODE_ID:?NODE_ID is required}
-        - INFISICAL_TOKEN=${INFISICAL_TOKEN_VECTOR:?INFISICAL_TOKEN_VECTOR is required}
-    restart: always
-    ports:
-      - '8686:8686'
-    volumes:
-      - './assets/vector/vector.toml:/etc/vector/vector.toml'
-      - '/var/run/docker.sock:/var/run/docker.sock'
+  # logstore-vector:
+  #   container_name: logstore-vector
+  #   hostname: logstore-vector
+  #   build:
+  #     context: ../
+  #     dockerfile: ./dev-network/Dockerfile.vector
+  #     args:
+  #       - NODE_ID=${NODE_ID:?NODE_ID is required}
+  #       - INFISICAL_TOKEN=${INFISICAL_TOKEN_VECTOR:?INFISICAL_TOKEN_VECTOR is required}
+  #   restart: always
+  #   ports:
+  #     - '8686:8686'
+  #   volumes:
+  #     - './assets/vector/vector.toml:/etc/vector/vector.toml'
+  #     - '/var/run/docker.sock:/var/run/docker.sock'
 
 networks:
   streamr-network:

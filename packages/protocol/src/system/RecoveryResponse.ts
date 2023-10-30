@@ -10,13 +10,15 @@ interface RecoveryResponseOptions extends SystemMessageOptions {
 	payload: [SystemMessage, MessageMetadata][];
 }
 
+let messageSeqNum = 0;
+
 export class RecoveryResponse extends SystemMessage {
 	requestId: string;
 	payload: [SystemMessage, MessageMetadata][];
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
-		seqNum,
+		seqNum = messageSeqNum++,
 		requestId,
 		payload,
 	}: RecoveryResponseOptions) {

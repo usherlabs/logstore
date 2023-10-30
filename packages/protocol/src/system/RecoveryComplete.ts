@@ -9,13 +9,15 @@ interface RecoveryCompleteOptions extends SystemMessageOptions {
 	isFulfilled: boolean;
 }
 
+let messageSeqNum = 0;
+
 export class RecoveryComplete extends SystemMessage {
 	requestId: string;
 	isFulfilled: boolean;
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
-		seqNum,
+		seqNum = messageSeqNum++,
 		requestId,
 		isFulfilled,
 	}: RecoveryCompleteOptions) {

@@ -6,7 +6,7 @@ import hre from 'hardhat';
 import path from 'path';
 import redstone from 'redstone-api';
 
-import ContractAddresses from '../address.json';
+// import ContractAddresses from '../address.json';
 import { STREAMR_REGISTRY_ADDRESS } from './addresses';
 
 export const getChainId = async () =>
@@ -21,7 +21,16 @@ export const toBigDecimal = (amount: number, exponent = 18) => {
 	return ethers.BigNumber.from(`${amount}${'0'.repeat(exponent)}`);
 };
 
+// 0xb341829f43EaF631C73D29dcd3C26637d1695e42
+
 export async function getNodeManagerInputParameters(stakeTokenAddress: string) {
+	//@dev when deploying on remix, convert all single quotes to double quotes
+	const initialStreams = [
+		['LOGSTORE_HEARTBEAT_STREAM', '/heartbeat', '{ "partitions": 1}'],
+		['LOGSTORE_RECOVERY_STREAM', '/recovery', '{ "partitions": 1}'],
+		['LOGSTORE_SYSTEM_STREAM', '/system', '{ "partitions": 1}'],
+	];
+
 	// define important params
 	const chainId = await getChainId();
 	const [adminAccount] = await getAccounts();
@@ -34,6 +43,7 @@ export async function getNodeManagerInputParameters(stakeTokenAddress: string) {
 		STREAMR_REGISTRY_ADDRESS[chainId],
 		[],
 		[],
+		initialStreams,
 	];
 
 	return initialParameters;
