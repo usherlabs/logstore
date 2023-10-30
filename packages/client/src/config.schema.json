@@ -233,17 +233,17 @@
 				"logStoreStoreManagerChainAddress": {
 					"type": "string",
 					"format": "ethereum-address",
-					"default": "0x2d3E079B3329baF96DFb6eB176D41a6D894E388e"
+					"default": "0x4122433b76a7aE5CF56C539BC0D59bacd53EF5c5"
 				},
 				"logStoreTokenManagerChainAddress": {
 					"type": "string",
 					"format": "ethereum-address",
-					"default": "0xceb09e8cfc96dd0ea9081c4cfa7092c06153461a"
+					"default": "0x365Bdc64E2aDb50E43E56a53B7Cc438d48D0f0DD"
 				},
 				"logStoreQueryManagerChainAddress": {
 					"type": "string",
 					"format": "ethereum-address",
-					"default": "0x37444ddbfcE5Ab8622735A6F4a4a46a9e9dA78f9"
+					"default": "0xF609f73B908f39856659aEdc45C37513792ac4e5"
 				},
 				"mainChainRPCs": {
 					"anyOf": [
