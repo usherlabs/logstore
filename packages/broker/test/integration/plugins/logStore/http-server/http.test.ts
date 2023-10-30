@@ -4,6 +4,7 @@ import {
 	NodeMetadata,
 	Stream,
 	StreamPermission,
+	verify,
 } from '@logsn/client';
 import {
 	LogStoreManager,
@@ -21,14 +22,24 @@ import {
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
 import { Tracker } from '@streamr/network-tracker';
-import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
-import { wait } from '@streamr/utils';
+import {
+	createSignaturePayload,
+	MessageID,
+	StreamMessage,
+} from '@streamr/protocol';
+import {
+	fastWallet,
+	fetchPrivateKeyWithGas,
+	KeyServer,
+} from '@streamr/test-utils';
+import { toEthereumAddress, wait } from '@streamr/utils';
 import axios from 'axios';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
 import { Readable } from 'stream';
 
 import { Broker } from '../../../../../src/broker';
+import { toObject } from '../../../../../src/plugins/logStore/http/DataQueryFormat';
 import {
 	createLogStoreClient,
 	createTestStream,
@@ -49,7 +60,7 @@ const BROKER_URL = 'http://127.0.0.1:7171';
 // 1. TRACKER_PORT = undefined - run the test against the brokers running in dev-env and brokers run by the test script.
 // 2. TRACKER_PORT = 17771 - run the test against only brokers run by the test script.
 //    In this case dev-env doesn't run any brokers and there is no brokers joined the network (NodeManager.totalNodes == 0)
-const TRACKER_PORT = undefined;
+const TRACKER_PORT = 17771;
 
 // setting a more easy to test limit
 const mockTestLimit = BASE_NUMBER_OF_MESSAGES + 10;
@@ -366,6 +377,81 @@ describe('http works', () => {
 			// VVVVVVVVVVVVVVVVVVVV
 			// expectAllItemsToBeEqual(queryResponses);
 		});
+
+		test('Format is correct and response is verifiable', async () => {
+			await publishMessages(BASE_NUMBER_OF_MESSAGES);
+
+			const queryUrlLast = await createQueryUrl({
+				type: 'last',
+				options: { format: 'object', count: BASE_NUMBER_OF_MESSAGES },
+			});
+
+			const { token } = await consumerClient.apiAuth();
+
+			const queryResponse = await performQuery({
+				queryUrl: queryUrlLast,
+				token,
+			});
+
+			expect(queryResponse.messages).toHaveLength(BASE_NUMBER_OF_MESSAGES);
+			const modelMessage: ReturnType<typeof toObject> =
+				queryResponse.messages[0];
+			expect(modelMessage).toEqual({
+				metadata: {
+					id: expect.any(Object),
+					prevMsgRef: expect.any(Object), // can be null
+					messageType: expect.any(Number),
+					contentType: expect.any(Number),
+					encryptionType: expect.any(Number),
+					groupKeyId: expect.any(String),
+					newGroupKey: expect.any(Object), // can be null
+					signature: expect.any(String),
+				},
+				content: expect.any(String),
+			});
+
+			const metadata = modelMessage.metadata;
+
+			const streamMessage = new StreamMessage({
+				messageId: new MessageID(
+					metadata.id.streamId,
+					metadata.id.streamPartition,
+					metadata.id.timestamp,
+					metadata.id.sequenceNumber,
+					metadata.id.publisherId,
+					metadata.id.msgChainId
+				),
+				content: modelMessage.content,
+				contentType: metadata.contentType,
+				encryptionType: metadata.encryptionType,
+				groupKeyId: metadata.groupKeyId,
+				messageType: metadata.messageType,
+				signature: metadata.signature,
+				newGroupKey: metadata.newGroupKey,
+				prevMsgRef: metadata.prevMsgRef,
+			});
+
+			const payload = createSignaturePayload({
+				messageId: streamMessage.messageId,
+				serializedContent: streamMessage.getSerializedContent(),
+				prevMsgRef: streamMessage.getPreviousMessageRef() ?? undefined,
+				newGroupKey: streamMessage.getNewGroupKey() ?? undefined,
+			});
+
+			const verification = verify(
+				toEthereumAddress(publisherAccount.address),
+				payload,
+				metadata.signature
+			);
+			const badVerification = verify(
+				toEthereumAddress(fastWallet().address),
+				payload,
+				metadata.signature
+			);
+
+			expect(verification).toBe(true);
+			expect(badVerification).toBe(false);
+		});
 	});
 
 	describe('Stream responses', () => {
@@ -464,20 +550,6 @@ describe('http works', () => {
 			// const response = await streamToMessages(httpStream);
 			queryResponses.forEach((response) => {
 				expect(response).toHaveLength(BASE_NUMBER_OF_MESSAGES);
-				expect(response[0]).toMatchObject({
-					streamId: expect.any(String),
-					streamPartition: expect.any(Number),
-					timestamp: expect.any(Number),
-					sequenceNumber: expect.any(Number),
-					publisherId: expect.any(String),
-					msgChainId: expect.any(String),
-					messageType: expect.any(Number),
-					contentType: expect.any(Number),
-					encryptionType: expect.any(Number),
-					groupKeyId: expect.any(String),
-					content: expect.any(String),
-					signature: expect.any(String),
-				});
 			});
 			expectAllItemsToBeEqual(queryResponses);
 		});
@@ -506,20 +578,6 @@ describe('http works', () => {
 
 			queryResponses.forEach((resp) => {
 				expect(resp).toHaveLength(MESSAGES_ABOVE_QUERY_LIMIT);
-				expect(resp[0]).toMatchObject({
-					streamId: expect.any(String),
-					streamPartition: expect.any(Number),
-					timestamp: expect.any(Number),
-					sequenceNumber: expect.any(Number),
-					publisherId: expect.any(String),
-					msgChainId: expect.any(String),
-					messageType: expect.any(Number),
-					contentType: expect.any(Number),
-					encryptionType: expect.any(Number),
-					groupKeyId: expect.any(String),
-					content: expect.any(String),
-					signature: expect.any(String),
-				});
 			});
 			expectAllItemsToBeEqual(queryResponses);
 		});

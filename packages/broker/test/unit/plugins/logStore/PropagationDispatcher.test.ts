@@ -1,4 +1,4 @@
-import { MessageListener, MessageMetadata } from '@logsn/client';
+import { MessageListener, MessageMetadata, sign } from '@logsn/client';
 import { QueryPropagate, QueryResponse } from '@logsn/protocol';
 import {
 	createSignaturePayload,
@@ -6,19 +6,22 @@ import {
 	StreamMessage,
 	toStreamID,
 } from '@streamr/protocol';
+import { fastWallet } from '@streamr/test-utils';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
+import { Wallet } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
 
+import { Heartbeat } from '../../../../src/plugins/logStore/Heartbeat';
 import { LogStore } from '../../../../src/plugins/logStore/LogStore';
-import { PropagationServer } from '../../../../src/plugins/logStore/PropagationServer';
+import { PropagationDispatcher } from '../../../../src/plugins/logStore/PropagationDispatcher';
+import { PropagationResolver } from '../../../../src/plugins/logStore/PropagationResolver';
+import { QueryResponseManager } from '../../../../src/plugins/logStore/QueryResponseManager';
 import { BroadbandPublisher } from '../../../../src/shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../../../src/shared/BroadbandSubscriber';
 
 const streamId = toStreamID('testStream');
 const streamPartition = 0;
-const streamPublisher = toEthereumAddress(
-	'0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-);
+const streamPublisher = fastWallet();
 const primaryBrokerId = toEthereumAddress(
 	'0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 );
@@ -52,21 +55,30 @@ const requestId = 'aaaa-bbbb-cccc';
 function buildMsg(
 	timestamp: number,
 	sequenceNumber: number,
-	publisherId: EthereumAddress,
+	publisherWallet: Wallet,
 	msgChainId = '1',
 	content: any = {}
 ) {
+	const publisherId = toEthereumAddress(publisherWallet.address);
+	const messageID = new MessageID(
+		toStreamID(streamId),
+		streamPartition,
+		timestamp,
+		sequenceNumber,
+		publisherId,
+		msgChainId
+	);
+	const serializedContent = JSON.stringify(content);
+	const payload = createSignaturePayload({
+		messageId: messageID,
+		serializedContent,
+	});
+	const signature = sign(payload, publisherWallet.privateKey);
+
 	return new StreamMessage({
-		messageId: new MessageID(
-			toStreamID(streamId),
-			streamPartition,
-			timestamp,
-			sequenceNumber,
-			publisherId,
-			msgChainId
-		),
-		content: JSON.stringify(content),
-		signature: 'signature',
+		messageId: messageID,
+		content: serializedContent,
+		signature: signature,
 	});
 }
 
@@ -104,13 +116,18 @@ function buildQueryPropagate(
 	});
 }
 
-describe(PropagationServer, () => {
+describe(PropagationDispatcher, () => {
 	let logStore: LogStore;
 	let publisher: BroadbandPublisher;
 	let subscriber: BroadbandSubscriber;
-	let propagationServer: PropagationServer;
+	let propagationDispatcher: PropagationDispatcher;
+	let queryResponseManager: QueryResponseManager;
 
-	let subscriberOnMessage: MessageListener;
+	const listeners = new Set<MessageListener>();
+
+	const broadcastToListeners = (message: string, metadata: MessageMetadata) => {
+		listeners.forEach((listener) => listener(message, metadata));
+	};
 
 	const emulateQueryResponse = (
 		requestPublisherId: EthereumAddress,
@@ -128,7 +145,7 @@ describe(PropagationServer, () => {
 			signature: '',
 		};
 
-		subscriberOnMessage(queryResponse.serialize(), metadata);
+		broadcastToListeners(queryResponse.serialize(), metadata);
 	};
 
 	beforeEach(() => {
@@ -146,11 +163,34 @@ describe(PropagationServer, () => {
 
 		subscriber = {
 			subscribe: jest.fn().mockImplementation((onMessage) => {
-				subscriberOnMessage = onMessage;
+				listeners.add(onMessage);
 			}),
-		} as unknown as BroadbandSubscriber;
+			unsubscribe: async () => {
+				// will destroy all, but we're ok as it happens between tests
+				listeners.clear();
+			},
+		} satisfies Partial<BroadbandSubscriber> as unknown as BroadbandSubscriber;
 
-		propagationServer = new PropagationServer(logStore, publisher, subscriber);
+		propagationDispatcher = new PropagationDispatcher(logStore, publisher);
+
+		const propagationResolver = new PropagationResolver(
+			logStore,
+			{} as unknown as Heartbeat,
+			subscriber
+		);
+
+		queryResponseManager = new QueryResponseManager(
+			publisher,
+			subscriber,
+			propagationResolver,
+			propagationDispatcher
+		);
+
+		queryResponseManager.start(primaryBrokerId);
+	});
+
+	afterEach(() => {
+		queryResponseManager.stop();
 	});
 
 	it('do not propagate if no missing messages', async () => {
@@ -160,15 +200,13 @@ describe(PropagationServer, () => {
 			msgHashMap_3,
 		]);
 
-		await propagationServer.start();
-
 		emulateQueryResponse(primaryBrokerId, foreignBrokerId_1, [
 			msgHashMap_1,
 			msgHashMap_2,
 			msgHashMap_3,
 		]);
 
-		await propagationServer.setForeignResponse(foreignQueryResponse);
+		await propagationDispatcher.setForeignResponse(foreignQueryResponse);
 
 		expect(publisher.publish).toBeCalledTimes(0);
 	});
@@ -180,14 +218,12 @@ describe(PropagationServer, () => {
 			msgHashMap_3,
 		]);
 
-		await propagationServer.start();
-
 		emulateQueryResponse(primaryBrokerId, primaryBrokerId, [
 			msgHashMap_1,
 			msgHashMap_2,
 		]);
 
-		await propagationServer.setForeignResponse(foreignQueryResponse);
+		await propagationDispatcher.setForeignResponse(foreignQueryResponse);
 
 		const queryPropagate = buildQueryPropagate(primaryBrokerId, [
 			[msgId_3, msg_3.serialize()],

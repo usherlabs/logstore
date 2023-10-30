@@ -4,6 +4,9 @@ import { StreamMessage, StreamMessageType } from '@streamr/protocol';
 import { LogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 
+/**
+ * Represents a message listener for storing messages in a log store.
+ */
 export class MessageListener {
 	private logStore?: LogStore;
 	private logStoreConfig?: LogStoreConfig;
@@ -17,6 +20,7 @@ export class MessageListener {
 		this.logStoreConfig = logStoreConfig;
 
 		const node = await this.logStoreClient.getNode();
+		// Subscribe to all stream partitions at logstore registry
 		node.addMessageListener(this.onStreamMessage.bind(this));
 	}
 

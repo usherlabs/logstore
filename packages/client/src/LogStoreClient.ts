@@ -1,6 +1,5 @@
 import type {
 	MessageListener,
-	MessageStream,
 	Stream,
 	StreamDefinition,
 } from '@logsn/streamr-client';
@@ -18,6 +17,7 @@ import {
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
+import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { HttpApiQueryDict, Queries, QueryOptions, QueryType } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { QueryManager } from './registry/QueryManager';
@@ -103,7 +103,7 @@ export class LogStoreClient extends StreamrClient {
 		streamDefinition: StreamDefinition,
 		options: QueryOptions,
 		onMessage?: MessageListener
-	): Promise<MessageStream> {
+	): Promise<LogStoreMessageStream> {
 		const streamPartId = await this.streamIdBuilder.toStreamPartID(
 			streamDefinition
 		);
