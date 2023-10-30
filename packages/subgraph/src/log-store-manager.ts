@@ -1,19 +1,23 @@
 import {
 	AdminChanged as AdminChangedEvent,
 	BeaconUpgraded as BeaconUpgradedEvent,
+	CaptureOverflow as CaptureOverflowEvent,
 	DataStored as DataStoredEvent,
 	Initialized as InitializedEvent,
 	OwnershipTransferred as OwnershipTransferredEvent,
 	StoreUpdated as StoreUpdatedEvent,
+	SupplyOverflow as SupplyOverflowEvent,
 	Upgraded as UpgradedEvent,
 } from '../generated/LogStoreManager/LogStoreManager';
 import {
 	AdminChanged,
 	BeaconUpgraded,
+	CaptureOverflow,
 	DataStored,
 	Initialized,
 	OwnershipTransferred,
 	StoreUpdated,
+	SupplyOverflow,
 	Upgraded,
 } from '../generated/schema';
 
@@ -36,6 +40,22 @@ export function handleBeaconUpgraded(event: BeaconUpgradedEvent): void {
 		event.transaction.hash.concatI32(event.logIndex.toI32())
 	);
 	entity.beacon = event.params.beacon;
+
+	entity.blockNumber = event.block.number;
+	entity.blockTimestamp = event.block.timestamp;
+	entity.transactionHash = event.transaction.hash;
+
+	entity.save();
+}
+
+export function handleCaptureOverflow(event: CaptureOverflowEvent): void {
+	let entity = new CaptureOverflow(
+		event.transaction.hash.concatI32(event.logIndex.toI32())
+	);
+	entity.store = event.params.store;
+	entity.stake = event.params.stake;
+	entity.capture = event.params.capture;
+	entity.overflow = event.params.overflow;
 
 	entity.blockNumber = event.block.number;
 	entity.blockTimestamp = event.block.timestamp;
@@ -95,6 +115,21 @@ export function handleStoreUpdated(event: StoreUpdatedEvent): void {
 	entity.store = event.params.store;
 	entity.isNew = event.params.isNew;
 	entity.amount = event.params.amount;
+
+	entity.blockNumber = event.block.number;
+	entity.blockTimestamp = event.block.timestamp;
+	entity.transactionHash = event.transaction.hash;
+
+	entity.save();
+}
+
+export function handleSupplyOverflow(event: SupplyOverflowEvent): void {
+	let entity = new SupplyOverflow(
+		event.transaction.hash.concatI32(event.logIndex.toI32())
+	);
+	entity.supply = event.params.supply;
+	entity.capture = event.params.capture;
+	entity.overflow = event.params.overflow;
 
 	entity.blockNumber = event.block.number;
 	entity.blockTimestamp = event.block.timestamp;

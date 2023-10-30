@@ -15,6 +15,17 @@ type BeaconUpgraded @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
+type CaptureOverflow @entity(immutable: true) {
+  id: Bytes!
+  store: String! # string
+  stake: BigInt! # uint256
+  capture: BigInt! # uint256
+  overflow: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
 type DataStored @entity(immutable: true) {
   id: Bytes!
   store: String! # string
@@ -47,6 +58,16 @@ type StoreUpdated @entity(immutable: true) {
   store: String! # string
   isNew: Boolean! # bool
   amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type SupplyOverflow @entity(immutable: true) {
+  id: Bytes!
+  supply: BigInt! # uint256
+  capture: BigInt! # uint256
+  overflow: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!
