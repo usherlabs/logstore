@@ -1,18 +1,28 @@
 import { MessageMetadata, StreamMessage } from '@logsn/client';
-import { QueryFromOptions, QueryLastOptions, QueryRangeOptions, QueryRequest, QueryResponse, QueryType, SystemMessage, SystemMessageType } from '@logsn/protocol';
+import {
+	QueryFromOptions,
+	QueryLastOptions,
+	QueryRangeOptions,
+	QueryRequest,
+	QueryResponse,
+	QueryType,
+	SystemMessage,
+	SystemMessageType,
+} from '@logsn/protocol';
 import { createSignaturePayload } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
 
-
-
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
-import { LogStore, MAX_SEQUENCE_NUMBER_VALUE, MIN_SEQUENCE_NUMBER_VALUE } from './LogStore';
+import {
+	LogStore,
+	MAX_SEQUENCE_NUMBER_VALUE,
+	MIN_SEQUENCE_NUMBER_VALUE,
+} from './LogStore';
 import { PropagationResolver } from './PropagationResolver';
 import { QueryResponseManager } from './QueryResponseManager';
-
 
 const logger = new Logger(module);
 
@@ -55,7 +65,6 @@ export class QueryRequestManager {
 
 		const hashMap = await this.getHashMap(readableStream);
 		const queryResponse = new QueryResponse({
-			seqNum: this.seqNum++,
 			requestId: queryRequest.requestId,
 			requestPublisherId: metadata.publisherId,
 			hashMap,
