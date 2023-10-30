@@ -16,10 +16,12 @@ dataSources:
       entities:
         - AdminChanged
         - BeaconUpgraded
+        - CaptureOverflow
         - DataStored
         - Initialized
         - OwnershipTransferred
         - StoreUpdated
+        - SupplyOverflow
         - Upgraded
       abis:
         - name: LogStoreManager
@@ -29,6 +31,8 @@ dataSources:
           handler: handleAdminChanged
         - event: BeaconUpgraded(indexed address)
           handler: handleBeaconUpgraded
+        - event: CaptureOverflow(string,uint256,uint256,uint256)
+          handler: handleCaptureOverflow
         - event: DataStored(string,uint256,uint256)
           handler: handleDataStored
         - event: Initialized(uint8)
@@ -37,6 +41,8 @@ dataSources:
           handler: handleOwnershipTransferred
         - event: StoreUpdated(string,bool,uint256)
           handler: handleStoreUpdated
+        - event: SupplyOverflow(uint256,uint256,uint256)
+          handler: handleSupplyOverflow
         - event: Upgraded(indexed address)
           handler: handleUpgraded
       file: ./src/log-store-manager.ts
