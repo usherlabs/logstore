@@ -8,7 +8,9 @@ export interface Format {
 	contentType: string;
 	delimiter: string;
 	header: string;
-	footer: ((metadata: Record<string, any>) => string) | string;
+	footer:
+		| ((metadata: Record<string, any>, isStreamed?: boolean) => string[])
+		| string;
 }
 
 const createJsonFormat = (
@@ -22,7 +24,13 @@ const createJsonFormat = (
 		contentType: 'application/json',
 		delimiter: ',',
 		header: '{"messages":[',
-		footer: (metadata) => `],"metadata":${JSON.stringify(metadata)}}`,
+		footer: (metadata, isStreamed) => {
+			const metadataString = JSON.stringify({
+				...metadata,
+				type: 'metadata',
+			});
+			return [isStreamed ? metadataString : `],"metadata":${metadataString}}`];
+		},
 	};
 };
 
@@ -37,7 +45,11 @@ const createPlainTextFormat = (
 		contentType: 'text/plain',
 		delimiter: '\n',
 		header: '',
-		footer: '',
+		// on the end of the stream, we send the metadata as the last message
+		footer: (metadata) => [
+			'\n',
+			JSON.stringify({ ...metadata, type: 'metadata' }),
+		],
 	};
 };
 

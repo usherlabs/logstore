@@ -9,7 +9,7 @@ import {
 	StreamResponseTransform,
 } from './dataTransformers';
 import { getMessageLimitForRequest } from './messageLimiter';
-import { isStreamRequest } from './utils';
+import { hasToVerifyNetworkResponses, isStreamRequest } from './utils';
 
 const logger = new Logger(module);
 
@@ -18,6 +18,8 @@ export const sendSuccess = (
 	format: Format,
 	version: number | undefined,
 	streamId: string,
+	requestId: string,
+	participatingBrokers: string[],
 	req: Request,
 	res: Response
 ) => {
@@ -40,6 +42,14 @@ export const sendSuccess = (
 		? new StreamResponseTransform(format, version)
 		: new ResponseTransform(format, version);
 
+	if (hasToVerifyNetworkResponses(req)) {
+		responseTransform.updateMetadata((metadata) => ({
+			...metadata,
+			participatingNodesAddress: participatingBrokers,
+			requestId: requestId,
+		}));
+	}
+
 	const messageLimitForRequest = getMessageLimitForRequest(req);
 
 	const messageLimitTransform = new MessageLimitTransform(
@@ -48,10 +58,12 @@ export const sendSuccess = (
 
 	messageLimitTransform.onMessageLimitReached(({ nextMessage }) => {
 		if (responseTransform instanceof ResponseTransform) {
-			responseTransform.setMetadata({
+			responseTransform.updateMetadata((metadata) => ({
+				...metadata,
 				hasNext: true,
 				nextTimestamp: nextMessage.getTimestamp(),
-			});
+				nextSequenceNumber: nextMessage.getSequenceNumber(),
+			}));
 		}
 	});
 

@@ -20,7 +20,7 @@ const RESPONSES_THRESHOLD = 1.0;
 class QueryPropagationState {
 	private primaryResponseHashMap: Map<string, string>;
 	private awaitingMessageIds: Map<string, string>;
-	private respondedBrokers: Map<EthereumAddress, boolean>;
+	public respondedBrokers: Map<EthereumAddress, boolean>;
 
 	constructor(queryResponse: QueryResponse, onlineBrokers: EthereumAddress[]) {
 		this.primaryResponseHashMap = queryResponse.hashMap;
@@ -116,7 +116,10 @@ export class PropagationResolver {
 		RequestId,
 		QueryPropagationState
 	>;
-	private readonly queryCallbacks: Map<RequestId, () => void>;
+	private readonly queryCallbacks: Map<
+		RequestId,
+		(participatedNodes: string[]) => void
+	>;
 
 	constructor(
 		private readonly logStore: LogStore,
@@ -139,17 +142,20 @@ export class PropagationResolver {
 		let timeout: NodeJS.Timeout;
 
 		return Promise.race([
-			new Promise<void>((_, reject) => {
+			new Promise<never>((_, reject) => {
 				timeout = setTimeout(() => {
 					this.clean(queryRequest.requestId);
 					reject('Propagation timeout');
 				}, TIMEOUT);
 			}),
-			new Promise<void>((resolve) => {
-				this.queryCallbacks.set(queryRequest.requestId, () => {
-					clearTimeout(timeout);
-					resolve();
-				});
+			new Promise<{ participatingNodes: string[] }>((resolve) => {
+				this.queryCallbacks.set(
+					queryRequest.requestId,
+					(participatingNodes) => {
+						clearTimeout(timeout);
+						resolve({ participatingNodes });
+					}
+				);
 			}),
 		]);
 	}
@@ -243,7 +249,7 @@ export class PropagationResolver {
 
 			this.clean(requestId);
 			if (callback) {
-				callback();
+				callback(Array.from(queryState.respondedBrokers.keys()));
 			}
 		}
 	}

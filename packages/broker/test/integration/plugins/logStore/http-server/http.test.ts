@@ -477,26 +477,33 @@ describe('http works', () => {
 		};
 
 		function streamToMessages(httpStream: Promise<Readable>) {
-			return new Promise<any[]>((resolve, reject) => {
-				const messages: any[] = [];
-				httpStream
-					.then((stream) => {
-						stream.on('data', (chunk) => {
-							// we know this chunk is a string as per our code, and not binary or any other type of data
-							const eventFromChunk = JSON.parse(chunk.toString());
-							messages.push(eventFromChunk);
-						});
-						stream.on('end', () => {
-							resolve(messages);
-						});
-						stream.on('error', (err) => {
+			return new Promise<{ messages: StreamMessage[]; metadata: any }>(
+				(resolve, reject) => {
+					const messages: any[] = [];
+					let metadata: any = {};
+					httpStream
+						.then((stream) => {
+							stream.on('data', (chunk) => {
+								// we know this chunk is a string as per our code, and not binary or any other type of data
+								const eventFromChunk = JSON.parse(chunk.toString());
+								if (Array.isArray(eventFromChunk)) {
+									messages.push(StreamMessage.deserialize(eventFromChunk));
+								} else {
+									metadata = eventFromChunk;
+								}
+							});
+							stream.on('end', () => {
+								resolve({ messages, metadata });
+							});
+							stream.on('error', (err) => {
+								reject(err);
+							});
+						})
+						.catch((err) => {
 							reject(err);
 						});
-					})
-					.catch((err) => {
-						reject(err);
-					});
-			});
+				}
+			);
 		}
 
 		test('gets raw responses correctly', async () => {
@@ -521,7 +528,7 @@ describe('http works', () => {
 			);
 
 			queryResponses.forEach((response) => {
-				expect(response).toHaveLength(BASE_NUMBER_OF_MESSAGES);
+				expect(response.messages).toHaveLength(BASE_NUMBER_OF_MESSAGES);
 			});
 
 			expectAllItemsToBeEqual(queryResponses);
@@ -549,7 +556,7 @@ describe('http works', () => {
 
 			// const response = await streamToMessages(httpStream);
 			queryResponses.forEach((response) => {
-				expect(response).toHaveLength(BASE_NUMBER_OF_MESSAGES);
+				expect(response.messages).toHaveLength(BASE_NUMBER_OF_MESSAGES);
 			});
 			expectAllItemsToBeEqual(queryResponses);
 		});
@@ -577,7 +584,7 @@ describe('http works', () => {
 			);
 
 			queryResponses.forEach((resp) => {
-				expect(resp).toHaveLength(MESSAGES_ABOVE_QUERY_LIMIT);
+				expect(resp.messages).toHaveLength(MESSAGES_ABOVE_QUERY_LIMIT);
 			});
 			expectAllItemsToBeEqual(queryResponses);
 		});
