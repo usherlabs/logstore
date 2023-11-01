@@ -46,10 +46,11 @@ const createPlainTextFormat = (
 		delimiter: '\n',
 		header: '',
 		// on the end of the stream, we send the metadata as the last message
-		footer: (metadata) => [
-			'\n',
-			JSON.stringify({ ...metadata, type: 'metadata' }),
-		],
+		footer: (metadata, isStreamed) => {
+			const metadataString = JSON.stringify({ ...metadata, type: 'metadata' });
+			// delimiters are not used when streaming
+			return isStreamed ? [metadataString] : ['\n', metadataString];
+		},
 	};
 };
 
