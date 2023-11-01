@@ -11,14 +11,18 @@ import {
 	StreamRegistryCached,
 	StrictStreamrClientConfig,
 } from '@logsn/streamr-client';
-import { StreamPartIDUtils } from '@streamr/protocol';
+import { StreamMessage, StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
+import { defer, EMPTY, partition, shareReplay } from 'rxjs';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
 import { LogStoreClientConfigInjectionToken } from './Config';
 import { HttpUtil } from './HttpUtil';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
+import { validateWithNetworkResponses } from './utils/networkValidation/validateNetworkResponses';
+import { SystemMessageObservable } from './utils/SystemMessageObservable';
+import { LogStoreClientSystemMessagesInjectionToken } from './utils/systemStreamUtils';
 import { counterId } from './utils/utils';
 
 const MIN_SEQUENCE_NUMBER_VALUE = 0;
@@ -92,7 +96,7 @@ export interface QueryRangeOptions {
 /**
  * The supported Query types.
  */
-export type QueryOptions =
+export type QueryInput =
 	| QueryLastOptions
 	| QueryFromOptions
 	| QueryRangeOptions;
@@ -127,6 +131,10 @@ function isQueryRange<T extends QueryRangeOptions>(options: any): options is T {
 	);
 }
 
+export type QueryOptions = {
+	verifyNetworkResponses?: boolean;
+};
+
 @scoped(Lifecycle.ContainerScoped)
 export class Queries implements IResends {
 	private readonly streamRegistryCached: StreamRegistryCached;
@@ -152,7 +160,9 @@ export class Queries implements IResends {
 		@inject(LogStoreClientConfigInjectionToken)
 		config: StrictStreamrClientConfig,
 		@inject(LoggerFactory)
-		loggerFactory: LoggerFactory
+		loggerFactory: LoggerFactory,
+		@inject(LogStoreClientSystemMessagesInjectionToken)
+		private systemMessages$: SystemMessageObservable
 	) {
 		this.streamRegistryCached = streamRegistryCached;
 		this.nodeManager = nodeManager;
@@ -166,45 +176,53 @@ export class Queries implements IResends {
 
 	async query(
 		streamPartId: StreamPartID,
-		options: QueryOptions
+		input: QueryInput,
+		options?: QueryOptions
 	): Promise<LogStoreMessageStream> {
-		if (isQueryLast(options)) {
-			return this.last(streamPartId, {
-				count: options.last,
-			});
+		if (isQueryLast(input)) {
+			const inputObject = {
+				count: input.last,
+			};
+			return this.last(streamPartId, inputObject, options);
 		}
 
-		if (isQueryRange(options)) {
-			return new LogStoreMessageStream(
-				await this.range(streamPartId, {
-					fromTimestamp: new Date(options.from.timestamp).getTime(),
-					fromSequenceNumber: options.from.sequenceNumber,
-					toTimestamp: new Date(options.to.timestamp).getTime(),
-					toSequenceNumber: options.to.sequenceNumber,
+		if (isQueryRange(input)) {
+			return this.logStoreRange(
+				streamPartId,
+				{
+					fromTimestamp: new Date(input.from.timestamp).getTime(),
+					fromSequenceNumber: input.from.sequenceNumber,
+					toTimestamp: new Date(input.to.timestamp).getTime(),
+					toSequenceNumber: input.to.sequenceNumber,
 					publisherId:
-						options.publisherId !== undefined
-							? toEthereumAddress(options.publisherId)
+						input.publisherId !== undefined
+							? toEthereumAddress(input.publisherId)
 							: undefined,
-					msgChainId: options.msgChainId,
-				})
+					msgChainId: input.msgChainId,
+				},
+				options
 			);
 		}
 
-		if (isQueryFrom(options)) {
-			return this.from(streamPartId, {
-				fromTimestamp: new Date(options.from.timestamp).getTime(),
-				fromSequenceNumber: options.from.sequenceNumber,
-				publisherId:
-					options.publisherId !== undefined
-						? toEthereumAddress(options.publisherId)
-						: undefined,
-			});
+		if (isQueryFrom(input)) {
+			return this.from(
+				streamPartId,
+				{
+					fromTimestamp: new Date(input.from.timestamp).getTime(),
+					fromSequenceNumber: input.from.sequenceNumber,
+					publisherId:
+						input.publisherId !== undefined
+							? toEthereumAddress(input.publisherId)
+							: undefined,
+				},
+				options
+			);
 		}
 
 		throw new StreamrClientError(
 			`can not query without valid query options: ${JSON.stringify({
 				streamPartId,
-				options,
+				options: input,
 			})}`,
 			'INVALID_ARGUMENT'
 		);
@@ -213,7 +231,8 @@ export class Queries implements IResends {
 	private async fetchStream(
 		queryType: QueryType,
 		streamPartId: StreamPartID,
-		query: HttpApiQueryDict
+		query: HttpApiQueryDict,
+		options?: QueryOptions
 	): Promise<LogStoreMessageStream> {
 		const loggerIdx = counterId('fetchStream');
 		this.logger.debug(
@@ -229,6 +248,7 @@ export class Queries implements IResends {
 			...query,
 			// we will get raw request to desserialize and decrypt
 			format: 'raw',
+			verifyNetworkResponses: options?.verifyNetworkResponses,
 		});
 		const messageStream = createSubscribePipeline({
 			streamPartId,
@@ -240,9 +260,22 @@ export class Queries implements IResends {
 			loggerFactory: this.loggerFactory,
 		});
 
-		const dataStream = this.httpUtil.fetchHttpStream(url);
+		const dataStream = defer(() => this.httpUtil.fetchHttpStream(url)).pipe(
+			shareReplay({
+				refCount: true,
+			})
+		);
+
+		const isStreamMessage = (msg: any): msg is StreamMessage =>
+			msg instanceof StreamMessage;
+
+		const [messagesSource, metadataSource] = partition(
+			dataStream,
+			isStreamMessage
+		);
+
 		messageStream.pull(
-			counting(dataStream, (count: number) => {
+			counting(messagesSource, (count: number) => {
 				this.logger.debug(
 					'[%s] total of %d messages received for query fetch',
 					loggerIdx,
@@ -250,22 +283,49 @@ export class Queries implements IResends {
 				);
 			})
 		);
-		return new LogStoreMessageStream(messageStream);
+
+		const logStoreMessageStream = new LogStoreMessageStream(
+			messageStream,
+			metadataSource
+		);
+
+		if (options?.verifyNetworkResponses) {
+			await validateWithNetworkResponses({
+				queryInput: {
+					query,
+					queryType,
+					streamPartId,
+				},
+				responseStream: logStoreMessageStream,
+				systemMessages$: this.systemMessages$,
+				nodeManager: this.nodeManager,
+				logger: this.logger,
+				queryUrl: nodeUrl,
+			});
+		}
+
+		return logStoreMessageStream;
 	}
 
 	private async last(
 		streamPartId: StreamPartID,
-		{ count }: { count: number }
+		{ count }: { count: number },
+		options?: QueryOptions
 	): Promise<LogStoreMessageStream> {
 		if (count <= 0) {
 			const emptyStream = new MessageStream();
 			emptyStream.endWrite();
-			return new LogStoreMessageStream(emptyStream);
+			return new LogStoreMessageStream(emptyStream, EMPTY);
 		}
 
-		return this.fetchStream(QueryType.Last, streamPartId, {
-			count,
-		});
+		return this.fetchStream(
+			QueryType.Last,
+			streamPartId,
+			{
+				count,
+			},
+			options
+		);
 	}
 
 	private async from(
@@ -278,19 +338,22 @@ export class Queries implements IResends {
 			fromTimestamp: number;
 			fromSequenceNumber?: number;
 			publisherId?: EthereumAddress;
-		}
+		},
+		options?: QueryOptions
 	): Promise<LogStoreMessageStream> {
-		return this.fetchStream(QueryType.From, streamPartId, {
-			fromTimestamp,
-			fromSequenceNumber,
-			publisherId,
-		});
+		return this.fetchStream(
+			QueryType.From,
+			streamPartId,
+			{
+				fromTimestamp,
+				fromSequenceNumber,
+				publisherId,
+			},
+			options
+		);
 	}
 
-	/**
-	 * @internal
-	 */
-	async range(
+	async logStoreRange(
 		streamPartId: StreamPartID,
 		{
 			fromTimestamp,
@@ -306,8 +369,9 @@ export class Queries implements IResends {
 			toSequenceNumber?: number;
 			publisherId?: EthereumAddress;
 			msgChainId?: string;
-		}
-	): Promise<MessageStream> {
+		},
+		options?: QueryOptions
+	): Promise<LogStoreMessageStream> {
 		const logStoreStream = await this.fetchStream(
 			QueryType.Range,
 			streamPartId,
@@ -318,8 +382,20 @@ export class Queries implements IResends {
 				toSequenceNumber,
 				publisherId,
 				msgChainId,
-			}
+			},
+			options
 		);
+
+		return logStoreStream;
+	}
+
+	/**
+	 * @internal
+	 */
+	async range(
+		...args: Parameters<Queries['logStoreRange']>
+	): Promise<MessageStream> {
+		const logStoreStream = await this.logStoreRange(...args);
 		// This is still returning messageStream, as to be a valid Resend class,
 		// it must not ovewrite this type. It is used when we create the subscription pipeline
 		return logStoreStream.messageStream;
