@@ -3,13 +3,20 @@
  * Subscriptions are MessageStreams.
  * Not all MessageStreams are Subscriptions.
  */
-import { MessageListener, MessageStream } from '@logsn/streamr-client';
+import {
+	type Message,
+	MessageListener,
+	MessageStream,
+} from '@logsn/streamr-client';
 import {
 	EncryptedGroupKey,
 	MessageID,
 	MessageRef,
 	StreamMessage,
 } from '@streamr/protocol';
+import { defer, type Observable, shareReplay } from 'rxjs';
+
+import type { RequestMetadata } from './HttpUtil';
 
 export type LogStoreMessageMetadata = {
 	id: MessageID;
@@ -32,7 +39,19 @@ export type LogStoreMessage = {
  * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of | for await .. of}.
  */
 export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
-	constructor(public messageStream: MessageStream) {}
+	private messages$: Observable<Message>;
+
+	constructor(
+		public messageStream: MessageStream,
+		public metadataStream: Observable<RequestMetadata>
+	) {
+		this.messages$ = defer(() => messageStream).pipe(
+			// TODO this is a hack to be able to use the same MessageStream the user is using,
+			// 	otherwise is hard to check the network state at the same time
+			// so we don't get error if we try to iterate more than once
+			shareReplay({ refCount: true })
+		);
+	}
 
 	/**
 	 * Attach a legacy onMessage handler and consume if necessary.
@@ -43,8 +62,12 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 		return this;
 	}
 
+	public asObservable() {
+		return defer(() => this);
+	}
+
 	async *[Symbol.asyncIterator](): AsyncIterator<LogStoreMessage> {
-		for await (const msg of this.messageStream) {
+		for await (const msg of this.messages$) {
 			// @ts-expect-error this is marked as internal in MessageStream
 			const streamMessage: StreamMessage = msg.streamMessage;
 			yield convertStreamMessageToMessage(streamMessage);

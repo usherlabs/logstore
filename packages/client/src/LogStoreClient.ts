@@ -7,6 +7,7 @@ import { StreamrClient } from '@logsn/streamr-client';
 import { ContractTransaction } from 'ethers';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
+import { map, share, switchMap } from 'rxjs';
 import { container as rootContainer } from 'tsyringe';
 
 import {
@@ -18,11 +19,20 @@ import {
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
-import { HttpApiQueryDict, Queries, QueryOptions, QueryType } from './Queries';
+import { HttpApiQueryDict, Queries, QueryInput, QueryType } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
 import { AmountTypes } from './types';
+import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
+import {
+	systemMessageFromSubscriber,
+	SystemMessageObservable,
+} from './utils/SystemMessageObservable';
+import {
+	LogStoreClientSystemMessagesInjectionToken,
+	systemStreamFromClient,
+} from './utils/systemStreamUtils';
 
 export class LogStoreClient extends StreamrClient {
 	private readonly logStoreRegistry: LogStoreRegistry;
@@ -31,6 +41,7 @@ export class LogStoreClient extends StreamrClient {
 	private readonly logStoreQueryManager: QueryManager;
 	private readonly logstoreTokenManager: TokenManager;
 	private readonly strictConfig: StrictLogStoreClientConfig;
+	private readonly systemMessages$: SystemMessageObservable;
 
 	constructor(
 		config: LogStoreClientConfig = {},
@@ -56,12 +67,26 @@ export class LogStoreClient extends StreamrClient {
 
 		this.strictConfig = strictConfig;
 
+		this.systemMessages$ = systemStreamFromClient(this).pipe(
+			map((stream) => new BroadbandSubscriber(this, stream)),
+			switchMap(systemMessageFromSubscriber),
+			// we share the observable so that multiple subscribers can listen to the same stream
+			// and turn off the subscription when there are no more subscribers
+			share({
+				resetOnRefCountZero: true,
+			})
+		);
+
 		container.register(LogStoreClient, {
 			useValue: this,
 		});
 
 		container.register(LogStoreClientConfigInjectionToken, {
 			useValue: strictConfig,
+		});
+
+		container.register(LogStoreClientSystemMessagesInjectionToken, {
+			useValue: this.systemMessages$,
 		});
 
 		this.logStoreClientEventEmitter =
@@ -94,21 +119,25 @@ export class LogStoreClient extends StreamrClient {
 	 * @category Important
 	 *
 	 * @param streamDefinition - the stream partition for which data should be resent
-	 * @param options - defines the kind of query that should be performed
+	 * @param input - defines the kind of query that should be performed
 	 * @param onMessage - callback will be invoked for each message retrieved
 	 * @returns a {@link MessageStream} that provides an alternative way of iterating messages. Rejects if the stream is
 	 * not stored (i.e. is not assigned to a storage node).
 	 */
 	async query(
 		streamDefinition: StreamDefinition,
-		options: QueryOptions,
-		onMessage?: MessageListener
+		input: QueryInput,
+		onMessage?: MessageListener,
+		options?: {
+			verifyNetworkResponses?: boolean;
+		}
 	): Promise<LogStoreMessageStream> {
 		const streamPartId = await this.streamIdBuilder.toStreamPartID(
 			streamDefinition
 		);
 		const messageStream = await this.logStoreQueries.query(
 			streamPartId,
+			input,
 			options
 		);
 		if (onMessage !== undefined) {
