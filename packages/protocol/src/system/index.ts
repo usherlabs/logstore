@@ -12,7 +12,11 @@ import { QueryResponse } from './QueryResponse';
 import { RecoveryComplete } from './RecoveryComplete';
 import { RecoveryRequest } from './RecoveryRequest';
 import { RecoveryResponse } from './RecoveryResponse';
-import { SystemMessage, SystemMessageType } from './SystemMessage';
+import {
+	SystemMessage,
+	SystemMessageMap,
+	SystemMessageType,
+} from './SystemMessage';
 
 export {
 	ProofOfReport,
@@ -29,4 +33,5 @@ export {
 	RecoveryResponse,
 	SystemMessage,
 	SystemMessageType,
+	SystemMessageMap,
 };
