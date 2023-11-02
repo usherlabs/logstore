@@ -10,14 +10,18 @@ const serializerByVersionAndType: Record<
 const LATEST_VERSION = 1;
 
 export enum SystemMessageType {
-	ProofOfMessageStored = 0,
 	QueryRequest = 1,
 	QueryResponse = 2,
-	ProofOfReport = 3,
+	QueryPropagate = 3,
+	ProofOfReport = 4,
+	RecoveryRequest = 5,
+	RecoveryResponse = 6,
+	RecoveryComplete = 7,
 }
 
 export interface SystemMessageOptions {
 	version?: number;
+	seqNum?: number;
 }
 
 export class SystemMessage {
@@ -25,8 +29,13 @@ export class SystemMessage {
 
 	version: number;
 	messageType: SystemMessageType;
+	seqNum: number;
 
-	constructor(version = LATEST_VERSION, messageType: SystemMessageType) {
+	constructor(
+		version = LATEST_VERSION,
+		messageType: SystemMessageType,
+		seqNum: number
+	) {
 		if (new.target === SystemMessage) {
 			throw new TypeError('SystemMessage is abstract.');
 		}
@@ -34,6 +43,7 @@ export class SystemMessage {
 		this.version = version;
 		validateIsInteger('type', messageType);
 		this.messageType = messageType;
+		this.seqNum = seqNum;
 	}
 
 	static registerSerializer(

@@ -25,7 +25,7 @@ type ContractReportPayload = [
 	...ReportContractParams,
 	string[],
 	number[],
-	string[]
+	string[],
 ];
 type ReportData = {
 	report: IReportV1;

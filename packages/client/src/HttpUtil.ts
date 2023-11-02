@@ -5,15 +5,13 @@ import {
 	WebStreamToNodeStream,
 } from '@logsn/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
-import { Logger, toEthereumAddress } from '@streamr/utils';
-import { ethers } from 'ethers';
+import { Logger } from '@streamr/utils';
 import { Base64 } from 'js-base64';
 import fetch, { Response } from 'node-fetch';
 import split2 from 'split2';
 import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
-import { Consensus } from './Consensus';
 import { getVersionString } from './utils/utils';
 
 export enum ErrorCode {
@@ -99,40 +97,18 @@ export class HttpUtil {
 		url: string,
 		abortController = new AbortController()
 	): AsyncIterable<StreamMessage> {
-		const authUser = await this.authentication.getAddress();
-		const authPassword = await this.authentication.createMessageSignature(
-			authUser
-		);
+		const { token: authToken } = await this.fetchAuthParams();
 
 		const response = await fetchResponse(url, this.logger, {
 			signal: abortController.signal,
 			headers: {
-				Authorization: `Basic ${Base64.encode(`${authUser}:${authPassword}`)}`,
+				Authorization: `Basic ${authToken}`,
+				// TODO: Implement proper support of SSE
+				// Accept: 'text/event-stream',
 			},
 		});
 		if (!response.body) {
 			throw new Error('No Response Body');
-		}
-
-		try {
-			const consensus = JSON.parse(
-				response.headers.get('consensus') ?? ''
-			) as Consensus[];
-
-			const hash = consensus[0].hash;
-
-			for (const item of consensus) {
-				const signer = toEthereumAddress(
-					ethers.utils.verifyMessage(item.hash, item.signature)
-				);
-
-				const itemSigner = toEthereumAddress(item.signer);
-				if (item.hash != hash || itemSigner != signer) {
-					throw new Error('No consensus');
-				}
-			}
-		} catch {
-			throw new Error('No consensus');
 		}
 
 		let stream: Readable | undefined;
@@ -147,6 +123,22 @@ export class HttpUtil {
 					return StreamMessage.deserialize(message);
 				})
 			);
+
+			// TODO: Implement proper support of SSE
+			// stream = source.pipe(
+			// 	new Transform({
+			// 		objectMode: true,
+			// 		transform(
+			// 			chunk: any,
+			// 			encoding: BufferEncoding,
+			// 			done: TransformCallback
+			// 		) {
+			// 			const message = StreamMessage.deserialize(JSON.parse(chunk));
+			// 			this.push(message);
+			// 			done();
+			// 		},
+			// 	})
+			// );
 
 			stream.once('close', () => {
 				abortController.abort();
@@ -167,6 +159,18 @@ export class HttpUtil {
 			Object.entries(query).filter(([_k, v]) => v != null)
 		);
 		return new URLSearchParams(withoutEmpty).toString();
+	}
+
+	async fetchAuthParams() {
+		const user = await this.authentication.getAddress();
+		const password = await this.authentication.createMessageSignature(user);
+		const token = Base64.encode(`${user}:${password}`);
+
+		return {
+			user,
+			password,
+			token,
+		};
 	}
 }
 

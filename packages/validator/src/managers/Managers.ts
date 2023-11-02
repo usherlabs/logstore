@@ -1,10 +1,12 @@
 import { JsonRpcProvider, Provider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
+import { sha256 } from '@kyvejs/protocol';
 import {
 	getNodeManagerContract,
 	getReportManagerContract,
 	getStoreManagerContract,
 } from '@logsn/shared';
+import { cloneDeep } from 'lodash';
 
 import { getEvmPrivateKey } from '../env-config';
 import { NodeManager } from './NodeManager';
@@ -33,7 +35,6 @@ export class Managers {
 		const cReport = await getReportManagerContract(wallet);
 		const cNode = await getNodeManagerContract(wallet);
 
-		// this.store = new StoreManager(this.provider, );
 		this.node = new NodeManager(cNode);
 		this.store = new StoreManager(cStore);
 		this.report = new ReportManager(cReport);
@@ -45,29 +46,128 @@ export class Managers {
 		return block;
 	}
 
+	public async findBlock(ts: number) {
+		const { provider } = this;
+
+		let minId = 0;
+		let maxId = await provider.getBlockNumber();
+
+		let curId: number;
+		let minTs: number;
+		let maxTs: number;
+		let curTs: number;
+
+		const search = async () => {
+			minTs = (await provider.getBlock(minId)).timestamp;
+			maxTs = (await provider.getBlock(maxId)).timestamp;
+
+			curId = Math.round(
+				minId + ((ts - minTs) / (maxTs - minTs)) * (maxId - minId)
+			);
+			curId = Math.min(curId, maxId);
+			curId = Math.max(curId, minId);
+			curTs = (await provider.getBlock(curId)).timestamp;
+		};
+
+		await search();
+
+		while (curTs != ts && minId < maxId) {
+			if (curTs < ts) {
+				minId = curId + 1;
+			} else {
+				maxId = curId - 1;
+			}
+
+			if (maxId === minId) {
+				return maxId;
+			}
+
+			await search();
+		}
+
+		return curId;
+	}
+
+	private static sources: string[];
+	private static sourcesHash: string;
+	private static managers: { source: string; managers: Managers }[];
+
+	public static async setSources(sources: string[]) {
+		const sourcesHash = sha256(Buffer.from(JSON.stringify(sources)));
+
+		if (this.sourcesHash != sourcesHash) {
+			this.managers = await Promise.all(
+				sources.map(async (source) => {
+					const managers = new Managers(source);
+					await managers.init();
+					return {
+						source,
+						managers,
+					};
+				})
+			);
+
+			this.sources = sources;
+			this.sourcesHash = sourcesHash;
+		}
+	}
+
 	/**
 	 * This method encapsulate the iteration over sources and consolidation of result for each Blockchain RPC source.
 	 */
 	public static async withSources<T>(
-		sources: string[],
-		// eslint-disable-next-line
 		fn: (managers: Managers, source: string) => Promise<T>
 	): Promise<T> {
-		const results = [];
-		for (const source of sources) {
-			const managers = new Managers(source);
-			await managers.init();
+		const results = await Promise.all(
+			this.managers.map(async ({ source, managers }) => {
+				return await fn(managers, source);
+			})
+		);
 
-			const result = await fn(managers, source);
-			results.push(result);
-		}
+		const clean = (value: object) => {
+			if (!value) return value;
+
+			if (Array.isArray(value)) {
+				for (const item of value) {
+					clean(item);
+				}
+			}
+
+			// if the object has "provider" property with "connection" property then delete the "provider"
+			if (typeof value === 'object') {
+				for (const key of Object.keys(value)) {
+					if (key === 'provider' && value[key].connection) {
+						delete value[key];
+					} else {
+						clean(value[key]);
+					}
+				}
+			}
+
+			return value;
+		};
 
 		// check if results from the different sources match
-		if (
-			!results.every((b) => JSON.stringify(b) === JSON.stringify(results[0]))
-		) {
-			throw new Error(`Sources returned different results`);
-		}
+		const a = results[0];
+		const srcA = this.sources[0];
+		const objA = clean(cloneDeep(a));
+		const strA = JSON.stringify(objA);
+
+		results.slice(1).forEach((b, i) => {
+			const srcB = this.sources[i + 1];
+			const objB = clean(cloneDeep(b));
+			const strB = JSON.stringify(objB);
+
+			if (strA !== strB) {
+				const diff = {
+					[srcA]: objA,
+					[srcB]: objB,
+				};
+				throw new Error(
+					`Sources returned different results: ${JSON.stringify(diff)}`
+				);
+			}
+		});
 
 		return results[0];
 	}

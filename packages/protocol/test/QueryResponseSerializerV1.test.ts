@@ -6,22 +6,26 @@ import '../src/system/QueryResponseSerializerV1';
 
 const VERSION = 1;
 
+const hashMap = new Map<string, string>();
+hashMap.set('firstMessageId', 'firstMessageHash');
+hashMap.set('secondeMessageId', 'secondeMessageHash');
+
 // Message definitions
 const message = new QueryResponse({
 	version: VERSION,
+	seqNum: 1234,
 	requestId: 'requestId',
-	size: 1024,
-	hash: 'hash',
-	signature: '0123456789ABCDEF',
+	requestPublisherId: 'requestPublisherId',
+	hashMap,
 });
 
 const serializedMessage = JSON.stringify([
 	VERSION,
 	SystemMessageType.QueryResponse,
+	1234,
 	'requestId',
-	1024,
-	'hash',
-	'0123456789ABCDEF',
+	'requestPublisherId',
+	'[["firstMessageId","firstMessageHash"],["secondeMessageId","secondeMessageHash"]]',
 ]);
 
 describe('QueryResponseSerializerV1', () => {

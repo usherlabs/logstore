@@ -11,6 +11,7 @@ export {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from './prepareStake';
-export { getTokenPrice } from './getTokenPrice';
+export { getTokenPrice, getMaticPrice } from './getTokenPrice';
 export { convertFromUsd } from './convertFromUsd';
+export { withRetry } from './withRetry';
 export * from './types';

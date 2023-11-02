@@ -1,95 +1,65 @@
 // import chokidar from 'chokidar';
-import { CONFIG_TEST, LogStoreClient, MessageMetadata } from '@logsn/client';
+import { sha256 } from '@kyvejs/protocol';
+import { LogStoreClient, MessageMetadata } from '@logsn/client';
 import {
-	ProofOfMessageStored,
+	QueryPropagate,
 	QueryRequest,
 	QueryResponse,
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
 import fse from 'fs-extra';
-import type { RootDatabase } from 'lmdb';
 import path from 'path';
 import type { Logger } from 'tslog';
 
-import { getEvmPrivateKey, useStreamrTestConfig } from '../env-config';
-import type {
-	ProofOfMessageStoredMessage,
-	QueryRequestMessage,
-	QueryResponseMessage,
-} from '../types';
-import { Database } from '../utils/database';
+import { BroadbandSubscriber } from '../shared/BroadbandSubscriber';
+import { MessageMetricsSummary } from '../shared/MessageMetricsSummary';
+import { SystemDb } from './SystemDb';
+import { SystemRecovery } from './SystemRecovery';
 
-// -------------> usual storage of QueryRequest and POS in listener cache
-// timestamp(number)|requestId(string) => [{content, metadata},{content, metadata}]
-type ProofOfMessageStoredDatabase = RootDatabase<
-	Array<ProofOfMessageStoredMessage>,
-	number
->;
-type QueryRequestDatabase = RootDatabase<Array<QueryRequestMessage>, number>;
-type QueryResponseDatabase = RootDatabase<Array<QueryResponseMessage>, string>;
-type DB = {
-	[SystemMessageType.ProofOfMessageStored]: ProofOfMessageStoredDatabase;
-	[SystemMessageType.QueryRequest]: QueryRequestDatabase;
-	[SystemMessageType.QueryResponse]: QueryResponseDatabase;
-};
+const LISTENING_MESSAGE_TYPES = [
+	SystemMessageType.QueryRequest,
+	SystemMessageType.QueryResponse,
+	SystemMessageType.QueryPropagate,
+];
 
 export class SystemListener {
-	protected _cachePath: string;
-	private _client: LogStoreClient;
-	private _db!: DB;
-	private _startTime: number;
+	private readonly _cachePath: string;
+	private readonly _db: SystemDb;
+	private _latestTimestamp: number;
 
 	constructor(
 		homeDir: string,
-		protected systemStreamId: string,
-		protected logger: Logger
+		private readonly _client: LogStoreClient,
+		private readonly _systemSubscriber: BroadbandSubscriber,
+		private readonly _systemRecovery: SystemRecovery,
+		private readonly messageMetricsSummary: MessageMetricsSummary,
+		private readonly logger: Logger
 	) {
-		const streamrConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
-		// core.logger.debug('Streamr Config', streamrConfig);
-		this._client = new LogStoreClient({
-			...streamrConfig,
-			auth: {
-				privateKey: getEvmPrivateKey(), // The Validator needs to stake in QueryManager
-			},
-		});
-
 		this._cachePath = path.join(homeDir, '.logstore-metadata');
-	}
-
-	public get startTime() {
-		return this._startTime;
+		this._db = new SystemDb();
 	}
 
 	public get client() {
 		return this._client;
 	}
 
+	public get db() {
+		return this._db;
+	}
+
 	public async start(): Promise<void> {
 		try {
 			await fse.remove(this._cachePath);
-			this._db = {
-				[SystemMessageType.ProofOfMessageStored]: Database.create(
-					'ProofOfMessageStored',
-					this._cachePath
-				),
-				[SystemMessageType.QueryRequest]: Database.create(
-					'QueryRequest',
-					this._cachePath
-				),
-				[SystemMessageType.QueryResponse]: Database.create(
-					'QueryResponse',
-					this._cachePath
-				),
-			} as DB;
 
-			// const systemSubscription =
-			this.logger.info('Starting System Listener ...');
-			this.logger.debug(`System Stream Id: `, this.systemStreamId);
-			await this.subscribe(this.systemStreamId);
+			this._db.open(this._cachePath);
 
-			// Store a timestamp for when the listener starts so that the Node must have a timestamp < bundle_start_key to pariticpate.
-			this._startTime = Date.now();
+			this.logger.info('Starting SystemListener ...');
+			await this._systemSubscriber.subscribe((content, metadata) =>
+				setImmediate(() => this.onMessage(content, metadata))
+			);
+
+			await this._systemRecovery.start(this.onSystemMessage.bind(this));
 		} catch (e) {
 			this.logger.error(`Unexpected error starting listener...`);
 			this.logger.error(e);
@@ -98,124 +68,147 @@ export class SystemListener {
 	}
 
 	public async stop() {
-		await this._client.unsubscribe();
+		await this._systemRecovery.stop();
+		await this._systemSubscriber.unsubscribe();
 	}
 
-	public async subscribe(streamId: string) {
-		await this._client.subscribe(streamId, (content, metadata) => {
-			// eslint-disable-next-line
-			this.onMessage(content as any, metadata);
-		});
-	}
-
-	public storeDb() {
-		return this.db(
-			SystemMessageType.ProofOfMessageStored
-		) as ProofOfMessageStoredDatabase;
-	}
-
-	public queryRequestDb() {
-		return this.db(SystemMessageType.QueryRequest) as QueryRequestDatabase;
-	}
-
-	public queryResponseDb() {
-		return this.db(SystemMessageType.QueryResponse) as QueryResponseDatabase;
-	}
-
-	protected db(type: SystemMessageType) {
-		if (!this._db[type]) {
-			throw new Error('Database is not initialised');
+	public get latestTimestamp() {
+		if (!this._systemRecovery.progress.isComplete) {
+			return this._systemRecovery.progress.timestamp;
 		}
-		return this._db[type];
+		return Math.max(
+			this._latestTimestamp || 0,
+			this._systemRecovery.progress.timestamp
+		);
 	}
 
 	private async onMessage(
-		// eslint-disable-next-line
-		content: any,
+		content: unknown,
 		metadata: MessageMetadata
 	): Promise<void> {
-		// Add to store
-		const parsedContent = SystemMessage.deserialize(content);
-		// this.logger.debug('onMessage', parsedContent);
-		switch (parsedContent.messageType) {
-			case SystemMessageType.ProofOfMessageStored: {
-				/**
-					Cache with the timestamp in Proof (point at which the developer submits the message), rather than the timestamp of the metadata (point at which the broker submits the proof)
-					This prevents issues associated to eventual consistency on the decentralised network
-				 */
-				const db = this.storeDb();
-				// represent the items in the DB as
-				const proof = parsedContent as ProofOfMessageStored;
-				const key = proof.timestamp;
+		this.messageMetricsSummary.update(content, metadata);
 
-				this.logger.debug('ProofOfMessageStored', {
-					key,
-					value: { content, metadata },
-				});
+		const systemMessage = SystemMessage.deserialize(content);
+		if (!LISTENING_MESSAGE_TYPES.includes(systemMessage.messageType)) {
+			return;
+		}
 
-				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
-				await db.transaction(() => {
-					const value = db.get(key) || [];
-					value.push({
-						content: proof,
-						metadata,
-					});
-					// Sort the values by their sequenceNumber to ensure they're deterministically ordered
-					value.sort((a, b) => {
-						if (a.content.sequenceNumber < b.content.sequenceNumber) {
-							return -1;
-						}
-						if (a.content.sequenceNumber > b.content.sequenceNumber) {
-							return 1;
-						}
-						return 0;
-					});
-					return db.put(key, value);
-				});
+		this._latestTimestamp = metadata.timestamp;
 
-				break;
-			}
+		await this.onSystemMessage(systemMessage, metadata);
+	}
+
+	private async onSystemMessage(
+		systemMessage: SystemMessage,
+		metadata: MessageMetadata
+	) {
+		const systemMessageMetadata = {
+			streamId: metadata.streamId,
+			streamPartition: metadata.streamPartition,
+			timestamp: metadata.timestamp,
+			sequenceNumber: metadata.sequenceNumber,
+			signature: metadata.signature,
+			publisherId: metadata.publisherId,
+			msgChainId: metadata.msgChainId,
+		};
+		const hash = sha256(
+			Buffer.from(
+				JSON.stringify({
+					systemMessage,
+					systemMessageMetadata,
+				})
+			)
+		);
+
+		switch (systemMessage.messageType) {
 			case SystemMessageType.QueryRequest: {
-				// Query requests can use point at which broker publishes message because only a single broker will ever emit a query request message
-				const db = this.queryRequestDb();
-				const key = metadata.timestamp;
-				this.logger.debug('QueryRequest', {
-					key,
-					value: { content, metadata },
-				});
+				const queryRequest = systemMessage as QueryRequest;
 
-				// content.timestamp => [{content1, metadata1}, {content2, metadata2}]
+				// Query requests can use point at which broker publishes message because only a single broker will ever emit a query request message
+				const db = this._db.queryRequestDb();
+				const key = metadata.timestamp;
+				this.logger.debug(
+					`Storing QueryRequest ${JSON.stringify({
+						key,
+						value: { queryRequest, systemMessageMetadata },
+					})}`
+				);
+
 				await db.transaction(() => {
-					const value = db.get(key) || [];
-					value.push({
-						content: parsedContent as QueryRequest,
-						metadata,
+					const messages = db.get(key) || [];
+					if (messages.find((m) => m.hash === hash) != undefined) {
+						return true;
+					}
+
+					messages.push({
+						message: {
+							content: queryRequest,
+							metadata,
+						},
+						hash,
 					});
-					// Sort the values by their sequenceNumber to ensure they're deterministically ordered
-					value.sort((a, b) => {
-						if (a.metadata.sequenceNumber < b.metadata.sequenceNumber) {
-							return -1;
-						}
-						if (a.metadata.sequenceNumber > b.metadata.sequenceNumber) {
-							return 1;
-						}
-						return 0;
-					});
-					return db.put(key, value);
+
+					return db.put(key, messages);
 				});
 				break;
 			}
 			case SystemMessageType.QueryResponse: {
-				const db = this.queryResponseDb();
+				const queryResponse = systemMessage as QueryResponse;
+				const db = this._db.queryResponseDb();
+				const key = queryResponse.requestId;
+				this.logger.debug(
+					`Storing QueryResponse ${JSON.stringify({
+						key,
+						value: { queryResponse, systemMessageMetadata },
+					})}`
+				);
 				// represent the items in the response DB as
 				// requestId => [{content1, metadata1}, {content2, metadata2}]
 				await db.transaction(() => {
-					const responseContent = parsedContent as QueryResponse;
-					const key = responseContent.requestId;
-					const existingResponse = db.get(key) || [];
-					existingResponse.push({ content: responseContent, metadata });
-					// eslint-disable-next-line
-					return db.put(key, existingResponse); // for every query request id, there will be an array of responses collected from the Broker network
+					const messages = db.get(key) || [];
+					if (messages.find((m) => m.hash === hash) != undefined) {
+						return true;
+					}
+
+					messages.push({
+						message: {
+							content: queryResponse,
+							metadata,
+						},
+						hash,
+					});
+
+					return db.put(key, messages); // for every query request id, there will be an array of responses collected from the Broker network
+				});
+				break;
+			}
+			case SystemMessageType.QueryPropagate: {
+				const queryPropagate = systemMessage as QueryPropagate;
+				const db = this._db.queryPropagateDb();
+				const key = queryPropagate.requestId;
+				this.logger.debug(
+					`Storing QueryPropagate ${JSON.stringify({
+						key,
+						value: { queryPropagate, systemMessageMetadata },
+					})}`
+				);
+				// represent the items in the propagate DB as
+				// requestId => [{content1, metadata1}, {content2, metadata2}]
+				await db.transaction(() => {
+					const messages = db.get(key) || [];
+					if (messages.find((m) => m.hash === hash) != undefined) {
+						return true;
+					}
+
+					messages.push({
+						message: {
+							content: queryPropagate,
+							metadata,
+						},
+						hash,
+					});
+
+					return db.put(key, messages); // for every query request id, there will be an array of propagates collected from the Broker network
 				});
 				break;
 			}

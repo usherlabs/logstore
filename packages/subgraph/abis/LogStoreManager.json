@@ -43,6 +43,37 @@
 			{
 				"indexed": false,
 				"internalType": "uint256",
+				"name": "stake",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "capture",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "overflow",
+				"type": "uint256"
+			}
+		],
+		"name": "CaptureOverflow",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "store",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
 				"name": "fees",
 				"type": "uint256"
 			},
@@ -117,6 +148,31 @@
 		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "supply",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "capture",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "overflow",
+				"type": "uint256"
+			}
+		],
+		"name": "SupplyOverflow",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
 				"indexed": true,
 				"internalType": "address",
 				"name": "implementation",
@@ -125,58 +181,6 @@
 		],
 		"name": "Upgraded",
 		"type": "event"
-	},
-	{
-		"inputs": [],
-		"name": "LOGSTORE_QUERY_STREAM_ID_PATH",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "LOGSTORE_QUERY_STREAM_METADATA_JSON_STRING",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "LOGSTORE_SYSTEM_STREAM_ID_PATH",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "LOGSTORE_SYSTEM_STREAM_METADATA_JSON_STRING",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
 	},
 	{
 		"inputs": [
@@ -216,13 +220,7 @@
 			}
 		],
 		"name": "capture",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "success",
-				"type": "bool"
-			}
-		],
+		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -250,6 +248,11 @@
 			{
 				"internalType": "address",
 				"name": "owner_",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "parent_",
 				"type": "address"
 			},
 			{
@@ -297,6 +300,19 @@
 	{
 		"inputs": [],
 		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_parent",
+				"type": "address"
+			}
+		],
+		"name": "setParent",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

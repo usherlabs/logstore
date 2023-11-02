@@ -1,5 +1,5 @@
-import { ProofOfMessageStored } from './ProofOfMessageStored';
 import { ProofOfReport } from './ProofOfReport';
+import { QueryPropagate } from './QueryPropagate';
 import {
 	QueryFromOptions,
 	QueryLastOptions,
@@ -9,18 +9,24 @@ import {
 	QueryType,
 } from './QueryRequest';
 import { QueryResponse } from './QueryResponse';
+import { RecoveryComplete } from './RecoveryComplete';
+import { RecoveryRequest } from './RecoveryRequest';
+import { RecoveryResponse } from './RecoveryResponse';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
 
 export {
-	ProofOfMessageStored,
-	SystemMessage,
+	ProofOfReport,
+	QueryFromOptions,
+	QueryLastOptions,
+	QueryOptions,
+	QueryPropagate,
+	QueryRangeOptions,
 	QueryRequest,
 	QueryResponse,
 	QueryType,
-	QueryOptions,
+	RecoveryComplete,
+	RecoveryRequest,
+	RecoveryResponse,
+	SystemMessage,
 	SystemMessageType,
-	QueryLastOptions,
-	QueryRangeOptions,
-	QueryFromOptions,
-	ProofOfReport,
 };

@@ -9,6 +9,7 @@ export default class ProofOfReportSerializerV1 extends Serializer<ProofOfReport>
 		return [
 			VERSION,
 			SystemMessageType.ProofOfReport,
+			message.seqNum,
 			message.address,
 			message.hash,
 			message.toth,
@@ -18,11 +19,20 @@ export default class ProofOfReportSerializerV1 extends Serializer<ProofOfReport>
 	}
 
 	fromArray(arr: any[]): ProofOfReport {
-		const [version, _messageType, address, hash, toth, timestamp, signature] =
-			arr;
+		const [
+			version,
+			_messageType,
+			seqNum,
+			address,
+			hash,
+			toth,
+			timestamp,
+			signature,
+		] = arr;
 
 		return new ProofOfReport({
 			version,
+			seqNum,
 			address,
 			hash,
 			toth,

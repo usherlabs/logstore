@@ -13,7 +13,10 @@ const LATEST_VERSION = ReportSerializerVersions.V1;
 
 type IReport = IReportV1 | IReportV1Serialized;
 export class SystemReport {
-	constructor(protected report: IReport, protected version = LATEST_VERSION) {
+	constructor(
+		protected report: IReport,
+		protected version = LATEST_VERSION
+	) {
 		if (!('s' in report && 'v' in report)) {
 			throw new ValidationError('Invalid Report Payload');
 		}

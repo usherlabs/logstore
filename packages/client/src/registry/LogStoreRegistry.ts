@@ -1,12 +1,8 @@
-import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
+import { BigNumber } from '@ethersproject/bignumber';
 import { Provider } from '@ethersproject/providers';
 import type { LogStoreManager as LogStoreManagerContract } from '@logsn/contracts';
 import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
-import {
-	getQueryManagerContract,
-	prepareStakeForQueryManager,
-	prepareStakeForStoreManager,
-} from '@logsn/shared';
+import { prepareStakeForStoreManager } from '@logsn/shared';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
@@ -16,10 +12,10 @@ import {
 	queryAllReadonlyContracts,
 	Stream,
 	StreamIDBuilder,
-	waitForTx,
 } from '@logsn/streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
+import { ContractTransaction } from 'ethers';
 import { min } from 'lodash';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
@@ -171,10 +167,14 @@ export class LogStoreRegistry {
 		}
 	}
 
+	// --------------------------------------------------------------------------------------------
+	// Log Store
+	// --------------------------------------------------------------------------------------------
+
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
 		amount: bigint
-	): Promise<void> {
+	): Promise<ContractTransaction> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
 		this.logger.debug('adding stream %s to LogStore', streamId);
 		await this.connectToContract();
@@ -185,24 +185,33 @@ export class LogStoreRegistry {
 			await this.authentication.getStreamRegistryChainSigner();
 		await prepareStakeForStoreManager(chainSigner, amount, false);
 		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
-		await waitForTx(
-			this.logStoreManagerContract!.stake(streamId, amount, ethersOverrides)
+		return this.logStoreManagerContract!.stake(
+			streamId,
+			amount,
+			ethersOverrides
 		);
 	}
 
-	async queryStake(
-		amount: BigNumberish,
-		options = { usd: false }
-	): Promise<void> {
-		const chainSigner =
-			await this.authentication.getStreamRegistryChainSigner();
-		const stakeAmount = prepareStakeForQueryManager(
-			chainSigner,
-			Number(amount),
-			options.usd
-		);
-		const queryManagerContract = await getQueryManagerContract(chainSigner);
-		await (await queryManagerContract.stake(stakeAmount)).wait();
+	async getStreamBalance(streamIdOrPath: string): Promise<bigint> {
+		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
+		// `stores` maps the streamId to the storage balance
+		return await queryAllReadonlyContracts(async (contract) => {
+			const storeBalanceBN = await contract.stores(streamId);
+			return storeBalanceBN.toBigInt();
+		}, this.logStoreManagerContractsReadonly);
+	}
+
+	async getStoreBalanceOf(address: string): Promise<bigint> {
+		return await queryAllReadonlyContracts(async (contract) => {
+			const storeBalanceBN = await contract.balanceOf(address);
+			return storeBalanceBN.toBigInt();
+		}, this.logStoreManagerContractsReadonly);
+	}
+
+	async getStoreBalance(): Promise<bigint> {
+		const signer = await this.authentication.getStreamRegistryChainSigner();
+		const address = await signer.getAddress();
+		return await this.getStoreBalanceOf(address);
 	}
 
 	async isLogStoreStream(streamIdOrPath: string): Promise<boolean> {

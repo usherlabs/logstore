@@ -16,9 +16,7 @@ export abstract class AbstractDataItem<IPrepared> {
 	abstract load(managers: Managers, source: string): Promise<IPrepared>;
 
 	public async prepare() {
-		const { config } = this;
 		this.prepared = await Managers.withSources<IPrepared>(
-			config.sources,
 			async (managers: Managers, source: string) => {
 				const outcome = await this.load(managers, source);
 				return outcome;

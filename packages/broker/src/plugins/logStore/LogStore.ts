@@ -1,4 +1,4 @@
-import { StreamMessage } from '@streamr/protocol';
+import { MessageID, StreamMessage } from '@streamr/protocol';
 import { Logger, MetricsContext, RateMetric } from '@streamr/utils';
 import { auth, Client, tracker, types } from 'cassandra-driver';
 import { EventEmitter } from 'events';
@@ -6,9 +6,11 @@ import merge2 from 'merge2';
 import { pipeline, Readable, Transform } from 'stream';
 import { v1 as uuidv1 } from 'uuid';
 
+import { isPresent } from '../../helpers/isPresent';
 import { BatchManager } from './BatchManager';
 import { Bucket, BucketId } from './Bucket';
 import { BucketManager, BucketManagerOptions } from './BucketManager';
+import { MessageLimitTransform } from './http/dataTransformers';
 
 const logger = new Logger(module);
 
@@ -31,17 +33,21 @@ const bucketsToIds = (buckets: Bucket[]) =>
 	buckets.map((bucket: Bucket) => bucket.getId());
 
 // NET-329
-interface QueryDebugInfo {
-	streamId: string;
-	partition?: number;
-	limit?: number;
-	fromTimestamp?: number;
-	toTimestamp?: number;
-	fromSequenceNo?: number | null;
-	toSequenceNo?: number | null;
-	publisherId?: string | null;
-	msgChainId?: string | null;
-}
+type QueryDebugInfo =
+	| {
+			streamId: string;
+			partition?: number;
+			limit?: number;
+			fromTimestamp?: number;
+			toTimestamp?: number;
+			fromSequenceNo?: number | null;
+			toSequenceNo?: number | null;
+			publisherId?: string | null;
+			msgChainId?: string | null;
+	  }
+	| {
+			messageIds: string[];
+	  };
 
 export type LogStoreOptions = Partial<BucketManagerOptions> & {
 	useTtl?: boolean;
@@ -117,11 +123,12 @@ export class LogStore extends EventEmitter {
 		});
 	}
 
-	requestLast(streamId: string, partition: number, limit: number): Readable {
-		if (limit > MAX_RESEND_LAST) {
-			// eslint-disable-next-line no-param-reassign
-			limit = MAX_RESEND_LAST;
-		}
+	requestLast(
+		streamId: string,
+		partition: number,
+		requestCount: number
+	): Readable {
+		const limit = Math.min(requestCount, MAX_RESEND_LAST);
 
 		logger.trace('requestLast %o', { streamId, partition, limit });
 
@@ -215,8 +222,8 @@ export class LogStore extends EventEmitter {
 						} else {
 							makeLastQuery(bucketIds);
 						}
-					} catch (err) {
-						resultStream.destroy(err);
+					} catch (err2) {
+						resultStream.destroy(err2);
 					}
 				}
 			}
@@ -230,7 +237,8 @@ export class LogStore extends EventEmitter {
 		partition: number,
 		fromTimestamp: number,
 		fromSequenceNo: number,
-		publisherId?: string
+		publisherId?: string,
+		limit?: number
 	): Readable {
 		logger.trace('requestFrom %o', {
 			streamId,
@@ -238,6 +246,7 @@ export class LogStore extends EventEmitter {
 			fromTimestamp,
 			fromSequenceNo,
 			publisherId,
+			limit,
 		});
 
 		return this.fetchRange(
@@ -247,8 +256,28 @@ export class LogStore extends EventEmitter {
 			fromSequenceNo,
 			MAX_TIMESTAMP_VALUE,
 			MAX_SEQUENCE_NUMBER_VALUE,
-			publisherId
+			publisherId,
+			undefined,
+			limit
 		);
+	}
+
+	/**
+	 * Requests data from the DB using the serialized message ID.
+	 */
+	requestByMessageId(messageIdSerialized: string) {
+		return this.requestByMessageIds([messageIdSerialized]);
+	}
+
+	/**
+	 * Requests messages from DB by their serialized message IDs.
+	 */
+	requestByMessageIds(messageIdsSerialized: string[]) {
+		const messageIds = messageIdsSerialized.map((messageId) =>
+			MessageID.fromArray(JSON.parse(messageId))
+		);
+
+		return this.fetchByMessageIds(messageIds);
 	}
 
 	requestRange(
@@ -259,7 +288,8 @@ export class LogStore extends EventEmitter {
 		toTimestamp: number,
 		toSequenceNo: number,
 		publisherId: string | undefined,
-		msgChainId: string | undefined
+		msgChainId: string | undefined,
+		limit?: number
 	): Readable {
 		logger.trace('requestRange %o', {
 			streamId,
@@ -270,6 +300,7 @@ export class LogStore extends EventEmitter {
 			toSequenceNo,
 			publisherId,
 			msgChainId,
+			limit,
 		});
 
 		// TODO is there any reason why we shouldn't allow range queries which contain publisherId, but not msgChainId?
@@ -288,7 +319,8 @@ export class LogStore extends EventEmitter {
 			toTimestamp,
 			toSequenceNo,
 			publisherId,
-			msgChainId
+			msgChainId,
+			limit
 		);
 	}
 
@@ -325,6 +357,95 @@ export class LogStore extends EventEmitter {
 		return this.cassandraClient.shutdown();
 	}
 
+	/**
+	 * Fetches messages from stream_data table based on the given message IDs.
+	 *
+	 * - It won't error if doesn't find a bucket id. Will just skip the message.
+	 * - If it doesn't find a message it will just skip it
+	 *
+	 * @param {MessageID[]} messageIds
+	 */
+	private fetchByMessageIds(
+		messageIds: MessageID[]
+		// ? should we need to add limit param? Will we use it to fetch over 5000 messages?
+	) {
+		const resultStream = this.createResultStream({
+			messageIds: messageIds.map((m) => m.serialize()),
+		});
+
+		const getStatementForMessageId = (messageId: MessageID) => {
+			const bucketId = this.bucketManager.getBucketId(
+				messageId.streamId,
+				messageId.streamPartition,
+				messageId.timestamp
+			);
+
+			if (!bucketId) {
+				// With this we decide not to stop execution on missing bucket id, but just skip the message
+				return undefined;
+			}
+
+			return {
+				query:
+					'SELECT payload FROM stream_data WHERE ' +
+					'stream_id = ? AND partition = ? AND bucket_id = ? AND ts = ? AND sequence_no = ? AND publisher_id = ? AND msg_chain_id = ?',
+				params: [
+					messageId.streamId,
+					messageId.streamPartition,
+					bucketId,
+					messageId.timestamp,
+					messageId.sequenceNumber,
+					messageId.publisherId,
+					messageId.msgChainId,
+				],
+			};
+		};
+
+		const queries = messageIds.map(getStatementForMessageId).filter(isPresent);
+
+		const resultsPromises = Promise.all(
+			queries.map((q) =>
+				this.cassandraClient.execute(q.query, q.params, { prepare: true })
+			)
+		);
+
+		/**
+		 * Creates a Readable stream from a Promise of ResultSet array
+		 */
+		function createPromiseReadable(
+			promise: Promise<types.ResultSet[]>
+		): Readable {
+			let handled = false;
+			return new Readable({
+				objectMode: true,
+				async read() {
+					if (!handled) {
+						handled = true;
+						try {
+							const resultSet = await promise;
+							resultSet.forEach((r) => {
+								r.rows.forEach((row) => {
+									this.push(row);
+								});
+							});
+							this.push(null); // End of data
+						} catch (error) {
+							this.destroy(error);
+						}
+					}
+				},
+			});
+		}
+
+		const stream = createPromiseReadable(resultsPromises);
+		return pipeline(stream, resultStream, (err: Error | null) => {
+			if (err) {
+				resultStream.destroy(err);
+				stream.destroy(undefined);
+			}
+		});
+	}
+
 	private fetchRange(
 		streamId: string,
 		partition: number,
@@ -333,7 +454,8 @@ export class LogStore extends EventEmitter {
 		toTimestamp: number,
 		toSequenceNo: number,
 		publisherId?: string,
-		msgChainId?: string
+		msgChainId?: string,
+		limit?: number
 	) {
 		const resultStream = this.createResultStream({
 			streamId,
@@ -344,6 +466,7 @@ export class LogStore extends EventEmitter {
 			toSequenceNo,
 			publisherId,
 			msgChainId,
+			limit,
 		});
 
 		this.bucketManager
@@ -356,7 +479,11 @@ export class LogStore extends EventEmitter {
 
 				const bucketIds = bucketsToIds(buckets);
 
-				let queries;
+				let queries: {
+					queryStatement: string;
+					params: any[];
+					limit?: string;
+				}[];
 				// optimize the typical case where the sequenceNumber doesn't filter out anything
 				if (
 					fromSequenceNo === MIN_SEQUENCE_NUMBER_VALUE &&
@@ -364,7 +491,7 @@ export class LogStore extends EventEmitter {
 				) {
 					queries = [
 						{
-							where:
+							queryStatement:
 								'WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts >= ? AND ts <= ?',
 							params: [
 								streamId,
@@ -378,7 +505,7 @@ export class LogStore extends EventEmitter {
 				} else {
 					queries = [
 						{
-							where:
+							queryStatement:
 								'WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no >= ?',
 							params: [
 								streamId,
@@ -389,7 +516,7 @@ export class LogStore extends EventEmitter {
 							],
 						},
 						{
-							where:
+							queryStatement:
 								'WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts > ? AND ts < ?',
 							params: [
 								streamId,
@@ -400,7 +527,7 @@ export class LogStore extends EventEmitter {
 							],
 						},
 						{
-							where:
+							queryStatement:
 								'WHERE stream_id = ? AND partition = ? AND bucket_id IN ? AND ts = ? AND sequence_no <= ?',
 							params: [
 								streamId,
@@ -415,25 +542,48 @@ export class LogStore extends EventEmitter {
 
 				queries.forEach((q) => {
 					if (publisherId) {
-						q.where += ' AND publisher_id = ?';
+						q.queryStatement += ' AND publisher_id = ?';
 						q.params.push(publisherId);
 					}
 					if (msgChainId) {
-						q.where += ' AND msg_chain_id = ?';
+						q.queryStatement += ' AND msg_chain_id = ?';
 						q.params.push(msgChainId);
+					}
+
+					///
+					// Explanation on setting limit for each query:
+					//
+					// We know that setting limit for each query is not enough to guarantee the total number of messages returned.
+					// Mainly because there multiple queries, and we can't merge the results at DB side, sort and then limit.
+					//
+					// But this is done to reduce the number of messages returned from each query, and thus reduce the memory usage
+					// on Cassandra DB side, even if there are way more messages on the query result.
+					//
+					// To make sure that the total number of messages returned is not more than the limit, the result stream
+					// will also have another mechanism to limit the number of messages returned.
+					if (limit) {
+						q.queryStatement += ` LIMIT ?`;
+						q.params.push(limit);
 					}
 				});
 
 				const streams = queries.map((q) => {
-					const select = `SELECT payload FROM stream_data ${q.where} ALLOW FILTERING`;
+					const select = `SELECT payload
+													FROM stream_data ${q.queryStatement} ALLOW FILTERING`;
+
 					return this.queryWithStreamingResults(select, q.params);
 				});
+
+				const messageLimitTransform = new MessageLimitTransform(
+					limit || Infinity
+				);
 
 				return pipeline(
 					// @ts-expect-error options not in type
 					merge2(...streams, {
 						pipeError: true,
 					}),
+					messageLimitTransform,
 					resultStream,
 					(err: Error | null) => {
 						if (err) {
@@ -453,7 +603,16 @@ export class LogStore extends EventEmitter {
 	private queryWithStreamingResults(query: string, queryParams: any[]) {
 		return this.cassandraClient.stream(query, queryParams, {
 			prepare: true,
+			// Note #1
 			// force small page sizes, otherwise gives RangeError [ERR_OUT_OF_RANGE]: The value of "offset" is out of range.
+			//
+			// Note #2
+			// Fetch size also plays an important role at how much data is overfetched.
+			// For example, if fetchSize is 100, and the stream is ended after 40 messages
+			// then we will have 60 messages overfetched.
+			// It's important we use to end our streams after a certain number of messages
+			// And smaller fetch sizes will help us reduce the number of overfetched messages at DB level, at
+			// tradeoff of more roundtrips to DB.
 			fetchSize: 128,
 			readTimeout: 0,
 		}) as Readable;
@@ -632,14 +791,19 @@ export class LogStore extends EventEmitter {
 		if (count < 0) {
 			count = 0;
 
-			const query = 'SELECT size FROM bucket WHERE stream_id=? AND partition=?';
-			const queryParams = [streamId, partition];
+			const queryOverflown =
+				'SELECT size FROM bucket WHERE stream_id=? AND partition=?';
+			const queryParamsOverflown = [streamId, partition];
 
-			const res = await this.cassandraClient.execute(query, queryParams, {
-				prepare: true,
-			});
+			const resOverflown = await this.cassandraClient.execute(
+				queryOverflown,
+				queryParamsOverflown,
+				{
+					prepare: true,
+				}
+			);
 
-			for (const row of res.rows) {
+			for (const row of resOverflown.rows) {
 				count += row.size;
 			}
 		}

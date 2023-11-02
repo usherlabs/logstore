@@ -6,4 +6,4 @@ export { LogStoreClient } from './LogStoreClient';
 export { LogStoreClientConfig } from './LogStoreClientConfig';
 export { NodeMetadata } from './NodeMetadata';
 export { LogStoreAssignmentEvent } from './registry/LogStoreRegistry';
-export { formLogStoreSystemStreamId } from './utils/utils';
+export { verify, recover, sign } from './utils/signingUtils';

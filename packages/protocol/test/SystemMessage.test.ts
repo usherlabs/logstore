@@ -8,15 +8,16 @@ import ValidationError from '../src/errors/ValidationError';
 import { SystemMessage, SystemMessageType } from '../src/system';
 
 const VERSION = 123;
-const TYPE = 0;
+const TYPE = 1;
+const SEQ_NUM = 1234;
 
 class TestSystemMessage extends SystemMessage {}
 
 const msg = () => {
-	return new TestSystemMessage(VERSION, TYPE);
+	return new TestSystemMessage(VERSION, TYPE, SEQ_NUM);
 };
 
-describe('SystemMessage', () => {
+describe(SystemMessage, () => {
 	let serializer: Serializer<SystemMessage>;
 
 	beforeEach(() => {
@@ -33,17 +34,17 @@ describe('SystemMessage', () => {
 
 	describe('constructor', () => {
 		it('is abstract', () => {
-			assert.throws(() => new SystemMessage(VERSION, TYPE), TypeError);
+			assert.throws(() => new SystemMessage(VERSION, TYPE, SEQ_NUM), TypeError);
 		});
 		it('validates version', () => {
 			assert.throws(
-				() => new TestSystemMessage('invalid' as any, TYPE),
+				() => new TestSystemMessage('invalid' as any, TYPE, SEQ_NUM),
 				ValidationError
 			);
 		});
 		it('validates type', () => {
 			assert.throws(
-				() => new TestSystemMessage(VERSION, 'invalid' as any),
+				() => new TestSystemMessage(VERSION, 'invalid' as any, SEQ_NUM),
 				ValidationError
 			);
 		});
@@ -95,7 +96,7 @@ describe('SystemMessage', () => {
 		});
 
 		it('should throw on unsupported version', () => {
-			const m = new TestSystemMessage(999, TYPE);
+			const m = new TestSystemMessage(999, TYPE, SEQ_NUM);
 			assert.throws(
 				() => m.serialize(),
 				(err: UnsupportedVersionError) => {
@@ -107,7 +108,11 @@ describe('SystemMessage', () => {
 		});
 
 		it('should throw on unsupported type', () => {
-			const m = new TestSystemMessage(VERSION, 999 as SystemMessageType);
+			const m = new TestSystemMessage(
+				VERSION,
+				999 as SystemMessageType,
+				SEQ_NUM
+			);
 			assert.throws(
 				() => m.serialize(),
 				(err: UnsupportedTypeError) => {

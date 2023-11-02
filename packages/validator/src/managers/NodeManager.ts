@@ -7,6 +7,9 @@ import { Slogger } from '../utils/slogger';
 import { StakeToken } from '../utils/stake-token';
 
 export class NodeManager {
+	private readonly fromBlockNumber: Record<string, number> = {};
+	private readonly delegates: Record<string, Record<string, BigNumber>> = {};
+
 	constructor(private _contract: LogStoreNodeManager) {}
 
 	public get contract() {
@@ -14,26 +17,34 @@ export class NodeManager {
 	}
 
 	async getBrokerNodes(
-		blockNumber?: number,
+		fromBlockNumber: number,
+		toBlockNumber: number,
 		minStakeRequirement?: BigNumber
 	): Promise<Array<IBrokerNode>> {
 		// get all the node addresses
 		const nodeAddresses = await this.contract.nodeAddresses({
-			blockTag: blockNumber,
+			blockTag: toBlockNumber,
 		});
 
 		// get more details for each node's address
 		const detailedAllNodes = await Promise.all(
 			nodeAddresses.map(async (nodeAddress) => {
 				const nodeDetail = await this.contract.nodes(nodeAddress, {
-					blockTag: blockNumber,
+					blockTag: toBlockNumber,
 				});
-				const allDelegates = await this.getDelegates(nodeAddress, blockNumber);
-
-				Slogger.instance.debug('Delegates for Node Address', {
-					allDelegates,
+				const allDelegates = await this.getDelegates(
 					nodeAddress,
-				});
+					fromBlockNumber,
+					toBlockNumber
+				);
+
+				Slogger.instance.debug(
+					'Delegates for Node Address',
+					JSON.stringify({
+						allDelegates,
+						nodeAddress,
+					})
+				);
 
 				return {
 					id: nodeAddress,
@@ -66,8 +77,21 @@ export class NodeManager {
 	 */
 	async getDelegates(
 		nodeAddress: string,
+		fromBlockNumber: number,
 		toBlockNumber: number
 	): Promise<Record<string, BigNumber>> {
+		if (
+			this.fromBlockNumber[nodeAddress] == undefined ||
+			this.fromBlockNumber[nodeAddress] < fromBlockNumber
+		) {
+			this.fromBlockNumber[nodeAddress] = fromBlockNumber;
+		}
+
+		// If the range already cached return the cached data
+		if (this.fromBlockNumber[nodeAddress] > toBlockNumber) {
+			return this.delegates[nodeAddress];
+		}
+
 		const delegatesEvent = await this.contract.queryFilter(
 			this.contract.filters.StakeDelegateUpdated(
 				null,
@@ -77,11 +101,16 @@ export class NodeManager {
 				null,
 				null
 			),
-			0,
+			this.fromBlockNumber[nodeAddress],
 			toBlockNumber
 		);
 
-		const delegates: Record<string, BigNumber> = {};
+		if (this.delegates[nodeAddress] == undefined) {
+			this.delegates[nodeAddress] = {};
+		}
+
+		const delegates = this.delegates[nodeAddress];
+
 		delegatesEvent.forEach(({ args }) => {
 			const { delegate } = args;
 			const amount =
@@ -93,6 +122,10 @@ export class NodeManager {
 				delegates[delegate].add(amount);
 			}
 		});
+
+		// Next time call for a range starting
+		// from the block following the current toBlockNumber
+		this.fromBlockNumber[nodeAddress] = toBlockNumber + 1;
 
 		return delegates;
 	}

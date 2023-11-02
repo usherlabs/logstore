@@ -11,12 +11,7 @@ import { TestNormalCompression } from '@kyvejs/protocol/test/mocks/compression.m
 import { lcd } from '@kyvejs/protocol/test/mocks/lcd.mock';
 import { TestNormalStorageProvider } from '@kyvejs/protocol/test/mocks/storageProvider.mock';
 import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
-import {
-	ProofOfMessageStored,
-	QueryRequest,
-	QueryResponse,
-	QueryType,
-} from '@logsn/protocol';
+import { QueryRequest, QueryResponse, QueryType } from '@logsn/protocol';
 import {
 	getNodeManagerContract,
 	prepareStakeForNodeManager,
@@ -43,6 +38,7 @@ export const BROKER_NODE_PRIVATE_KEY =
 	process.env.BROKER_NODE_PRIVATE_KEY ||
 	('0xb1abdb742d3924a45b0a54f780f0f21b9d9283b231a0a0b35ce5e455fa5375e7' as const);
 const MESSAGE_STORE_TIMEOUT = 9 * 1000;
+
 function sleep(ms: number) {
 	return new Promise((resolve) => setTimeout(() => resolve(true), ms));
 }
@@ -217,54 +213,55 @@ export async function cleanupTests() {
 	}
 }
 
-export const publishStorageMessages = async (numOfMessages: number) => {
-	const { systemStreamId } = v['runtime'].config;
-	const messages: ProofOfMessageStored[] = [];
-	try {
-		const sourceStreamId = systemStreamId.replace('/system', '/test');
-		for (let idx = 1; idx <= numOfMessages; idx++) {
-			const msg = { messageNo: idx };
-			const msgStr = JSON.stringify(msg);
-			const size = Buffer.byteLength(msgStr, 'utf8');
-			const hash = ethers.utils.keccak256(
-				fromString(sourceStreamId + msgStr + size)
-			);
-			console.log(`Publishing storage message:`, msg, { hash, size });
-
-			const content = {
-				id: sourceStreamId,
-				hash,
-				size,
-			};
-
-			const proofOfMessageStored = new ProofOfMessageStored({
-				streamId: content.id,
-				partition: 0,
-				timestamp: +new Date(),
-				sequenceNumber: 0,
-				size: content.size,
-				hash: content.hash,
-			});
-
-			await publisherClient.publish(
-				{
-					id: systemStreamId,
-					partition: 0,
-				},
-				proofOfMessageStored.serialize()
-			);
-
-			messages.push(proofOfMessageStored);
-			// await sleep(100);
-		}
-		await wait(MESSAGE_STORE_TIMEOUT);
-	} catch (e) {
-		console.log(`Cannot publish message to storage stream`);
-		console.error(e);
-	}
-
-	return messages;
-};
+// TODO Delete it once everything works again
+// export const publishStorageMessages = async (numOfMessages: number) => {
+// 	const { systemStreamId } = v['runtime'].config;
+// 	const messages: ProofOfMessageStored[] = [];
+// 	try {
+// 		const sourceStreamId = systemStreamId.replace('/system', '/test');
+// 		for (let idx = 1; idx <= numOfMessages; idx++) {
+// 			const msg = { messageNo: idx };
+// 			const msgStr = JSON.stringify(msg);
+// 			const size = Buffer.byteLength(msgStr, 'utf8');
+// 			const hash = ethers.utils.keccak256(
+// 				fromString(sourceStreamId + msgStr + size)
+// 			);
+// 			console.log(`Publishing storage message:`, msg, { hash, size });
+//
+// 			const content = {
+// 				id: sourceStreamId,
+// 				hash,
+// 				size,
+// 			};
+//
+// 			const proofOfMessageStored = new ProofOfMessageStored({
+// 				streamId: content.id,
+// 				partition: 0,
+// 				timestamp: +new Date(),
+// 				sequenceNumber: 0,
+// 				size: content.size,
+// 				hash: content.hash,
+// 			});
+//
+// 			await publisherClient.publish(
+// 				{
+// 					id: systemStreamId,
+// 					partition: 0,
+// 				},
+// 				proofOfMessageStored.serialize()
+// 			);
+//
+// 			messages.push(proofOfMessageStored);
+// 			// await sleep(100);
+// 		}
+// 		await wait(MESSAGE_STORE_TIMEOUT);
+// 	} catch (e) {
+// 		console.log(`Cannot publish message to storage stream`);
+// 		console.error(e);
+// 	}
+//
+// 	return messages;
+// };
 
 export const publishQueryMessages = async (
 	numOfMessages: number,

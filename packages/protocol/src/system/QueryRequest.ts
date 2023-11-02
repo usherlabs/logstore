@@ -28,6 +28,7 @@ export interface QueryLastOptions {
 export interface QueryFromOptions {
 	from: QueryRef;
 	publisherId?: string;
+	limit?: number;
 }
 
 /**
@@ -38,6 +39,7 @@ export interface QueryRangeOptions {
 	to: QueryRef;
 	msgChainId?: string;
 	publisherId?: string;
+	limit?: number;
 }
 
 /**
@@ -57,6 +59,8 @@ interface QueryRequestOptions extends SystemMessageOptions {
 	queryOptions: QueryOptions;
 }
 
+let messageSeqNum = 0;
+
 export class QueryRequest extends SystemMessage {
 	requestId: string;
 	consumerId: string;
@@ -67,6 +71,7 @@ export class QueryRequest extends SystemMessage {
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
+		seqNum = messageSeqNum++,
 		requestId,
 		consumerId,
 		streamId,
@@ -74,7 +79,7 @@ export class QueryRequest extends SystemMessage {
 		queryType,
 		queryOptions,
 	}: QueryRequestOptions) {
-		super(version, SystemMessageType.QueryRequest);
+		super(version, SystemMessageType.QueryRequest, seqNum);
 
 		// TODO: Validate the arguments
 		this.requestId = requestId;
