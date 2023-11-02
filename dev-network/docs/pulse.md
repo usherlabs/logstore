@@ -1,4 +1,4 @@
-# LogStore DevNetwork - Heartbeat
+# LogStore DevNetwork - Pulse
 
 | Properby    | Value                                                              |
 | ----------- | ------------------------------------------------------------------ |

@@ -1,7 +1,7 @@
 [sources.docker_logs_source]
 type = "docker_logs"
 include_containers = [
-	"logstore-heartbeat",
+	"logstore-pulse",
 	"logstore-broker-",
 	"logstore-validator-",
 	"logstore-deploy-contracts"

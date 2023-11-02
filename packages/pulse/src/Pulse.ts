@@ -1,15 +1,15 @@
 import { LogStoreClient, Stream, StreamPermission } from '@logsn/client';
 
-const HEARTBEAT_STREAM_ID = '/heartbeat';
-const HEARTBEAT_INTERVAL_MS = 1 * 1000;
+const PULSE_STREAM_ID = '/pulse';
+const PULSE_INTERVAL_MS = 1 * 1000;
 
-export class Heartbeat {
+export class Pulse {
 	private _stream: Stream | undefined;
 	private _interval: NodeJS.Timer | undefined;
 
 	private get stream(): Stream {
 		if (!this._stream) {
-			throw new Error('Heartbeat stream is not initialized');
+			throw new Error('Pulse stream is not initialized');
 		}
 
 		return this._stream;
@@ -20,12 +20,12 @@ export class Heartbeat {
 	}
 
 	async init() {
-		this._stream = await this.client.getStream(HEARTBEAT_STREAM_ID);
+		this._stream = await this.client.getStream(PULSE_STREAM_ID);
 	}
 
 	async createStream(stakeAmount: bigint) {
 		this._stream = await this.client.getOrCreateStream({
-			id: HEARTBEAT_STREAM_ID,
+			id: PULSE_STREAM_ID,
 		});
 
 		await this._stream.grantPermissions({
@@ -44,7 +44,7 @@ export class Heartbeat {
 
 		this._interval = setInterval(async () => {
 			await this.beat();
-		}, HEARTBEAT_INTERVAL_MS);
+		}, PULSE_INTERVAL_MS);
 	}
 
 	stop() {
@@ -57,6 +57,6 @@ export class Heartbeat {
 		};
 
 		await this.client.publish(this.stream, content);
-		console.debug('Published Heartbeat message', content);
+		console.debug('Published Pulse message', content);
 	}
 }

@@ -944,19 +944,6 @@ importers:
         specifier: ^4.9.5
         version: 4.9.5
 
-  packages/heartbeat:
-    dependencies:
-      '@logsn/client':
-        specifier: workspace:^
-        version: link:../client
-      commander:
-        specifier: ^11.0.0
-        version: 11.0.0
-    devDependencies:
-      '@types/node':
-        specifier: ^20.3.1
-        version: 20.3.1
-
   packages/protocol:
     dependencies:
       '@ethersproject/abstract-signer':
@@ -1008,6 +995,19 @@ importers:
       typescript:
         specifier: ^4.9.5
         version: 4.9.5
+
+  packages/pulse:
+    dependencies:
+      '@logsn/client':
+        specifier: workspace:^
+        version: link:../client
+      commander:
+        specifier: ^11.0.0
+        version: 11.0.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.3.1
+        version: 20.3.1
 
   packages/shared:
     dependencies:

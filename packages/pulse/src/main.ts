@@ -5,7 +5,7 @@ import { initCommand, startCommand } from '../src/cli';
 
 program
 	.version(pkg.version)
-	.name('logstore-heartbeat')
+	.name('logstore-pulse')
 	.description(pkg.description)
 	.addCommand(initCommand)
 	.addCommand(startCommand)
