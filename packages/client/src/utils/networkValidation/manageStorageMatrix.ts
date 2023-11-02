@@ -18,8 +18,8 @@ export type StorageMatrix = Map<
  * @example
  * [
  * 	['messageId1', [{nodeAddress: '0x123', messageHash: '0x456'}]],
- * 	['messageId2', [{nodeAddress: '0x123', messageHash: '0x456'}, {nodeAddress: '0x789', messageHash: '0x456'}]],
- * 	['messageId3', [{nodeAddress: '0x123', messageHash: '0x456'}]],
+ * 	['messageId2', [{nodeAddress: '0x123', messageHash: '0x789'}, {nodeAddress: '0x789', messageHash: '0x789'}]],
+ * 	['messageId3', [{nodeAddress: '0x123', messageHash: '0x567'}]],
  * ]
  *
  */
