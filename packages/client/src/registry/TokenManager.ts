@@ -161,9 +161,17 @@ export class TokenManager {
 			}
 		};
 
+		const outputDecimals = {
+			wei: 0,
+			usd: 6,
+			bytes: 0,
+		};
+
 		const result = new Decimal(amount.toString())
 			.mul(await getInputConversion())
-			.div(await getOutputConversion());
+			.div(await getOutputConversion())
+			.toDP(outputDecimals[to], Decimal.ROUND_DOWN);
+
 		return result.toString();
 	}
 }

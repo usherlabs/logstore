@@ -117,7 +117,7 @@ describe('Manage tokens', () => {
 			});
 
 			expect(ethers.utils.formatEther(bytesToWei)).toMatchInlineSnapshot(
-				`"0.999999999909759537"`
+				`"0.99999999864981264"`
 			);
 
 			// $0.709104 at 28/07/2023. We will assume that pricing will be between 0.3 and 1.5 USD
@@ -126,4 +126,22 @@ describe('Manage tokens', () => {
 		},
 		TIMEOUT
 	);
+
+	test('result from conversion to wei should be an integer', async () => {
+		const inUsd = '0.001';
+
+		logger.debug(`Converting ${inUsd} usd to wei`);
+
+		const usdToWei = await accountClient.convert({
+			from: 'usd',
+			to: 'wei',
+			amount: inUsd.toString(),
+		});
+
+		const result = new Decimal(usdToWei);
+		const decimals = result.mod(1).toString();
+
+		expect(decimals).toBe('0');
+		expect(result.gte(0)).toBe(true);
+	});
 });
