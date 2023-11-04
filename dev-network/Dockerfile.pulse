@@ -2,7 +2,7 @@ FROM logstore-base
 
 USER root
 RUN mkdir /firstrun && chown node:node /firstrun
-RUN npm i -g /home/node/logstore/packages/heartbeat
+RUN npm i -g /home/node/logstore/packages/pulse
 
 USER node
 WORKDIR /home/node

@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 
-import { Heartbeat } from '../../Heartbeat';
+import { Pulse } from '../../Pulse';
 import { getClient } from '../../utils/getClient';
 import { devNetworkOption, privateKeyOption } from '../options';
 
@@ -10,12 +10,12 @@ interface Options {
 }
 
 export const startCommand = new Command('start')
-	.description('Start LogStore Heartbeat')
+	.description('Start LogStore Pulse')
 	.addOption(devNetworkOption)
 	.addOption(privateKeyOption)
 	.action(async (options: Options) => {
 		const client = getClient(options.privateKey, options.devNetwork);
-		const heartbeat = new Heartbeat(client);
-		await heartbeat.init();
-		await heartbeat.start();
+		const pulse = new Pulse(client);
+		await pulse.init();
+		await pulse.start();
 	});

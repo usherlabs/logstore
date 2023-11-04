@@ -312,24 +312,24 @@ services:
   #     logstore-broker-3:
   #       condition: service_started
 
-  logstore-heartbeat:
-    container_name: logstore-heartbeat
-    hostname: logstore-heartbeat
-    image: logstore-heartbeat
+  logstore-pulse:
+    container_name: logstore-pulse
+    hostname: logstore-pulse
+    image: logstore-pulse
     build:
       context: ../
-      dockerfile: ./dev-network/Dockerfile.heartbeat
+      dockerfile: ./dev-network/Dockerfile.pulse
     restart: always
     networks:
       - streamr-network
     env_file:
-      - ./assets/heartbeat/.env.heartbeat
+      - ./assets/pulse/.env.pulse
     volumes:
       - type: bind
-        source: ./assets/heartbeat/start-in-docker.sh
+        source: ./assets/pulse/start-in-docker.sh
         target: /usr/local/bin/start-in-docker
       - type: volume
-        source: data-heartbeat
+        source: data-pulse
         target: /firstrun
     depends_on:
       logstore-base:
@@ -362,6 +362,6 @@ networks:
 
 volumes:
   cassandra_init_scripts:
-  data-heartbeat:
+  data-pulse:
   data-logstore-deploy-contracts:
   data-logstore-deploy-subgraph:
