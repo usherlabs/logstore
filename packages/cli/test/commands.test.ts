@@ -125,6 +125,36 @@ describe('direct cli call tests', function () {
 	);
 
 	test(
+		'mint big value with usd',
+		async ({ credentialsString, logstoreClient }) => {
+			const MINT_AMOUNT_USD = '999';
+			const mintResult = await logstoreClient.convert({
+				amount: MINT_AMOUNT_USD,
+				from: 'usd',
+				to: 'bytes',
+			});
+
+			const balance = await logstoreClient.getBalance();
+
+			const expectedBalance = balance + BigInt(mintResult);
+
+			const { code, stdout, stderr } = await executeOnCli(
+				`mint -u ${MINT_AMOUNT_USD} ${credentialsString} `
+			);
+
+			expect(code).toBe(0);
+			expect(stderr).toBe('');
+			expect(stdout).toContain('Successfully minted tokens to network:Tx');
+			expect(stdout).toContain('Amount:Tx ');
+
+			const newBalance = await logstoreClient.getBalance();
+
+			expect(newBalance).toBe(BigInt(expectedBalance));
+		},
+		TEST_TIMEOUT
+	);
+
+	test(
 		'query stake',
 		async ({ logstoreClient, credentialsString }) => {
 			const previousQueryBalance = await logstoreClient.getQueryBalance();

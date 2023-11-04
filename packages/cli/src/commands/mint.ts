@@ -3,6 +3,7 @@ import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
 import { logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
+import Decimal from 'decimal.js';
 
 export const mintCommand = new Command()
 	.command('mint')
@@ -42,7 +43,9 @@ export const mintCommand = new Command()
 				to: 'wei',
 			});
 
-			const result = await client.mint(BigInt(amountInToken));
+			const result = await client.mint(
+				BigInt(new Decimal(amountInToken).toHex())
+			);
 
 			console.log(
 				`Successfully minted tokens to network:Tx ${result.hash}, Amount:Tx ${amountInToken}. Waiting for confirmations...`

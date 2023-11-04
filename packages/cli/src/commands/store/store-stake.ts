@@ -6,6 +6,7 @@ import { allowanceConfirm, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import { prepareStakeForStoreManager } from '@logsn/shared';
 import chalk from 'chalk';
+import Decimal from 'decimal.js';
 
 const stakeCommand = new Command()
 	.name('stake')
@@ -41,9 +42,11 @@ const stakeCommand = new Command()
 
 			const { signer } = getCredentialsFromOptions();
 
+			const hexValue = new Decimal(amountToStakeInWei).toHex();
+
 			const stakeAmount = await prepareStakeForStoreManager(
 				signer,
-				BigInt(amountToStakeInWei),
+				BigInt(hexValue),
 				false, // we already converted
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined
 			);

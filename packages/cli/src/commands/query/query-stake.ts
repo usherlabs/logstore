@@ -1,4 +1,5 @@
 import { getRootOptions } from '@/commands/options';
+import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
 import { allowanceConfirm, logger, withRetry } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import {
@@ -6,6 +7,7 @@ import {
 	prepareStakeForQueryManager,
 } from '@logsn/shared';
 import chalk from 'chalk';
+import Decimal from 'decimal.js';
 import { ethers } from 'ethers';
 
 const stakeCommand = new Command()
@@ -22,10 +24,16 @@ const stakeCommand = new Command()
 	.option('-y, --assume-yes', 'Assume Yes to all queries and do not prompt')
 	.action(async (amt, cmdOptions) => {
 		const rootOptions = getRootOptions();
+		const logStoreClient = getLogStoreClientFromOptions();
 
-		const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
+		const amountToStakeInWei = cmdOptions.usd
+			? await logStoreClient.convert({ amount: amt, from: 'usd', to: 'wei' })
+			: amt;
+
+		const hexValue = new Decimal(amountToStakeInWei).toHex();
+
 		logger.debug('Command Params: ', {
-			amount,
+			amountToStakeInWei,
 			...rootOptions,
 			...cmdOptions,
 		});
@@ -35,8 +43,8 @@ const stakeCommand = new Command()
 			const signer = new ethers.Wallet(rootOptions.wallet, provider);
 			const stakeAmount = await prepareStakeForQueryManager(
 				signer,
-				amount,
-				cmdOptions.usd,
+				BigInt(hexValue),
+				false,
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined
 			);
 			const queryManagerContract = await getQueryManagerContract(signer);

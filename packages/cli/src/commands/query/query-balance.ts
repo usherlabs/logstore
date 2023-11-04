@@ -24,7 +24,7 @@ const queryBalanceCommand = new Command()
 			);
 			console.log(
 				`This formats to ${ethers.utils.formatEther(
-					queryBalance.toString()
+					queryBalance.toHex()
 				)} LSAN in a Wallet UI.`
 			);
 			console.log(
