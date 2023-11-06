@@ -12,7 +12,7 @@ import {
 	throwError,
 } from 'rxjs';
 
-import { LogStoreMessageStream } from '../../LogStoreMessageStream';
+import type { RequestMetadata } from '../../HttpUtil';
 import { NodeManager } from '../../registry/NodeManager';
 
 export const nodeAddressFromUrl = (url: string, nodeManager: NodeManager) =>
@@ -31,10 +31,10 @@ export function tapDebugComplete<T>(name: string) {
 	});
 }
 
-export function lowercaseRequestidFromLogstoreStream(
-	stream: LogStoreMessageStream
+export function lowercaseRequestidFromLogstoreMetadata(
+	stream: Observable<RequestMetadata>
 ): Observable<string> {
-	return stream.metadataStream.pipe(
+	return stream.pipe(
 		map((m) => m.requestId),
 		// should error if completed without a value.
 		filter((val): val is string => !!val),

@@ -1,5 +1,5 @@
 import { Logger } from '@streamr/utils';
-import { catchError, combineLatest, concat, defer, first, firstValueFrom, map, race, share, startWith, switchMap, throwError, timer, toArray } from 'rxjs';
+import { catchError, combineLatest, concat, defer, delay, first, firstValueFrom, map, merge, of, race, share, startWith, switchMap, throwError, timer, toArray } from 'rxjs';
 
 
 
@@ -10,7 +10,7 @@ import { checkCollectionCompletion } from './checkCollectionCompletion';
 import { convertToStorageMatrix, nodesAgreeOnStorageMatrix, verifyMessagePresenceInStorageMatrix } from './manageStorageMatrix';
 import { retrieveFilteredSystemMessages } from './retrieveFilteredSystemMessages';
 import { QueryInputPayload } from './types';
-import { lowercaseRequestidFromLogstoreStream, nodeAddressFromUrl, rethrowErrorWithSourceActionName } from './utils';
+import { lowercaseRequestidFromLogstoreMetadata, nodeAddressFromUrl, rethrowErrorWithSourceActionName } from './utils';
 
 
 /**
@@ -41,6 +41,13 @@ export const validateWithNetworkResponses = ({
 	responseStream: LogStoreMessageStream;
 	systemMessages$: SystemMessageObservable;
 }) => {
+	// TODO might be good to have a good callback for when the system stream is really ready. For now, we're hardcoding it as
+	//  500ms after start, which is not ideal.
+	const systemStreamSubscriptionIsReady$ = merge(systemMessages$, of(1)).pipe(
+		delay(500),
+		first()
+	);
+
 	const queryNodeAddress$ = nodeAddressFromUrl(queryUrl, nodeManager).pipe(
 		map((address) => address.toLowerCase())
 	);
@@ -48,15 +55,22 @@ export const validateWithNetworkResponses = ({
 	const participatingNodesExtractedFromContract$ = defer(() =>
 		nodeManager.getActiveNodes()
 	);
-	const participatingNodesExtractedFromResponse$ =
-		responseStream.metadataStream.pipe(
-			map((s) => s.participatingNodesAddress),
-			// we expect it to be present always, when using this function
-			first(Boolean),
-			rethrowErrorWithSourceActionName(
-				`getting participating nodes from response`
-			)
-		);
+
+	const metadataStream$ = systemStreamSubscriptionIsReady$.pipe(
+		switchMap(() => responseStream.metadataStream)
+	);
+	const httpResponse$ = systemStreamSubscriptionIsReady$.pipe(
+		switchMap(() => responseStream.asObservable())
+	);
+
+	const participatingNodesExtractedFromResponse$ = metadataStream$.pipe(
+		map((s) => s.participatingNodesAddress),
+		// we expect it to be present always, when using this function
+		first(Boolean),
+		rethrowErrorWithSourceActionName(
+			`getting participating nodes from response`
+		)
+	);
 
 	/**
 	 * first will be the ones from contract, as this is quicker to fetch.
@@ -73,8 +87,8 @@ export const validateWithNetworkResponses = ({
 		participatingNodesExtractedFromResponse$
 	).pipe(share({ resetOnRefCountZero: true }));
 
-	const httpResponseRequestId$ = lowercaseRequestidFromLogstoreStream(
-		responseStream
+	const httpResponseRequestId$ = lowercaseRequestidFromLogstoreMetadata(
+		metadataStream$
 	).pipe(
 		// as we start this process in parallel, before getting the response from Query Node
 		// we will start it with null, not filtering values by this matter until we have one
@@ -119,9 +133,7 @@ export const validateWithNetworkResponses = ({
 		first(Boolean)
 	);
 
-	const messagesFromHttpResponse$ = responseStream
-		.asObservable()
-		.pipe(toArray());
+	const messagesFromHttpResponse$ = httpResponse$.pipe(toArray());
 
 	const allMessagesArePresentInStorageMatrix$ = combineLatest({
 		messagesFromHttpResponse: messagesFromHttpResponse$,
@@ -153,9 +165,13 @@ export const validateWithNetworkResponses = ({
 
 	return firstValueFrom(
 		race(conditionsWereValidated$, timeoutError$).pipe(
-			catchError((error) => {
-				logger.error(error.message);
-				return throwError(error);
+			catchError((error: unknown) => {
+				if (typeof error === 'object' && error && 'message' in error) {
+					logger.error(error.message as string);
+				} else {
+					logger.error(String(error));
+				}
+				return throwError(() => error);
 			})
 		)
 	);
