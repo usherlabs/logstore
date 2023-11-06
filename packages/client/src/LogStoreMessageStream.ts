@@ -14,7 +14,7 @@ import {
 	MessageRef,
 	StreamMessage,
 } from '@streamr/protocol';
-import { defer, type Observable, shareReplay } from 'rxjs';
+import { defer, type Observable, shareReplay, switchMap } from 'rxjs';
 
 import type { RequestMetadata } from './HttpUtil';
 
@@ -63,7 +63,26 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 	}
 
 	public asObservable() {
-		return defer(() => this);
+		return defer(async () => {
+			// for some reason, when used as observable does not trigger pipeline onStart signal, needed here
+			// @ts-expect-error pipeline is internal
+			await this.messageStream.pipeline.onStart.trigger();
+		}).pipe(switchMap(() => this));
+	}
+
+	// pull method from messageStream runs the async iterator eagerly
+	// however, to be able to postpone the stream usage (e.g. after system subscription) we make it lazy
+	// by attaching the source when the pipeline is executed
+	public setSourceOnStart(src$: Observable<StreamMessage<unknown>>) {
+		// @ts-expect-error pipeline is internal
+		const oldOnStart = this.messageStream.pipeline.onStart;
+		// @ts-expect-error pipeline is internal
+		this.messageStream.pipeline.onStart = {
+			trigger: async () => {
+				await this.messageStream.pull(src$[Symbol.asyncIterator]());
+				await oldOnStart.trigger();
+			},
+		};
 	}
 
 	async *[Symbol.asyncIterator](): AsyncIterator<LogStoreMessage> {

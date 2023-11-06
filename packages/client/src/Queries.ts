@@ -274,7 +274,7 @@ export class Queries implements IResends {
 			isStreamMessage
 		);
 
-		messageStream.pull(
+		const countedSource$ = defer(() =>
 			counting(messagesSource, (count: number) => {
 				this.logger.debug(
 					'[%s] total of %d messages received for query fetch',
@@ -288,6 +288,8 @@ export class Queries implements IResends {
 			messageStream,
 			metadataSource
 		);
+
+		logStoreMessageStream.setSourceOnStart(countedSource$);
 
 		if (options?.verifyNetworkResponses) {
 			await validateWithNetworkResponses({
