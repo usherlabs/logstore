@@ -1,11 +1,11 @@
 import { LogStoreClient, Stream } from '@logsn/client';
-import type { QueryOptions } from '@logsn/client/src/Queries';
+import type { QueryInput } from '@logsn/client/src/Queries';
 import { Observable } from 'rxjs';
 
 export const messagesFromQuery = (
 	client: LogStoreClient,
 	lsStream: Stream,
-	query: QueryOptions
+	query: QueryInput
 ) =>
 	new Observable<unknown>((subscriber) => {
 		const streamPromise = client.query(

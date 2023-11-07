@@ -22,6 +22,7 @@ import { getForRangeQueryRequest } from './getDataForRequest/getForRangeQueryReq
 import { sendError, sendSuccess } from './httpHelpers';
 import { FromRequest, LastRequest, RangeRequest } from './requestTypes';
 
+
 // TODO: move this to protocol-js
 export const MIN_SEQUENCE_NUMBER_VALUE = 0;
 export const MAX_SEQUENCE_NUMBER_VALUE = 2147483647;
@@ -91,15 +92,20 @@ const getDataForRequest = async (
 
 		const { queryRequestManager } = store;
 
-		await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
-			queryRequestBag.queryRequest
-		);
+		const { participatingNodes } =
+			await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+				queryRequestBag.queryRequest
+			);
 
 		const data = queryRequestManager.getDataForQueryRequest(
 			queryRequestBag.queryRequest
 		);
 
-		return { data };
+		return {
+			data,
+			requestId: queryRequestBag.queryRequest.requestId,
+			participatingNodes,
+		};
 	}
 };
 
@@ -145,7 +151,16 @@ const createHandler = (
 				}
 			);
 			if (response) {
-				sendSuccess(response.data, format, version, streamId, req, res);
+				sendSuccess(
+					response.data,
+					format,
+					version,
+					streamId,
+					response.requestId,
+					response.participatingNodes,
+					req,
+					res
+				);
 			}
 		} catch (error) {
 			sendError(error, res);

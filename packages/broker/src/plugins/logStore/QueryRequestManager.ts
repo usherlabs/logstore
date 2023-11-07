@@ -77,7 +77,7 @@ export class QueryRequestManager {
 		queryRequest: QueryRequest
 	) {
 		await this.publisher.publish(queryRequest.serialize());
-		await this.propagationResolver.waitForPropagateResolution(queryRequest);
+		return this.propagationResolver.waitForPropagateResolution(queryRequest);
 	}
 
 	public getDataForQueryRequest(queryRequest: QueryRequest) {

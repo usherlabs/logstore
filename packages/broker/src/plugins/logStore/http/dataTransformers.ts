@@ -5,15 +5,26 @@ import { Format } from './DataQueryFormat';
 
 const MESSAGE_LIMIT_REACHED = 'limit-reached';
 
+// to be included only if verifyNetworkState is true
+type NetworkStateVerificationMetadata = {
+	participatingNodesAddress?: string[];
+	requestId?: string;
+};
+
+type StreamResponseMetadata = {} & NetworkStateVerificationMetadata;
+
+type StandardResponseMetadata = {
+	hasNext: boolean;
+	nextTimestamp?: number;
+	nextSequenceNumber?: number;
+} & NetworkStateVerificationMetadata;
+
 export class ResponseTransform extends Transform {
 	format: Format;
 	version: number | undefined;
 	firstMessage = true;
 	totalMessages = 0;
-	private metadata: {
-		hasNext: boolean;
-		nextTimestamp?: number;
-	} = {
+	private metadata: StandardResponseMetadata = {
 		hasNext: false,
 	};
 
@@ -41,8 +52,14 @@ export class ResponseTransform extends Transform {
 		done();
 	}
 
-	setMetadata(metadata: { hasNext: boolean; nextTimestamp?: number }) {
+	setMetadata<T extends StandardResponseMetadata>(metadata: T) {
 		this.metadata = metadata;
+	}
+
+	updateMetadata(
+		updateFn: <T extends StandardResponseMetadata>(metadata: T) => T
+	) {
+		this.metadata = updateFn(this.metadata);
 	}
 
 	override _flush(done: () => void) {
@@ -56,8 +73,9 @@ export class ResponseTransform extends Transform {
 						...this.metadata,
 						totalMessages: this.totalMessages,
 				  })
-				: this.format.footer;
-		this.push(finalChunk);
+				: [this.format.footer];
+
+		finalChunk.forEach((chunk) => this.push(chunk));
 		done();
 	}
 }
@@ -65,6 +83,7 @@ export class ResponseTransform extends Transform {
 export class StreamResponseTransform extends Transform {
 	format: Format;
 	version: number | undefined;
+	metadata: StreamResponseMetadata = {};
 
 	constructor(format: Format, version: number | undefined) {
 		super({
@@ -72,6 +91,30 @@ export class StreamResponseTransform extends Transform {
 		});
 		this.format = format;
 		this.version = version;
+	}
+
+	setMetadata<T extends StreamResponseMetadata>(metadata: T): void {
+		this.metadata = metadata;
+	}
+
+	updateMetadata(
+		updateFn: <T extends StreamResponseMetadata>(metadata: T) => T
+	) {
+		this.metadata = updateFn(this.metadata);
+	}
+
+	override _flush(done: () => void) {
+		const finalChunk =
+			typeof this.format.footer === 'function'
+				? this.format.footer(
+						{
+							...this.metadata,
+						},
+						true
+				  )
+				: [this.format.footer];
+		finalChunk.forEach((chunk) => this.push(chunk));
+		done();
 	}
 
 	override _transform(

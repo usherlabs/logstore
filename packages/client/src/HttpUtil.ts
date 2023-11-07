@@ -20,6 +20,16 @@ export enum ErrorCode {
 	UNKNOWN = 'UNKNOWN',
 }
 
+// TODO couple it to broker's types
+export type RequestMetadata = {
+	requestId?: string;
+	participatingNodesAddress?: string[];
+	type: 'metadata';
+	hasNext?: boolean;
+	nextTimestamp?: number;
+	nextSequenceNumber?: number;
+};
+
 export const DEFAULT_HEADERS = {
 	'LogStore-Client': `logstore-client-javascript/${getVersionString()}`,
 };
@@ -96,7 +106,7 @@ export class HttpUtil {
 	async *fetchHttpStream(
 		url: string,
 		abortController = new AbortController()
-	): AsyncIterable<StreamMessage> {
+	): AsyncIterable<StreamMessage | RequestMetadata> {
 		const { token: authToken } = await this.fetchAuthParams();
 
 		const response = await fetchResponse(url, this.logger, {
@@ -120,7 +130,15 @@ export class HttpUtil {
 
 			stream = source.pipe(
 				split2((message: string) => {
-					return StreamMessage.deserialize(message);
+					const msgObject = JSON.parse(message);
+					if (Array.isArray(msgObject)) {
+						return StreamMessage.deserialize(msgObject);
+					}
+					// last message must be metadata
+					if (msgObject.type === 'metadata') {
+						return msgObject;
+					}
+					throw new Error('Invalid message');
 				})
 			);
 
