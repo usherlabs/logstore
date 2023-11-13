@@ -3,6 +3,7 @@ import { createStreamCommand } from '@/commands/create-stream';
 import { initCommand } from '@/commands/init';
 import { mintCommand } from '@/commands/mint';
 import { getRootOptions, setRootOptions } from '@/commands/options';
+import { priceCommand } from '@/commands/price';
 import { queryCommand } from '@/commands/query';
 import { storeCommand } from '@/commands/store';
 import { versionCommand } from '@/commands/version';
@@ -20,6 +21,7 @@ export const rootProgram = new Command()
 	.version(appVersion)
 	.option('-h, --host <string>', 'Polygon/EVM Node RPC Endpoint')
 	.option('-w, --wallet <string>', 'Wallet private key')
+	.option('--gas-tip <number>', 'Initial gas tip to use for transactions')
 	.option(
 		'-c, --config <string>',
 		'Path to configuration file. Defaults to ~/.logstore-cli/default.json',
@@ -67,6 +69,7 @@ rootProgram.addCommand(versionCommand);
 rootProgram.addCommand(initCommand);
 rootProgram.addCommand(mintCommand);
 rootProgram.addCommand(balanceCommand);
+rootProgram.addCommand(priceCommand);
 rootProgram.addCommand(queryCommand);
 rootProgram.addCommand(createStreamCommand);
 rootProgram.addCommand(storeCommand);

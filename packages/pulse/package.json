@@ -1,14 +1,14 @@
 {
-	"name": "@logsn/heartbeat",
+	"name": "@logsn/pulse",
 	"version": "0.0.1",
-	"description": "The Log Store Network Heartbeat",
+	"description": "The Log Store Network Pulse",
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "Apache-2.0",
 	"private": false,
 	"main": "index.js",
 	"bin": {
-		"logstore-heartbeat": "./dist/bin/logstore-heartbeat.js"
+		"logstore-pulse": "./dist/bin/logstore-pulse.js"
 	},
 	"scripts": {
 		"build": "tsc",

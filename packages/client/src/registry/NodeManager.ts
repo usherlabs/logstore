@@ -17,6 +17,7 @@ import {
 import { getStreamRegistryChainProviders } from '../Ethereum';
 import { NodeMetadata } from '../NodeMetadata';
 
+
 @scoped(Lifecycle.ContainerScoped)
 export class NodeManager {
 	private contractFactory: ContractFactory;
@@ -77,5 +78,37 @@ export class NodeManager {
 		}
 
 		throw new Error('There are no nodes with a proper metadata');
+	}
+
+	public async getNodeAddressFromUrl(url: string) {
+		const nodeAddresses = await queryAllReadonlyContracts(
+			(contract: LogStoreNodeManagerContract) => {
+				return contract.nodeAddresses();
+			},
+			this.logStoreManagerContractsReadonly
+		);
+
+		for (const nodeAddress of nodeAddresses) {
+			const node = await queryAllReadonlyContracts(
+				(contract: LogStoreNodeManagerContract) => {
+					return contract.nodes(nodeAddress);
+				},
+				this.logStoreManagerContractsReadonly
+			);
+			if (node.metadata.includes(url)) {
+				return nodeAddress;
+			}
+		}
+
+		throw new Error('There are no nodes with a proper metadata');
+	}
+
+	public async getActiveNodes() {
+		return queryAllReadonlyContracts(
+			(contract: LogStoreNodeManagerContract) => {
+				return contract.nodeAddresses();
+			},
+			this.logStoreManagerContractsReadonly
+		);
 	}
 }

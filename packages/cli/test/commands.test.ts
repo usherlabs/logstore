@@ -1,6 +1,7 @@
 import { LogStoreClient } from '@logsn/client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { ethers } from 'ethers';
+import stripAnsi from 'strip-ansi';
 import { describe, expect, test as rawTest } from 'vitest';
 
 import { createTestStream } from '../../client/test/test-utils/utils';
@@ -57,15 +58,20 @@ describe('direct cli call tests', function () {
 			);
 			expect(code).toBe(0);
 			expect(stdout).toContain('The LSAN balance for address');
-			expect(stdout).toContain(
-				'of Storage are available to be staked on the Log Store'
-			);
-			expect(stdout).toContain(
-				'of Queries are available to be staked on the Log Store'
-			);
+			expect(stdout).toContain('TB of Storage');
+			expect(stdout).toContain('TB of Queries');
 		},
 		TEST_TIMEOUT
 	);
+
+	test('list streams', async ({ credentialsString, logstoreClient }) => {
+		const { code, stdout, stderr } = await executeOnCli(
+			`store list ${credentialsString}`
+		);
+
+		expect(code).toBe(0);
+		expect(stripAnsi(stdout)).toContain(await logstoreClient.getAddress());
+	});
 
 	test(
 		'mint',
@@ -84,12 +90,73 @@ describe('direct cli call tests', function () {
 			);
 
 			expect(code).toBe(0);
-			expect(stdout).toContain('Successfully minted tokens to network:Tx');
-			expect(stdout).toContain('Amount:Tx 100000000000000');
+			expect(stdout).toContain('Successfully minted tokens to network');
+			expect(stdout).toContain('mint amount:');
 
 			const newBalance = await logstoreClient.getBalance();
 
 			expect(newBalance).toBe(expectedBalance);
+		},
+		TEST_TIMEOUT
+	);
+
+	test(
+		'mint with usd',
+		async ({ credentialsString, logstoreClient }) => {
+			const MINT_AMOUNT_USD = '0.001';
+			const mintResult = await logstoreClient.convert({
+				amount: MINT_AMOUNT_USD,
+				from: 'usd',
+				to: 'bytes',
+			});
+
+			const balance = await logstoreClient.getBalance();
+
+			const expectedBalance = balance + BigInt(mintResult);
+
+			const { code, stdout, stderr } = await executeOnCli(
+				`mint -u ${MINT_AMOUNT_USD} ${credentialsString} `
+			);
+
+			expect(code).toBe(0);
+			expect(stderr).toBe('');
+			expect(stdout).toContain('Successfully minted tokens to network');
+			expect(stdout).toContain('mint amount:');
+
+			const newBalance = await logstoreClient.getBalance();
+
+			expect(newBalance).toBe(BigInt(expectedBalance));
+		},
+		TEST_TIMEOUT
+	);
+
+	test(
+		'mint big value with usd',
+		async ({ credentialsString, logstoreClient }) => {
+			const MINT_AMOUNT_USD = '999';
+			const mintResult = await logstoreClient.convert({
+				amount: MINT_AMOUNT_USD,
+				from: 'usd',
+				to: 'bytes',
+			});
+
+			const balance = await logstoreClient.getBalance();
+
+			const expectedBalance = balance + BigInt(mintResult);
+
+			const { code, stdout, stderr } = await executeOnCli(
+				`mint -u ${MINT_AMOUNT_USD} ${credentialsString} `
+			);
+
+			const output = stripAnsi(stdout);
+			expect(code).toBe(0);
+			expect(stderr).toBe('');
+			expect(output).toContain('Successfully minted tokens to network');
+			expect(output).toContain('mint amount:');
+
+			const newBalance = await logstoreClient.getBalance();
+
+			expect(newBalance).toBe(BigInt(expectedBalance));
 		},
 		TEST_TIMEOUT
 	);
@@ -106,7 +173,7 @@ describe('direct cli call tests', function () {
 			);
 
 			expect(code).toBe(0);
-			expect(stdout).toContain('Successfully staked 100000000000000 - Tx');
+			expect(stdout).toContain('Successfully staked 100000000000000');
 
 			const queryBalance = await logstoreClient.getQueryBalance();
 
@@ -131,7 +198,7 @@ describe('direct cli call tests', function () {
 
 			expect(stderr).toBe('');
 			expect(code).toBe(0);
-			expect(stdout).toContain('Successfully staked 100000000000000 - Tx');
+			expect(stdout).toContain('Successfully staked 100000000000000 LSAN');
 
 			const storeBalance = await logstoreClient.getStoreBalance();
 			const streamStakeBalance = await logstoreClient.getStreamBalance(
@@ -153,7 +220,6 @@ describe('direct cli call tests', function () {
 
 			expect(code).toBe(0);
 			expect(stdout).toContain('LSAN staked on-chain for Queries');
-			expect(stdout).toContain('LSAN in a Wallet UI');
 			expect(stdout).toContain('of data is available for Queries');
 		},
 		TEST_TIMEOUT
@@ -168,9 +234,17 @@ describe('direct cli call tests', function () {
 
 			expect(code).toBe(0);
 			expect(stdout).toContain('LSAN staked on-chain for Storage');
-			expect(stdout).toContain('LSAN in a Wallet UI');
 			expect(stdout).toContain('of data is available for Storage');
 		},
 		TEST_TIMEOUT
 	);
+
+	test('contract errors are printed', async ({ credentialsString }) => {
+		const { code, stdout, stderr } = await executeOnCli(
+			`mint 1 ${credentialsString}`
+		);
+		const output = stripAnsi(stdout);
+		expect(code).toBe(0); // it actually fails, but the code remains 0
+		expect(output).toContain('cannot estimate gas');
+	});
 });

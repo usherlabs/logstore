@@ -203,7 +203,7 @@ async function main() {
 		const ACCOUNT_PK_PREFIX = '';
 		const BROKER_PK_PREFIX = 'bb';
 		const VALIDATOR_PK_PREFIX = 'cc';
-		const HEARTBEAT_PK =
+		const PULSE_PK =
 			'1111111111111111111111111111111111111111111111111111111111111111';
 		const NUM_ACCOUNTS = 100;
 		const NUM_BROKERS = 3;
@@ -330,9 +330,9 @@ async function main() {
 
 		console.log();
 		console.log(
-			`Minting native token and LSAN to the Heartbeat account with Primary Key: ${HEARTBEAT_PK}`
+			`Minting native token and LSAN to the Pulse account with Primary Key: ${PULSE_PK}`
 		);
-		const address = new Wallet(HEARTBEAT_PK).address;
+		const address = new Wallet(PULSE_PK).address;
 
 		const tx = {
 			to: address,

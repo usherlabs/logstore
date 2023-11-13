@@ -3,13 +3,20 @@
  * Subscriptions are MessageStreams.
  * Not all MessageStreams are Subscriptions.
  */
-import { MessageListener, MessageStream } from '@logsn/streamr-client';
+import {
+	type Message,
+	MessageListener,
+	MessageStream,
+} from '@logsn/streamr-client';
 import {
 	EncryptedGroupKey,
 	MessageID,
 	MessageRef,
 	StreamMessage,
 } from '@streamr/protocol';
+import { defer, type Observable, shareReplay, switchMap } from 'rxjs';
+
+import type { RequestMetadata } from './HttpUtil';
 
 export type LogStoreMessageMetadata = {
 	id: MessageID;
@@ -32,7 +39,19 @@ export type LogStoreMessage = {
  * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of | for await .. of}.
  */
 export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
-	constructor(public messageStream: MessageStream) {}
+	private messages$: Observable<Message>;
+
+	constructor(
+		public messageStream: MessageStream,
+		public metadataStream: Observable<RequestMetadata>
+	) {
+		this.messages$ = defer(() => messageStream).pipe(
+			// TODO this is a hack to be able to use the same MessageStream the user is using,
+			// 	otherwise is hard to check the network state at the same time
+			// so we don't get error if we try to iterate more than once
+			shareReplay({ refCount: true })
+		);
+	}
 
 	/**
 	 * Attach a legacy onMessage handler and consume if necessary.
@@ -43,8 +62,31 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 		return this;
 	}
 
+	public asObservable() {
+		return defer(async () => {
+			// for some reason, when used as observable does not trigger pipeline onStart signal, needed here
+			// @ts-expect-error pipeline is internal
+			await this.messageStream.pipeline.onStart.trigger();
+		}).pipe(switchMap(() => this));
+	}
+
+	// pull method from messageStream runs the async iterator eagerly
+	// however, to be able to postpone the stream usage (e.g. after system subscription) we make it lazy
+	// by attaching the source when the pipeline is executed
+	public setSourceOnStart(src$: Observable<StreamMessage<unknown>>) {
+		// @ts-expect-error pipeline is internal
+		const oldOnStart = this.messageStream.pipeline.onStart;
+		// @ts-expect-error pipeline is internal
+		this.messageStream.pipeline.onStart = {
+			trigger: async () => {
+				await this.messageStream.pull(src$[Symbol.asyncIterator]());
+				await oldOnStart.trigger();
+			},
+		};
+	}
+
 	async *[Symbol.asyncIterator](): AsyncIterator<LogStoreMessage> {
-		for await (const msg of this.messageStream) {
+		for await (const msg of this.messages$) {
 			// @ts-expect-error this is marked as internal in MessageStream
 			const streamMessage: StreamMessage = msg.streamMessage;
 			yield convertStreamMessageToMessage(streamMessage);

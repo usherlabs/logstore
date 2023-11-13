@@ -133,37 +133,23 @@ export class TokenManager {
 			return new Decimal(weiPerByte.toString());
 		};
 
-		// we want lazy evaluation here
-		const getInputConversion = async () => {
-			switch (from) {
-				case 'wei':
-					return new Decimal(1);
-				case 'usd':
-					return await getWeiPerUsd();
-				case 'bytes':
-					return await getWeiPerByte();
-				default:
-					throw new Error('invalid from');
-			}
+		const getRatesToWei = {
+			wei: () => new Decimal(1),
+			usd: getWeiPerUsd,
+			bytes: getWeiPerByte,
 		};
 
-		// we want lazy evaluation here
-		const getOutputConversion = async () => {
-			switch (to) {
-				case 'wei':
-					return new Decimal(1);
-				case 'usd':
-					return await getWeiPerUsd();
-				case 'bytes':
-					return await getWeiPerByte();
-				default:
-					throw new Error('invalid to');
-			}
+		const outputDecimals = {
+			wei: 0,
+			usd: 18,
+			bytes: 0,
 		};
 
 		const result = new Decimal(amount.toString())
-			.mul(await getInputConversion())
-			.div(await getOutputConversion());
+			.mul(await getRatesToWei[from]())
+			.div(await getRatesToWei[to]())
+			.toDP(outputDecimals[to], Decimal.ROUND_DOWN);
+
 		return result.toString();
 	}
 }

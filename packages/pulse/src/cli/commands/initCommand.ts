@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 
-import { Heartbeat } from '../../Heartbeat';
+import { Pulse } from '../../Pulse';
 import { getClient } from '../../utils/getClient';
 // import { waitForKyve } from '../../utils/waitForKyve';
 import { amountArgument } from '../arguments';
@@ -19,7 +19,7 @@ interface Options {
 }
 
 export const initCommand = new Command('init')
-	.description('Initialize LogStore Heartbeat stream')
+	.description('Initialize LogStore Pulse stream')
 	.addArgument(amountArgument)
 	.addOption(devNetworkOption)
 	.addOption(kyveApiUrlOption)
@@ -45,6 +45,6 @@ export const initCommand = new Command('init')
 		// }
 
 		const client = getClient(options.privateKey, options.devNetwork);
-		const heartbeat = new Heartbeat(client);
-		await heartbeat.createStream(amount);
+		const pulse = new Pulse(client);
+		await pulse.createStream(amount);
 	});

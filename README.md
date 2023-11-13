@@ -132,7 +132,7 @@ Here is an overview of the different packages:
 - **`cli`** — A command-line tool for easy interaction with the Log Store Network.
 - **`client`** — A JavaScript library for simple and direct communication with the Log Store Network.
 - **`contracts`** — Smart contracts for secure participation and data management in the Log Store Network. See 🔗 [Log Store Smart Contracts](https://docs.logstore.usher.so/network/overview/contracts) for a helpful list of addresses.
-- **`heartbeat`** — Periodically ensures connectivity and monitors the Log Store Network.
+- **`pulse`** — Periodically ensures connectivity and monitors the Log Store Network.
 - **`protocol`** — Defines the core communication standards for the Log Store Network.
 - **`shared`** — Common utilities and resources for the Log Store Network.
 - **`subgraph`** — Indexes blockchain data for efficient querying of the Log Store Network.

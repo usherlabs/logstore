@@ -24,6 +24,8 @@ import { Transform, TransformCallback } from 'stream';
 import { CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
 import { LogStoreMessage } from '../../src/LogStoreMessageStream';
+import type { StorageMatrix } from '../../src/utils/networkValidation/manageStorageMatrix';
+import * as verifyPkg from '../../src/utils/networkValidation/manageStorageMatrix';
 import { createTestStream } from '../test-utils/utils';
 
 const originalFetch = fetch.default;
@@ -157,6 +159,7 @@ describe('query', () => {
 				await publishMessages(NUM_OF_LAST_MESSAGES);
 
 				const messages: StreamMessage[] = [];
+
 				await consumerClient.query(
 					{
 						streamId: stream.id,
@@ -245,6 +248,89 @@ describe('query', () => {
 					() => `messages array length was ${messages.length}`
 				);
 				expect(messages).toHaveLength(NUM_OF_RANGE_MESSAGES);
+			},
+			TIMEOUT
+		);
+
+		it(
+			'can check the network state for a query',
+			async () => {
+				const numOfMessagesForThisTest = 2;
+				await publishMessages(numOfMessagesForThisTest);
+
+				const storageSpy = jest.spyOn(verifyPkg, 'convertToStorageMatrix');
+				const messages: LogStoreMessage[] = [];
+
+				const messagesQuery = await consumerClient.query(
+					{
+						streamId: stream.id,
+						partition: 0,
+					},
+					{ last: numOfMessagesForThisTest },
+					undefined,
+					{ verifyNetworkResponses: true }
+				);
+
+				// using this form to ensure that the iterator is done before the test ends
+				for await (const message of messagesQuery) {
+					messages.push(message);
+				}
+
+				expect(messages).toHaveLength(numOfMessagesForThisTest);
+				expect(messages[0].content).toMatchObject({ messageNo: 0 });
+				const messagesId = messages.map((c) => c.metadata.id.serialize());
+
+				expect(storageSpy).toBeCalledTimes(1);
+				const lastReturn = storageSpy.mock.results[0].value as StorageMatrix;
+				// these are messageIds stringified
+				expect(lastReturn.size).toBe(numOfMessagesForThisTest);
+				lastReturn.forEach((value, key) => {
+					expect(value).toBeInstanceOf(Set);
+					expect(messagesId).toContain(key);
+					// more than one node contains it
+					expect(value.size).toBeGreaterThan(0);
+				});
+			},
+			TIMEOUT
+		);
+
+		it(
+			'can do in parallel 3 queries with verifyNetworkResponses',
+			async () => {
+				const timesToTest = 3;
+				let initialNumberrOfMessagesToFetch = 2;
+				const storageSpy = jest.spyOn(verifyPkg, 'convertToStorageMatrix');
+				const maxNumOfMessagesQueried =
+					initialNumberrOfMessagesToFetch + timesToTest;
+				await publishMessages(maxNumOfMessagesQueried);
+
+				const doTest = async () => {
+					// we're taking a different number of messages for each test to try getting edge cases
+					const numOfMessagesForThisTest = initialNumberrOfMessagesToFetch++;
+					const messages: LogStoreMessage[] = [];
+
+					const messagesQuery = await consumerClient.query(
+						{
+							streamId: stream.id,
+							partition: 0,
+						},
+						{ last: numOfMessagesForThisTest },
+						undefined,
+						{ verifyNetworkResponses: true }
+					);
+
+					// using this form to ensure that the iterator is done before the test ends
+					for await (const message of messagesQuery) {
+						messages.push(message);
+					}
+
+					expect(messages).toHaveLength(numOfMessagesForThisTest);
+					expect(messages[0].content).toMatchObject({
+						messageNo: expect.any(Number),
+					});
+				};
+
+				await Promise.all(range(timesToTest).map(() => doTest()));
 			},
 			TIMEOUT
 		);
@@ -440,7 +526,11 @@ describe('query', () => {
 
 					const messages: unknown[] = [];
 					streamJson.data.on('data', (chunk: any) => {
-						messages.push(JSON.parse(chunk));
+						const newObj = JSON.parse(chunk);
+						const isMetadata = 'type' in newObj && newObj.type === 'metadata';
+						if (!isMetadata) {
+							messages.push(newObj);
+						}
 					});
 
 					await new Promise((resolve) => {

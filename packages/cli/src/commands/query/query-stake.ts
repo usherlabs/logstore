@@ -1,19 +1,33 @@
 import { getRootOptions } from '@/commands/options';
-import { allowanceConfirm, logger, withRetry } from '@/utils/utils';
+import {
+	getCredentialsFromOptions,
+	getLogStoreClientFromOptions,
+} from '@/utils/logstore-client';
+import { keepRetryingWithIncreasedGasPrice } from '@/utils/speedupTx';
+import {
+	allowanceConfirm,
+	checkLSANFunds,
+	logger,
+	printContractFailReason,
+	printTransactionFee,
+	printTransactionLink,
+} from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import {
 	getQueryManagerContract,
-	prepareStakeForQueryManager,
+	Manager,
+	requestAllowanceIfNeeded,
 } from '@logsn/shared';
 import chalk from 'chalk';
-import { ethers } from 'ethers';
+import Decimal from 'decimal.js';
+import { firstValueFrom } from 'rxjs';
 
 const stakeCommand = new Command()
 	.name('stake')
 	.description('Stake to submit Query requests to the Log Store Network')
 	.argument(
 		'<amount>',
-		'Amount in Wei to stake into the Query Manager Contract. Ensure funds are available for queries to the Log Store Network.'
+		'Amount in LSAN to stake into the Query Manager Contract. Ensure funds are available for queries to the Log Store Network.'
 	)
 	.option(
 		'-u, --usd',
@@ -22,40 +36,72 @@ const stakeCommand = new Command()
 	.option('-y, --assume-yes', 'Assume Yes to all queries and do not prompt')
 	.action(async (amt, cmdOptions) => {
 		const rootOptions = getRootOptions();
+		const logStoreClient = getLogStoreClientFromOptions();
 
-		const amount = cmdOptions.usd ? parseFloat(amt) : BigInt(amt);
+		const amountToStakeInLSAN = cmdOptions.usd
+			? // todo: 1 LSAN = 1 by here
+			  await logStoreClient
+					.convert({
+						amount: amt,
+						from: 'usd',
+						to: 'bytes',
+					})
+					.then((v) => new Decimal(v))
+			: amt;
+
+		const hexValue = new Decimal(amountToStakeInLSAN).toHex();
+
 		logger.debug('Command Params: ', {
-			amount,
+			amountToStakeInLSAN,
+			amt,
 			...rootOptions,
 			...cmdOptions,
 		});
 
 		try {
-			const provider = new ethers.providers.JsonRpcProvider(rootOptions.host);
-			const signer = new ethers.Wallet(rootOptions.wallet, provider);
-			const stakeAmount = await prepareStakeForQueryManager(
+			const { signer } = getCredentialsFromOptions();
+
+			console.log('Checking for available allowance...');
+			const allowanceTx = await requestAllowanceIfNeeded(
+				Manager.QueryManager,
+				BigInt(hexValue),
 				signer,
-				amount,
-				cmdOptions.usd,
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined
 			);
+
+			if (allowanceTx) {
+				console.log('');
+				console.info('Waiting for allowance transaction to be mined...');
+				await firstValueFrom(
+					keepRetryingWithIncreasedGasPrice(signer, allowanceTx)
+				);
+				console.info('Allowance transaction mined');
+				console.log('');
+			} else {
+				logger.debug('No additional allowance needed');
+			}
+
+			await checkLSANFunds(amountToStakeInLSAN.toString());
 			const queryManagerContract = await getQueryManagerContract(signer);
-			logger.info(`Staking ${stakeAmount}...`);
+			console.info(`Staking ${amountToStakeInLSAN} LSAN...`);
 
-			const tx = await withRetry(provider, (gasPrice) => {
-				return queryManagerContract.stake(stakeAmount, {
-					gasPrice,
-				});
-			});
-			const receipt = await tx.wait();
+			const tx = await queryManagerContract.stake(hexValue);
 
-			logger.info(
-				chalk.green(
-					`Successfully staked ${stakeAmount} - Tx: ${receipt.transactionHash}`
-				)
+			const receipt = await firstValueFrom(
+				keepRetryingWithIncreasedGasPrice(signer, tx)
 			);
+
+			console.log('');
+			console.info(`Successfully staked ${amountToStakeInLSAN} LSAN for Query`);
+			console.log(`Tx: ${receipt.transactionHash}`);
+			console.log('');
+
+			await printTransactionFee(receipt);
+
+			await printTransactionLink(receipt);
 		} catch (e) {
-			logger.info(chalk.red('Stake failed'));
+			console.info(chalk.red('Stake failed'));
+			printContractFailReason(e);
 			logger.error(e);
 		}
 	});
