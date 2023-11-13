@@ -123,6 +123,10 @@ describe('Manage tokens', () => {
 			// $0.709104 at 28/07/2023. We will assume that pricing will be between 0.3 and 1.5 USD
 			expect(+weiToUsd).toBeGreaterThan(0.3);
 			expect(+weiToUsd).toBeLessThan(1.5);
+
+			expect(
+				await accountClient.convert({ amount: '1', from: 'usd', to: 'bytes' })
+			).toBe('');
 		},
 		TIMEOUT
 	);
