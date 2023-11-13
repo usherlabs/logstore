@@ -1,5 +1,5 @@
 import { LSAN__factory } from '@logsn/contracts';
-import { Signer } from 'ethers';
+import { type ContractTransaction, Signer } from 'ethers';
 
 import { getManagerContract } from './getManager';
 import { Manager } from './types';
@@ -14,9 +14,38 @@ export const ensureEnoughAllowance = async (
 	amount: bigint,
 	signer: Signer,
 	confirm?: allowanceConfirmFn
-) => {
+): Promise<boolean> => {
+	return requestAllowanceIfNeeded(manager, amount, signer, confirm)
+		.then((tx) => {
+			if (tx) {
+				return tx.wait().then((receipt) => {
+					if (receipt.status === 0) {
+						throw new Error('Transaction failed');
+					}
+					return true;
+				});
+			} else {
+				return true;
+			}
+		})
+		.catch((e) => {
+			console.error(e);
+			return false;
+		});
+};
+
+/**
+ * Differently from the method above, it instead returns the TX.
+ * Created not to break existing usages
+ */
+export const requestAllowanceIfNeeded = async (
+	manager: Exclude<Manager, Manager.ReportManager>,
+	amount: bigint,
+	signer: Signer,
+	confirm?: allowanceConfirmFn
+): Promise<null | ContractTransaction> => {
 	const mangerContract = await getManagerContract(signer, manager);
-	// @ts-ignore -- manager excludes ReportManager
+	// @ts-expect-error -- manager excludes ReportManager
 	const stakeTokenAddress = await mangerContract.stakeTokenAddress();
 	const stakeToken = LSAN__factory.connect(stakeTokenAddress, signer);
 
@@ -33,12 +62,11 @@ export const ensureEnoughAllowance = async (
 			!confirm || (await confirm(currentAllowance, requiredAllowance));
 
 		if (confirmed) {
-			await (await stakeToken.approve(mangerContract.address, amount)).wait();
-			return true;
+			return stakeToken.approve(mangerContract.address, amount);
 		} else {
-			return false;
+			throw new Error('User didn’t confirm allowance');
 		}
 	}
 
-	return true;
+	return null;
 };
