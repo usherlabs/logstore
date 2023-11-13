@@ -94,7 +94,8 @@ export const getTransactionFee = async (receipt: ContractReceipt) => {
 	const client = getLogStoreClientFromOptions();
 
 	const gasUsed = receipt.gasUsed;
-	const gasPrice = receipt.effectiveGasPrice;
+	// in tests, effective gas price doesnt exist
+	const gasPrice = receipt.effectiveGasPrice ?? 0;
 	const feeWei = gasUsed.mul(gasPrice).toString();
 	const feeUsd = await client.convert({
 		amount: feeWei,
