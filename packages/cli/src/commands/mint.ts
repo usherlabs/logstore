@@ -1,9 +1,21 @@
 import { getRootOptions } from '@/commands/options';
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
-import { logger } from '@/utils/utils';
+import {
+	getCredentialsFromOptions,
+	getLogStoreClientFromOptions,
+} from '@/utils/logstore-client';
+import { keepRetryingWithIncreasedGasPrice } from '@/utils/speedupTx';
+import {
+	getTransferAmountFromEcr2Transfer,
+	logger,
+	printContractFailReason,
+	printPrices,
+	printTransactionFee,
+	printTransactionLink,
+} from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
 import Decimal from 'decimal.js';
+import { firstValueFrom } from 'rxjs';
 
 export const mintCommand = new Command()
 	.command('mint')
@@ -27,6 +39,7 @@ export const mintCommand = new Command()
 			throw new Error('Cannot pass USD and BYTES flags together.');
 		}
 		logger.debug('Command Params: ', { amount, ...rootOptions, ...cmdOptions });
+		const { signer, provider } = getCredentialsFromOptions();
 
 		try {
 			const client = getLogStoreClientFromOptions();
@@ -37,24 +50,46 @@ export const mintCommand = new Command()
 				? 'bytes'
 				: 'wei';
 
+			await printPrices();
+
 			const amountInToken = await client.convert({
 				amount,
 				from: mintType,
 				to: 'wei',
 			});
 
+			console.log(`Minting ${amountInToken} wei...`);
 			const result = await client.mint(
 				BigInt(new Decimal(amountInToken).toHex())
 			);
 
 			console.log(
-				`Successfully minted tokens to network:Tx ${result.hash}, Amount:Tx ${amountInToken}. Waiting for confirmations...`
+				`Waiting for transaction ${chalk.underline(result.hash)} to be mined...`
 			);
 
-			await result.wait();
+			const receipt = await firstValueFrom(
+				keepRetryingWithIncreasedGasPrice(signer, result)
+			);
+
+			console.log('');
+			console.log(`Successfully minted tokens to network.`);
+			console.log(`Tx ${receipt.transactionHash}`);
+
+			console.log('');
+			console.log(`Waiting more confirmations...`);
+
+			await provider.waitForTransaction(receipt.transactionHash, 3);
+
 			console.log('Mint confirmed.');
-		} catch (e) {
-			logger.info(chalk.red('mint failed'));
+			await printTransactionFee(receipt);
+			const resultingLSAN = await getTransferAmountFromEcr2Transfer(receipt);
+			console.log(`Minted ${resultingLSAN} LSAN`);
+
+			await printTransactionLink(receipt);
+		} catch (e: unknown) {
+			console.log(chalk.red('mint failed'));
+			printContractFailReason(e);
+
 			logger.error(e);
 		}
 	});

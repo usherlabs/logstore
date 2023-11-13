@@ -1,7 +1,19 @@
+import { readFeeMultiplier } from '@/configuration';
+import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
 import { allowanceConfirmFn } from '@logsn/shared';
+import chalk from 'chalk';
 import Decimal from 'decimal.js';
-import { ethers } from 'ethers';
+import {
+	BigNumber,
+	type ContractReceipt,
+	ContractTransaction,
+	ethers,
+	type Overrides,
+	Signer,
+	type Transaction,
+} from 'ethers';
 import inquirer from 'inquirer';
+import _ from 'lodash';
 import { Logger } from 'tslog';
 
 export const logger = new Logger();
@@ -77,3 +89,163 @@ export const withRetry = async (
 
 	return tx;
 };
+
+export const getTransactionFee = async (receipt: ContractReceipt) => {
+	const client = getLogStoreClientFromOptions();
+
+	const gasUsed = receipt.gasUsed;
+	const gasPrice = receipt.effectiveGasPrice;
+	const feeWei = gasUsed.mul(gasPrice).toString();
+	const feeUsd = await client.convert({
+		amount: feeWei,
+		from: 'wei',
+		to: 'usd',
+	});
+	return {
+		wei: new Decimal(feeWei),
+		usd: new Decimal(feeUsd),
+	};
+};
+
+type BaseAmount = 'byte' | 'query' | 'wei' | 'usd';
+
+export async function printPrices(base: BaseAmount = 'byte') {
+	const client = getLogStoreClientFromOptions();
+
+	const weiPerBytePrice = await client
+		.getPrice()
+		.then((c) => new Decimal('0x' + c.toString(16)));
+	const usdPerByte = await client
+		.convert({
+			amount: '1',
+			from: 'bytes',
+			to: 'usd',
+		})
+		.then((c) => new Decimal(c));
+
+	const queryBytes = new Decimal(1 / readFeeMultiplier);
+	const storagePrice = new Decimal(1);
+	const lsanPerByte = new Decimal(1);
+
+	const baseAmount =
+		base === 'byte'
+			? storagePrice
+			: base === 'query'
+			? queryBytes
+			: base === 'wei'
+			? weiPerBytePrice
+			: base === 'usd'
+			? usdPerByte
+			: new Error('Invalid base amount');
+
+	if (baseAmount instanceof Error) {
+		throw baseAmount;
+	}
+
+	console.info(chalk.bold(`Current prices:`));
+	console.info(
+		`${bytesToMessage(
+			storagePrice.div(baseAmount)
+		)} (storage) = ${bytesToMessage(
+			queryBytes.div(baseAmount)
+		)} (query) = ${lsanPerByte.div(baseAmount)} LSAN = ${weiPerBytePrice.div(
+			baseAmount
+		)} wei (MATIC) = ${usdPerByte.div(baseAmount)} USD`
+	);
+}
+
+// TODO: maybe from client we could get the network name?
+export async function printTransactionLink(receipt: ContractReceipt) {
+	const client = getLogStoreClientFromOptions();
+	const polyScanUrl = `https://polygonscan.com/tx/${receipt.transactionHash}`;
+	console.info(chalk.bold(`View transaction:`));
+	console.info(polyScanUrl);
+}
+
+export function printContractFailReason(e: unknown) {
+	const reason = _.get(e, 'reason.reason');
+	if (reason) {
+		console.log('Reason: ', reason);
+	}
+}
+
+export async function getTransferAmountFromEcr2Transfer(
+	receipt: ethers.providers.TransactionReceipt
+) {
+	const erc20Abi = [
+		// Only include the Transfer event ABI
+		'event Transfer(address indexed from, address indexed to, uint amount)',
+	];
+
+	const iface = new ethers.utils.Interface(erc20Abi);
+	const decodedLogs = receipt.logs.map((log) => {
+		try {
+			return iface.parseLog(log);
+		} catch (e) {
+			return undefined;
+		}
+	});
+
+	const transferEvent = decodedLogs.find((log) => log?.name === 'Transfer');
+
+	const valueTransfered = transferEvent?.args[2];
+
+	if (!valueTransfered) throw new Error('No value transfered');
+	//
+	const bn = BigNumber.from(valueTransfered).toHexString();
+	const resultingLSAN = new Decimal(bn);
+	return resultingLSAN;
+}
+
+export async function checkLSANFunds(_triedUsing: Decimal.Value) {
+	const triedUsing = new Decimal(_triedUsing);
+	const client = getLogStoreClientFromOptions();
+	const balance = await client.getBalance().then(String);
+
+	if (triedUsing.greaterThan(balance)) {
+		throw new Error(
+			`Insufficient LSAN funds. Tried using ${triedUsing} but only have ${balance}. Difference: ${triedUsing.minus(
+				balance
+			)}`
+		);
+	}
+}
+
+export async function replaceTransaction(
+	signer: Signer,
+	contractTransaction: Transaction | ContractTransaction,
+	overrrides: Overrides
+) {
+	const props = [
+		'to',
+		'from',
+		'nonce',
+		'gasLimit',
+		'gasPrice',
+		'data',
+		'value',
+		'chainId',
+		'type',
+		'accessList',
+		'maxPriorityFeePerGas',
+		'maxFeePerGas',
+		'customData',
+		'ccipReadEnabled',
+	] as const;
+	const newTx = await signer.sendTransaction({
+		..._.pick(contractTransaction, props),
+		...overrrides,
+		type: contractTransaction.type ?? undefined,
+	} satisfies Parameters<typeof signer.sendTransaction>[0]);
+	return newTx;
+}
+
+export async function printTransactionFee(receipt: ContractReceipt) {
+	const fee = await getTransactionFee(receipt);
+
+	console.log(`Transaction fee: ${ethers.utils.formatUnits(
+		fee.wei.toHexadecimal(),
+		'gwei'
+	)} gwei ($${fee.usd.toFixed(4)})
+				`);
+}

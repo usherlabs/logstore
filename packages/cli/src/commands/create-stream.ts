@@ -1,5 +1,4 @@
 import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
-import { logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 
 export const createStreamCommand = new Command()
@@ -12,9 +11,16 @@ export const createStreamCommand = new Command()
 		// const provider = new ethers.providers.JsonRpcProvider(rootOptions.host);
 		// const signer = new ethers.Wallet(rootOptions.wallet, provider);
 		const client = getLogStoreClientFromOptions();
+		console.log('Creating a stream...');
 		const stream = await client.createStream({
 			// id: name.charAt(0) === '/' ? name : `/${name}`,
 			id: name,
 		});
-		logger.info(stream);
+		// link shape: https://streamr.network/hub/streams/streamr.eth%2Fmetrics%2Fnodes%2Ffirehose%2Fsec/overview
+		const escapedStreamId = stream.id.replace('/', '%2F');
+		console.log('Created!');
+		console.log(`Stream ID: ${stream.id}`);
+		console.log(
+			`Streamr's Stream Explorer: https://streamr.network/hub/streams/${escapedStreamId}/overview`
+		);
 	});

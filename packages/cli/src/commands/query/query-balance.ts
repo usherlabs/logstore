@@ -4,7 +4,6 @@ import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
 import Decimal from 'decimal.js';
-import { ethers } from 'ethers';
 
 const queryBalanceCommand = new Command()
 	.name('balance')
@@ -12,20 +11,14 @@ const queryBalanceCommand = new Command()
 	.action(async () => {
 		try {
 			const client = getLogStoreClientFromOptions();
-			const price = new Decimal((await client.getPrice()).toString());
 
 			const queryBalance = new Decimal(
 				(await client.getQueryBalance()).toString()
 			);
 
-			const availableStorage = queryBalance.div(price.mul(readFeeMultiplier));
+			const availableStorage = queryBalance.div(readFeeMultiplier);
 			console.log(
 				`${queryBalance.toString()} LSAN staked on-chain for Queries.`
-			);
-			console.log(
-				`This formats to ${ethers.utils.formatEther(
-					queryBalance.toHex()
-				)} LSAN in a Wallet UI.`
 			);
 			console.log(
 				`${bytesToMessage(availableStorage)} of data is available for Queries.`
