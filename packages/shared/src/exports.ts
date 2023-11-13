@@ -1,4 +1,4 @@
-export { allowanceConfirmFn } from './allowance';
+export { allowanceConfirmFn, requestAllowanceIfNeeded } from './allowance';
 export {
 	getNodeManagerContract,
 	getQueryManagerContract,

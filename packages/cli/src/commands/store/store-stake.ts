@@ -2,10 +2,20 @@ import {
 	getCredentialsFromOptions,
 	getLogStoreClientFromOptions,
 } from '@/utils/logstore-client';
-import { allowanceConfirm, logger } from '@/utils/utils';
+import { keepRetryingWithIncreasedGasPrice } from '@/utils/speedupTx';
+import {
+	allowanceConfirm,
+	checkLSANFunds,
+	logger,
+	printContractFailReason,
+	printTransactionFee,
+	printTransactionLink,
+} from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
-import { prepareStakeForStoreManager } from '@logsn/shared';
+import { Manager, requestAllowanceIfNeeded } from '@logsn/shared';
 import chalk from 'chalk';
+import Decimal from 'decimal.js';
+import { firstValueFrom } from 'rxjs';
 
 const stakeCommand = new Command()
 	.name('stake')
@@ -15,7 +25,7 @@ const stakeCommand = new Command()
 	.argument('<streamId>', 'Streamr Stream ID to manage storage for.')
 	.argument(
 		'<amount>',
-		'Amount in Wei to stake into the Query Manager Contract. Ensure funds are available for queries to the Log Store Network.'
+		'Amount in LSAN to stake into the Query Manager Contract. Ensure funds are available for queries to the Log Store Network.'
 	)
 	.option(
 		'-u, --usd',
@@ -34,36 +44,64 @@ const stakeCommand = new Command()
 		});
 
 		try {
-			const logStoreClient = await getLogStoreClientFromOptions();
-			const amountToStakeInWei = cmdOptions.usd
-				? await logStoreClient.convert({ amount: amt, from: 'usd', to: 'wei' })
+			const logStoreClient = getLogStoreClientFromOptions();
+			const amountToStakeInLSAN = cmdOptions.usd
+				? // todo this assumes the price is 1:1 (multiplier)
+				  await logStoreClient.convert({
+						amount: amt,
+						from: 'usd',
+						to: 'bytes',
+				  })
 				: amt;
 
 			const { signer } = getCredentialsFromOptions();
 
-			const stakeAmount = await prepareStakeForStoreManager(
+			const hexValue = new Decimal(amountToStakeInLSAN).toHex();
+
+			await checkLSANFunds(hexValue);
+
+			console.log('Checking for available allowance...');
+			const allowanceTx = await requestAllowanceIfNeeded(
+				Manager.StoreManager,
+				BigInt(hexValue),
 				signer,
-				BigInt(amountToStakeInWei),
-				false, // we already converted
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined
 			);
 
-			logger.info(`Staking ${stakeAmount}...`);
+			if (allowanceTx) {
+				console.info('Waiting for allowance transaction to be mined...');
+				await firstValueFrom(
+					keepRetryingWithIncreasedGasPrice(signer, allowanceTx)
+				);
+				console.info('Allowance transaction mined');
+			} else {
+				logger.debug('No additional allowance needed');
+			}
+
+			console.info(`Staking ${amountToStakeInLSAN} LSAN...`);
 
 			const tx = await logStoreClient.stakeOrCreateStore(
 				streamId,
-				BigInt(amountToStakeInWei)
+				BigInt(amountToStakeInLSAN)
 			);
-			const receipt = await tx.wait();
+			const receipt = await firstValueFrom(
+				keepRetryingWithIncreasedGasPrice(signer, tx)
+			);
 
-			logger.info(
-				chalk.green(
-					`Successfully staked ${stakeAmount} - Tx: ${receipt.transactionHash}`
-				)
+			console.log('');
+			console.info(
+				`Successfully staked ${amountToStakeInLSAN} LSAN for Storage`
 			);
+			console.log(`Tx: ${receipt.transactionHash}`);
+			console.log('');
+
+			await printTransactionFee(receipt);
+
+			await printTransactionLink(receipt);
 		} catch (e) {
-			logger.info(chalk.red('Stake failed'));
-			logger.error(e);
+			console.info(chalk.red('Stake failed'));
+			printContractFailReason(e);
+			console.error(e);
 		}
 	});
 

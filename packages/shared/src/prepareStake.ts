@@ -5,9 +5,10 @@ import { Logger } from 'tslog';
 import { allowanceConfirmFn, ensureEnoughAllowance } from './allowance';
 import { convertFromUsd } from './convertFromUsd';
 import { getManagerContract } from './getManager';
+import { minLogLevel } from './logger';
 import { Manager } from './types';
 
-export const logger = new Logger();
+export const logger = new Logger({ minLevel: minLogLevel });
 
 export async function prepareStakeForNodeManager(
 	signer: Signer,

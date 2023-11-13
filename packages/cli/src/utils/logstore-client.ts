@@ -1,7 +1,7 @@
 import { getRootOptions } from '@/commands/options';
 import { USE_TEST_CONFIG } from '@/env-config';
-import { LogStoreClient } from '@logsn/client';
-import { CONFIG_TEST } from '@logsn/client';
+import { logger } from '@/utils/utils';
+import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
 import { ethers } from 'ethers';
 
 function getCredentialsFrom(host: string, wallet: string) {
@@ -23,9 +23,16 @@ export function getLogstoreClientForCredentials({
 	wallet: string;
 }) {
 	const { provider } = getCredentialsFrom(host, wallet);
-	const additionalConfig = USE_TEST_CONFIG ? CONFIG_TEST : {};
+	const { logLevel: _unused, ...additionalConfig } = USE_TEST_CONFIG
+		? CONFIG_TEST
+		: {};
+	const logLevel = logger.settings.minLevel === 3 ? 'warn' : 'debug';
+	if (!('LOG_LEVEL' in process.env)) {
+		process.env.LOG_LEVEL = logLevel;
+	}
 	return new LogStoreClient({
 		...additionalConfig,
+		logLevel: logLevel,
 		auth: { privateKey: wallet },
 		contracts: {
 			...additionalConfig?.contracts,
