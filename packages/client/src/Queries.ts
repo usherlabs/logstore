@@ -20,7 +20,10 @@ import { LogStoreClientConfigInjectionToken } from './Config';
 import { HttpUtil } from './HttpUtil';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
-import { validateWithNetworkResponses } from './utils/networkValidation/validateNetworkResponses';
+import {
+	validateWithNetworkResponses,
+	type VerificationOptions,
+} from './utils/networkValidation/validateNetworkResponses';
 import { SystemMessageObservable } from './utils/SystemMessageObservable';
 import { LogStoreClientSystemMessagesInjectionToken } from './utils/systemStreamUtils';
 import { counterId } from './utils/utils';
@@ -132,7 +135,7 @@ function isQueryRange<T extends QueryRangeOptions>(options: any): options is T {
 }
 
 export type QueryOptions = {
-	verifyNetworkResponses?: boolean;
+	verifyNetworkResponses?: VerificationOptions | boolean;
 };
 
 @scoped(Lifecycle.ContainerScoped)
@@ -248,7 +251,7 @@ export class Queries implements IResends {
 			...query,
 			// we will get raw request to desserialize and decrypt
 			format: 'raw',
-			verifyNetworkResponses: options?.verifyNetworkResponses,
+			verifyNetworkResponses: !!options?.verifyNetworkResponses,
 		});
 		const messageStream = createSubscribePipeline({
 			streamPartId,
@@ -303,6 +306,10 @@ export class Queries implements IResends {
 				nodeManager: this.nodeManager,
 				logger: this.logger,
 				queryUrl: nodeUrl,
+				verificationOptions:
+					typeof options.verifyNetworkResponses === 'object'
+						? options.verifyNetworkResponses
+						: undefined,
 			});
 		}
 

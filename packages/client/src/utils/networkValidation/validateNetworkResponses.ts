@@ -1,17 +1,44 @@
 import { Logger } from '@streamr/utils';
-import { catchError, combineLatest, concat, defer, delay, first, firstValueFrom, map, merge, of, race, share, startWith, switchMap, throwError, timer, toArray } from 'rxjs';
-
-
+import {
+	catchError,
+	combineLatest,
+	concat,
+	defer,
+	delay,
+	first,
+	firstValueFrom,
+	map,
+	merge,
+	of,
+	race,
+	share,
+	startWith,
+	switchMap,
+	throwError,
+	timer,
+	toArray,
+} from 'rxjs';
 
 import { LogStoreMessageStream } from '../../LogStoreMessageStream';
 import { NodeManager } from '../../registry/NodeManager';
 import { SystemMessageObservable } from '../SystemMessageObservable';
 import { checkCollectionCompletion } from './checkCollectionCompletion';
-import { convertToStorageMatrix, nodesAgreeOnStorageMatrix, verifyMessagePresenceInStorageMatrix } from './manageStorageMatrix';
+import {
+	convertToStorageMatrix,
+	nodesAgreeOnStorageMatrix,
+	verifyMessagePresenceInStorageMatrix,
+} from './manageStorageMatrix';
 import { retrieveFilteredSystemMessages } from './retrieveFilteredSystemMessages';
 import { QueryInputPayload } from './types';
-import { lowercaseRequestidFromLogstoreMetadata, nodeAddressFromUrl, rethrowErrorWithSourceActionName } from './utils';
+import {
+	lowercaseRequestidFromLogstoreMetadata,
+	nodeAddressFromUrl,
+	rethrowErrorWithSourceActionName,
+} from './utils';
 
+export type VerificationOptions = {
+	timeout?: number;
+};
 
 /**
  * This function orchestrates the process of validating network responses against expected results.
@@ -33,6 +60,7 @@ export const validateWithNetworkResponses = ({
 	nodeManager,
 	systemMessages$,
 	responseStream,
+	verificationOptions,
 }: {
 	queryInput: QueryInputPayload;
 	logger: Logger;
@@ -40,7 +68,10 @@ export const validateWithNetworkResponses = ({
 	nodeManager: NodeManager;
 	responseStream: LogStoreMessageStream;
 	systemMessages$: SystemMessageObservable;
+	verificationOptions?: VerificationOptions;
 }) => {
+	const DEFAULT_TIMEOUT = 15_000;
+
 	// TODO might be good to have a good callback for when the system stream is really ready. For now, we're hardcoding it as
 	//  500ms after start, which is not ideal.
 	const systemStreamSubscriptionIsReady$ = merge(systemMessages$, of(1)).pipe(
@@ -153,8 +184,7 @@ export const validateWithNetworkResponses = ({
 		propagates: propagates$,
 		request: request$,
 		responses: responses$,
-		// timeout: 5 seconds
-		timer: timer(5000),
+		timer: timer(verificationOptions?.timeout ?? DEFAULT_TIMEOUT),
 	}).pipe(
 		map(({ timer: _timer, ..._rest }) => {
 			// this maybe useful for debugging, however it is too verbose for production (?)
