@@ -1,4 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
+import type { Overrides } from '@ethersproject/contracts';
 import { Provider } from '@ethersproject/providers';
 import type { LogStoreManager as LogStoreManagerContract } from '@logsn/contracts';
 import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
@@ -173,7 +174,8 @@ export class LogStoreRegistry {
 
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
-		amount: bigint
+		amount: bigint,
+		overrides?: Overrides
 	): Promise<ContractTransaction> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
 		this.logger.debug('adding stream %s to LogStore', streamId);
@@ -185,11 +187,10 @@ export class LogStoreRegistry {
 			await this.authentication.getStreamRegistryChainSigner();
 		await prepareStakeForStoreManager(chainSigner, amount, false);
 		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
-		return this.logStoreManagerContract!.stake(
-			streamId,
-			amount,
-			ethersOverrides
-		);
+		return this.logStoreManagerContract!.stake(streamId, amount, {
+			...ethersOverrides,
+			...overrides,
+		});
 	}
 
 	async getStreamBalance(streamIdOrPath: string): Promise<bigint> {

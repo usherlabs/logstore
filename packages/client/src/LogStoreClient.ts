@@ -1,3 +1,4 @@
+import type { Overrides } from '@ethersproject/contracts';
 import type {
 	MessageListener,
 	Stream,
@@ -115,8 +116,16 @@ export class LogStoreClient extends StreamrClient {
 	/**
 	 * Stake funds so can query
 	 */
-	async queryStake(amount: bigint, options = { usd: false }) {
-		return this.logStoreQueryManager.queryStake(amount, { usd: options.usd });
+	async queryStake(
+		amount: bigint,
+		options = { usd: false },
+		overrides?: Overrides
+	) {
+		return this.logStoreQueryManager.queryStake(
+			amount,
+			{ usd: options.usd },
+			overrides
+		);
 	}
 
 	/**
@@ -187,9 +196,14 @@ export class LogStoreClient extends StreamrClient {
 	 */
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
-		amount: bigint
+		amount: bigint,
+		overrides?: Overrides
 	): Promise<ContractTransaction> {
-		return this.logStoreRegistry.stakeOrCreateStore(streamIdOrPath, amount);
+		return this.logStoreRegistry.stakeOrCreateStore(
+			streamIdOrPath,
+			amount,
+			overrides
+		);
 	}
 
 	/**
@@ -227,8 +241,11 @@ export class LogStoreClient extends StreamrClient {
 		return this.logstoreTokenManager.getBalance();
 	}
 
-	async mint(weiAmountToMint: bigint): Promise<ContractTransaction> {
-		return this.logstoreTokenManager.mint(weiAmountToMint);
+	async mint(
+		weiAmountToMint: bigint,
+		overrides?: Overrides
+	): Promise<ContractTransaction> {
+		return this.logstoreTokenManager.mint(weiAmountToMint, overrides);
 	}
 
 	async getPrice(): Promise<bigint> {
