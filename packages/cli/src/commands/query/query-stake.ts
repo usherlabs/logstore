@@ -1,4 +1,5 @@
 import { getRootOptions } from '@/commands/options';
+import { fastPriorityFee$ } from '@/utils/gasStation';
 import {
 	getCredentialsFromOptions,
 	getLogStoreClientFromOptions,
@@ -85,7 +86,9 @@ const stakeCommand = new Command()
 			const queryManagerContract = await getQueryManagerContract(signer);
 			console.info(`Staking ${amountToStakeInLSAN} LSAN...`);
 
-			const tx = await queryManagerContract.stake(hexValue);
+			const tx = await queryManagerContract.stake(hexValue, {
+				maxPriorityFeePerGas: await firstValueFrom(fastPriorityFee$),
+			});
 
 			const receipt = await firstValueFrom(
 				keepRetryingWithIncreasedGasPrice(signer, tx)

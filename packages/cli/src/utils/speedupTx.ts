@@ -88,7 +88,7 @@ export const keepRetryingWithIncreasedGasPrice = (
 		const newTransaction = await createTransactionWithIncreasedTip(
 			signer,
 			oldTransaction,
-			3 // 3x
+			1.2
 		);
 		console.log('');
 		console.log('Replacing transaction with increased gas price');
