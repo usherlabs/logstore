@@ -1,5 +1,5 @@
 import { LSAN__factory } from '@logsn/contracts';
-import { type ContractTransaction, Signer } from 'ethers';
+import { type ContractTransaction, type Overrides, Signer } from 'ethers';
 
 import { getManagerContract } from './getManager';
 import { Manager } from './types';
@@ -42,7 +42,8 @@ export const requestAllowanceIfNeeded = async (
 	manager: Exclude<Manager, Manager.ReportManager>,
 	amount: bigint,
 	signer: Signer,
-	confirm?: allowanceConfirmFn
+	confirm?: allowanceConfirmFn,
+	overrides?: Overrides
 ): Promise<null | ContractTransaction> => {
 	const mangerContract = await getManagerContract(signer, manager);
 	// @ts-expect-error -- manager excludes ReportManager
@@ -62,7 +63,7 @@ export const requestAllowanceIfNeeded = async (
 			!confirm || (await confirm(currentAllowance, requiredAllowance));
 
 		if (confirmed) {
-			return stakeToken.approve(mangerContract.address, amount);
+			return stakeToken.approve(mangerContract.address, amount, overrides);
 		} else {
 			throw new Error('User didn’t confirm allowance');
 		}
