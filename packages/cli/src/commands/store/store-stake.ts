@@ -1,4 +1,4 @@
-import { fastPriorityFee$ } from '@/utils/gasStation';
+import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
 	getCredentialsFromOptions,
 	getLogStoreClientFromOptions,
@@ -68,7 +68,7 @@ const stakeCommand = new Command()
 				signer,
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined,
 				{
-					maxPriorityFeePerGas: await firstValueFrom(fastPriorityFee$),
+					maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
 				}
 			);
 

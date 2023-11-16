@@ -1,5 +1,5 @@
 import { getRootOptions } from '@/commands/options';
-import { fastPriorityFee$ } from '@/utils/gasStation';
+import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
 	getCredentialsFromOptions,
 	getLogStoreClientFromOptions,
@@ -67,7 +67,10 @@ const stakeCommand = new Command()
 				Manager.QueryManager,
 				BigInt(hexValue),
 				signer,
-				!cmdOptions.assumeYes ? allowanceConfirm : undefined
+				!cmdOptions.assumeYes ? allowanceConfirm : undefined,
+				{
+					maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
+				}
 			);
 
 			if (allowanceTx) {
@@ -87,7 +90,7 @@ const stakeCommand = new Command()
 			console.info(`Staking ${amountToStakeInLSAN} LSAN...`);
 
 			const tx = await queryManagerContract.stake(hexValue, {
-				maxPriorityFeePerGas: await firstValueFrom(fastPriorityFee$),
+				maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
 			});
 
 			const receipt = await firstValueFrom(

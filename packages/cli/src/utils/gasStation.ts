@@ -1,5 +1,6 @@
+import { isDevNetwork$ } from '@/utils/observableUtils';
 import { ethers } from 'ethers';
-import { catchError, defer, map, share, throwError } from 'rxjs';
+import { catchError, defer, map, of, share, switchMap, throwError } from 'rxjs';
 
 type GasStationResponse = {
 	safeLow: {
@@ -31,8 +32,12 @@ const gasStationFees$ = defer(() =>
 const mapGweiToBN = (gwei: number) =>
 	ethers.utils.parseUnits(gwei.toString(), 'gwei');
 
-export const fastPriorityFee$ = gasStationFees$.pipe(
+const fastPriorityFee$ = gasStationFees$.pipe(
 	map((gasStationResponse) => gasStationResponse.fast.maxPriorityFee),
 	map(mapGweiToBN),
 	share()
+);
+
+export const fastPriorityIfMainNet$ = isDevNetwork$.pipe(
+	switchMap((isDevNet) => (isDevNet ? of(undefined) : fastPriorityFee$))
 );
