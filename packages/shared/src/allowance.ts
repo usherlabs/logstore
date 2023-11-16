@@ -63,7 +63,9 @@ export const requestAllowanceIfNeeded = async (
 			!confirm || (await confirm(currentAllowance, requiredAllowance));
 
 		if (confirmed) {
-			return stakeToken.approve(mangerContract.address, amount, overrides);
+			return stakeToken.approve(mangerContract.address, amount, {
+				...overrides,
+			});
 		} else {
 			throw new Error('User didn’t confirm allowance');
 		}
