@@ -86,7 +86,10 @@ const stakeCommand = new Command()
 
 			const tx = await logStoreClient.stakeOrCreateStore(
 				streamId,
-				BigInt(amountToStakeInLSAN)
+				BigInt(amountToStakeInLSAN),
+				{
+					maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
+				}
 			);
 			const receipt = await firstValueFrom(
 				keepRetryingWithIncreasedGasPrice(signer, tx)
