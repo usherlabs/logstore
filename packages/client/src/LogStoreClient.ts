@@ -19,7 +19,13 @@ import {
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
-import { HttpApiQueryDict, Queries, QueryInput, QueryType } from './Queries';
+import {
+	HttpApiQueryDict,
+	Queries,
+	QueryInput,
+	type QueryOptions,
+	QueryType,
+} from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
@@ -128,9 +134,7 @@ export class LogStoreClient extends StreamrClient {
 		streamDefinition: StreamDefinition,
 		input: QueryInput,
 		onMessage?: MessageListener,
-		options?: {
-			verifyNetworkResponses?: boolean;
-		}
+		options?: QueryOptions
 	): Promise<LogStoreMessageStream> {
 		const streamPartId = await this.streamIdBuilder.toStreamPartID(
 			streamDefinition
