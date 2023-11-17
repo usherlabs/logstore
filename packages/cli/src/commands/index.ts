@@ -21,7 +21,6 @@ export const rootProgram = new Command()
 	.version(appVersion)
 	.option('-h, --host <string>', 'Polygon/EVM Node RPC Endpoint')
 	.option('-w, --wallet <string>', 'Wallet private key')
-	.option('--gas-tip <number>', 'Initial gas tip to use for transactions')
 	.option(
 		'-c, --config <string>',
 		'Path to configuration file. Defaults to ~/.logstore-cli/default.json',
