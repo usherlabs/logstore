@@ -14,6 +14,7 @@ import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 import { MessageListener } from './MessageListener';
 import { MessageMetricsCollector } from './MessageMetricsCollector';
+import { MessageProcessor } from './MessageProcessor';
 import { PropagationDispatcher } from './PropagationDispatcher';
 import { PropagationResolver } from './PropagationResolver';
 import { QueryRequestManager } from './QueryRequestManager';
@@ -45,6 +46,11 @@ export interface LogStorePluginConfig {
 		clusterSize: number;
 		myIndexInCluster: number;
 	};
+	programs: {
+		chainRpcUrls: {
+			[key: string]: string;
+		};
+	};
 	experimental?: {
 		enableValidator?: boolean;
 	};
@@ -68,6 +74,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly propagationResolver: PropagationResolver;
 	private readonly propagationDispatcher: PropagationDispatcher;
 	private readonly reportPoller: ReportPoller;
+	private readonly messageProcessor: MessageProcessor;
 	private readonly messageListener: MessageListener;
 
 	private metricsTimer?: NodeJS.Timer;
@@ -103,6 +110,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.heartbeat = new Heartbeat(
 			this.heartbeatPublisher,
 			this.heartbeatSubscriber
+		);
+
+		this.messageProcessor = new MessageProcessor(
+			this.pluginConfig,
+			this.logStoreClient,
+			this.topicsStream
 		);
 
 		this.messageListener = new MessageListener(this.logStoreClient);
@@ -188,7 +201,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.logStore = await this.startCassandraStorage(metricsContext);
 
 		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
-		this.messageListener.start(this.logStore, this.logStoreConfig);
+		this.messageListener.start(
+			this.logStore,
+			this.logStoreConfig,
+			this.messageProcessor
+		);
 
 		await this.queryRequestManager.start(this.logStore!);
 		await this.queryResponseManager.start(clientId);

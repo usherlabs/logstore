@@ -1,0 +1,12 @@
+{
+  "name": "@logsn/broker-program",
+  "version": "0.0.1",
+  "description": "",
+  "exports": "./dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

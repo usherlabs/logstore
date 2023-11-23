@@ -48,10 +48,12 @@ export const createBroker = async (
 	const heartbeatStreamId = toStreamID('/heartbeat', nodeManagerAddress);
 	const recoveryStreamId = toStreamID('/recovery', nodeManagerAddress);
 	const systemStreamId = toStreamID('/system', nodeManagerAddress);
+	const topicsStreamId = toStreamID('/topics', nodeManagerAddress);
 
 	const heartbeatStream = await logStoreClient.getStream(heartbeatStreamId);
 	const recoveryStream = await logStoreClient.getStream(recoveryStreamId);
 	const systemStream = await logStoreClient.getStream(systemStreamId);
+	const topicsStream = await logStoreClient.getStream(topicsStreamId);
 
 	const privateKey = (config.client!.auth as PrivateKeyAuthConfig).privateKey;
 
@@ -69,6 +71,7 @@ export const createBroker = async (
 			heartbeatStream,
 			recoveryStream,
 			systemStream,
+			topicsStream,
 			brokerConfig: config,
 			signer,
 			nodeManger,

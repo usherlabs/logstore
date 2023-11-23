@@ -13,6 +13,7 @@ export interface PluginOptions {
 	heartbeatStream: Stream;
 	recoveryStream: Stream;
 	systemStream: Stream;
+	topicsStream: Stream;
 	brokerConfig: StrictConfig;
 	signer: Signer;
 	nodeManger: LogStoreNodeManager;
@@ -26,6 +27,7 @@ export abstract class Plugin<T extends object> {
 	readonly heartbeatStream: Stream;
 	readonly recoveryStream: Stream;
 	readonly systemStream: Stream;
+	readonly topicsStream: Stream;
 	readonly brokerConfig: StrictConfig;
 	readonly signer: Signer;
 	readonly nodeManger: LogStoreNodeManager;
@@ -38,6 +40,7 @@ export abstract class Plugin<T extends object> {
 		this.heartbeatStream = options.heartbeatStream;
 		this.recoveryStream = options.recoveryStream;
 		this.systemStream = options.systemStream;
+		this.topicsStream = options.topicsStream;
 		this.brokerConfig = options.brokerConfig;
 		this.signer = options.signer;
 		this.nodeManger = options.nodeManger;
