@@ -30,7 +30,7 @@ export class MessageProcessor {
 			logStoreChannelId: string;
 		};
 
-		if (!logStoreChannelId) {
+		if (!logStoreChainId || !logStoreChannelId) {
 			return;
 		}
 
