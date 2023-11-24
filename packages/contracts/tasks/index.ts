@@ -1,4 +1,5 @@
 import './balance';
+import './create-stream';
 import './gas';
 import './get-role';
 import './grant-role';
