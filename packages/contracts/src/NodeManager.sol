@@ -36,8 +36,8 @@ contract LogStoreNodeManager is
     event NodeWhitelistRejected(address indexed nodeAddress);
     event RequiresWhitelistChanged(bool indexed value);
     event ReportProcessed(string id);
-    event StreamAdded(string key, string path, string permissions, string streamId);
-    event StreamRemoved(string key, string path, string permissions, string streamId);
+    event StreamAdded(string key, string path, string metadataJsonString, string streamId);
+    event StreamRemoved(string key, string path, string metadataJsonString, string streamId);
 
     enum WhitelistState {
         None,
@@ -130,9 +130,9 @@ contract LogStoreNodeManager is
     function createStream(
         string memory key,
         string memory path,
-        string memory permissions
+        string memory metadataJsonString
     ) public isAuthorized(Role.DEV) {
-        _registerStream(key, path, permissions);
+        _registerStream(key, path, metadataJsonString);
 
         // register all qualified nodes with permission to use this stream
         address[] memory registeredNodeAddresses = nodeAddresses();
@@ -469,20 +469,20 @@ contract LogStoreNodeManager is
         }
     }
 
-    function _registerStream(string memory key, string memory path, string memory permissions) internal {
+    function _registerStream(string memory key, string memory path, string memory metadataJsonString) internal {
         // get the stream ans the stream id
         Stream storage streamDetails = streamInformation[key];
         require(bytes(streamDetails.key).length == 0, "STREAM_ALREADY_REGISTERED");
 
         // create the stream
-        streamrRegistry.createStream(path, permissions);
+        streamrRegistry.createStream(path, metadataJsonString);
         string memory streamId = _generateStreamId(path);
         streamrRegistry.grantPublicPermission(streamId, IStreamRegistry.PermissionType.Subscribe);
 
         // register the stream into the smart contracts
         streams.push(key);
-        streamInformation[key] = Stream({path: path, metadata: permissions, key: key, index: streams.length - 1});
-        emit StreamAdded(key, path, permissions, streamId);
+        streamInformation[key] = Stream({path: path, metadata: metadataJsonString, key: key, index: streams.length - 1});
+        emit StreamAdded(key, path, metadataJsonString, streamId);
     }
 
     function _generateStreamId(string memory streamPath) public view returns (string memory) {

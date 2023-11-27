@@ -1,5 +1,7 @@
 import './balance';
+import './create-stream';
 import './gas';
+import './get-role';
 import './grant-role';
 import './min-stake-amount';
 import './mint-many-tokens';

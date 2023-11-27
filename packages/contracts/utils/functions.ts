@@ -29,6 +29,7 @@ export async function getNodeManagerInputParameters(stakeTokenAddress: string) {
 		['LOGSTORE_HEARTBEAT_STREAM', '/heartbeat', '{ "partitions": 1}'],
 		['LOGSTORE_RECOVERY_STREAM', '/recovery', '{ "partitions": 1}'],
 		['LOGSTORE_SYSTEM_STREAM', '/system', '{ "partitions": 1}'],
+		['LOGSTORE_TOPICS_STREAM', '/topics', '{ "partitions": 1}'],
 	];
 
 	// define important params
