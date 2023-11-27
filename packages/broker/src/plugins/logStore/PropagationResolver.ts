@@ -14,7 +14,7 @@ import { LogStore } from './LogStore';
 
 type RequestId = string;
 
-const TIMEOUT = 5 * 1000;
+const TIMEOUT = 30 * 1000;
 const RESPONSES_THRESHOLD = 1.0;
 
 class QueryPropagationState {
