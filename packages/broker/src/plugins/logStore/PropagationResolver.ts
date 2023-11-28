@@ -8,6 +8,7 @@ import {
 } from '@logsn/protocol';
 import { createSignaturePayload, StreamMessage } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
+import { firstValueFrom, type Observable } from 'rxjs';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { Heartbeat } from './Heartbeat';
@@ -146,7 +147,7 @@ export class PropagationResolver {
 	>;
 
 	constructor(
-		private readonly logStore: LogStore,
+		private readonly logStore$: Observable<LogStore>,
 		private readonly heartbeat: Heartbeat,
 		private readonly subscriber: BroadbandSubscriber
 	) {
@@ -268,7 +269,8 @@ export class PropagationResolver {
 
 		for (const [_messageId, messageStr] of messagesToBeStored) {
 			const message = StreamMessage.deserialize(messageStr);
-			await this.logStore.store(message);
+			const logStore = await firstValueFrom(this.logStore$);
+			await logStore.store(message);
 		}
 
 		// May be ready if this propagation was the last one missing.

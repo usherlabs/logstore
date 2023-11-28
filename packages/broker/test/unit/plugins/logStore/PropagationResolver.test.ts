@@ -15,6 +15,7 @@ import { fastWallet } from '@streamr/test-utils';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import { Wallet } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
+import { BehaviorSubject } from 'rxjs';
 
 import { Heartbeat } from '../../../../src/plugins/logStore/Heartbeat';
 import { LogStore } from '../../../../src/plugins/logStore/LogStore';
@@ -231,14 +232,16 @@ describe(PropagationResolver, () => {
 			},
 		} satisfies Partial<BroadbandSubscriber> as unknown as BroadbandSubscriber;
 
+		const logStore$ = new BehaviorSubject(logStore);
+
 		propagationResolver = new PropagationResolver(
-			logStore,
+			logStore$,
 			heartbeat,
 			subscriber
 		);
 
 		const propagationDispatcher = new PropagationDispatcher(
-			logStore,
+			logStore$,
 			publisher
 		);
 
