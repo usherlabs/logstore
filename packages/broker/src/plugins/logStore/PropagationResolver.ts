@@ -118,6 +118,11 @@ class QueryPropagationState {
 	 * that previously said that this query was missing messages
 	 */
 	public get isReady() {
+		// this means there's no one identified as online. This broker is alone and there's no chance to receive a propagate.
+		if (this.brokersResponseState.size === 0) {
+			return true;
+		}
+
 		const respondedCount = Array.from(
 			this.brokersResponseState.values()
 		).filter(Boolean).length;
