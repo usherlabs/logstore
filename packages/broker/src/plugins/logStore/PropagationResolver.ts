@@ -7,10 +7,13 @@ import {
 	SystemMessageType,
 } from '@logsn/protocol';
 import { createSignaturePayload, StreamMessage } from '@streamr/protocol';
+import { Logger, toEthereumAddress } from '@streamr/utils';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { Heartbeat } from './Heartbeat';
 import { LogStore } from './LogStore';
+
+const logger = new Logger(module);
 
 type RequestId = string;
 const TIMEOUT = 30 * 1000;
@@ -34,8 +37,15 @@ class QueryPropagationState {
 	public onPrimaryQueryResponse(primaryResponse: QueryResponse) {
 		// this should happen only once
 		if (this.primaryResponseHashMap) {
-			throw new Error('Primary response already set');
+			logger.error('Primary response already set');
+			return;
 		}
+
+		this.brokersResponseState.set(
+			toEthereumAddress(primaryResponse.requestPublisherId),
+			true
+		);
+
 		this.primaryResponseHashMap = primaryResponse.hashMap;
 		this.foreignResponseBuffer.forEach((args) =>
 			this.onForeignQueryResponse(...args)
@@ -154,6 +164,16 @@ export class PropagationResolver {
 		return Promise.race([
 			new Promise<never>((_, reject) => {
 				timeout = setTimeout(() => {
+					logger.warn(
+						'Propagation timeout on request %s',
+						queryRequest.requestId
+					);
+					logger.debug(
+						'Current state of the query on timeout: %s',
+						JSON.stringify(
+							this.queryPropagationStateMap.get(queryRequest.requestId)
+						)
+					);
 					this.clean(queryRequest.requestId);
 					reject('Propagation timeout');
 				}, TIMEOUT);
@@ -235,12 +255,16 @@ export class PropagationResolver {
 		}
 
 		queryState.onPropagate(queryPropagate);
-		for (const [_messageId, messageStr] of queryState.messagesReadyToBeStored) {
+		// we copy, so any async operation don't cause racing conditions
+		// making we store twice in meanwhile
+		const messagesToBeStored = [...queryState.messagesReadyToBeStored];
+		// we just don't want to process them twice
+		queryState.messagesReadyToBeStored = [];
+
+		for (const [_messageId, messageStr] of messagesToBeStored) {
 			const message = StreamMessage.deserialize(messageStr);
 			await this.logStore.store(message);
 		}
-		// we just don't want to process them twice
-		queryState.messagesReadyToBeStored = [];
 
 		// May be ready if this propagation was the last one missing.
 		this.finishIfReady(queryState, queryPropagate.requestId);
