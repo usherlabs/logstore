@@ -420,6 +420,7 @@ describe(PropagationResolver, () => {
 		'fails with propagation timeout',
 		async () => {
 			onlineBrokers = [foreignBrokerId_1];
+			jest.useFakeTimers({ advanceTimers: false });
 
 			// this runs once we await propagationResolver.propagate()
 			setImmediate(() => {
@@ -430,9 +431,12 @@ describe(PropagationResolver, () => {
 			});
 
 			try {
-				await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
-					queryRequest
-				);
+				const promise =
+					queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+						queryRequest
+					);
+				jest.advanceTimersByTime(30_000);
+				await promise;
 			} catch (err) {
 				// yet the publish should have been called
 				expect(publisher.publish).toBeCalledTimes(1);

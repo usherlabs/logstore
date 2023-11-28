@@ -150,11 +150,9 @@ describe(PropagationDispatcher, () => {
 
 	beforeEach(() => {
 		logStore = {
-			requestPayloadByMessageId: jest
-				.fn()
-				.mockImplementation((messageId: string) => {
-					return msgs[messageId];
-				}),
+			requestByMessageId: jest.fn().mockImplementation((messageId: string) => ({
+				read: () => msgs[messageId],
+			})),
 		} as unknown as LogStore;
 
 		publisher = {
@@ -175,7 +173,11 @@ describe(PropagationDispatcher, () => {
 
 		const propagationResolver = new PropagationResolver(
 			logStore,
-			{} as unknown as Heartbeat,
+			{
+				get onlineBrokers(): [] {
+					return [];
+				},
+			} as Partial<Heartbeat> as Heartbeat,
 			subscriber
 		);
 
