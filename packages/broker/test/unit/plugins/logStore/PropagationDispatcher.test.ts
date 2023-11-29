@@ -148,13 +148,11 @@ describe(PropagationDispatcher, () => {
 		broadcastToListeners(queryResponse.serialize(), metadata);
 	};
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		logStore = {
-			requestPayloadByMessageId: jest
-				.fn()
-				.mockImplementation((messageId: string) => {
-					return msgs[messageId];
-				}),
+			requestByMessageId: jest.fn().mockImplementation((messageId: string) => ({
+				read: () => msgs[messageId],
+			})),
 		} as unknown as LogStore;
 
 		publisher = {
@@ -171,13 +169,18 @@ describe(PropagationDispatcher, () => {
 			},
 		} satisfies Partial<BroadbandSubscriber> as unknown as BroadbandSubscriber;
 
-		propagationDispatcher = new PropagationDispatcher(logStore, publisher);
+		propagationDispatcher = new PropagationDispatcher(publisher);
+		propagationDispatcher.start(logStore);
 
 		const propagationResolver = new PropagationResolver(
-			logStore,
-			{} as unknown as Heartbeat,
+			{
+				get onlineBrokers(): [] {
+					return [];
+				},
+			} as Partial<Heartbeat> as Heartbeat,
 			subscriber
 		);
+		await propagationResolver.start(logStore);
 
 		queryResponseManager = new QueryResponseManager(
 			publisher,

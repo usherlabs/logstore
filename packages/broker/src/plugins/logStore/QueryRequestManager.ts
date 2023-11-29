@@ -76,8 +76,10 @@ export class QueryRequestManager {
 	public async publishQueryRequestAndWaitForPropagateResolution(
 		queryRequest: QueryRequest
 	) {
+		const resolutionPromise =
+			this.propagationResolver.waitForPropagateResolution(queryRequest);
 		await this.publisher.publish(queryRequest.serialize());
-		return this.propagationResolver.waitForPropagateResolution(queryRequest);
+		return resolutionPromise;
 	}
 
 	public getDataForQueryRequest(queryRequest: QueryRequest) {
