@@ -12,6 +12,11 @@ const PROGRAM_PATHS: { [key: string]: string } = {
 	'solana-validate': 'solana-validate.js',
 };
 
+interface EventMessage {
+	__logStoreChainId?: string;
+	__logStoreChannelId?: string;
+}
+
 export class MessageProcessor {
 	private programs: { [key: string]: BrokerProgram } = {};
 
@@ -24,33 +29,43 @@ export class MessageProcessor {
 	}
 
 	public async process(msg: StreamMessage) {
-		const content = msg.getParsedContent();
-		const { logStoreChainId, logStoreChannelId } = content as {
-			logStoreChainId: string;
-			logStoreChannelId: string;
-		};
+		const content = msg.getParsedContent() as EventMessage;
 
-		if (!logStoreChainId || !logStoreChannelId) {
+		const { __logStoreChainId, __logStoreChannelId } = content;
+
+		if (!__logStoreChainId || !__logStoreChannelId) {
 			return;
 		}
 
-		const program = await this.getProgram(logStoreChainId, logStoreChannelId);
+		const program = await this.getProgram(
+			__logStoreChainId,
+			__logStoreChannelId
+		);
 		if (!program) {
 			return;
 		}
 
 		try {
+			delete content.__logStoreChainId;
+			delete content.__logStoreChannelId;
+
 			const processedContent = await program.process(content);
 
 			await this.logStoreClient.publish(this.topicsStream, {
+				logStoreChainId: __logStoreChainId,
+				logStoreChannelId: __logStoreChannelId,
 				logStoreStreamId: msg.getStreamId(),
 				...(processedContent as object),
 			});
 		} catch (error) {
-			logger.error('Failed to process Event by BrokerProgram', {
-				logStoreChannelId,
-				error,
-			});
+			logger.error(
+				'Failed to process Event by BrokerProgram %o',
+				{
+					logStoreChainId: __logStoreChainId,
+					logStoreChannelId: __logStoreChannelId,
+				},
+				error
+			);
 		}
 	}
 
