@@ -1,13 +1,13 @@
 import { BrokerProgram } from '@logsn/broker-program';
-import { ethers } from 'ethers';
+import { providers } from 'ethers';
 
 export class Program extends BrokerProgram {
-	private provider: ethers.JsonRpcProvider;
+	private provider: providers.JsonRpcProvider;
 
 	constructor(rpcUrl: string) {
 		super(rpcUrl);
 
-		this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
+		this.provider = new providers.JsonRpcProvider(this.rpcUrl);
 	}
 
 	public override async process(args: unknown): Promise<unknown> {
@@ -24,8 +24,8 @@ export class Program extends BrokerProgram {
 		return eventLog;
 	}
 
-	private validateArgs(args: unknown): ethers.Log {
-		const eventLog = args as ethers.Log;
+	private validateArgs(args: unknown): providers.Log {
+		const eventLog = args as providers.Log;
 
 		if (!eventLog.blockHash) {
 			throw new Error(
@@ -43,14 +43,18 @@ export class Program extends BrokerProgram {
 	}
 
 	private async lookupFromBlockchain(
-		eventLog: ethers.Log
-	): Promise<ethers.Log> {
-		const block = await this.provider.getBlock(eventLog.blockHash);
+		eventLog: providers.Log
+	): Promise<providers.Log> {
+		const block = await this.provider.getBlockWithTransactions(
+			eventLog.blockHash
+		);
 		if (!block) {
 			throw new Error('Block not found');
 		}
 
-		const transaction = await block.getTransaction(eventLog.transactionHash);
+		const transaction = await this.provider.getTransaction(
+			eventLog.transactionHash
+		);
 		if (!transaction) {
 			throw new Error('Transaction not found');
 		}
@@ -64,9 +68,10 @@ export class Program extends BrokerProgram {
 		const eventLogs = (
 			await this.provider.getLogs({
 				blockHash: eventLog.blockHash,
+				address: eventLog.address,
 				topics: [...eventLog.topics],
 			})
-		).filter((l) => l.index === eventLog.index);
+		).filter((l) => l.logIndex === eventLog.logIndex);
 
 		if (eventLogs.length === 0) {
 			throw new Error('EventLog not found');
@@ -79,7 +84,7 @@ export class Program extends BrokerProgram {
 		return eventLogs[0];
 	}
 
-	private compare(a: ethers.Log, b: ethers.Log) {
+	private compare(a: providers.Log, b: providers.Log) {
 		return a.data === b.data;
 	}
 }
