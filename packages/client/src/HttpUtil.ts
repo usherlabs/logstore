@@ -130,6 +130,9 @@ export class HttpUtil {
 
 			stream = source.pipe(
 				split2((message: string) => {
+					if (!message) {
+						return;
+					}
 					const msgObject = JSON.parse(message);
 					if (Array.isArray(msgObject)) {
 						return StreamMessage.deserialize(msgObject);
