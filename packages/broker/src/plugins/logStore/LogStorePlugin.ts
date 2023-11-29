@@ -1,7 +1,6 @@
 import { Stream } from '@logsn/client';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
-import { ReplaySubject } from 'rxjs';
 
 import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
@@ -77,7 +76,6 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly reportPoller: ReportPoller;
 	private readonly messageProcessor: MessageProcessor;
 	private readonly messageListener: MessageListener;
-	private readonly logStore$ = new ReplaySubject<LogStore>(1);
 
 	private metricsTimer?: NodeJS.Timer;
 
@@ -138,13 +136,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		);
 
 		this.propagationResolver = new PropagationResolver(
-			this.logStore$,
 			this.heartbeat,
 			this.systemSubscriber
 		);
 
 		this.propagationDispatcher = new PropagationDispatcher(
-			this.logStore$,
 			this.systemPublisher
 		);
 
@@ -198,11 +194,10 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		).getMetricsContext();
 
 		this.maybeLogStore = await this.startCassandraStorage(metricsContext);
-		// now on, we're sure that the logStore is initialized
-		this.logStore$.next(this.logStore);
 
 		await this.heartbeat.start(clientId);
-		await this.propagationResolver.start();
+		await this.propagationResolver.start(this.logStore);
+		this.propagationDispatcher.start(this.logStore);
 
 		if (this.pluginConfig.experimental?.enableValidator) {
 			// start the report polling process

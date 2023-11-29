@@ -1,5 +1,4 @@
 import { QueryPropagate, QueryResponse } from '@logsn/protocol';
-import { firstValueFrom, Observable } from 'rxjs';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { LogStore } from './LogStore';
@@ -10,13 +9,22 @@ export class PropagationDispatcher {
 	//TODO: Set a TTL and clean the Responses by a timer
 	private primaryResponses: Map<RequestId, QueryResponse>;
 	private foreignResponses: Map<RequestId, QueryResponse>;
+	private _logStore: LogStore | undefined;
 
-	constructor(
-		private readonly logStore$: Observable<LogStore>,
-		private readonly publisher: BroadbandPublisher
-	) {
+	constructor(private readonly publisher: BroadbandPublisher) {
 		this.primaryResponses = new Map<RequestId, QueryResponse>();
 		this.foreignResponses = new Map<RequestId, QueryResponse>();
+	}
+
+	public start(logStore: LogStore) {
+		this._logStore = logStore;
+	}
+
+	private get logStore(): LogStore {
+		if (!this._logStore) {
+			throw new Error('LogStore not initialized');
+		}
+		return this._logStore;
 	}
 
 	/**
@@ -65,8 +73,7 @@ export class PropagationDispatcher {
 		// Read the messages from the LogStore
 		const messages: [string, string][] = [];
 		for (const messageId of messageIds) {
-			const logStore = await firstValueFrom(this.logStore$);
-			const message = logStore.requestByMessageId(messageId).read();
+			const message = this.logStore.requestByMessageId(messageId).read();
 			messages.push([messageId, message]);
 		}
 

@@ -10,7 +10,6 @@ import { fastWallet } from '@streamr/test-utils';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import { Wallet } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
-import { BehaviorSubject } from 'rxjs';
 
 import { Heartbeat } from '../../../../src/plugins/logStore/Heartbeat';
 import { LogStore } from '../../../../src/plugins/logStore/LogStore';
@@ -149,7 +148,7 @@ describe(PropagationDispatcher, () => {
 		broadcastToListeners(queryResponse.serialize(), metadata);
 	};
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		logStore = {
 			requestByMessageId: jest.fn().mockImplementation((messageId: string) => ({
 				read: () => msgs[messageId],
@@ -170,12 +169,10 @@ describe(PropagationDispatcher, () => {
 			},
 		} satisfies Partial<BroadbandSubscriber> as unknown as BroadbandSubscriber;
 
-		const logStore$ = new BehaviorSubject(logStore);
-
-		propagationDispatcher = new PropagationDispatcher(logStore$, publisher);
+		propagationDispatcher = new PropagationDispatcher(publisher);
+		propagationDispatcher.start(logStore);
 
 		const propagationResolver = new PropagationResolver(
-			logStore$,
 			{
 				get onlineBrokers(): [] {
 					return [];
@@ -183,6 +180,7 @@ describe(PropagationDispatcher, () => {
 			} as Partial<Heartbeat> as Heartbeat,
 			subscriber
 		);
+		await propagationResolver.start(logStore);
 
 		queryResponseManager = new QueryResponseManager(
 			publisher,

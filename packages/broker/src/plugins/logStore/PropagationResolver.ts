@@ -8,7 +8,6 @@ import {
 } from '@logsn/protocol';
 import { createSignaturePayload, StreamMessage } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
-import { firstValueFrom, type Observable } from 'rxjs';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { Heartbeat } from './Heartbeat';
@@ -145,9 +144,9 @@ export class PropagationResolver {
 		RequestId,
 		(participatedNodes: string[]) => void
 	>;
+	private _logStore: LogStore | undefined;
 
 	constructor(
-		private readonly logStore$: Observable<LogStore>,
 		private readonly heartbeat: Heartbeat,
 		private readonly subscriber: BroadbandSubscriber
 	) {
@@ -155,8 +154,16 @@ export class PropagationResolver {
 		this.queryCallbacks = new Map<RequestId, () => void>();
 	}
 
-	public async start() {
+	public async start(logStore: LogStore) {
+		this._logStore = logStore;
 		await this.subscriber.subscribe(this.onMessage.bind(this));
+	}
+
+	private get logStore(): LogStore {
+		if (!this._logStore) {
+			throw new Error('LogStore not initialized');
+		}
+		return this._logStore;
 	}
 
 	public async stop() {
@@ -269,8 +276,7 @@ export class PropagationResolver {
 
 		for (const [_messageId, messageStr] of messagesToBeStored) {
 			const message = StreamMessage.deserialize(messageStr);
-			const logStore = await firstValueFrom(this.logStore$);
-			await logStore.store(message);
+			await this.logStore.store(message);
 		}
 
 		// May be ready if this propagation was the last one missing.
