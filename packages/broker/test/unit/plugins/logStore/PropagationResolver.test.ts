@@ -231,16 +231,9 @@ describe(PropagationResolver, () => {
 			},
 		} satisfies Partial<BroadbandSubscriber> as unknown as BroadbandSubscriber;
 
-		propagationResolver = new PropagationResolver(
-			logStore,
-			heartbeat,
-			subscriber
-		);
+		propagationResolver = new PropagationResolver(heartbeat, subscriber);
 
-		const propagationDispatcher = new PropagationDispatcher(
-			logStore,
-			publisher
-		);
+		const propagationDispatcher = new PropagationDispatcher(publisher);
 
 		queryResponseManager = new QueryResponseManager(
 			publisher,
@@ -256,7 +249,8 @@ describe(PropagationResolver, () => {
 			subscriber
 		);
 
-		await propagationResolver.start();
+		propagationDispatcher.start(logStore);
+		await propagationResolver.start(logStore);
 		await queryResponseManager.start(primaryBrokerId);
 		await queryRequestManager.start(logStore);
 	});
@@ -420,6 +414,7 @@ describe(PropagationResolver, () => {
 		'fails with propagation timeout',
 		async () => {
 			onlineBrokers = [foreignBrokerId_1];
+			jest.useFakeTimers({ advanceTimers: false });
 
 			// this runs once we await propagationResolver.propagate()
 			setImmediate(() => {
@@ -430,9 +425,12 @@ describe(PropagationResolver, () => {
 			});
 
 			try {
-				await queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
-					queryRequest
-				);
+				const promise =
+					queryRequestManager.publishQueryRequestAndWaitForPropagateResolution(
+						queryRequest
+					);
+				jest.advanceTimersByTime(30_000);
+				await promise;
 			} catch (err) {
 				// yet the publish should have been called
 				expect(publisher.publish).toBeCalledTimes(1);

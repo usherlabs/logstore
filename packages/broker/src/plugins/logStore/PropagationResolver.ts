@@ -7,37 +7,63 @@ import {
 	SystemMessageType,
 } from '@logsn/protocol';
 import { createSignaturePayload, StreamMessage } from '@streamr/protocol';
+import { Logger, toEthereumAddress } from '@streamr/utils';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { Heartbeat } from './Heartbeat';
 import { LogStore } from './LogStore';
 
-type RequestId = string;
+const logger = new Logger(module);
 
-const TIMEOUT = 5 * 1000;
+type RequestId = string;
+const TIMEOUT = 30 * 1000;
 const RESPONSES_THRESHOLD = 1.0;
 
 class QueryPropagationState {
-	private primaryResponseHashMap: Map<string, string>;
+	private primaryResponseHashMap: Map<string, string> | null = null;
 	private awaitingMessageIds: Map<string, string>;
-	public respondedBrokers: Map<EthereumAddress, boolean>;
+	public brokersResponseState: Map<EthereumAddress, boolean>;
+	private foreignResponseBuffer: [QueryResponse, MessageMetadata][] = [];
+	private propagateBuffer: QueryPropagate[] = [];
+	public messagesReadyToBeStored: [string, string][] = [];
 
-	constructor(queryResponse: QueryResponse, onlineBrokers: EthereumAddress[]) {
-		this.primaryResponseHashMap = queryResponse.hashMap;
+	constructor(onlineBrokers: EthereumAddress[]) {
 		this.awaitingMessageIds = new Map<string, string>();
-		this.respondedBrokers = new Map<EthereumAddress, boolean>();
+		this.brokersResponseState = new Map<EthereumAddress, boolean>(
+			onlineBrokers.map((broker) => [broker, false])
+		);
+	}
 
-		for (const onlineBroker of onlineBrokers) {
-			if (onlineBroker != queryResponse.requestPublisherId) {
-				this.respondedBrokers.set(onlineBroker, false);
-			}
+	public onPrimaryQueryResponse(primaryResponse: QueryResponse) {
+		// this should happen only once
+		if (this.primaryResponseHashMap) {
+			logger.error('Primary response already set');
+			return;
 		}
+
+		this.brokersResponseState.set(
+			toEthereumAddress(primaryResponse.requestPublisherId),
+			true
+		);
+
+		this.primaryResponseHashMap = primaryResponse.hashMap;
+		this.foreignResponseBuffer.forEach((args) =>
+			this.onForeignQueryResponse(...args)
+		);
+		this.propagateBuffer.forEach((queryPropagate) =>
+			this.onPropagate(queryPropagate)
+		);
 	}
 
 	public onForeignQueryResponse(
 		queryResponse: QueryResponse,
 		metadata: MessageMetadata
 	) {
+		if (!this.primaryResponseHashMap) {
+			this.foreignResponseBuffer.push([queryResponse, metadata]);
+			return;
+		}
+
 		// We add here the messageIds that are not in the primary response
 		for (const [messageId, messageHash] of queryResponse.hashMap) {
 			if (!this.primaryResponseHashMap.has(messageId)) {
@@ -45,25 +71,26 @@ class QueryPropagationState {
 			}
 		}
 
-		this.respondedBrokers.set(metadata.publisherId, true);
+		this.brokersResponseState.set(metadata.publisherId, true);
 	}
 
 	public onPropagate(queryPropagate: QueryPropagate) {
-		const messages: [string, string][] = [];
-
+		if (!this.primaryResponseHashMap) {
+			this.propagateBuffer.push(queryPropagate);
+			// we don't have the primary response yet, so we can't verify the propagated messages and store them
+			return;
+		}
 		for (const [messageIdStr, serializedMessage] of queryPropagate.payload) {
 			if (this.awaitingMessageIds.has(messageIdStr)) {
 				const isVerified = this.verifyPropagatedMessage(serializedMessage);
 				if (isVerified) {
-					messages.push([messageIdStr, serializedMessage]);
+					this.messagesReadyToBeStored.push([messageIdStr, serializedMessage]);
 				}
 
 				// we delete the message from the awaiting list regardless of verification result
 				this.awaitingMessageIds.delete(messageIdStr);
 			}
 		}
-
-		return messages;
 	}
 
 	private verifyPropagatedMessage(serializedMessage: string) {
@@ -91,18 +118,15 @@ class QueryPropagationState {
 	 * that previously said that this query was missing messages
 	 */
 	public get isReady() {
-		if (this.respondedBrokers.size === 0) {
+		// this means there's no one identified as online. This broker is alone and there's no chance to receive a propagate.
+		if (this.brokersResponseState.size === 0) {
 			return true;
 		}
 
-		let count = 0;
-		for (const responded of this.respondedBrokers.values()) {
-			if (responded) {
-				count++;
-			}
-		}
-
-		const percentResponded = count / this.respondedBrokers.size;
+		const respondedCount = Array.from(
+			this.brokersResponseState.values()
+		).filter(Boolean).length;
+		const percentResponded = respondedCount / this.brokersResponseState.size;
 
 		return (
 			percentResponded >= RESPONSES_THRESHOLD &&
@@ -120,9 +144,9 @@ export class PropagationResolver {
 		RequestId,
 		(participatedNodes: string[]) => void
 	>;
+	private _logStore: LogStore | undefined;
 
 	constructor(
-		private readonly logStore: LogStore,
 		private readonly heartbeat: Heartbeat,
 		private readonly subscriber: BroadbandSubscriber
 	) {
@@ -130,8 +154,16 @@ export class PropagationResolver {
 		this.queryCallbacks = new Map<RequestId, () => void>();
 	}
 
-	public async start() {
+	public async start(logStore: LogStore) {
+		this._logStore = logStore;
 		await this.subscriber.subscribe(this.onMessage.bind(this));
+	}
+
+	private get logStore(): LogStore {
+		if (!this._logStore) {
+			throw new Error('LogStore not initialized');
+		}
+		return this._logStore;
 	}
 
 	public async stop() {
@@ -141,9 +173,20 @@ export class PropagationResolver {
 	public async waitForPropagateResolution(queryRequest: QueryRequest) {
 		let timeout: NodeJS.Timeout;
 
+		// Racing between timeout and finalization of the query
 		return Promise.race([
 			new Promise<never>((_, reject) => {
 				timeout = setTimeout(() => {
+					logger.warn(
+						'Propagation timeout on request %s',
+						queryRequest.requestId
+					);
+					logger.debug(
+						'Current state of the query on timeout: %s',
+						JSON.stringify(
+							this.queryPropagationStateMap.get(queryRequest.requestId)
+						)
+					);
 					this.clean(queryRequest.requestId);
 					reject('Propagation timeout');
 				}, TIMEOUT);
@@ -176,15 +219,19 @@ export class PropagationResolver {
 	 * @param queryResponse
 	 */
 	public setPrimaryResponse(queryResponse: QueryResponse) {
-		const queryState = new QueryPropagationState(
-			queryResponse,
-			this.heartbeat.onlineBrokers
-		);
-
-		this.queryPropagationStateMap.set(queryResponse.requestId, queryState);
+		const queryState = this.getOrCreateQueryState(queryResponse.requestId);
+		queryState.onPrimaryQueryResponse(queryResponse);
 
 		// it may be ready if there are no other brokers responding here
 		this.finishIfReady(queryState, queryResponse.requestId);
+	}
+
+	private getOrCreateQueryState(requestId: RequestId) {
+		const queryState =
+			this.queryPropagationStateMap.get(requestId) ??
+			new QueryPropagationState(this.heartbeat.onlineBrokers);
+		this.queryPropagationStateMap.set(requestId, queryState);
+		return queryState;
 	}
 
 	/**
@@ -197,13 +244,7 @@ export class PropagationResolver {
 		queryResponse: QueryResponse,
 		metadata: MessageMetadata
 	) {
-		const queryState = this.queryPropagationStateMap.get(
-			queryResponse.requestId
-		);
-		if (!queryState) {
-			return;
-		}
-
+		const queryState = this.getOrCreateQueryState(queryResponse.requestId);
 		queryState.onForeignQueryResponse(queryResponse, metadata);
 
 		// May be ready if this response was the last one missing, and it produced
@@ -226,9 +267,14 @@ export class PropagationResolver {
 			return;
 		}
 
-		const messages = queryState.onPropagate(queryPropagate);
+		queryState.onPropagate(queryPropagate);
+		// we copy, so any async operation don't cause racing conditions
+		// making we store twice in meanwhile
+		const messagesToBeStored = [...queryState.messagesReadyToBeStored];
+		// we just don't want to process them twice
+		queryState.messagesReadyToBeStored = [];
 
-		for (const [_messageId, messageStr] of messages) {
+		for (const [_messageId, messageStr] of messagesToBeStored) {
 			const message = StreamMessage.deserialize(messageStr);
 			await this.logStore.store(message);
 		}
@@ -246,10 +292,9 @@ export class PropagationResolver {
 	) {
 		if (queryState.isReady) {
 			const callback = this.queryCallbacks.get(requestId);
-
 			this.clean(requestId);
 			if (callback) {
-				callback(Array.from(queryState.respondedBrokers.keys()));
+				callback(Array.from(queryState.brokersResponseState.keys()));
 			}
 		}
 	}

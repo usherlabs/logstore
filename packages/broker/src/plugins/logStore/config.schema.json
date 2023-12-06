@@ -68,6 +68,25 @@
 				"clusterSize": 1,
 				"myIndexInCluster": 0
 			}
+		},
+		"programs": {
+			"type": "object",
+			"description": "LogStore Programs config",
+			"additionalProperties": false,
+			"properties": {
+				"chainRpcUrls": {
+					"description": "Mapping of ChainId to its RPC URL",
+					"type": "object",
+					"additionalProperties": {
+						"type": "string"
+					}
+				}
+			},
+			"default": {
+				"chainRpcUrls": {
+					"137": "https://polygon-rpc.com"
+				}
+			}
 		}
 	}
 }

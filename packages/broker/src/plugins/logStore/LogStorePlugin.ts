@@ -14,6 +14,7 @@ import { LogStore, startCassandraLogStore } from './LogStore';
 import { LogStoreConfig } from './LogStoreConfig';
 import { MessageListener } from './MessageListener';
 import { MessageMetricsCollector } from './MessageMetricsCollector';
+import { MessageProcessor } from './MessageProcessor';
 import { PropagationDispatcher } from './PropagationDispatcher';
 import { PropagationResolver } from './PropagationResolver';
 import { QueryRequestManager } from './QueryRequestManager';
@@ -45,14 +46,19 @@ export interface LogStorePluginConfig {
 		clusterSize: number;
 		myIndexInCluster: number;
 	};
+	programs: {
+		chainRpcUrls: {
+			[key: string]: string;
+		};
+	};
 	experimental?: {
 		enableValidator?: boolean;
 	};
 }
 
 export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
-	private logStore?: LogStore;
-	private logStoreConfig?: LogStoreConfig;
+	private maybeLogStore?: LogStore;
+	private maybeLogStoreConfig?: LogStoreConfig;
 
 	private readonly systemSubscriber: BroadbandSubscriber;
 	private readonly systemPublisher: BroadbandPublisher;
@@ -68,6 +74,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private readonly propagationResolver: PropagationResolver;
 	private readonly propagationDispatcher: PropagationDispatcher;
 	private readonly reportPoller: ReportPoller;
+	private readonly messageProcessor: MessageProcessor;
 	private readonly messageListener: MessageListener;
 
 	private metricsTimer?: NodeJS.Timer;
@@ -105,6 +112,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.heartbeatSubscriber
 		);
 
+		this.messageProcessor = new MessageProcessor(
+			this.pluginConfig,
+			this.logStoreClient,
+			this.topicsStream
+		);
+
 		this.messageListener = new MessageListener(this.logStoreClient);
 
 		this.messageMetricsCollector = new MessageMetricsCollector(
@@ -123,13 +136,11 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		);
 
 		this.propagationResolver = new PropagationResolver(
-			this.logStore!,
 			this.heartbeat,
 			this.systemSubscriber
 		);
 
 		this.propagationDispatcher = new PropagationDispatcher(
-			this.logStore!,
 			this.systemPublisher
 		);
 
@@ -156,6 +167,13 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		);
 	}
 
+	private get logStore(): LogStore {
+		if (!this.maybeLogStore) {
+			throw new Error('LogStore not initialized');
+		}
+		return this.maybeLogStore;
+	}
+
 	getApiAuthentication(): undefined {
 		return undefined;
 	}
@@ -171,8 +189,15 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			clientId,
 		});
 
+		const metricsContext = (
+			await this.logStoreClient.getNode()
+		).getMetricsContext();
+
+		this.maybeLogStore = await this.startCassandraStorage(metricsContext);
+
 		await this.heartbeat.start(clientId);
-		await this.propagationResolver.start();
+		await this.propagationResolver.start(this.logStore);
+		this.propagationDispatcher.start(this.logStore);
 
 		if (this.pluginConfig.experimental?.enableValidator) {
 			// start the report polling process
@@ -182,15 +207,16 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			await this.systemRecovery.start();
 		}
 
-		const metricsContext = (
-			await this.logStoreClient!.getNode()
-		).getMetricsContext();
-		this.logStore = await this.startCassandraStorage(metricsContext);
+		this.maybeLogStoreConfig = await this.startLogStoreConfig(
+			this.systemStream
+		);
+		this.messageListener.start(
+			this.maybeLogStore,
+			this.maybeLogStoreConfig,
+			this.messageProcessor
+		);
 
-		this.logStoreConfig = await this.startLogStoreConfig(this.systemStream);
-		this.messageListener.start(this.logStore, this.logStoreConfig);
-
-		await this.queryRequestManager.start(this.logStore!);
+		await this.queryRequestManager.start(this.logStore);
 		await this.queryResponseManager.start(clientId);
 		await this.messageMetricsCollector.start();
 
@@ -228,8 +254,8 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 			this.propagationResolver.stop(),
 			this.queryRequestManager.stop(),
 			this.queryResponseManager.stop(),
-			this.logStore!.close(),
-			this.logStoreConfig!.destroy(),
+			this.maybeLogStore?.close(),
+			this.maybeLogStoreConfig?.destroy(),
 			this.pluginConfig.experimental?.enableValidator
 				? stopValidatorComponents()
 				: Promise.resolve(),
