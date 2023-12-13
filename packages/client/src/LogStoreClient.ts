@@ -32,7 +32,10 @@ import { TokenManager } from './registry/TokenManager';
 import { AuthenticationInjectionToken } from './streamr/Authentication';
 import { StreamrClientConfigInjectionToken } from './streamr/Config';
 import { ContractFactoryInjectionToken } from './streamr/ContractFactory';
+import { DestroySignalInjectionToken } from './streamr/DestroySignal';
+import { GroupKeyManagerInjectionToken } from './streamr/encryption/GroupKeyManager';
 import { LoggerFactoryInjectionToken } from './streamr/LoggerFactory';
+import { StreamRegistryCachedInjectionToken } from './streamr/registry/StreamRegistryCached';
 import { StreamIDBuilderInjectionToken } from './streamr/StreamIDBuilder';
 import { AmountTypes } from './types';
 import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
@@ -102,6 +105,21 @@ export class LogStoreClient extends StreamrClientIntermediary {
 		container.register(StreamIDBuilderInjectionToken, {
 			// @ts-expect-error streamIdBuilder is marked as private in StreamrClient
 			useValue: streamrClient.streamIdBuilder,
+		});
+
+		container.register(DestroySignalInjectionToken, {
+			// @ts-expect-error destroySignal is marked as private in StreamrClient
+			useValue: streamrClient.destroySignal,
+		});
+
+		container.register(GroupKeyManagerInjectionToken, {
+			// @ts-expect-error resends.groupKeyManager is marked as private in StreamrClient
+			useValue: streamrClient.resends.groupKeyManager,
+		});
+
+		container.register(StreamRegistryCachedInjectionToken, {
+			// @ts-expect-error resends.streamRegistryCached is marked as private in StreamrClient
+			useValue: streamrClient.resends.streamRegistryCached,
 		});
 
 		container.register(LogStoreClient, {

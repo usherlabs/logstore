@@ -1,18 +1,15 @@
 import {
 	counting,
 	createSubscribePipeline,
-	DestroySignal,
-	GroupKeyManager,
 	IResends,
 	MessageStream,
 	StreamPartID,
 	StreamrClientError,
-	StreamRegistryCached,
 } from '@logsn/streamr-client';
 import { StreamMessage, StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
 import { defer, EMPTY, partition, shareReplay } from 'rxjs';
-import { delay, inject, Lifecycle, scoped } from 'tsyringe';
+import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import { LogStoreClientConfigInjectionToken } from './Config';
 import { HttpUtil } from './HttpUtil';
@@ -20,9 +17,21 @@ import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
 import { StrictStreamrClientConfig } from './streamr/Config';
 import {
+	DestroySignal,
+	DestroySignalInjectionToken,
+} from './streamr/DestroySignal';
+import {
+	GroupKeyManager,
+	GroupKeyManagerInjectionToken,
+} from './streamr/encryption/GroupKeyManager';
+import {
 	LoggerFactory,
 	LoggerFactoryInjectionToken,
 } from './streamr/LoggerFactory';
+import {
+	StreamRegistryCached,
+	StreamRegistryCachedInjectionToken,
+} from './streamr/registry/StreamRegistryCached';
 import {
 	validateWithNetworkResponses,
 	type VerificationOptions,
@@ -153,15 +162,15 @@ export class Queries implements IResends {
 	private readonly logger: Logger;
 
 	constructor(
-		@inject(delay(() => StreamRegistryCached))
+		@inject(StreamRegistryCachedInjectionToken)
 		streamRegistryCached: StreamRegistryCached,
 		@inject(NodeManager)
 		nodeManager: NodeManager,
 		@inject(HttpUtil)
 		httpUtil: HttpUtil,
-		@inject(GroupKeyManager)
+		@inject(GroupKeyManagerInjectionToken)
 		groupKeyManager: GroupKeyManager,
-		@inject(DestroySignal)
+		@inject(DestroySignalInjectionToken)
 		destroySignal: DestroySignal,
 		@inject(LogStoreClientConfigInjectionToken)
 		config: StrictStreamrClientConfig,
@@ -259,11 +268,14 @@ export class Queries implements IResends {
 		const messageStream = createSubscribePipeline({
 			streamPartId,
 			resends: this,
+			// @ts-expect-error createSubscribePipeline expects groupKeyManager to has private properties that not defined by the interface
 			groupKeyManager: this.groupKeyManager,
+			// @ts-expect-error createSubscribePipeline expects streamRegistryCached to has private properties that not defined by the interface
 			streamRegistryCached: this.streamRegistryCached,
+			// @ts-expect-error createSubscribePipeline expects destroySignal to has private properties that not defined by the interface
 			destroySignal: this.destroySignal,
 			config: this.config,
-			// @ts-expect-error createSubscribePipeline expects loggerFactory to have config private property
+			// @ts-expect-error createSubscribePipeline expects loggerFactory to has private properties that not defined by the interface
 			loggerFactory: this.loggerFactory,
 		});
 
