@@ -1,5 +1,4 @@
 import {
-	counting,
 	createSubscribePipeline,
 	IResends,
 	MessageStream,
@@ -32,6 +31,7 @@ import {
 	StreamRegistryCached,
 	StreamRegistryCachedInjectionToken,
 } from './streamr/registry/StreamRegistryCached';
+import { counting } from './streamr/utils/GeneratorUtils';
 import {
 	validateWithNetworkResponses,
 	type VerificationOptions,
