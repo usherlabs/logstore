@@ -4,10 +4,7 @@ import { Provider } from '@ethersproject/providers';
 import { LSAN as LogStoreTokenManagerContract } from '@logsn/contracts';
 import { abi as LogStoreTokenManagerAbi } from '@logsn/contracts/artifacts/src/alpha/Token.sol/LSAN.json';
 import { getMaticPrice } from '@logsn/shared';
-import {
-	ContractFactory,
-	queryAllReadonlyContracts,
-} from '@logsn/streamr-client';
+import { queryAllReadonlyContracts } from '@logsn/streamr-client';
 import { ObservableContract } from '@logsn/streamr-client/dist/types/src/utils/contract';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import Decimal from 'decimal.js';
@@ -28,6 +25,10 @@ import {
 	StrictStreamrClientConfig,
 } from '../streamr/Config';
 import {
+	ContractFactory,
+	ContractFactoryInjectionToken,
+} from '../streamr/ContractFactory';
+import {
 	LoggerFactory,
 	LoggerFactoryInjectionToken,
 } from '../streamr/LoggerFactory';
@@ -44,7 +45,7 @@ export class TokenManager {
 	private readonly logger: Logger;
 
 	constructor(
-		@inject(ContractFactory)
+		@inject(ContractFactoryInjectionToken)
 		contractFactory: ContractFactory,
 		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,

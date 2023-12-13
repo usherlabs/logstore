@@ -31,6 +31,7 @@ import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
 import { AuthenticationInjectionToken } from './streamr/Authentication';
 import { StreamrClientConfigInjectionToken } from './streamr/Config';
+import { ContractFactoryInjectionToken } from './streamr/ContractFactory';
 import { LoggerFactoryInjectionToken } from './streamr/LoggerFactory';
 import { AmountTypes } from './types';
 import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
@@ -90,6 +91,11 @@ export class LogStoreClient extends StreamrClientIntermediary {
 		container.register(AuthenticationInjectionToken, {
 			// @ts-expect-error authentication is marked as private in StreamrClient
 			useValue: streamrClient.authentication,
+		});
+
+		container.register(ContractFactoryInjectionToken, {
+			// @ts-expect-error streamRegistry.contractFactory is marked as private in StreamrClient
+			useValue: streamrClient.streamRegistry.contractFactory,
 		});
 
 		container.register(LogStoreClient, {

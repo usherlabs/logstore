@@ -4,11 +4,7 @@ import { Provider } from '@ethersproject/providers';
 import { LogStoreQueryManager as QueryManagerContract } from '@logsn/contracts';
 import { abi as QueryManagerAbi } from '@logsn/contracts/artifacts/src/QueryManager.sol/LogStoreQueryManager.json';
 import { prepareStakeForQueryManager } from '@logsn/shared';
-import {
-	ContractFactory,
-	queryAllReadonlyContracts,
-	waitForTx,
-} from '@logsn/streamr-client';
+import { queryAllReadonlyContracts, waitForTx } from '@logsn/streamr-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
@@ -29,6 +25,10 @@ import {
 	StrictStreamrClientConfig,
 } from '../streamr/Config';
 import {
+	ContractFactory,
+	ContractFactoryInjectionToken,
+} from '../streamr/ContractFactory';
+import {
 	LoggerFactory,
 	LoggerFactoryInjectionToken,
 } from '../streamr/LoggerFactory';
@@ -44,7 +44,7 @@ export class QueryManager {
 	private readonly logger: Logger;
 
 	constructor(
-		@inject(ContractFactory)
+		@inject(ContractFactoryInjectionToken)
 		contractFactory: ContractFactory,
 		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,

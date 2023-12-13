@@ -6,7 +6,6 @@ import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreM
 import { prepareStakeForStoreManager } from '@logsn/shared';
 import {
 	collect,
-	ContractFactory,
 	queryAllReadonlyContracts,
 	Stream,
 	StreamIDBuilder,
@@ -40,6 +39,10 @@ import {
 	StrictStreamrClientConfig,
 } from '../streamr/Config';
 import {
+	ContractFactory,
+	ContractFactoryInjectionToken,
+} from '../streamr/ContractFactory';
+import {
 	LoggerFactory,
 	LoggerFactoryInjectionToken,
 } from '../streamr/LoggerFactory';
@@ -70,7 +73,7 @@ export class LogStoreRegistry {
 	private readonly logger: Logger;
 
 	constructor(
-		@inject(ContractFactory)
+		@inject(ContractFactoryInjectionToken)
 		contractFactory: ContractFactory,
 		@inject(delay(() => LogStoreClient))
 		logStoreClient: LogStoreClient,
