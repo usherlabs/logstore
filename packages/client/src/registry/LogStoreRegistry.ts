@@ -4,7 +4,7 @@ import { Provider } from '@ethersproject/providers';
 import type { LogStoreManager as LogStoreManagerContract } from '@logsn/contracts';
 import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { prepareStakeForStoreManager } from '@logsn/shared';
-import { queryAllReadonlyContracts, Stream } from '@logsn/streamr-client';
+import { Stream } from '@logsn/streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ContractTransaction } from 'ethers';
@@ -45,6 +45,7 @@ import {
 	StreamIDBuilder,
 	StreamIDBuilderInjectionToken,
 } from '../streamr/StreamIDBuilder';
+import { queryAllReadonlyContracts } from '../streamr/utils/contract';
 import { collect } from '../streamr/utils/iterators';
 import { SynchronizedGraphQLClient } from '../utils/SynchronizedGraphQLClient';
 

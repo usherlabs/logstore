@@ -1,4 +1,3 @@
-import { WebStreamToNodeStream } from '@logsn/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
 import { Base64 } from 'js-base64';
@@ -15,6 +14,7 @@ import {
 	LoggerFactory,
 	LoggerFactoryInjectionToken,
 } from './streamr/LoggerFactory';
+import { WebStreamToNodeStream } from './streamr/utils/WebStreamToNodeStream';
 import { getVersionString } from './utils/utils';
 
 export enum ErrorCode {
