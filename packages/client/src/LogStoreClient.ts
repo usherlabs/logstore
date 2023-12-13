@@ -29,6 +29,7 @@ import {
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
+import { AuthenticationInjectionToken } from './streamr/Authentication';
 import { StreamrClientConfigInjectionToken } from './streamr/Config';
 import { AmountTypes } from './types';
 import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
@@ -79,6 +80,11 @@ export class LogStoreClient extends StreamrClientIntermediary {
 				resetOnRefCountZero: true,
 			})
 		);
+
+		container.register(AuthenticationInjectionToken, {
+			// @ts-expect-error authentication is marked as private in StreamrClient
+			useValue: streamrClient.authentication,
+		});
 
 		container.register(LogStoreClient, {
 			useValue: this,

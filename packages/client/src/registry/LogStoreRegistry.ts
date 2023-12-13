@@ -5,8 +5,6 @@ import type { LogStoreManager as LogStoreManagerContract } from '@logsn/contract
 import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { prepareStakeForStoreManager } from '@logsn/shared';
 import {
-	Authentication,
-	AuthenticationInjectionToken,
 	collect,
 	ContractFactory,
 	LoggerFactory,
@@ -34,6 +32,10 @@ import {
 	LogStoreClientEvents,
 } from '../events';
 import { LogStoreClient } from '../LogStoreClient';
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+} from '../streamr/Authentication';
 import {
 	StreamrClientConfigInjectionToken,
 	StrictStreamrClientConfig,

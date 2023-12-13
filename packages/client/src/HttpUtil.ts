@@ -1,9 +1,4 @@
-import {
-	Authentication,
-	AuthenticationInjectionToken,
-	LoggerFactory,
-	WebStreamToNodeStream,
-} from '@logsn/streamr-client';
+import { LoggerFactory, WebStreamToNodeStream } from '@logsn/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
 import { Base64 } from 'js-base64';
@@ -12,6 +7,10 @@ import split2 from 'split2';
 import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+} from './streamr/Authentication';
 import { getVersionString } from './utils/utils';
 
 export enum ErrorCode {

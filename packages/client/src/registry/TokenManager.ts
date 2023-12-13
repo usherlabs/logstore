@@ -5,8 +5,6 @@ import { LSAN as LogStoreTokenManagerContract } from '@logsn/contracts';
 import { abi as LogStoreTokenManagerAbi } from '@logsn/contracts/artifacts/src/alpha/Token.sol/LSAN.json';
 import { getMaticPrice } from '@logsn/shared';
 import {
-	Authentication,
-	AuthenticationInjectionToken,
 	ContractFactory,
 	LoggerFactory,
 	queryAllReadonlyContracts,
@@ -22,6 +20,10 @@ import {
 	StrictLogStoreClientConfig,
 } from '../Config';
 import { getStreamRegistryChainProviders } from '../Ethereum';
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+} from '../streamr/Authentication';
 import {
 	StreamrClientConfigInjectionToken,
 	StrictStreamrClientConfig,

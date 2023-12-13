@@ -5,8 +5,6 @@ import { LogStoreQueryManager as QueryManagerContract } from '@logsn/contracts';
 import { abi as QueryManagerAbi } from '@logsn/contracts/artifacts/src/QueryManager.sol/LogStoreQueryManager.json';
 import { prepareStakeForQueryManager } from '@logsn/shared';
 import {
-	Authentication,
-	AuthenticationInjectionToken,
 	ContractFactory,
 	LoggerFactory,
 	queryAllReadonlyContracts,
@@ -23,6 +21,10 @@ import {
 	getStreamRegistryChainProviders,
 	getStreamRegistryOverrides,
 } from '../Ethereum';
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+} from '../streamr/Authentication';
 import {
 	StreamrClientConfigInjectionToken,
 	StrictStreamrClientConfig,
