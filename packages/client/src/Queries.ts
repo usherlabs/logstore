@@ -3,7 +3,6 @@ import {
 	IResends,
 	MessageStream,
 	StreamPartID,
-	StreamrClientError,
 } from '@logsn/streamr-client';
 import { StreamMessage, StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
@@ -12,6 +11,7 @@ import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import { LogStoreClientConfigInjectionToken } from './Config';
 import { HttpUtil } from './HttpUtil';
+import { LogStoreClientError } from './LogStoreClientError';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
 import { StrictStreamrClientConfig } from './streamr/Config';
@@ -234,7 +234,7 @@ export class Queries implements IResends {
 			);
 		}
 
-		throw new StreamrClientError(
+		throw new LogStoreClientError(
 			`can not query without valid query options: ${JSON.stringify({
 				streamPartId,
 				options: input,
