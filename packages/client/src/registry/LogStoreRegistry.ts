@@ -8,7 +8,6 @@ import {
 	collect,
 	queryAllReadonlyContracts,
 	Stream,
-	StreamIDBuilder,
 } from '@logsn/streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
@@ -46,6 +45,10 @@ import {
 	LoggerFactory,
 	LoggerFactoryInjectionToken,
 } from '../streamr/LoggerFactory';
+import {
+	StreamIDBuilder,
+	StreamIDBuilderInjectionToken,
+} from '../streamr/StreamIDBuilder';
 import { SynchronizedGraphQLClient } from '../utils/SynchronizedGraphQLClient';
 
 export interface LogStoreAssignmentEvent {
@@ -77,7 +80,7 @@ export class LogStoreRegistry {
 		contractFactory: ContractFactory,
 		@inject(delay(() => LogStoreClient))
 		logStoreClient: LogStoreClient,
-		@inject(StreamIDBuilder)
+		@inject(StreamIDBuilderInjectionToken)
 		streamIdBuilder: StreamIDBuilder,
 		@inject(SynchronizedGraphQLClient)
 		graphQLClient: SynchronizedGraphQLClient,
