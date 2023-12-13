@@ -6,7 +6,6 @@ import { abi as QueryManagerAbi } from '@logsn/contracts/artifacts/src/QueryMana
 import { prepareStakeForQueryManager } from '@logsn/shared';
 import {
 	ContractFactory,
-	LoggerFactory,
 	queryAllReadonlyContracts,
 	waitForTx,
 } from '@logsn/streamr-client';
@@ -29,6 +28,10 @@ import {
 	StreamrClientConfigInjectionToken,
 	StrictStreamrClientConfig,
 } from '../streamr/Config';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from '../streamr/LoggerFactory';
 
 @scoped(Lifecycle.ContainerScoped)
 export class QueryManager {
@@ -43,7 +46,7 @@ export class QueryManager {
 	constructor(
 		@inject(ContractFactory)
 		contractFactory: ContractFactory,
-		@inject(LoggerFactory)
+		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,
 		@inject(AuthenticationInjectionToken)
 		authentication: Authentication,

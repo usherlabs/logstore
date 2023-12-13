@@ -3,7 +3,6 @@ import { LogStoreNodeManager as LogStoreNodeManagerContract } from '@logsn/contr
 import { abi as LogStoreNodeManagerAbi } from '@logsn/contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
 import {
 	ContractFactory,
-	LoggerFactory,
 	queryAllReadonlyContracts,
 } from '@logsn/streamr-client';
 import { Logger, toEthereumAddress } from '@streamr/utils';
@@ -20,6 +19,10 @@ import {
 	StreamrClientConfigInjectionToken,
 	StrictStreamrClientConfig,
 } from '../streamr/Config';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from '../streamr/LoggerFactory';
 
 @scoped(Lifecycle.ContainerScoped)
 export class NodeManager {
@@ -32,7 +35,7 @@ export class NodeManager {
 	constructor(
 		@inject(ContractFactory)
 		contractFactory: ContractFactory,
-		@inject(LoggerFactory)
+		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,
 		@inject(LogStoreClientConfigInjectionToken)
 		logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>,

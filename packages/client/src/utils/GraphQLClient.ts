@@ -1,4 +1,4 @@
-import { HttpFetcher, LoggerFactory } from '@logsn/streamr-client';
+import { HttpFetcher } from '@logsn/streamr-client';
 import { Logger } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
@@ -6,6 +6,10 @@ import {
 	LogStoreClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
 } from '../Config';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from '../streamr/LoggerFactory';
 
 export interface GraphQLQuery {
 	query: string;
@@ -19,7 +23,7 @@ export class GraphQLClient {
 	private readonly logger: Logger;
 
 	constructor(
-		@inject(LoggerFactory) loggerFactory: LoggerFactory,
+		@inject(LoggerFactoryInjectionToken) loggerFactory: LoggerFactory,
 		@inject(HttpFetcher) httpFetcher: HttpFetcher,
 		@inject(LogStoreClientConfigInjectionToken)
 		config: Pick<StrictLogStoreClientConfig, 'contracts'>

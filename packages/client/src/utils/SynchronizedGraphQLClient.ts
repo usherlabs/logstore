@@ -1,7 +1,11 @@
-import { Gate, LoggerFactory } from '@logsn/streamr-client';
+import { Gate } from '@logsn/streamr-client';
 import { Logger, TimeoutError, wait, withTimeout } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from '../streamr/LoggerFactory';
 // import { ClientConfigInjectionToken, StrictStreamrClientConfig } from '../Config';
 import { GraphQLClient, GraphQLQuery } from './GraphQLClient';
 
@@ -113,7 +117,7 @@ export class SynchronizedGraphQLClient {
 	private indexingState: IndexingState;
 
 	constructor(
-		@inject(LoggerFactory) loggerFactory: LoggerFactory,
+		@inject(LoggerFactoryInjectionToken) loggerFactory: LoggerFactory,
 		@inject(GraphQLClient) delegate: GraphQLClient
 		// @inject(ClientConfigInjectionToken)
 		// config: Pick<StrictStreamrClientConfig, '_timeouts'>

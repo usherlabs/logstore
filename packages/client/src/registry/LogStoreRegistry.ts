@@ -7,7 +7,6 @@ import { prepareStakeForStoreManager } from '@logsn/shared';
 import {
 	collect,
 	ContractFactory,
-	LoggerFactory,
 	queryAllReadonlyContracts,
 	Stream,
 	StreamIDBuilder,
@@ -40,6 +39,10 @@ import {
 	StreamrClientConfigInjectionToken,
 	StrictStreamrClientConfig,
 } from '../streamr/Config';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from '../streamr/LoggerFactory';
 import { SynchronizedGraphQLClient } from '../utils/SynchronizedGraphQLClient';
 
 export interface LogStoreAssignmentEvent {
@@ -79,7 +82,7 @@ export class LogStoreRegistry {
 		eventEmitter: LogStoreClientEventEmitter,
 		@inject(AuthenticationInjectionToken)
 		authentication: Authentication,
-		@inject(LoggerFactory)
+		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,
 		@inject(LogStoreClientConfigInjectionToken)
 		logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>,

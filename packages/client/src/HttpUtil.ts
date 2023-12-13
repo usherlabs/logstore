@@ -1,4 +1,4 @@
-import { LoggerFactory, WebStreamToNodeStream } from '@logsn/streamr-client';
+import { WebStreamToNodeStream } from '@logsn/streamr-client';
 import { StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
 import { Base64 } from 'js-base64';
@@ -11,6 +11,10 @@ import {
 	Authentication,
 	AuthenticationInjectionToken,
 } from './streamr/Authentication';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from './streamr/LoggerFactory';
 import { getVersionString } from './utils/utils';
 
 export enum ErrorCode {
@@ -95,7 +99,7 @@ export class HttpUtil {
 	constructor(
 		@inject(AuthenticationInjectionToken)
 		authentication: Authentication,
-		@inject(LoggerFactory)
+		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory
 	) {
 		this.authentication = authentication;

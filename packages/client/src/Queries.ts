@@ -4,7 +4,6 @@ import {
 	DestroySignal,
 	GroupKeyManager,
 	IResends,
-	LoggerFactory,
 	MessageStream,
 	StreamPartID,
 	StreamrClientError,
@@ -20,6 +19,10 @@ import { HttpUtil } from './HttpUtil';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
 import { StrictStreamrClientConfig } from './streamr/Config';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from './streamr/LoggerFactory';
 import {
 	validateWithNetworkResponses,
 	type VerificationOptions,
@@ -162,7 +165,7 @@ export class Queries implements IResends {
 		destroySignal: DestroySignal,
 		@inject(LogStoreClientConfigInjectionToken)
 		config: StrictStreamrClientConfig,
-		@inject(LoggerFactory)
+		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,
 		@inject(LogStoreClientSystemMessagesInjectionToken)
 		private systemMessages$: SystemMessageObservable
@@ -260,6 +263,7 @@ export class Queries implements IResends {
 			streamRegistryCached: this.streamRegistryCached,
 			destroySignal: this.destroySignal,
 			config: this.config,
+			// @ts-expect-error createSubscribePipeline expects loggerFactory to have config private property
 			loggerFactory: this.loggerFactory,
 		});
 

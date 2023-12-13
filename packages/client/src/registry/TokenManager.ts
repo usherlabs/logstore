@@ -6,7 +6,6 @@ import { abi as LogStoreTokenManagerAbi } from '@logsn/contracts/artifacts/src/a
 import { getMaticPrice } from '@logsn/shared';
 import {
 	ContractFactory,
-	LoggerFactory,
 	queryAllReadonlyContracts,
 } from '@logsn/streamr-client';
 import { ObservableContract } from '@logsn/streamr-client/dist/types/src/utils/contract';
@@ -28,6 +27,10 @@ import {
 	StreamrClientConfigInjectionToken,
 	StrictStreamrClientConfig,
 } from '../streamr/Config';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from '../streamr/LoggerFactory';
 import { AmountTypes } from '../types';
 
 @scoped(Lifecycle.ContainerScoped)
@@ -43,7 +46,7 @@ export class TokenManager {
 	constructor(
 		@inject(ContractFactory)
 		contractFactory: ContractFactory,
-		@inject(LoggerFactory)
+		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,
 		@inject(AuthenticationInjectionToken)
 		authentication: Authentication,
