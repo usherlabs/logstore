@@ -36,11 +36,11 @@ export const undelegateCommand = new Command('undelegate')
 				const options = undelegateCommand.opts();
 				const config = readConfigAndMigrateIfNeeded(options.config);
 
-				const privateKey = (config.client!.auth as PrivateKeyAuthConfig)
+				const privateKey = (config.streamrClient!.auth as PrivateKeyAuthConfig)
 					.privateKey;
 
 				const provider = new ethers.providers.JsonRpcProvider(
-					config.client!.contracts?.streamRegistryChainRPCs!.rpcs[0]
+					config.streamrClient!.contracts?.streamRegistryChainRPCs!.rpcs[0]
 				);
 				const signer = new ethers.Wallet(privateKey, provider);
 

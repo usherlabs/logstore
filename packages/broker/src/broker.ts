@@ -2,7 +2,7 @@ import {
 	LogStoreClient,
 	NetworkNodeStub,
 	PrivateKeyAuthConfig,
-	validateConfig as validateClientConfig,
+	validateConfig as validateLogStoreClientConfig,
 } from '@logsn/client';
 import { getNodeManagerContract } from '@logsn/shared';
 import { toStreamID } from '@streamr/protocol';
@@ -10,6 +10,10 @@ import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ethers } from 'ethers';
 import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
+import {
+	StreamrClient,
+	validateConfig as validateStreamrClientConfig,
+} from 'streamr-client';
 
 import { version as CURRENT_VERSION } from '../package.json';
 import { Config } from './config/config';
@@ -32,17 +36,24 @@ export const createBroker = async (
 	configWithoutDefaults: Config
 ): Promise<Broker> => {
 	const config = validateConfig(configWithoutDefaults, BROKER_CONFIG_SCHEMA);
-	validateClientConfig(config.client);
+	validateLogStoreClientConfig(config.logStoreClient);
+	validateStreamrClientConfig(config.streamrClient);
 
 	// Tweaks suggested by the Streamr Team
-	config.client.network!.webrtcSendBufferMaxMessageCount = 5000;
-	config.client.gapFill = true;
-	config.client.gapFillTimeout = 30 * 1000;
+	config.streamrClient.network!.webrtcSendBufferMaxMessageCount = 5000;
+	config.streamrClient.gapFill = true;
+	config.streamrClient.gapFillTimeout = 30 * 1000;
 
-	const logStoreClient = new LogStoreClient(config.client);
+	const streamrClientConfig = config.streamrClient;
+	const streamrClient = new StreamrClient(streamrClientConfig);
+	const logStoreClient = new LogStoreClient(
+		streamrClient,
+		config.logStoreClient,
+		config.streamrClient
+	);
 
 	const nodeManagerAddress = toEthereumAddress(
-		config.client.contracts!.logStoreNodeManagerChainAddress!
+		config.logStoreClient.contracts!.logStoreNodeManagerChainAddress!
 	);
 
 	const heartbeatStreamId = toStreamID('/heartbeat', nodeManagerAddress);
@@ -55,10 +66,11 @@ export const createBroker = async (
 	const systemStream = await logStoreClient.getStream(systemStreamId);
 	const topicsStream = await logStoreClient.getStream(topicsStreamId);
 
-	const privateKey = (config.client!.auth as PrivateKeyAuthConfig).privateKey;
+	const privateKey = (config.streamrClient!.auth as PrivateKeyAuthConfig)
+		.privateKey;
 
 	const provider = new ethers.providers.JsonRpcProvider(
-		config.client!.contracts?.streamRegistryChainRPCs!.rpcs[0]
+		config.streamrClient!.contracts?.streamRegistryChainRPCs!.rpcs[0]
 	);
 	const signer = new ethers.Wallet(privateKey, provider);
 
@@ -129,8 +141,8 @@ export const createBroker = async (
 			logger.info(`Ethereum address ${brokerAddress}`);
 			logger.info(
 				`Tracker Configuration: ${
-					config.client.network?.trackers
-						? JSON.stringify(config.client.network?.trackers)
+					config.streamrClient.network?.trackers
+						? JSON.stringify(config.streamrClient.network?.trackers)
 						: 'default'
 				}`
 			);
@@ -138,8 +150,9 @@ export const createBroker = async (
 			logger.info(`Plugins: ${JSON.stringify(plugins.map((p) => p.name))}`);
 
 			if (
-				config.client.network?.webrtcDisallowPrivateAddresses === undefined ||
-				config.client.network.webrtcDisallowPrivateAddresses
+				config.streamrClient.network?.webrtcDisallowPrivateAddresses ===
+					undefined ||
+				config.streamrClient.network.webrtcDisallowPrivateAddresses
 			) {
 				logger.warn(
 					'WebRTC private address probing is disabled. ' +

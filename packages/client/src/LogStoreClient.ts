@@ -4,17 +4,16 @@ import type {
 	Stream,
 	StreamDefinition,
 } from '@logsn/streamr-client';
-import { StreamrClient } from '@logsn/streamr-client';
+import { StreamrClient as StreamrClientIntermediary } from '@logsn/streamr-client';
 import { ContractTransaction } from 'ethers';
-import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';
+import StreamrClient, { StreamrClientConfig } from 'streamr-client';
 import { container as rootContainer } from 'tsyringe';
 
 import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
-	redactConfig,
 	StrictLogStoreClientConfig,
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
@@ -30,6 +29,7 @@ import {
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
+import { StreamrClientConfigInjectionToken } from './streamr/Config';
 import { AmountTypes } from './types';
 import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
 import {
@@ -41,38 +41,34 @@ import {
 	systemStreamFromClient,
 } from './utils/systemStreamUtils';
 
-export class LogStoreClient extends StreamrClient {
+export class LogStoreClient extends StreamrClientIntermediary {
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 	private readonly logStoreQueryManager: QueryManager;
 	private readonly logstoreTokenManager: TokenManager;
-	private readonly strictConfig: StrictLogStoreClientConfig;
+	private readonly strictLogStoreClientConfig: StrictLogStoreClientConfig;
 	private readonly systemMessages$: SystemMessageObservable;
 
 	constructor(
-		config: LogStoreClientConfig = {},
+		streamrClient: StreamrClient,
+		logStoreClientConfig: LogStoreClientConfig = {},
+		streamrClientConfig: StreamrClientConfig = {},
 		/** @internal */
 		parentContainer = rootContainer
 	) {
 		const container = parentContainer.createChildContainer();
 
-		// Prepare a copy of `config` to call the super() method
-		const streamrClientConfig = cloneDeep(config);
-		delete streamrClientConfig.contracts?.logStoreNodeManagerChainAddress;
-		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
-		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
-		delete streamrClientConfig.contracts?.logStoreTokenManagerChainAddress;
-		delete streamrClientConfig.contracts?.logStoreQueryManagerChainAddress;
+		container.register(StreamrClientConfigInjectionToken, {
+			// @ts-expect-error config is marked as private in StreamrClient
+			useValue: streamrClient.config,
+		});
 
 		super(streamrClientConfig, container);
 		// TODO: Using parentContainer breaks authentication in the Broker's tests
 		// super(streamrClientConfig, parentContainer);
 
-		const strictConfig = createStrictConfig(config);
-		redactConfig(strictConfig);
-
-		this.strictConfig = strictConfig;
+		this.strictLogStoreClientConfig = createStrictConfig(logStoreClientConfig);
 
 		this.systemMessages$ = systemStreamFromClient(this).pipe(
 			map((stream) => new BroadbandSubscriber(this, stream)),
@@ -89,7 +85,7 @@ export class LogStoreClient extends StreamrClient {
 		});
 
 		container.register(LogStoreClientConfigInjectionToken, {
-			useValue: strictConfig,
+			useValue: this.strictLogStoreClientConfig,
 		});
 
 		container.register(LogStoreClientSystemMessagesInjectionToken, {
@@ -269,7 +265,7 @@ export class LogStoreClient extends StreamrClient {
 	// --------------------------------------------------------------------------------------------
 
 	getConfig(): LogStoreClientConfig {
-		return this.strictConfig;
+		return this.strictLogStoreClientConfig;
 	}
 
 	/**

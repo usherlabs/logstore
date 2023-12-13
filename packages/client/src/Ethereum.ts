@@ -7,9 +7,9 @@ import type { Provider } from '@ethersproject/providers';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 import type { ConnectionInfo } from '@ethersproject/web';
-import type { ChainConnectionInfo } from '@logsn/streamr-client';
+import { ChainConnectionInfo } from 'streamr-client';
 
-import { StrictLogStoreClientConfig } from './Config';
+import { StrictStreamrClientConfig } from './streamr/Config';
 
 export const generateEthereumAccount = (): {
 	address: string;
@@ -22,14 +22,8 @@ export const generateEthereumAccount = (): {
 	};
 };
 
-export const getMainnetProviders = (
-	config: Pick<StrictLogStoreClientConfig, 'contracts'>
-): Provider[] => {
-	return getRpcProviders(config.contracts.mainChainRPCs);
-};
-
 export const getStreamRegistryChainProviders = (
-	config: Pick<StrictLogStoreClientConfig, 'contracts'>
+	config: Pick<StrictStreamrClientConfig, 'contracts'>
 ): Provider[] => {
 	return getRpcProviders(config.contracts.streamRegistryChainRPCs);
 };
@@ -41,7 +35,7 @@ const getRpcProviders = (connectionInfo: ChainConnectionInfo): Provider[] => {
 };
 
 export const getStreamRegistryOverrides = (
-	config: Pick<StrictLogStoreClientConfig, 'contracts'>
+	config: Pick<StrictStreamrClientConfig, 'contracts'>
 ): Overrides => {
 	const primaryProvider = getStreamRegistryChainProviders(config)[0];
 	return getOverrides(
@@ -58,7 +52,7 @@ export const getStreamRegistryOverrides = (
 const getOverrides = (
 	chainName: string,
 	provider: Provider,
-	config: Pick<StrictLogStoreClientConfig, 'contracts'>
+	config: Pick<StrictStreamrClientConfig, 'contracts'>
 ): Overrides => {
 	const chainConfig = config.contracts.ethereumNetworks[chainName];
 	if (chainConfig === undefined) {

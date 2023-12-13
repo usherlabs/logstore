@@ -22,13 +22,18 @@ import {
 	StrictLogStoreClientConfig,
 } from '../Config';
 import { getStreamRegistryChainProviders } from '../Ethereum';
+import {
+	StreamrClientConfigInjectionToken,
+	StrictStreamrClientConfig,
+} from '../streamr/Config';
 import { AmountTypes } from '../types';
 
 @scoped(Lifecycle.ContainerScoped)
 export class TokenManager {
 	private contractFactory: ContractFactory;
 	private authentication: Authentication;
-	private clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>;
 	private logStoreTokenManagerContract?: ObservableContract<LogStoreTokenManagerContract>;
 	private readonly logstoreTokenManagerContractsReadonly: LogStoreTokenManagerContract[];
 	private readonly logger: Logger;
@@ -41,18 +46,21 @@ export class TokenManager {
 		@inject(AuthenticationInjectionToken)
 		authentication: Authentication,
 		@inject(LogStoreClientConfigInjectionToken)
-		clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>
+		logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>,
+		@inject(StreamrClientConfigInjectionToken)
+		streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>
 	) {
 		this.contractFactory = contractFactory;
-		this.clientConfig = clientConfig;
+		this.logStoreClientConfig = logStoreClientConfig;
+		this.streamrClientConfig = streamrClientConfig;
 		this.logger = loggerFactory.createLogger(module);
 		this.authentication = authentication;
 		this.logstoreTokenManagerContractsReadonly =
-			getStreamRegistryChainProviders(clientConfig).map(
+			getStreamRegistryChainProviders(this.streamrClientConfig).map(
 				(provider: Provider) => {
 					this.logger.debug('provider: ' + provider);
 					const tokenManagerAddress = toEthereumAddress(
-						this.clientConfig.contracts.logStoreTokenManagerChainAddress
+						this.logStoreClientConfig.contracts.logStoreTokenManagerChainAddress
 					);
 					this.logger.debug('tokenManagerAddress: ' + tokenManagerAddress);
 					return this.contractFactory.createReadContract(
@@ -72,7 +80,7 @@ export class TokenManager {
 			this.logStoreTokenManagerContract =
 				this.contractFactory.createWriteContract<LogStoreTokenManagerContract>(
 					toEthereumAddress(
-						this.clientConfig.contracts.logStoreTokenManagerChainAddress
+						this.logStoreClientConfig.contracts.logStoreTokenManagerChainAddress
 					),
 					LogStoreTokenManagerAbi,
 					chainSigner,

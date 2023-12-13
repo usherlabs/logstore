@@ -34,6 +34,10 @@ import {
 	LogStoreClientEvents,
 } from '../events';
 import { LogStoreClient } from '../LogStoreClient';
+import {
+	StreamrClientConfigInjectionToken,
+	StrictStreamrClientConfig,
+} from '../streamr/Config';
 import { SynchronizedGraphQLClient } from '../utils/SynchronizedGraphQLClient';
 
 export interface LogStoreAssignmentEvent {
@@ -54,7 +58,8 @@ export class LogStoreRegistry {
 	private graphQLClient: SynchronizedGraphQLClient;
 	private readonly eventEmitter: LogStoreClientEventEmitter;
 	private authentication: Authentication;
-	private clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>;
 	private logStoreManagerContract?: LogStoreManagerContract;
 	private readonly logStoreManagerContractsReadonly: LogStoreManagerContract[];
 	private readonly logger: Logger;
@@ -75,7 +80,9 @@ export class LogStoreRegistry {
 		@inject(LoggerFactory)
 		loggerFactory: LoggerFactory,
 		@inject(LogStoreClientConfigInjectionToken)
-		clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>
+		logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>,
+		@inject(StreamrClientConfigInjectionToken)
+		streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>
 	) {
 		this.contractFactory = contractFactory;
 		this.logStoreClient = logStoreClient;
@@ -83,14 +90,15 @@ export class LogStoreRegistry {
 		this.graphQLClient = graphQLClient;
 		this.eventEmitter = eventEmitter;
 		this.authentication = authentication;
-		this.clientConfig = clientConfig;
+		this.logStoreClientConfig = logStoreClientConfig;
+		this.streamrClientConfig = streamrClientConfig;
 		this.logger = loggerFactory.createLogger(module);
 		this.logStoreManagerContractsReadonly = getStreamRegistryChainProviders(
-			clientConfig
+			this.streamrClientConfig
 		).map((provider: Provider) => {
 			return this.contractFactory.createReadContract(
 				toEthereumAddress(
-					this.clientConfig.contracts.logStoreStoreManagerChainAddress
+					this.logStoreClientConfig.contracts.logStoreStoreManagerChainAddress
 				),
 				LogStoreManagerAbi,
 				provider,
@@ -159,7 +167,7 @@ export class LogStoreRegistry {
 			this.logStoreManagerContract =
 				this.contractFactory.createWriteContract<LogStoreManagerContract>(
 					toEthereumAddress(
-						this.clientConfig.contracts.logStoreStoreManagerChainAddress
+						this.logStoreClientConfig.contracts.logStoreStoreManagerChainAddress
 					),
 					LogStoreManagerAbi,
 					chainSigner,
@@ -186,7 +194,9 @@ export class LogStoreRegistry {
 		const chainSigner =
 			await this.authentication.getStreamRegistryChainSigner();
 		await prepareStakeForStoreManager(chainSigner, amount, false);
-		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
+		const ethersOverrides = getStreamRegistryOverrides(
+			this.streamrClientConfig
+		);
 		return this.logStoreManagerContract!.stake(streamId, amount, {
 			...ethersOverrides,
 			...overrides,

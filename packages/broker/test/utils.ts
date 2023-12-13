@@ -54,7 +54,7 @@ export const formLogStoreBrokerConfig = ({
 	};
 
 	return {
-		client: {
+		streamrClient: {
 			...CONFIG_TEST,
 			logLevel: 'trace',
 			auth: {

@@ -9,7 +9,6 @@ import {
 	StreamPartID,
 	StreamrClientError,
 	StreamRegistryCached,
-	StrictStreamrClientConfig,
 } from '@logsn/streamr-client';
 import { StreamMessage, StreamPartIDUtils } from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
@@ -20,6 +19,7 @@ import { LogStoreClientConfigInjectionToken } from './Config';
 import { HttpUtil } from './HttpUtil';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
+import { StrictStreamrClientConfig } from './streamr/Config';
 import {
 	validateWithNetworkResponses,
 	type VerificationOptions,

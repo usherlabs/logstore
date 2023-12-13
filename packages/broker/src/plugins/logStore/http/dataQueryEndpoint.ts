@@ -22,7 +22,6 @@ import { getForRangeQueryRequest } from './getDataForRequest/getForRangeQueryReq
 import { sendError, sendSuccess } from './httpHelpers';
 import { FromRequest, LastRequest, RangeRequest } from './requestTypes';
 
-
 // TODO: move this to protocol-js
 export const MIN_SEQUENCE_NUMBER_VALUE = 0;
 export const MAX_SEQUENCE_NUMBER_VALUE = 2147483647;
@@ -110,7 +109,7 @@ const getDataForRequest = async (
 };
 
 const createHandler = (
-	config: Pick<StrictConfig, 'client'>,
+	config: Pick<StrictConfig, 'streamrClient'>,
 	metrics: MetricsDefinition
 ): RequestHandler => {
 	return async (req: Request, res: Response) => {
@@ -126,7 +125,7 @@ const createHandler = (
 
 		const consumer = toEthereumAddress(req.consumer!);
 		const provider = new ethers.providers.JsonRpcProvider(
-			config.client!.contracts?.streamRegistryChainRPCs!.rpcs[0]
+			config.streamrClient!.contracts?.streamRegistryChainRPCs!.rpcs[0]
 		);
 		const queryManager = await getQueryManagerContract(provider);
 		const balance = await queryManager.balanceOf(consumer);
@@ -177,7 +176,7 @@ function injectLogstoreContextMiddleware(
 }
 
 export const createDataQueryEndpoint = (
-	config: Pick<StrictConfig, 'client'>,
+	config: Pick<StrictConfig, 'streamrClient'>,
 	metricsContext: MetricsContext
 ): HttpServerEndpoint => {
 	const ctx = logStoreContext.getStore();

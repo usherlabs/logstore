@@ -23,12 +23,17 @@ import {
 	getStreamRegistryChainProviders,
 	getStreamRegistryOverrides,
 } from '../Ethereum';
+import {
+	StreamrClientConfigInjectionToken,
+	StrictStreamrClientConfig,
+} from '../streamr/Config';
 
 @scoped(Lifecycle.ContainerScoped)
 export class QueryManager {
 	private contractFactory: ContractFactory;
 	private authentication: Authentication;
-	private clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>;
 	private readonly queryManagerContractsReadonly: QueryManagerContract[];
 	private queryManagerContract?: QueryManagerContract;
 	private readonly logger: Logger;
@@ -40,19 +45,22 @@ export class QueryManager {
 		loggerFactory: LoggerFactory,
 		@inject(AuthenticationInjectionToken)
 		authentication: Authentication,
+		@inject(StreamrClientConfigInjectionToken)
+		streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>,
 		@inject(LogStoreClientConfigInjectionToken)
-		clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>
+		logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>
 	) {
 		this.contractFactory = contractFactory;
-		this.clientConfig = clientConfig;
+		this.logStoreClientConfig = logStoreClientConfig;
+		this.streamrClientConfig = streamrClientConfig;
 		this.logger = loggerFactory.createLogger(module);
 		this.authentication = authentication;
 		this.queryManagerContractsReadonly = getStreamRegistryChainProviders(
-			clientConfig
+			this.streamrClientConfig
 		).map((provider: Provider) => {
 			return this.contractFactory.createReadContract(
 				toEthereumAddress(
-					this.clientConfig.contracts.logStoreQueryManagerChainAddress
+					this.logStoreClientConfig.contracts.logStoreQueryManagerChainAddress
 				),
 				QueryManagerAbi,
 				provider,
@@ -71,7 +79,7 @@ export class QueryManager {
 			this.queryManagerContract =
 				this.contractFactory.createWriteContract<QueryManagerContract>(
 					toEthereumAddress(
-						this.clientConfig.contracts.logStoreQueryManagerChainAddress
+						this.logStoreClientConfig.contracts.logStoreQueryManagerChainAddress
 					),
 					QueryManagerAbi,
 					chainSigner,
@@ -117,7 +125,9 @@ export class QueryManager {
 		);
 		this.logger.debug(`Stake amount prepared: ${stakeAmount}`);
 
-		const ethersOverrides = getStreamRegistryOverrides(this.clientConfig);
+		const ethersOverrides = getStreamRegistryOverrides(
+			this.streamrClientConfig
+		);
 		return waitForTx(
 			this.queryManagerContract!.stake(stakeAmount, {
 				...ethersOverrides,

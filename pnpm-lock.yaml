@@ -275,6 +275,9 @@ importers:
       sha3:
         specifier: ^2.1.4
         version: 2.1.4
+      streamr-client:
+        specifier: 8.1.0
+        version: 8.1.0(@ethersproject/hash@5.7.0)
       ts-toolbelt:
         specifier: ^9.6.0
         version: 9.6.0
@@ -692,6 +695,9 @@ importers:
       sqlite3:
         specifier: ^5.1.6
         version: 5.1.6
+      streamr-client:
+        specifier: 8.1.0
+        version: 8.1.0(@ethersproject/hash@5.7.0)
       strict-event-emitter-types:
         specifier: ^2.0.0
         version: 2.0.0
@@ -1061,6 +1067,9 @@ importers:
       commander:
         specifier: ^11.0.0
         version: 11.0.0
+      streamr-client:
+        specifier: 8.1.0
+        version: 8.1.0(@ethersproject/hash@5.7.0)
     devDependencies:
       '@types/node':
         specifier: ^20.3.1
@@ -2487,6 +2496,7 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       regenerator-runtime: 0.13.11
+    dev: false
 
   /@babel/runtime@7.23.4:
     resolution: {integrity: sha512-2Yv65nlWnWlSpe3fXEyX5i7fx5kIKo4Qbcj+hMO0odwaneFjfXw5fdum+4yL20O0QiaHpia0cYQ9xpNMqrBwHg==}
@@ -7516,7 +7526,7 @@ packages:
       '@walletconnect/safe-json': 1.0.2
       '@walletconnect/time': 1.0.2
       tslib: 1.14.1
-      uint8arrays: 3.0.0
+      uint8arrays: 3.1.1
 
   /@walletconnect/safe-json@1.0.2:
     resolution: {integrity: sha512-Ogb7I27kZ3LPC3ibn8ldyUr5544t3/STow9+lzz7Sfo808YD7SBWk7SAsdBFlYgP2zDRy2hS3sKRcuSRM0OTmA==}
@@ -13310,7 +13320,7 @@ packages:
     dependencies:
       interface-store: 2.0.2
       nanoid: 3.3.6
-      uint8arrays: 3.0.0
+      uint8arrays: 3.1.1
     dev: false
 
   /interface-store@2.0.2:
@@ -13441,7 +13451,7 @@ packages:
       nanoid: 3.3.6
       parse-duration: 1.1.0
       timeout-abort-controller: 2.0.0
-      uint8arrays: 3.0.0
+      uint8arrays: 3.1.1
     transitivePeerDependencies:
       - encoding
       - node-fetch
@@ -16073,7 +16083,7 @@ packages:
       err-code: 3.0.1
       is-ip: 3.1.0
       multiformats: 9.9.0
-      uint8arrays: 3.0.0
+      uint8arrays: 3.1.1
       varint: 6.0.0
     transitivePeerDependencies:
       - node-fetch
@@ -16088,7 +16098,7 @@ packages:
       err-code: 3.0.1
       is-ip: 3.1.0
       multiformats: 9.9.0
-      uint8arrays: 3.0.0
+      uint8arrays: 3.1.1
       varint: 6.0.0
     transitivePeerDependencies:
       - node-fetch
@@ -16469,7 +16479,7 @@ packages:
     resolution: {integrity: sha512-4GUt3kSEYmk4ITxzB/b9vaIDfUVWN/Ml1Fwl11IlnIG2iaJ9O6WXZ9SrYM9NLI8OCBieN2Y8SWC2oJV0RQ7qYg==}
     hasBin: true
     dependencies:
-      abbrev: 1.0.9
+      abbrev: 1.1.1
     dev: true
 
   /nopt@5.0.0:
@@ -19038,10 +19048,69 @@ packages:
       - utf-8-validate
     dev: true
 
+  /streamr-client@8.1.0(@ethersproject/hash@5.7.0):
+    resolution: {integrity: sha512-shHP8Icg1y6ob37HWB4kcoI9hRpuQgog3lC9g9i7vJN5dkOi5OQmNCND4Kgr90MRoBTZgVV0GeWkanaTbtl/IQ==}
+    dependencies:
+      '@babel/runtime': 7.23.4
+      '@babel/runtime-corejs3': 7.16.3
+      '@ethersproject/abi': 5.7.0
+      '@ethersproject/abstract-signer': 5.7.0
+      '@ethersproject/address': 5.7.0
+      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bytes': 5.7.0
+      '@ethersproject/constants': 5.7.0
+      '@ethersproject/contracts': 5.7.0
+      '@ethersproject/providers': 5.7.2(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@ethersproject/transactions': 5.7.0
+      '@ethersproject/wallet': 5.7.0
+      '@ethersproject/web': 5.7.1
+      '@lit-protocol/lit-node-client': 2.1.50(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)(bufferutil@4.0.7)(utf-8-validate@5.0.10)
+      '@streamr/network-node': 8.1.0
+      '@streamr/protocol': 8.1.0
+      '@streamr/utils': 8.1.0
+      ajv: 8.8.2
+      ajv-formats: 2.1.1(ajv@8.8.2)
+      core-js: 3.33.0
+      env-paths: 2.2.1
+      eventemitter3: 4.0.7
+      heap: 0.2.7
+      idb: 7.1.1
+      lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
+      lodash: 4.17.21
+      mem: 8.1.1
+      node-fetch: 2.7.0
+      p-limit: 3.1.0
+      p-memoize: 4.0.3
+      p-throttle: 4.0.0
+      quick-lru: 6.0.1
+      readable-stream: 3.6.2
+      reflect-metadata: 0.1.13
+      secp256k1: 4.0.3
+      sha3: 2.1.4
+      split2: 3.2.2
+      sqlite: 4.1.2
+      sqlite3: 5.1.6
+      strict-event-emitter-types: 2.0.0
+      ts-toolbelt: 9.6.0
+      tsyringe: 4.7.0
+      uuid: 8.3.2
+    optionalDependencies:
+      bufferutil: 4.0.7
+      utf-8-validate: 5.0.10
+    transitivePeerDependencies:
+      - '@ethersproject/hash'
+      - '@react-native-async-storage/async-storage'
+      - '@walletconnect/modal'
+      - bluebird
+      - encoding
+      - lokijs
+      - supports-color
+    dev: false
+
   /streamr-client@8.1.0-beta.0(@ethersproject/hash@5.7.0):
     resolution: {integrity: sha512-7I34Var2fSRdzGvoUpyWzwL4ZGQTjQ3OET51f+If+i9k8nrCJJr4d4Pi+q8Tx5oomVY+exPgHqs8pzAbL8C1Ug==}
     dependencies:
-      '@babel/runtime': 7.16.3
+      '@babel/runtime': 7.23.4
       '@babel/runtime-corejs3': 7.16.3
       '@ethersproject/abi': 5.7.0
       '@ethersproject/abstract-signer': 5.7.0
@@ -19068,7 +19137,7 @@ packages:
       lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
       lodash: 4.17.21
       mem: 8.1.1
-      node-fetch: 2.6.6
+      node-fetch: 2.7.0
       p-limit: 3.1.0
       p-memoize: 4.0.3
       p-throttle: 4.0.0

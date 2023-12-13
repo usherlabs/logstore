@@ -16,12 +16,16 @@ import {
 } from '../Config';
 import { getStreamRegistryChainProviders } from '../Ethereum';
 import { NodeMetadata } from '../NodeMetadata';
-
+import {
+	StreamrClientConfigInjectionToken,
+	StrictStreamrClientConfig,
+} from '../streamr/Config';
 
 @scoped(Lifecycle.ContainerScoped)
 export class NodeManager {
 	private contractFactory: ContractFactory;
-	private clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>;
 	private readonly logStoreManagerContractsReadonly: LogStoreNodeManagerContract[];
 	private readonly logger: Logger;
 
@@ -31,17 +35,20 @@ export class NodeManager {
 		@inject(LoggerFactory)
 		loggerFactory: LoggerFactory,
 		@inject(LogStoreClientConfigInjectionToken)
-		clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>
+		logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>,
+		@inject(StreamrClientConfigInjectionToken)
+		streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>
 	) {
 		this.contractFactory = contractFactory;
-		this.clientConfig = clientConfig;
+		this.logStoreClientConfig = logStoreClientConfig;
+		this.streamrClientConfig = streamrClientConfig;
 		this.logger = loggerFactory.createLogger(module);
 		this.logStoreManagerContractsReadonly = getStreamRegistryChainProviders(
-			clientConfig
+			this.streamrClientConfig
 		).map((provider: Provider) => {
 			return this.contractFactory.createReadContract(
 				toEthereumAddress(
-					this.clientConfig.contracts.logStoreNodeManagerChainAddress
+					this.logStoreClientConfig.contracts.logStoreNodeManagerChainAddress
 				),
 				LogStoreNodeManagerAbi,
 				provider,
