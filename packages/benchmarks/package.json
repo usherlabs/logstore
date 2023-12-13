@@ -26,7 +26,6 @@
 		"logsn-benchmarks": "./dist/bin/index.js"
 	},
 	"dependencies": {
-		"@logsn/broker": "workspace:^",
 		"@logsn/client": "workspace:^",
 		"@logsn/contracts": "workspace:^",
 		"@logsn/protocol": "workspace:^",
