@@ -72,3 +72,5 @@ export const redactConfig = (config: StrictLogStoreClientConfig): void => {
 export const LogStoreClientConfigInjectionToken = Symbol(
 	'LogStoreClientConfig'
 );
+
+export const StreamrClientConfigInjectionToken = Symbol('StreamrClientConfig');

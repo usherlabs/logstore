@@ -15,6 +15,7 @@ import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
 	redactConfig,
+	StreamrClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
@@ -64,6 +65,7 @@ export class LogStoreClient extends StreamrClient {
 		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
 		delete streamrClientConfig.contracts?.logStoreTokenManagerChainAddress;
 		delete streamrClientConfig.contracts?.logStoreQueryManagerChainAddress;
+		delete streamrClientConfig.nodeUrl;
 
 		super(streamrClientConfig, container);
 		// TODO: Using parentContainer breaks authentication in the Broker's tests
@@ -90,6 +92,10 @@ export class LogStoreClient extends StreamrClient {
 
 		container.register(LogStoreClientConfigInjectionToken, {
 			useValue: strictConfig,
+		});
+
+		container.register(StreamrClientConfigInjectionToken, {
+			useValue: streamrClientConfig,
 		});
 
 		container.register(LogStoreClientSystemMessagesInjectionToken, {

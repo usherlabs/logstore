@@ -16,7 +16,11 @@ import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
 import { defer, EMPTY, partition, shareReplay } from 'rxjs';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
-import { LogStoreClientConfigInjectionToken } from './Config';
+import {
+	LogStoreClientConfigInjectionToken,
+	StreamrClientConfigInjectionToken,
+	type StrictLogStoreClientConfig,
+} from './Config';
 import { HttpUtil } from './HttpUtil';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
@@ -145,7 +149,8 @@ export class Queries implements IResends {
 	private readonly httpUtil: HttpUtil;
 	private readonly groupKeyManager: GroupKeyManager;
 	private readonly destroySignal: DestroySignal;
-	private readonly config: StrictStreamrClientConfig;
+	private readonly config: StrictLogStoreClientConfig;
+	private readonly streamrConfig: StrictStreamrClientConfig;
 	private readonly loggerFactory: LoggerFactory;
 	private readonly logger: Logger;
 
@@ -161,7 +166,9 @@ export class Queries implements IResends {
 		@inject(DestroySignal)
 		destroySignal: DestroySignal,
 		@inject(LogStoreClientConfigInjectionToken)
-		config: StrictStreamrClientConfig,
+		config: StrictLogStoreClientConfig,
+		@inject(StreamrClientConfigInjectionToken)
+		streamrConfig: StrictStreamrClientConfig,
 		@inject(LoggerFactory)
 		loggerFactory: LoggerFactory,
 		@inject(LogStoreClientSystemMessagesInjectionToken)
@@ -173,6 +180,7 @@ export class Queries implements IResends {
 		this.groupKeyManager = groupKeyManager;
 		this.destroySignal = destroySignal;
 		this.config = config;
+		this.streamrConfig = streamrConfig;
 		this.loggerFactory = loggerFactory;
 		this.logger = loggerFactory.createLogger(module);
 	}
@@ -246,7 +254,8 @@ export class Queries implements IResends {
 			query
 		);
 
-		const nodeUrl = await this.nodeManager.getRandomNodeUrl();
+		const nodeUrl =
+			this.config.nodeUrl ?? (await this.nodeManager.getRandomNodeUrl());
 		const url = this.createUrl(nodeUrl, queryType, streamPartId, {
 			...query,
 			// we will get raw request to desserialize and decrypt
@@ -259,14 +268,12 @@ export class Queries implements IResends {
 			groupKeyManager: this.groupKeyManager,
 			streamRegistryCached: this.streamRegistryCached,
 			destroySignal: this.destroySignal,
-			config: this.config,
+			config: this.streamrConfig,
 			loggerFactory: this.loggerFactory,
 		});
 
 		const dataStream = defer(() => this.httpUtil.fetchHttpStream(url)).pipe(
-			shareReplay({
-				refCount: true,
-			})
+			shareReplay()
 		);
 
 		const isStreamMessage = (msg: any): msg is StreamMessage =>
@@ -285,7 +292,7 @@ export class Queries implements IResends {
 					count
 				);
 			})
-		);
+		).pipe(shareReplay());
 
 		const logStoreMessageStream = new LogStoreMessageStream(
 			messageStream,

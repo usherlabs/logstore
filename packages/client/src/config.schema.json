@@ -30,6 +30,9 @@
 				}
 			}
 		},
+		"nodeUrl": {
+			"type": "string"
+		},
 		"orderMessages": {
 			"type": "boolean",
 			"default": true
