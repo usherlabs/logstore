@@ -1,4 +1,3 @@
-import { HttpFetcher } from '@logsn/streamr-client';
 import { Logger } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
@@ -10,6 +9,7 @@ import {
 	LoggerFactory,
 	LoggerFactoryInjectionToken,
 } from '../streamr/LoggerFactory';
+import { HttpFetcher } from '../streamr/utils/HttpFetcher';
 
 export interface GraphQLQuery {
 	query: string;
