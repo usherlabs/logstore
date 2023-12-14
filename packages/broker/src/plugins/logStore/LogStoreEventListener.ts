@@ -1,5 +1,6 @@
-import { LogStoreAssignmentEvent, LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreAssignmentEvent, LogStoreClient } from '@logsn/client';
 import { Logger } from '@streamr/utils';
+import { Stream } from 'streamr-client';
 
 const logger = new Logger(module);
 

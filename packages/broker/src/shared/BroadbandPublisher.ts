@@ -1,4 +1,5 @@
-import { LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
+import { Stream } from 'streamr-client';
 
 export class BroadbandPublisher {
 	private readonly partitions: number;

@@ -1,7 +1,8 @@
-import { LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import { LogStoreNodeManager } from '@logsn/contracts';
 import { Schema } from 'ajv';
 import { Signer } from 'ethers';
+import { Stream } from 'streamr-client';
 
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';

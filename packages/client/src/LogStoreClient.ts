@@ -1,14 +1,13 @@
 import type { Overrides } from '@ethersproject/contracts';
-import type {
-	MessageListener,
-	Stream,
-	StreamDefinition,
-} from '@logsn/streamr-client';
-import { StreamrClient as StreamrClientIntermediary } from '@logsn/streamr-client';
 import { ContractTransaction } from 'ethers';
 import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';
-import StreamrClient, { StreamrClientConfig } from 'streamr-client';
+import StreamrClient, {
+	MessageListener,
+	Stream,
+	StreamDefinition,
+	StreamrClientConfig,
+} from 'streamr-client';
 import { container as rootContainer } from 'tsyringe';
 
 import {
@@ -36,7 +35,10 @@ import { DestroySignalInjectionToken } from './streamr/DestroySignal';
 import { GroupKeyManagerInjectionToken } from './streamr/encryption/GroupKeyManager';
 import { LoggerFactoryInjectionToken } from './streamr/LoggerFactory';
 import { StreamRegistryCachedInjectionToken } from './streamr/registry/StreamRegistryCached';
-import { StreamIDBuilderInjectionToken } from './streamr/StreamIDBuilder';
+import {
+	StreamIDBuilder,
+	StreamIDBuilderInjectionToken,
+} from './streamr/StreamIDBuilder';
 import { AmountTypes } from './types';
 import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
 import {
@@ -48,7 +50,8 @@ import {
 	systemStreamFromClient,
 } from './utils/systemStreamUtils';
 
-export class LogStoreClient extends StreamrClientIntermediary {
+// @ts-expect-error Types have separate declarations of a private property 'streamIdBuilder'
+export class LogStoreClient extends StreamrClient {
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
@@ -56,6 +59,7 @@ export class LogStoreClient extends StreamrClientIntermediary {
 	private readonly logstoreTokenManager: TokenManager;
 	private readonly strictLogStoreClientConfig: StrictLogStoreClientConfig;
 	private readonly systemMessages$: SystemMessageObservable;
+	private override readonly streamIdBuilder: StreamIDBuilder;
 
 	constructor(
 		streamrClient: StreamrClient,
@@ -102,6 +106,8 @@ export class LogStoreClient extends StreamrClientIntermediary {
 			useValue: streamrClient.streamRegistry.contractFactory,
 		});
 
+		// @ts-expect-error streamIdBuilder is marked as private in StreamrClient
+		this.streamIdBuilder = streamrClient.streamIdBuilder;
 		container.register(StreamIDBuilderInjectionToken, {
 			// @ts-expect-error streamIdBuilder is marked as private in StreamrClient
 			useValue: streamrClient.streamIdBuilder,

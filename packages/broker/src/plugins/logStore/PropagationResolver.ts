@@ -1,4 +1,4 @@
-import { EthereumAddress, MessageMetadata, verify } from '@logsn/client';
+import { verify } from '@logsn/client';
 import {
 	QueryPropagate,
 	QueryRequest,
@@ -7,7 +7,8 @@ import {
 	SystemMessageType,
 } from '@logsn/protocol';
 import { createSignaturePayload, StreamMessage } from '@streamr/protocol';
-import { Logger, toEthereumAddress } from '@streamr/utils';
+import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
+import { MessageMetadata } from 'streamr-client';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { Heartbeat } from './Heartbeat';

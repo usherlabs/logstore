@@ -1,7 +1,8 @@
 import { BrokerProgram, BrokerProgramModule } from '@logsn/broker-program';
-import { LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import { StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
+import { Stream } from 'streamr-client';
 
 import { LogStorePluginConfig } from './LogStorePlugin';
 

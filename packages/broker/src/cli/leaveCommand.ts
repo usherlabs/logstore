@@ -1,11 +1,11 @@
-import {
-	PrivateKeyAuthConfig,
-	validateConfig as validateLogStoreClientConfig,
-} from '@logsn/client';
+import { validateConfig as validateLogStoreClientConfig } from '@logsn/client';
 import { getNodeManagerContract, withRetry } from '@logsn/shared';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
-import { validateConfig as validateStreamrClientConfig } from 'streamr-client';
+import {
+	PrivateKeyAuthConfig,
+	validateConfig as validateStreamrClientConfig,
+} from 'streamr-client';
 
 import { overrideConfigToEnvVarsIfGiven } from '../config/config';
 import BROKER_CONFIG_SCHEMA from '../config/config.schema.json';

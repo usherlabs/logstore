@@ -1,7 +1,5 @@
 import {
 	LogStoreClient,
-	NetworkNodeStub,
-	PrivateKeyAuthConfig,
 	validateConfig as validateLogStoreClientConfig,
 } from '@logsn/client';
 import { getNodeManagerContract } from '@logsn/shared';
@@ -11,6 +9,8 @@ import { ethers } from 'ethers';
 import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
 import {
+	NetworkNodeStub,
+	PrivateKeyAuthConfig,
 	StreamrClient,
 	validateConfig as validateStreamrClientConfig,
 } from 'streamr-client';

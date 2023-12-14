@@ -1,10 +1,10 @@
-import { MessageMetadata } from '@logsn/client';
 import {
 	QueryResponse,
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
 import { EthereumAddress, Logger } from '@streamr/utils';
+import { MessageMetadata } from 'streamr-client';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';

@@ -1,4 +1,5 @@
-import { LogStoreClient, Stream, StreamPermission } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
+import { Stream, StreamPermission, StreamrClient } from 'streamr-client';
 
 const PULSE_STREAM_ID = '/pulse';
 const PULSE_INTERVAL_MS = 1 * 1000;
@@ -15,16 +16,19 @@ export class Pulse {
 		return this._stream;
 	}
 
-	constructor(private readonly client: LogStoreClient) {
+	constructor(
+		private readonly logStoreClient: LogStoreClient,
+		private readonly streamrClient: StreamrClient
+	) {
 		//
 	}
 
 	async init() {
-		this._stream = await this.client.getStream(PULSE_STREAM_ID);
+		this._stream = await this.streamrClient.getStream(PULSE_STREAM_ID);
 	}
 
 	async createStream(stakeAmount: bigint) {
-		this._stream = await this.client.getOrCreateStream({
+		this._stream = await this.streamrClient.getOrCreateStream({
 			id: PULSE_STREAM_ID,
 		});
 
@@ -33,7 +37,7 @@ export class Pulse {
 			permissions: [StreamPermission.SUBSCRIBE],
 		});
 
-		await this.client.stakeOrCreateStore(this._stream.id, stakeAmount);
+		await this.logStoreClient.stakeOrCreateStore(this._stream.id, stakeAmount);
 	}
 
 	start() {
@@ -56,7 +60,7 @@ export class Pulse {
 			timestamp: Date.now(),
 		};
 
-		await this.client.publish(this.stream, content);
+		await this.logStoreClient.publish(this.stream, content);
 		console.debug('Published Pulse message', content);
 	}
 }

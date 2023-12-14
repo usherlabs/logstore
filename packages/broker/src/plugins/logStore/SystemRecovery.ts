@@ -1,9 +1,4 @@
-import {
-	LogStoreClient,
-	MessageMetadata,
-	Stream,
-	Subscription,
-} from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import {
 	RecoveryComplete,
 	RecoveryRequest,
@@ -12,6 +7,7 @@ import {
 	SystemMessageType,
 } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
+import { MessageMetadata, Stream, Subscription } from 'streamr-client';
 
 import { SystemCache } from './SystemCache';
 

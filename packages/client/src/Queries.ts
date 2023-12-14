@@ -2,9 +2,12 @@ import {
 	createSubscribePipeline,
 	IResends,
 	MessageStream,
-	StreamPartID,
 } from '@logsn/streamr-client';
-import { StreamMessage, StreamPartIDUtils } from '@streamr/protocol';
+import {
+	StreamMessage,
+	StreamPartID,
+	StreamPartIDUtils,
+} from '@streamr/protocol';
 import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
 import { defer, EMPTY, partition, shareReplay } from 'rxjs';
 import { inject, Lifecycle, scoped } from 'tsyringe';

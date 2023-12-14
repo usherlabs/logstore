@@ -1,10 +1,6 @@
-import {
-	LogStoreClient,
-	MessageMetadata,
-	Stream,
-	Subscription,
-} from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import { SystemMessageType } from '@logsn/protocol';
+import { MessageMetadata, Stream, Subscription } from 'streamr-client';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import {

@@ -1,5 +1,6 @@
-import { LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import { Logger, scheduleAtInterval } from '@streamr/utils';
+import { Stream } from 'streamr-client';
 
 const logger = new Logger(module);
 

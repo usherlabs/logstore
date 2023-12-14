@@ -1,9 +1,5 @@
-import {
-	LogStoreClient,
-	MessageListener,
-	Stream,
-	Subscription,
-} from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
+import { MessageListener, Stream, Subscription } from 'streamr-client';
 
 export class BroadbandSubscriber {
 	private readonly partitions: number;

@@ -3,11 +3,7 @@
  * Subscriptions are MessageStreams.
  * Not all MessageStreams are Subscriptions.
  */
-import {
-	type Message,
-	MessageListener,
-	MessageStream,
-} from '@logsn/streamr-client';
+import { MessageStream } from '@logsn/streamr-client';
 import {
 	EncryptedGroupKey,
 	MessageID,
@@ -15,6 +11,7 @@ import {
 	StreamMessage,
 } from '@streamr/protocol';
 import { defer, type Observable, shareReplay, switchMap } from 'rxjs';
+import { Message, MessageListener } from 'streamr-client';
 
 import type { RequestMetadata } from './HttpUtil';
 

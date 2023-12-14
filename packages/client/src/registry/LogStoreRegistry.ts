@@ -4,11 +4,11 @@ import { Provider } from '@ethersproject/providers';
 import type { LogStoreManager as LogStoreManagerContract } from '@logsn/contracts';
 import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { prepareStakeForStoreManager } from '@logsn/shared';
-import { Stream } from '@logsn/streamr-client';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import { ContractTransaction } from 'ethers';
 import { min } from 'lodash';
+import { Stream } from 'streamr-client';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
@@ -287,7 +287,7 @@ export class LogStoreRegistry {
 					}
 				})
 			)
-		).filter((stream) => stream != null) as Stream[];
+		).filter((stream) => stream != null) as unknown as Stream[];
 
 		this.logger.debug(
 			'streams: %s',

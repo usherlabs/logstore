@@ -1,4 +1,4 @@
-import { MessageListener, Stream, Subscription } from '@logsn/streamr-client';
+import { MessageListener, Stream, Subscription } from 'streamr-client';
 
 import { LogStoreClient } from '../LogStoreClient';
 

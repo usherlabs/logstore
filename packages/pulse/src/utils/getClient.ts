@@ -8,7 +8,7 @@ import StreamrClient, {
 	StreamrClientConfig,
 } from 'streamr-client';
 
-export const getClient = (privateKey: string, dev: boolean = false) => {
+export const getClients = (privateKey: string, dev: boolean = false) => {
 	const streamrConfig: StreamrClientConfig = {
 		...(dev ? STREAMR_CONFIG_TEST : {}),
 		auth: {
@@ -21,5 +21,10 @@ export const getClient = (privateKey: string, dev: boolean = false) => {
 	};
 
 	const streamrClient = new StreamrClient(streamrConfig);
-	return new LogStoreClient(streamrClient, logStoreConfig, streamrConfig);
+	const logStoreClient = new LogStoreClient(
+		streamrClient,
+		logStoreConfig,
+		streamrConfig
+	);
+	return { logStoreClient, streamrClient };
 };

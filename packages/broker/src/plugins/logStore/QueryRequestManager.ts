@@ -1,4 +1,3 @@
-import { MessageMetadata, StreamMessage } from '@logsn/client';
 import {
 	QueryFromOptions,
 	QueryLastOptions,
@@ -9,10 +8,11 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
-import { createSignaturePayload } from '@streamr/protocol';
+import { createSignaturePayload, StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
+import { MessageMetadata } from 'streamr-client';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
