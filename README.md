@@ -23,13 +23,13 @@
 <h4>Powered by</h4>
 <div>
 <a href="https://docs.streamr.network/?ref=logstore" target="_blank" rel="noopener">
-    <img align="left" width="48" height="48" src="https://logstore.usher.so/wp-content/uploads/2023/06/StreamrNetworkLogo.png" alt="Streamr Network" />
+    <img align="left" width="48" height="48" src="https://www.usher.so/wp-content/uploads/2022/07/StreamrNetworkLogo.png" alt="Streamr Network" />
 </a>
 <a href="https://www.kyve.network/?ref=logstore" target="_blank" rel="noopener">
-    <img align="left" width="48" height="48" src="https://logstore.usher.so/wp-content/uploads/2023/06/kyve-logo-300x300.png" alt="KYVE" />
+    <img align="left" width="48" height="48" src="https://www.usher.so/wp-content/uploads/2023/10/kyve-logo-300x300.png" alt="KYVE" />
 </a>
 <a href="https://www.arweave.org/?ref=logstore" target="_blank" rel="noopener">
-    <img align="left" width="48" height="48" src="https://logstore.usher.so/wp-content/uploads/2023/06/arweave-icon-300x300.png" alt="Arweave" />
+    <img align="left" width="48" height="48" src="https://www.usher.so/wp-content/uploads/2022/07/arweave-icon-300x300.png" alt="Arweave" />
 </a>
 <br clear="left" />
 </div>
