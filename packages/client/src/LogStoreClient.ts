@@ -5,6 +5,7 @@ import type {
 	StreamDefinition,
 } from '@logsn/streamr-client';
 import { StreamrClient } from '@logsn/streamr-client';
+import type { Schema } from 'ajv';
 import { ContractTransaction } from 'ethers';
 import { cloneDeep } from 'lodash';
 import 'reflect-metadata';
@@ -232,6 +233,12 @@ export class LogStoreClient extends StreamrClient {
 	async getStoreBalance(): Promise<bigint> {
 		return this.logStoreRegistry.getStoreBalance();
 	}
+
+	async setValidationSchema({ hash, protocol, streamId }): Promise<void> {}
+
+	async removeValidationSchema({ streamId }): Promise<void> {}
+
+	async fetchValidationSchema({ streamId }): Promise<Schema | null> {}
 
 	// --------------------------------------------------------------------------------------------
 	// Token utilities
