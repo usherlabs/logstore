@@ -6,10 +6,31 @@ import {
 	LogStoreClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
 } from '../Config';
+import { createStreamrGraphQLClient, type GQtyClient } from './gqty';
 
 export interface GraphQLQuery {
 	query: string;
 	variables?: Record<string, any>;
+}
+
+export const GraphQLClientInjectionToken = Symbol(
+	'GraphQLClientInjectionToken'
+);
+
+@scoped(Lifecycle.ContainerScoped)
+export class GQtyClients {
+	public streamrClient: GQtyClient;
+
+	constructor(
+		@inject(HttpFetcher) httpFetcher: HttpFetcher,
+		@inject(LogStoreClientConfigInjectionToken)
+		config: Pick<StrictLogStoreClientConfig, 'contracts'>
+	) {
+		this.streamrClient = createStreamrGraphQLClient(
+			config.contracts.theGraphUrl,
+			httpFetcher
+		);
+	}
 }
 
 @scoped(Lifecycle.ContainerScoped)
