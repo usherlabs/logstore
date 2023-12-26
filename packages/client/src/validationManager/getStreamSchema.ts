@@ -7,14 +7,14 @@ import { U } from 'ts-toolbelt';
 
 import type { Protocols, SchemaParams } from './types';
 
-const defaultAjv = new Ajv({
+export const defaultAjv = new Ajv({
 	useDefaults: true,
 	discriminator: true,
 });
 addFormats(defaultAjv);
 defaultAjv.addFormat('ethereum-address', /^0x[a-zA-Z0-9]{40}$/);
 
-const getSchemaOptionsFromMetadata = (metadata: StreamMetadata) => {
+const getSchemaConfigFromMetadata = (metadata: StreamMetadata) => {
 	// @ts-expect-error metadata isn't stated by default by streamr
 	return metadata.logstore?.schema as SchemaParams | undefined;
 };
@@ -52,9 +52,8 @@ const fetchProtocolSchema = {
 	},
 } satisfies SchemaFetchRecord;
 
-// todo: move to logstore client
 export const getSchemaFromMetadata = pipe(
-	getSchemaOptionsFromMetadata,
+	getSchemaConfigFromMetadata,
 	Option.fromNullable,
 	Option.map(({ protocol, schemaOrHash }) =>
 		fetchProtocolSchema[protocol](schemaOrHash as string & Schema)

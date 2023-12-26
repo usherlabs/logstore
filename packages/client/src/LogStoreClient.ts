@@ -31,8 +31,10 @@ import {
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
+import { StreamObservableFactory } from './StreamObservableFactory';
 import { AmountTypes } from './types';
 import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
+import { GQtyClients } from './utils/GraphQLClient';
 import {
 	systemMessageFromSubscriber,
 	SystemMessageObservable,
@@ -41,6 +43,7 @@ import {
 	LogStoreClientSystemMessagesInjectionToken,
 	systemStreamFromClient,
 } from './utils/systemStreamUtils';
+import { ValidationManager } from './validationManager/ValidationManager';
 
 export class LogStoreClient extends StreamrClient {
 	private readonly logStoreRegistry: LogStoreRegistry;
@@ -48,8 +51,10 @@ export class LogStoreClient extends StreamrClient {
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 	private readonly logStoreQueryManager: QueryManager;
 	private readonly logstoreTokenManager: TokenManager;
+	private readonly validationManager: ValidationManager;
 	private readonly strictConfig: StrictLogStoreClientConfig;
 	private readonly systemMessages$: SystemMessageObservable;
+	private readonly streamObservableFactory: StreamObservableFactory;
 
 	constructor(
 		config: LogStoreClientConfig = {},
@@ -97,6 +102,8 @@ export class LogStoreClient extends StreamrClient {
 			useValue: this.systemMessages$,
 		});
 
+		container.resolve<GQtyClients>(GQtyClients);
+
 		this.logStoreClientEventEmitter =
 			container.resolve<LogStoreClientEventEmitter>(LogStoreClientEventEmitter);
 
@@ -108,6 +115,13 @@ export class LogStoreClient extends StreamrClient {
 		this.logStoreQueryManager = container.resolve<QueryManager>(QueryManager);
 
 		this.logstoreTokenManager = container.resolve<TokenManager>(TokenManager);
+
+		this.validationManager =
+			container.resolve<ValidationManager>(ValidationManager);
+
+		this.streamObservableFactory = container.resolve<StreamObservableFactory>(
+			StreamObservableFactory
+		);
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -234,11 +248,33 @@ export class LogStoreClient extends StreamrClient {
 		return this.logStoreRegistry.getStoreBalance();
 	}
 
-	async setValidationSchema({ hash, protocol, streamId }): Promise<void> {}
+	async setValidationSchema(
+		...params: Parameters<ValidationManager['setValidationSchema']>
+	): Promise<void> {
+		return this.validationManager.setValidationSchema(...params);
+	}
 
-	async removeValidationSchema({ streamId }): Promise<void> {}
+	async removeValidationSchema(
+		...params: Parameters<ValidationManager['removeValidationSchema']>
+	): Promise<void> {
+		return this.validationManager.removeValidationSchema(...params);
+	}
 
-	async fetchValidationSchema({ streamId }): Promise<Schema | null> {}
+	async getValidationSchema(
+		...params: Parameters<ValidationManager['getValidationSchema']>
+	): Promise<Schema | null> {
+		return this.validationManager.getValidationSchema(...params);
+	}
+
+	public getValidationSchemaFromStreamMetadata(
+		...params: Parameters<
+			ValidationManager['getValidationSchemaFromStreamMetadata']
+		>
+	): Promise<Schema | null> {
+		return this.validationManager.getValidationSchemaFromStreamMetadata(
+			...params
+		);
+	}
 
 	// --------------------------------------------------------------------------------------------
 	// Token utilities
@@ -329,5 +365,11 @@ export class LogStoreClient extends StreamrClient {
 		listener: LogStoreClientEvents[T]
 	): void {
 		this.logStoreClientEventEmitter.off(eventName, listener as any);
+	}
+
+	public createStreamObservable(
+		...params: Parameters<StreamObservableFactory['createStreamObservable']>
+	) {
+		return this.streamObservableFactory.createStreamObservable(...params);
 	}
 }

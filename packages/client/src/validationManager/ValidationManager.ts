@@ -1,12 +1,18 @@
-import type { StreamID, StreamrClient } from '@logsn/streamr-client';
+import { type StreamID, type StreamMetadata } from '@logsn/streamr-client';
 import type { Schema } from 'ajv';
 import { Option } from 'effect';
+import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
-import { getSchemaFromMetadata } from './getStreamSchema';
+import { LogStoreClient } from '../LogStoreClient';
+import { defaultAjv, getSchemaFromMetadata } from './getStreamSchema';
 import type { SchemaParams } from './types';
 
+@scoped(Lifecycle.ContainerScoped)
 export class ValidationManager {
-	constructor(private readonly streamrClient: StreamrClient) {}
+	constructor(
+		@inject(delay(() => LogStoreClient))
+		private streamrClient: LogStoreClient
+	) {}
 
 	public async setValidationSchema({
 		schemaOrHash,
@@ -15,9 +21,13 @@ export class ValidationManager {
 	}: {
 		streamId: string;
 	} & SchemaParams): Promise<void> {
-		const actualMetadata = await this.streamrClient
-			.getStream(streamId)
-			.then((s) => s.getMetadata());
+		const stream = await this.streamrClient.getStream(streamId);
+		const actualMetadata = stream.getMetadata();
+
+		if (typeof schemaOrHash === 'object') {
+			await defaultAjv.validateSchema(schemaOrHash, true);
+		}
+
 		await this.streamrClient.updateStream({
 			...actualMetadata,
 			// @ts-expect-error Metadata on streamr doesn't specify additional properties
@@ -29,6 +39,7 @@ export class ValidationManager {
 					protocol,
 				},
 			},
+			id: streamId,
 		});
 	}
 
@@ -52,6 +63,18 @@ export class ValidationManager {
 		}
 	}
 
+	public async getValidationSchemaFromStreamMetadata(metadata: StreamMetadata) {
+		const maybeSchemaPromise = getSchemaFromMetadata(metadata).pipe(
+			Option.getOrNull
+		);
+
+		if (!maybeSchemaPromise) {
+			return null;
+		}
+
+		return maybeSchemaPromise;
+	}
+
 	public async getValidationSchema({
 		streamId,
 	}: {
@@ -61,22 +84,6 @@ export class ValidationManager {
 			.getStream(streamId)
 			.then((s) => s.getMetadata());
 
-		const schemaOptions: SchemaParams | undefined =
-			// @ts-expect-error Metadata on streamr doesn't specify additional properties
-			actualMetadata.logstore?.schema;
-		if (!schemaOptions) {
-			return null;
-		}
-
-		const maybeSchemaPromise = getSchemaFromMetadata(
-			// @ts-expect-error Metadata on streamr doesn't specify additional properties
-			actualMetadata.logstore.schema
-		).pipe(Option.getOrNull);
-
-		if (!maybeSchemaPromise) {
-			return null;
-		}
-
-		return maybeSchemaPromise;
+		return this.getValidationSchemaFromStreamMetadata(actualMetadata);
 	}
 }
