@@ -12,8 +12,14 @@
 		]
 	],
 	"linked": [],
-	"access": "restricted",
+	"access": "public",
 	"baseBranch": "master",
 	"updateInternalDependencies": "patch",
-	"ignore": []
+	"ignore": [
+		"@logsn/benchmarks",
+		"@logsn/broker*",
+		"@logsn/pulse",
+		"@logsn/subgraph",
+		"@logsn/validator"
+	]
 }
