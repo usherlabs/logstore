@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
+	"private": true,
+	"scripts": {
     "build": "del ./dist && esbuild ./index.ts --bundle --platform=node --outfile=../broker/src/plugins/logStore/programs/solana-validate.js"
   },
   "keywords": [],

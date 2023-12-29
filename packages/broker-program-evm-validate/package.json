@@ -1,7 +1,8 @@
 {
   "name": "@logsn/broker-program-evm-validate",
   "version": "1.0.0",
-  "description": "",
+	"private": true,
+	"description": "",
   "scripts": {
     "build": "del ./dist && esbuild ./index.ts --bundle --platform=node --outfile=../broker/src/plugins/logStore/programs/evm-validate.js"
   },
