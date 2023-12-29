@@ -167,6 +167,11 @@ pnpm run build
 
 More scripts are present on package directories, specific to each use case.
 
+### Publishing to NPM
+
+
+For instructions on how to publish packages to NPM, please refer to [publishing documentation](./.changeset/README.md).
+
 ## **💡 What Can You Build?**
 
 In an ever-evolving technological landscape, the possibilities with Log Store are limitless. We’re anxious to know what you are up to!
