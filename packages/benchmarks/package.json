@@ -26,11 +26,11 @@
 		"logsn-benchmarks": "./dist/bin/index.js"
 	},
 	"dependencies": {
-		"@logsn/broker": "workspace:^",
-		"@logsn/client": "workspace:^",
-		"@logsn/contracts": "workspace:^",
-		"@logsn/protocol": "workspace:^",
-		"@logsn/shared": "workspace:^",
+		"@logsn/broker": "workspace:*",
+		"@logsn/client": "workspace:*",
+		"@logsn/contracts": "workspace:*",
+		"@logsn/protocol": "workspace:*",
+		"@logsn/shared": "workspace:*",
 		"@streamr/test-utils": "^8.1.0",
 		"@streamr/utils": "^8.1.0",
 		"benchmark": "^2.1.4",
