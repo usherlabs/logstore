@@ -1,7 +1,8 @@
 {
   "name": "@logsn/broker-program-evm-validate",
   "version": "1.0.0",
-  "description": "",
+	"private": true,
+	"description": "",
   "scripts": {
     "build": "del ./dist && esbuild ./index.ts --bundle --platform=node --outfile=../broker/src/plugins/logStore/programs/evm-validate.js"
   },
@@ -9,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@logsn/broker-program": "workspace:^",
+    "@logsn/broker-program": "workspace:*",
     "ethers": "^5.7.2"
   },
   "devDependencies": {

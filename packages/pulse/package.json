@@ -5,7 +5,7 @@
 	"repository": "https://github.com/usherlabs/logstore.git",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"license": "Apache-2.0",
-	"private": false,
+	"private": true,
 	"main": "index.js",
 	"bin": {
 		"logstore-pulse": "./dist/bin/logstore-pulse.js"
@@ -15,7 +15,7 @@
 		"start": "node dist/main.js"
 	},
 	"dependencies": {
-		"@logsn/client": "workspace:^",
+		"@logsn/client": "workspace:*",
 		"commander": "^11.0.0"
 	},
 	"devDependencies": {

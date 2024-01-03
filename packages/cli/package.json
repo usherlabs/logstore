@@ -29,8 +29,8 @@
 		"./dist"
 	],
 	"dependencies": {
-		"@logsn/client": "workspace:^",
-		"@logsn/shared": "workspace:^",
+		"@logsn/client": "workspace:*",
+		"@logsn/shared": "workspace:*",
 		"lodash": "^4.17.21",
 		"chalk": "^4.1.2",
 		"commander": "^11.0.0",
