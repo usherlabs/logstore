@@ -34,7 +34,7 @@ export class GraphQLClient {
 	}
 
 	async sendQuery(query: GraphQLQuery): Promise<any> {
-		this.logger.debug('GraphQL query: %s', query);
+		this.logger.debug('GraphQL query', { query });
 		const res = await this.httpFetcher.fetch(
 			this.config.contracts.logStoreTheGraphUrl,
 			{

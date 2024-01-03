@@ -5,11 +5,11 @@ import type { LogStoreManager as LogStoreManagerContract } from '@logsn/contract
 import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { prepareStakeForStoreManager } from '@logsn/shared';
 import { toStreamID } from '@streamr/protocol';
-import { Logger, toEthereumAddress } from '@streamr/utils';
+import { collect, Logger, toEthereumAddress } from '@streamr/utils';
 import { ContractTransaction } from 'ethers';
 import { min } from 'lodash';
-import { Stream } from 'streamr-client';
-import { delay, inject, Lifecycle, scoped } from 'tsyringe';
+import StreamrClient, { Stream } from 'streamr-client';
+import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
 	LogStoreClientConfigInjectionToken,
@@ -24,7 +24,6 @@ import {
 	LogStoreClientEventEmitter,
 	LogStoreClientEvents,
 } from '../events';
-import { LogStoreClient } from '../LogStoreClient';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
@@ -45,8 +44,8 @@ import {
 	StreamIDBuilder,
 	StreamIDBuilderInjectionToken,
 } from '../streamr/StreamIDBuilder';
+import { StreamrClientInjectionToken } from '../streamr/StreamrClient';
 import { queryAllReadonlyContracts } from '../streamr/utils/contract';
-import { collect } from '../streamr/utils/iterators';
 import { SynchronizedGraphQLClient } from '../utils/SynchronizedGraphQLClient';
 
 export interface LogStoreAssignmentEvent {
@@ -62,7 +61,7 @@ export interface LogStoreAssignmentEvent {
 @scoped(Lifecycle.ContainerScoped)
 export class LogStoreRegistry {
 	private contractFactory: ContractFactory;
-	private logStoreClient: LogStoreClient;
+	private streamrClient: StreamrClient;
 	private streamIdBuilder: StreamIDBuilder;
 	private graphQLClient: SynchronizedGraphQLClient;
 	private readonly eventEmitter: LogStoreClientEventEmitter;
@@ -76,8 +75,8 @@ export class LogStoreRegistry {
 	constructor(
 		@inject(ContractFactoryInjectionToken)
 		contractFactory: ContractFactory,
-		@inject(delay(() => LogStoreClient))
-		logStoreClient: LogStoreClient,
+		@inject(StreamrClientInjectionToken)
+		streamrClient: StreamrClient,
 		@inject(StreamIDBuilderInjectionToken)
 		streamIdBuilder: StreamIDBuilder,
 		@inject(SynchronizedGraphQLClient)
@@ -94,7 +93,7 @@ export class LogStoreRegistry {
 		streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>
 	) {
 		this.contractFactory = contractFactory;
-		this.logStoreClient = logStoreClient;
+		this.streamrClient = streamrClient;
 		this.streamIdBuilder = streamIdBuilder;
 		this.graphQLClient = graphQLClient;
 		this.eventEmitter = eventEmitter;
@@ -146,11 +145,10 @@ export class LogStoreRegistry {
 					amount: BigNumber,
 					extra: any
 				) => {
-					this.logger.debug(
-						'Emitting event %s stream %s',
+					this.logger.debug('Emitting event', {
 						contractEvent,
-						store
-					);
+						store,
+					});
 					emit({
 						store,
 						isNew,
@@ -195,9 +193,11 @@ export class LogStoreRegistry {
 		overrides?: Overrides
 	): Promise<ContractTransaction> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
-		this.logger.debug('adding stream %s to LogStore', streamId);
+		this.logger.debug('adding stream to LogStore', { streamId });
 		await this.connectToContract();
-		this.logger.debug('approving LogStore contract for token funds', streamId);
+		this.logger.debug('approving LogStore contract for token funds', {
+			streamId,
+		});
 		// @dev 'chainSigner' could either be a wallet or a signer
 		// @dev depending on if a pk was passed into the contract
 		const chainSigner =
@@ -236,7 +236,7 @@ export class LogStoreRegistry {
 
 	async isLogStoreStream(streamIdOrPath: string): Promise<boolean> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
-		this.logger.debug('querying if stream %s is in LogStore', streamId);
+		this.logger.debug('querying if stream is in LogStore', { streamId });
 		return queryAllReadonlyContracts((contract: LogStoreManagerContract) => {
 			return contract.exists(streamId);
 		}, this.logStoreManagerContractsReadonly);
@@ -273,12 +273,12 @@ export class LogStoreRegistry {
 				}
 			)
 		);
-		this.logger.debug('res: %s', res);
+		this.logger.debug('res: ', { res });
 		const streams = (
 			await Promise.all(
 				res.map(async (storeUpdated: any) => {
 					try {
-						return await this.logStoreClient.getStream(
+						return await this.streamrClient.getStream(
 							toStreamID(storeUpdated.store)
 						);
 					} catch (err) {
@@ -289,14 +289,9 @@ export class LogStoreRegistry {
 			)
 		).filter((stream) => stream != null) as unknown as Stream[];
 
-		this.logger.debug(
-			'streams: %s',
-			JSON.stringify(
-				streams.map((stream) => stream.id.toString()),
-				null,
-				2
-			)
-		);
+		this.logger.debug('streams: ', {
+			streams: streams.map((stream) => stream.id.toString()),
+		});
 
 		return {
 			streams,

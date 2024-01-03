@@ -12,7 +12,7 @@ export type StrictStreamrClientConfig = MarkOptional<
 	contracts: Exclude<Required<StreamrClientConfig['contracts']>, undefined>;
 	encryption: Exclude<Required<StreamrClientConfig['encryption']>, undefined>;
 	cache: Exclude<Required<StreamrClientConfig['cache']>, undefined>;
-	// @ts-expect-error _timeouts is marked as internal in StreamrClientConfig
+	// @ts-expect-error Property '_timeouts' does not exist on type 'StreamrClientConfig'
 	_timeouts: Exclude<DeepRequired<StreamrClientConfig['_timeouts']>, undefined>;
 };
 

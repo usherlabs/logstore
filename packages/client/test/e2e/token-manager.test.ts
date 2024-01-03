@@ -1,11 +1,12 @@
-import { waitForTx } from '@logsn/streamr-client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { Logger } from '@streamr/utils';
 import Decimal from 'decimal.js';
 import { ethers, providers, Wallet } from 'ethers';
+import StreamrClient, { CONFIG_TEST } from 'streamr-client';
 
-import { CONFIG_TEST } from '../../src/ConfigTest';
+import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
+import { waitForTx } from '../../src/streamr/utils/contract';
 
 const MINT_AMOUNT = 100_000_000_000_000n;
 const TIMEOUT = 90 * 1000;
@@ -19,26 +20,29 @@ describe('Manage tokens', () => {
 	);
 
 	let account: Wallet;
-	let accountClient: LogStoreClient;
+	let streamrClient: StreamrClient;
+	let logStoreClient: LogStoreClient;
 
 	beforeAll(async () => {
 		account = new Wallet(await fetchPrivateKeyWithGas(), provider);
-		accountClient = new LogStoreClient({
+		streamrClient = new StreamrClient({
 			...CONFIG_TEST,
 			auth: {
 				privateKey: account.privateKey,
 			},
 		});
+
+		logStoreClient = new LogStoreClient(streamrClient, LOGSTORE_CONFIG_TEST);
 	}, TIMEOUT);
 
 	afterAll(async () => {
-		await Promise.allSettled([accountClient?.destroy()]);
+		await Promise.allSettled([streamrClient?.destroy()]);
 	}, TIMEOUT);
 
 	test(
 		'Gets balance',
 		async () => {
-			const balance = await accountClient.getBalance();
+			const balance = await logStoreClient.getBalance();
 
 			expect(typeof balance).toBe('bigint');
 		},
@@ -53,8 +57,8 @@ describe('Manage tokens', () => {
 			const ethBalance = await provider
 				.getBalance(account.address)
 				.then((b) => b.toBigInt());
-			const balance = await accountClient.getBalance();
-			const price = await accountClient.getPrice();
+			const balance = await logStoreClient.getBalance();
+			const price = await logStoreClient.getPrice();
 
 			const mintResult = mintWei / price;
 			const expectedBalance = balance + mintResult;
@@ -74,9 +78,9 @@ describe('Manage tokens', () => {
 				`Expected eth balance without gas: ${expectedEthBalanceWithoutGas}`
 			);
 
-			const tx = await waitForTx(accountClient.mint(mintWei));
+			const tx = await waitForTx(logStoreClient.mint(mintWei));
 
-			const newBalance = await accountClient.getBalance();
+			const newBalance = await logStoreClient.getBalance();
 			const _newEthBalance = await provider
 				.getBalance(account.address)
 				.then((b) => b.toBigInt());
@@ -96,7 +100,7 @@ describe('Manage tokens', () => {
 	test(
 		'Converts tokens',
 		async () => {
-			const price = await accountClient.getPrice();
+			const price = await logStoreClient.getPrice();
 
 			const inWei = new Decimal('1e18');
 			const inBytes = inWei.div(price.toString()).floor();
@@ -104,13 +108,13 @@ describe('Manage tokens', () => {
 			logger.debug(`Converting ${inBytes} bytes to wei`);
 			logger.debug(`Converting ${inWei} wei to usd`);
 
-			const bytesToWei = await accountClient.convert({
+			const bytesToWei = await logStoreClient.convert({
 				from: 'bytes',
 				to: 'wei',
 				amount: inBytes.toString(),
 			});
 
-			const weiToUsd = await accountClient.convert({
+			const weiToUsd = await logStoreClient.convert({
 				from: 'wei',
 				to: 'usd',
 				amount: inWei.toString(),
@@ -125,7 +129,7 @@ describe('Manage tokens', () => {
 			expect(+weiToUsd).toBeLessThan(1.5);
 
 			expect(
-				await accountClient.convert({ amount: '1', from: 'usd', to: 'bytes' })
+				await logStoreClient.convert({ amount: '1', from: 'usd', to: 'bytes' })
 			).toBe('');
 		},
 		TIMEOUT
@@ -136,7 +140,7 @@ describe('Manage tokens', () => {
 
 		logger.debug(`Converting ${inUsd} usd to wei`);
 
-		const usdToWei = await accountClient.convert({
+		const usdToWei = await logStoreClient.convert({
 			from: 'usd',
 			to: 'wei',
 			amount: inUsd.toString(),
