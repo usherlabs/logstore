@@ -42,9 +42,7 @@ export class SetMembershipSynchronizer<E extends string> {
 	ingestSnapshot(elements: Set<E>, sequenceNo: number): Diff<E> {
 		if (sequenceNo <= this.lastSnapshotSequenceNo) {
 			logger.warn(
-				'ignoring snapshot due to stale sequenceNo: %d > %d',
-				sequenceNo,
-				this.lastSnapshotSequenceNo
+				`ignoring snapshot due to stale sequenceNo: ${sequenceNo} > ${this.lastSnapshotSequenceNo}`
 			);
 			return EMPTY_DIFF;
 		}

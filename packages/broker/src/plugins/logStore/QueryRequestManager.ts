@@ -56,11 +56,10 @@ export class QueryRequestManager {
 		}
 
 		const queryRequest = systemMessage as QueryRequest;
-		logger.debug(
-			'Received QueryRequest, content: %s metadata: %s',
+		logger.debug('Received QueryRequest', {
 			content,
-			metadata
-		);
+			metadata,
+		});
 		const readableStream = this.getDataForQueryRequest(queryRequest);
 
 		const hashMap = await this.getHashMap(readableStream);

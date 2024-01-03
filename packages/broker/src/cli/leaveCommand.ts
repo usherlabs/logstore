@@ -2,10 +2,7 @@ import { validateConfig as validateLogStoreClientConfig } from '@logsn/client';
 import { getNodeManagerContract, withRetry } from '@logsn/shared';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
-import {
-	PrivateKeyAuthConfig,
-	validateConfig as validateStreamrClientConfig,
-} from 'streamr-client';
+import { PrivateKeyAuthConfig } from 'streamr-client';
 
 import { overrideConfigToEnvVarsIfGiven } from '../config/config';
 import BROKER_CONFIG_SCHEMA from '../config/config.schema.json';
@@ -28,7 +25,6 @@ export const leaveCommand = new Command('leave')
 				BROKER_CONFIG_SCHEMA
 			);
 			validateLogStoreClientConfig(config.logStoreClient);
-			validateStreamrClientConfig(config.streamrClient);
 
 			const privateKey = (config.streamrClient!.auth as PrivateKeyAuthConfig)
 				.privateKey;

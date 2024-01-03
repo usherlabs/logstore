@@ -72,7 +72,7 @@ export class Batch extends EventEmitter {
 		this.state = Batch.states.OPENED;
 		this.doneCbs = [];
 
-		this.logger = new Logger(module, `${this.getId()}`);
+		this.logger = new Logger(module, { id: this.id });
 
 		this.maxSize = maxSize;
 		this.maxRecords = maxRecords;
@@ -106,7 +106,9 @@ export class Batch extends EventEmitter {
 
 	scheduleInsert(): void {
 		clearTimeout(this.timeout);
-		this.logger.trace(`scheduleRetry. retries:${this.retries}`);
+		this.logger.trace('scheduleRetry', {
+			retries: this.retries,
+		});
 
 		this.timeout = setTimeout(() => {
 			if (this.retries < this.maxRetries) {
@@ -122,7 +124,7 @@ export class Batch extends EventEmitter {
 	}
 
 	clear(): void {
-		this.logger.trace('cleared');
+		this.logger.trace('clear');
 		clearTimeout(this.timeout);
 		this.streamMessages = [];
 		this.setState(Batch.states.INSERTED);
@@ -148,7 +150,7 @@ export class Batch extends EventEmitter {
 
 	private setState(state: State): void {
 		this.state = state;
-		this.logger.trace(`emit state: ${this.state}`);
+		this.logger.trace('setState', { state });
 		this.emit(
 			this.state,
 			this.getBucketId(),

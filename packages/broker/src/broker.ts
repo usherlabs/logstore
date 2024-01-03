@@ -12,7 +12,6 @@ import {
 	NetworkNodeStub,
 	PrivateKeyAuthConfig,
 	StreamrClient,
-	validateConfig as validateStreamrClientConfig,
 } from 'streamr-client';
 
 import { version as CURRENT_VERSION } from '../package.json';
@@ -37,7 +36,6 @@ export const createBroker = async (
 ): Promise<Broker> => {
 	const config = validateConfig(configWithoutDefaults, BROKER_CONFIG_SCHEMA);
 	validateLogStoreClientConfig(config.logStoreClient);
-	validateStreamrClientConfig(config.streamrClient);
 
 	// Tweaks suggested by the Streamr Team
 	config.streamrClient.network!.webrtcSendBufferMaxMessageCount = 5000;
@@ -48,8 +46,7 @@ export const createBroker = async (
 	const streamrClient = new StreamrClient(streamrClientConfig);
 	const logStoreClient = new LogStoreClient(
 		streamrClient,
-		config.logStoreClient,
-		config.streamrClient
+		config.logStoreClient
 	);
 
 	const nodeManagerAddress = toEthereumAddress(
@@ -61,10 +58,10 @@ export const createBroker = async (
 	const systemStreamId = toStreamID('/system', nodeManagerAddress);
 	const topicsStreamId = toStreamID('/topics', nodeManagerAddress);
 
-	const heartbeatStream = await logStoreClient.getStream(heartbeatStreamId);
-	const recoveryStream = await logStoreClient.getStream(recoveryStreamId);
-	const systemStream = await logStoreClient.getStream(systemStreamId);
-	const topicsStream = await logStoreClient.getStream(topicsStreamId);
+	const heartbeatStream = await streamrClient.getStream(heartbeatStreamId);
+	const recoveryStream = await streamrClient.getStream(recoveryStreamId);
+	const systemStream = await streamrClient.getStream(systemStreamId);
+	const topicsStream = await streamrClient.getStream(topicsStreamId);
 
 	const privateKey = (config.streamrClient!.auth as PrivateKeyAuthConfig)
 		.privateKey;
@@ -80,6 +77,7 @@ export const createBroker = async (
 		const pluginOptions: PluginOptions = {
 			name,
 			logStoreClient,
+			streamrClient,
 			heartbeatStream,
 			recoveryStream,
 			systemStream,
@@ -98,7 +96,7 @@ export const createBroker = async (
 		if (!started) {
 			throw new Error('cannot invoke on non-started broker');
 		}
-		return logStoreClient.getNode();
+		return streamrClient.getNode();
 	};
 
 	return {
@@ -122,8 +120,8 @@ export const createBroker = async (
 				);
 			}
 
-			const nodeId = (await logStoreClient.getNode()).getNodeId();
-			const brokerAddress = await logStoreClient.getAddress();
+			const nodeId = (await streamrClient.getNode()).getNodeId();
+			const brokerAddress = await streamrClient.getAddress();
 			const mnemonic = generateMnemonicFromAddress(
 				toEthereumAddress(brokerAddress)
 			);
@@ -167,17 +165,17 @@ export const createBroker = async (
 				await stopServer(httpServer);
 			}
 			await Promise.all(plugins.map((plugin) => plugin.stop()));
-			await logStoreClient.destroy();
+			await streamrClient.destroy();
 		},
 	};
 };
 
 process.on('uncaughtException', (err) => {
-	logger.getFinalLogger().error(err, 'uncaughtException');
+	logger.fatal('Encountered uncaughtException', { err });
 	process.exit(1);
 });
 
 process.on('unhandledRejection', (err) => {
-	logger.getFinalLogger().error(err, 'unhandledRejection');
+	logger.fatal('Encountered unhandledRejection', { err });
 	process.exit(1);
 });

@@ -22,10 +22,9 @@ const createHandler = (
 			to,
 		});
 		await systemStream.publish(recoveryRequest.serialize());
-		logger.debug(
-			'Published RecoveryRequest: %s',
-			JSON.stringify(recoveryRequest)
-		);
+		logger.debug('Published RecoveryRequest', {
+			recoveryRequest,
+		});
 
 		res.json(heartbeat.onlineBrokers);
 	};

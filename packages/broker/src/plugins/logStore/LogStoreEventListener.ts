@@ -1,6 +1,6 @@
 import { LogStoreAssignmentEvent, LogStoreClient } from '@logsn/client';
 import { Logger } from '@streamr/utils';
-import { Stream } from 'streamr-client';
+import StreamrClient, { Stream } from 'streamr-client';
 
 const logger = new Logger(module);
 
@@ -10,6 +10,7 @@ const logger = new Logger(module);
  */
 export class LogStoreEventListener {
 	private readonly logStoreClient: LogStoreClient;
+	private readonly streamrClient: StreamrClient;
 	private readonly onEvent: (
 		stream: Stream,
 		type: 'added' | 'removed',
@@ -22,9 +23,11 @@ export class LogStoreEventListener {
 
 	constructor(
 		logStoreClient: LogStoreClient,
+		streamrClient: StreamrClient,
 		onEvent: (stream: Stream, type: 'added' | 'removed', block: number) => void
 	) {
 		this.logStoreClient = logStoreClient;
+		this.streamrClient = streamrClient;
 		this.onEvent = onEvent;
 		this.onAddToLogStore = (event: LogStoreAssignmentEvent) =>
 			this.handleEvent(event, 'added');
@@ -36,9 +39,12 @@ export class LogStoreEventListener {
 		event: LogStoreAssignmentEvent,
 		type: 'added' | 'removed'
 	) {
-		logger.info('received LogStoreAssignmentEvent type=%s: %j', type, event);
+		logger.info('received LogStoreAssignmentEvent', {
+			type,
+			event,
+		});
 		try {
-			const stream = await this.logStoreClient.getStream(event.store);
+			const stream = await this.streamrClient.getStream(event.store);
 			this.onEvent(stream, type, event.blockNumber);
 		} catch (e) {
 			logger.warn('chainEventsListener: %s', e);

@@ -178,16 +178,12 @@ export class PropagationResolver {
 		return Promise.race([
 			new Promise<never>((_, reject) => {
 				timeout = setTimeout(() => {
-					logger.warn(
-						'Propagation timeout on request %s',
-						queryRequest.requestId
-					);
-					logger.debug(
-						'Current state of the query on timeout: %s',
-						JSON.stringify(
-							this.queryPropagationStateMap.get(queryRequest.requestId)
-						)
-					);
+					logger.warn('Propagation timeout on request', {
+						requestId: queryRequest.requestId,
+					});
+					logger.debug('Current state of the query on timeout', {
+						state: this.queryPropagationStateMap.get(queryRequest.requestId),
+					});
 					this.clean(queryRequest.requestId);
 					reject('Propagation timeout');
 				}, TIMEOUT);

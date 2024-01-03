@@ -1,12 +1,15 @@
-import { LogStoreClient } from '@logsn/client';
-import { MessageListener, Stream, Subscription } from 'streamr-client';
+import StreamrClient, {
+	MessageListener,
+	Stream,
+	Subscription,
+} from 'streamr-client';
 
 export class BroadbandSubscriber {
 	private readonly partitions: number;
 	private readonly subscriptions: Subscription[] = [];
 
 	constructor(
-		private readonly client: LogStoreClient,
+		private readonly client: StreamrClient,
 		private readonly stream: Stream
 	) {
 		this.partitions = this.stream.getMetadata().partitions;

@@ -182,10 +182,10 @@ export class ReportPoller {
 
 		const proofOfReport = await poll.report.toProof(this.signer);
 		await this.publisher.publish(proofOfReport.serialize());
-		logger.info(
-			`Proof of report ${poll.report.id} published to system stream`,
-			proofOfReport
-		);
+		logger.info(`Proof of report published to system stream`, {
+			reportId: poll.report.id,
+			proofOfReport,
+		});
 	}
 
 	private async onMessage(content: unknown) {

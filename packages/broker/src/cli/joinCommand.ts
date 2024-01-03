@@ -6,10 +6,7 @@ import {
 } from '@logsn/shared';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
-import {
-	PrivateKeyAuthConfig,
-	validateConfig as validateStreamrClientConfig,
-} from 'streamr-client';
+import { PrivateKeyAuthConfig } from 'streamr-client';
 
 import { overrideConfigToEnvVarsIfGiven } from '../config/config';
 import BROKER_CONFIG_SCHEMA from '../config/config.schema.json';
@@ -50,7 +47,6 @@ export const joinCommand = new Command('join')
 					BROKER_CONFIG_SCHEMA
 				);
 				validateLogStoreClientConfig(config.logStoreClient);
-				validateStreamrClientConfig(config.streamrClient);
 
 				const privateKey = (config.streamrClient.auth as PrivateKeyAuthConfig)
 					.privateKey;

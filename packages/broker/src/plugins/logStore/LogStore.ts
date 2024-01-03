@@ -274,6 +274,7 @@ export class LogStore extends EventEmitter {
 	 */
 	requestByMessageIds(messageIdsSerialized: string[]) {
 		const messageIds = messageIdsSerialized.map((messageId) =>
+			// @ts-expect-error Property 'fromArray' does not exist on type 'typeof MessageID'
 			MessageID.fromArray(JSON.parse(messageId))
 		);
 

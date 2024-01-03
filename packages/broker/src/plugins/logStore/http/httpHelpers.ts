@@ -69,7 +69,7 @@ export const sendSuccess = (
 
 	pipeline(data, messageLimitTransform, responseTransform, res, (err) => {
 		if (err !== undefined && err !== null) {
-			logger.error(`Pipeline error in DataQueryEndpoints: ${streamId}`, err);
+			logger.error('Pipeline error in DataQueryEndpoints', { streamId, err });
 		}
 	});
 };
