@@ -1,11 +1,4 @@
-import {
-	EthereumAddress,
-	LogStoreClient,
-	MessageMetadata,
-	NodeMetadata,
-	Stream,
-	Subscription,
-} from '@logsn/client';
+import { NodeMetadata } from '@logsn/client';
 import {
 	RecoveryComplete,
 	RecoveryResponse,
@@ -17,6 +10,12 @@ import { randomUUID } from 'crypto';
 import { Signer } from 'ethers';
 import { Base64 } from 'js-base64';
 import { shuffle } from 'lodash';
+import StreamrClient, {
+	EthereumAddress,
+	MessageMetadata,
+	Stream,
+	Subscription,
+} from 'streamr-client';
 import { Logger } from 'tslog';
 
 import { Managers } from '../managers';
@@ -61,7 +60,7 @@ export class SystemRecovery {
 	private restartTimeout?: NodeJS.Timeout;
 
 	constructor(
-		private readonly client: LogStoreClient,
+		private readonly client: StreamrClient,
 		private readonly stream: Stream,
 		private readonly signer: Signer,
 		private readonly messageMetricsSummary: MessageMetricsSummary,
