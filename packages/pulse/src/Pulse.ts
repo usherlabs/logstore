@@ -60,7 +60,7 @@ export class Pulse {
 			timestamp: Date.now(),
 		};
 
-		await this.logStoreClient.publish(this.stream, content);
+		await this.streamrClient.publish(this.stream, content);
 		console.debug('Published Pulse message', content);
 	}
 }

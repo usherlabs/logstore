@@ -21,10 +21,7 @@ export const getClients = (privateKey: string, dev: boolean = false) => {
 	};
 
 	const streamrClient = new StreamrClient(streamrConfig);
-	const logStoreClient = new LogStoreClient(
-		streamrClient,
-		logStoreConfig,
-		streamrConfig
-	);
+	const logStoreClient = new LogStoreClient(streamrClient, logStoreConfig);
+
 	return { logStoreClient, streamrClient };
 };
