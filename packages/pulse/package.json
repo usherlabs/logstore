@@ -17,7 +17,7 @@
 	"dependencies": {
 		"@logsn/client": "workspace:^",
 		"commander": "^11.0.0",
-		"streamr-client": "8.1.0"
+		"streamr-client": "^8.5.5"
 	},
 	"devDependencies": {
 		"@types/node": "^20.3.1"
