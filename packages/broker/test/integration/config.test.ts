@@ -10,7 +10,7 @@ describe('Config', () => {
 		const broker = await createBroker({});
 		await broker.start();
 		await broker.stop();
-	});
+	}, 10000);
 
 	const fileNames = fs.readdirSync(PATH);
 

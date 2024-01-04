@@ -1,5 +1,5 @@
 import type { Overrides } from '@ethersproject/contracts';
-import { ContractTransaction } from 'ethers';
+import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';
 import StreamrClient, {
@@ -27,7 +27,10 @@ import {
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
-import { AuthenticationInjectionToken } from './streamr/Authentication';
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+} from './streamr/Authentication';
 import { StreamrClientConfigInjectionToken } from './streamr/Config';
 import { ContractFactoryInjectionToken } from './streamr/ContractFactory';
 import { DestroySignalInjectionToken } from './streamr/DestroySignal';
@@ -50,6 +53,7 @@ import {
 } from './utils/systemStreamUtils';
 
 export class LogStoreClient {
+	private readonly authentication: Authentication;
 	private readonly streamrClient: StreamrClient;
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
@@ -99,6 +103,8 @@ export class LogStoreClient {
 			useValue: streamrClient.loggerFactory,
 		});
 
+		// @ts-expect-error authentication is marked as private in StreamrClient
+		this.authentication = streamrClient.authentication;
 		container.register(AuthenticationInjectionToken, {
 			// @ts-expect-error authentication is marked as private in StreamrClient
 			useValue: streamrClient.authentication,
@@ -149,6 +155,10 @@ export class LogStoreClient {
 		this.logStoreQueryManager = container.resolve<QueryManager>(QueryManager);
 
 		this.logstoreTokenManager = container.resolve<TokenManager>(TokenManager);
+	}
+
+	async getSigner(): Promise<Signer> {
+		return this.authentication.getStreamRegistryChainSigner();
 	}
 
 	// --------------------------------------------------------------------------------------------

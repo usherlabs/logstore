@@ -5,14 +5,9 @@ import {
 import { getNodeManagerContract } from '@logsn/shared';
 import { toStreamID } from '@streamr/protocol';
 import { Logger, toEthereumAddress } from '@streamr/utils';
-import { ethers } from 'ethers';
 import { Server as HttpServer } from 'http';
 import { Server as HttpsServer } from 'https';
-import {
-	NetworkNodeStub,
-	PrivateKeyAuthConfig,
-	StreamrClient,
-} from 'streamr-client';
+import { NetworkNodeStub, StreamrClient } from 'streamr-client';
 
 import { version as CURRENT_VERSION } from '../package.json';
 import { Config } from './config/config';
@@ -38,7 +33,10 @@ export const createBroker = async (
 	validateLogStoreClientConfig(config.logStoreClient);
 
 	// Tweaks suggested by the Streamr Team
-	config.streamrClient.network!.webrtcSendBufferMaxMessageCount = 5000;
+	config.streamrClient.network = {
+		...config.streamrClient.network,
+		webrtcSendBufferMaxMessageCount: 5000,
+	};
 	config.streamrClient.gapFill = true;
 	config.streamrClient.gapFillTimeout = 30 * 1000;
 
@@ -63,13 +61,7 @@ export const createBroker = async (
 	const systemStream = await streamrClient.getStream(systemStreamId);
 	const topicsStream = await streamrClient.getStream(topicsStreamId);
 
-	const privateKey = (config.streamrClient!.auth as PrivateKeyAuthConfig)
-		.privateKey;
-
-	const provider = new ethers.providers.JsonRpcProvider(
-		config.streamrClient!.contracts?.streamRegistryChainRPCs!.rpcs[0]
-	);
-	const signer = new ethers.Wallet(privateKey, provider);
+	const signer = await logStoreClient.getSigner();
 
 	const nodeManger = await getNodeManagerContract(signer);
 
