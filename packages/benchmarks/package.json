@@ -4,7 +4,7 @@
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",
 	"description": "Log Store Benchmarks",
-	"private": false,
+	"private": true,
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/usherlabs/logstore.git",
@@ -26,9 +26,9 @@
 		"logsn-benchmarks": "./dist/bin/index.js"
 	},
 	"dependencies": {
-		"@logsn/client": "workspace:^",
-		"@logsn/contracts": "workspace:^",
-		"@logsn/shared": "workspace:^",
+		"@logsn/client": "workspace:*",
+		"@logsn/contracts": "workspace:*",
+		"@logsn/shared": "workspace:*",
 		"benchmark": "^2.1.4",
 		"chalk": "^4.1.2",
 		"commander": "^11.0.0",

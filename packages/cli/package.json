@@ -31,8 +31,8 @@
 	"dependencies": {
 		"@commander-js/extra-typings": "^11.0.0",
 		"@inquirer/prompts": "^3.3.0",
-		"@logsn/client": "workspace:^",
-		"@logsn/shared": "workspace:^",
+		"@logsn/client": "workspace:*",
+		"@logsn/shared": "workspace:*",
 		"chalk": "^4.1.2",
 		"commander": "^11.0.0",
 		"decimal.js": "^10.4.3",

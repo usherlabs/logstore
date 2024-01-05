@@ -3,14 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
+	"private": true,
+	"scripts": {
     "build": "del ./dist && esbuild ./index.ts --bundle --platform=node --outfile=../broker/src/plugins/logStore/programs/solana-validate.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@logsn/broker-program": "workspace:^",
+    "@logsn/broker-program": "workspace:*",
     "@solana/web3.js": "^1.87.6"
   },
   "devDependencies": {
