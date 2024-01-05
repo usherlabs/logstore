@@ -2,7 +2,6 @@ import {
 	LogStoreAssignmentEvent,
 	LogStoreClient,
 	LogStoreClientEvents,
-	Stream,
 } from '@logsn/client';
 import {
 	StreamPartID,
@@ -13,6 +12,7 @@ import {
 import { toEthereumAddress, wait } from '@streamr/utils';
 import { BigNumber } from 'ethers';
 import { range } from 'lodash';
+import StreamrClient, { Stream } from 'streamr-client';
 
 import { LogStoreConfig } from '../../../../src/plugins/logStore/LogStoreConfig';
 
@@ -54,9 +54,10 @@ describe(LogStoreConfig, () => {
 		keyof LogStoreClientEvents,
 		(event: LogStoreAssignmentEvent) => void
 	>;
-	let stubClient: Pick<
+	let stubStreamrClient: Pick<StreamrClient, 'getStream'>;
+	let stubLogStoreClient: Pick<
 		LogStoreClient,
-		'getStream' | 'getLogStoreStreams' | 'on' | 'off'
+		'getLogStoreStreams' | 'on' | 'off'
 	>;
 	let onStreamPartAdded: jest.Mock<void, [StreamPartID]>;
 	let onStreamPartRemoved: jest.Mock<void, [StreamPartID]>;
@@ -65,11 +66,13 @@ describe(LogStoreConfig, () => {
 	beforeEach(async () => {
 		getLogStoreStreams = jest.fn();
 		logStoreEventListeners = new Map();
-		stubClient = {
-			getLogStoreStreams,
+		stubStreamrClient = {
 			async getStream(streamIdOrPath: string) {
 				return makeStubStream(streamIdOrPath);
 			},
+		};
+		stubLogStoreClient = {
+			getLogStoreStreams,
 			on(eventName: keyof LogStoreClientEvents, listener: any) {
 				logStoreEventListeners.set(eventName, listener);
 			},
@@ -85,7 +88,8 @@ describe(LogStoreConfig, () => {
 			1,
 			0,
 			POLL_TIME,
-			stubClient as LogStoreClient,
+			stubLogStoreClient as LogStoreClient,
+			stubStreamrClient as StreamrClient,
 			{
 				onStreamPartAdded,
 				onStreamPartRemoved,

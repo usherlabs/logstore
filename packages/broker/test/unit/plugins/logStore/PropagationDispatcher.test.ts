@@ -1,4 +1,4 @@
-import { MessageListener, MessageMetadata, sign } from '@logsn/client';
+import { sign } from '@logsn/client';
 import { QueryPropagate, QueryResponse } from '@logsn/protocol';
 import {
 	createSignaturePayload,
@@ -10,6 +10,7 @@ import { fastWallet } from '@streamr/test-utils';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import { Wallet } from 'ethers';
 import { keccak256 } from 'ethers/lib/utils';
+import { MessageListener, MessageMetadata } from 'streamr-client';
 
 import { Heartbeat } from '../../../../src/plugins/logStore/Heartbeat';
 import { LogStore } from '../../../../src/plugins/logStore/LogStore';

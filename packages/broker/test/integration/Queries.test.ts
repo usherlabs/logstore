@@ -1,9 +1,7 @@
 import {
-	CONFIG_TEST,
+	CONFIG_TEST as LOGSTORE_CLIENT_CONFIG_TEST,
 	LogStoreClient,
 	NodeMetadata,
-	Stream,
-	StreamPermission,
 } from '@logsn/client';
 import {
 	LogStoreManager,
@@ -24,10 +22,16 @@ import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { waitForCondition } from '@streamr/utils';
 import { providers, Wallet } from 'ethers';
+import StreamrClient, {
+	Stream,
+	StreamPermission,
+	CONFIG_TEST as STREAMR_CLIENT_CONFIG_TEST,
+} from 'streamr-client';
 
 import { Broker } from '../../src/broker';
 import {
 	createLogStoreClient,
+	createStreamrClient,
 	createTestStream,
 	sleep,
 	startLogStoreBroker,
@@ -46,8 +50,8 @@ const TRACKER_PORT = undefined;
 
 describe('Queries', () => {
 	const provider = new providers.JsonRpcProvider(
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+		STREAMR_CLIENT_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
+		STREAMR_CLIENT_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
 	);
 
 	// Accounts
@@ -61,8 +65,9 @@ describe('Queries', () => {
 	let logStoreBroker: Broker;
 
 	// Clients
-	let publisherClient: LogStoreClient;
-	let consumerClient: LogStoreClient;
+	let publisherStreamrClient: StreamrClient;
+	let consumerStreamrClient: StreamrClient;
+	let consumerLogStoreClient: LogStoreClient;
 
 	// Contracts
 	let nodeAdminManager: LogStoreNodeManager;
@@ -128,17 +133,18 @@ describe('Queries', () => {
 			trackerPort: TRACKER_PORT,
 		});
 
-		publisherClient = await createLogStoreClient(
+		publisherStreamrClient = await createStreamrClient(
 			tracker,
 			publisherAccount.privateKey
 		);
 
-		consumerClient = await createLogStoreClient(
+		consumerStreamrClient = await createStreamrClient(
 			tracker,
 			storeConsumerAccount.privateKey
 		);
+		consumerLogStoreClient = await createLogStoreClient(consumerStreamrClient);
 
-		testStream = await createTestStream(publisherClient, module);
+		testStream = await createTestStream(publisherStreamrClient, module);
 
 		await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
 		(await storeManager.stake(testStream.id, STAKE_AMOUNT)).wait();
@@ -148,8 +154,8 @@ describe('Queries', () => {
 	});
 
 	afterEach(async () => {
-		await publisherClient.destroy();
-		await consumerClient.destroy();
+		await publisherStreamrClient?.destroy();
+		await consumerStreamrClient?.destroy();
 		await Promise.allSettled([
 			logStoreBroker?.stop(),
 			nodeManager.leave(),
@@ -160,7 +166,7 @@ describe('Queries', () => {
 	it('when client publishes a message, it is written to the store', async () => {
 		// TODO: the consumer must have permission to subscribe to the stream or the strem have to be public
 		await testStream.grantPermissions({
-			user: await consumerClient.getAddress(),
+			user: await consumerStreamrClient.getAddress(),
 			permissions: [StreamPermission.SUBSCRIBE],
 		});
 		// await testStream.grantPermissions({
@@ -168,13 +174,13 @@ describe('Queries', () => {
 		// 	permissions: [StreamPermission.SUBSCRIBE],
 		// });
 
-		await publisherClient.publish(testStream.id, {
+		await publisherStreamrClient.publish(testStream.id, {
 			foo: 'bar 1',
 		});
-		await publisherClient.publish(testStream.id, {
+		await publisherStreamrClient.publish(testStream.id, {
 			foo: 'bar 2',
 		});
-		await publisherClient.publish(testStream.id, {
+		await publisherStreamrClient.publish(testStream.id, {
 			foo: 'bar 3',
 		});
 
@@ -182,7 +188,7 @@ describe('Queries', () => {
 
 		const messages = [];
 
-		const messageStream = await consumerClient.query(testStream.id, {
+		const messageStream = await consumerLogStoreClient.query(testStream.id, {
 			last: 2,
 		});
 
