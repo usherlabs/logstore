@@ -1,7 +1,7 @@
-import { Stream } from '@logsn/client';
 import { RecoveryRequest } from '@logsn/protocol';
 import { Logger, MetricsContext, RateMetric } from '@streamr/utils';
 import { json, Request, RequestHandler, Response } from 'express';
+import { Stream } from 'streamr-client';
 
 import { HttpServerEndpoint } from '../../Plugin';
 import { createBasicAuthenticatorMiddleware } from './authentication';
@@ -22,10 +22,9 @@ const createHandler = (
 			to,
 		});
 		await systemStream.publish(recoveryRequest.serialize());
-		logger.debug(
-			'Published RecoveryRequest: %s',
-			JSON.stringify(recoveryRequest)
-		);
+		logger.debug('Published RecoveryRequest', {
+			recoveryRequest,
+		});
 
 		res.json(heartbeat.onlineBrokers);
 	};

@@ -1,10 +1,10 @@
-import { MessageMetadata } from '@logsn/client';
 import {
 	QueryResponse,
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
 import { EthereumAddress, Logger } from '@streamr/utils';
+import { MessageMetadata } from 'streamr-client';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
@@ -42,11 +42,10 @@ export class QueryResponseManager {
 		}
 
 		const queryResponse = systemMessage as QueryResponse;
-		logger.debug(
-			'Received QueryResponse, content: %s metadata: %s',
+		logger.debug('Received QueryResponse', {
 			content,
-			metadata
-		);
+			metadata,
+		});
 
 		if (queryResponse.requestPublisherId === metadata.publisherId) {
 			// Received QueryResponses produced by the same node that issued the QueryRequest (i.e. primary node),

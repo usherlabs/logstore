@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-shadow */
 import {
 	LogStoreAssignmentEvent,
 	LogStoreClient,
 	LogStoreClientEvents,
-	Stream,
 } from '@logsn/client';
 import { toStreamID } from '@streamr/protocol';
 import { wait } from '@streamr/utils';
 import { BigNumber } from 'ethers';
+import StreamrClient, { Stream } from 'streamr-client';
 
 import { LogStoreEventListener } from '../../../../src/plugins/logStore/LogStoreEventListener';
 
@@ -18,7 +19,8 @@ const MOCK_STREAM = {
 } as Stream;
 
 describe(LogStoreEventListener, () => {
-	let stubClient: Pick<LogStoreClient, 'getStream' | 'on' | 'off'>;
+	let stubStreamrClient: Pick<StreamrClient, 'getStream'>;
+	let stubLogStoreClient: Pick<LogStoreClient, 'on' | 'off'>;
 	const logStoreEventListeners: Map<
 		keyof LogStoreClientEvents,
 		(event: LogStoreAssignmentEvent) => any
@@ -30,17 +32,23 @@ describe(LogStoreEventListener, () => {
 	let listener: LogStoreEventListener;
 
 	beforeEach(() => {
-		stubClient = {
+		stubStreamrClient = {
 			async getStream() {
 				return MOCK_STREAM;
 			},
+		};
+		stubLogStoreClient = {
 			on(eventName: keyof LogStoreClientEvents, listener: any) {
 				logStoreEventListeners.set(eventName, listener);
 			},
 			off: jest.fn(),
 		};
 		onEvent = jest.fn();
-		listener = new LogStoreEventListener(stubClient as LogStoreClient, onEvent);
+		listener = new LogStoreEventListener(
+			stubLogStoreClient as LogStoreClient,
+			stubStreamrClient as StreamrClient,
+			onEvent
+		);
 	});
 
 	afterEach(() => {
@@ -54,9 +62,9 @@ describe(LogStoreEventListener, () => {
 	});
 
 	it('destroy() unregisters storage event listener on client', async () => {
-		expect(stubClient.off).toHaveBeenCalledTimes(0);
+		expect(stubLogStoreClient.off).toHaveBeenCalledTimes(0);
 		await listener.destroy();
-		expect(stubClient.off).toHaveBeenCalledTimes(2);
+		expect(stubLogStoreClient.off).toHaveBeenCalledTimes(2);
 	});
 
 	function addToLogStore() {

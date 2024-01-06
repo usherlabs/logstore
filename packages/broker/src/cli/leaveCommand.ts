@@ -1,10 +1,8 @@
-import {
-	PrivateKeyAuthConfig,
-	validateConfig as validateClientConfig,
-} from '@logsn/client';
+import { validateConfig as validateLogStoreClientConfig } from '@logsn/client';
 import { getNodeManagerContract, withRetry } from '@logsn/shared';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
+import { PrivateKeyAuthConfig } from 'streamr-client';
 
 import { overrideConfigToEnvVarsIfGiven } from '../config/config';
 import BROKER_CONFIG_SCHEMA from '../config/config.schema.json';
@@ -26,13 +24,13 @@ export const leaveCommand = new Command('leave')
 				configWithoutDefaults,
 				BROKER_CONFIG_SCHEMA
 			);
-			validateClientConfig(config.client);
+			validateLogStoreClientConfig(config.logStoreClient);
 
-			const privateKey = (config.client!.auth as PrivateKeyAuthConfig)
+			const privateKey = (config.streamrClient!.auth as PrivateKeyAuthConfig)
 				.privateKey;
 
 			const provider = new ethers.providers.JsonRpcProvider(
-				config.client!.contracts?.streamRegistryChainRPCs!.rpcs[0]
+				config.streamrClient!.contracts?.streamRegistryChainRPCs!.rpcs[0]
 			);
 			const signer = new ethers.Wallet(privateKey, provider);
 

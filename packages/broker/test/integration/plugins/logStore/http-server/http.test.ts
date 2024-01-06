@@ -1,11 +1,4 @@
-import {
-	CONFIG_TEST,
-	LogStoreClient,
-	NodeMetadata,
-	Stream,
-	StreamPermission,
-	verify,
-} from '@logsn/client';
+import { LogStoreClient, NodeMetadata, verify } from '@logsn/client';
 import {
 	LogStoreManager,
 	LogStoreNodeManager,
@@ -37,11 +30,17 @@ import axios from 'axios';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
 import { Readable } from 'stream';
+import StreamrClient, {
+	Stream,
+	StreamPermission,
+	CONFIG_TEST as STREAMR_CLIENT_CONFIG_TEST,
+} from 'streamr-client';
 
 import { Broker } from '../../../../../src/broker';
 import { toObject } from '../../../../../src/plugins/logStore/http/DataQueryFormat';
 import {
 	createLogStoreClient,
+	createStreamrClient,
 	createTestStream,
 	sleep,
 	startLogStoreBroker,
@@ -78,8 +77,8 @@ jest.mock('../../../../../src/plugins/logStore/http/constants', () => {
 
 describe('http works', () => {
 	const provider = new providers.JsonRpcProvider(
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+		STREAMR_CLIENT_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
+		STREAMR_CLIENT_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
 	);
 
 	// Accounts
@@ -93,8 +92,9 @@ describe('http works', () => {
 	let logStoreBroker: Broker;
 
 	// Clients
-	let publisherClient: LogStoreClient;
-	let consumerClient: LogStoreClient;
+	let publisherStreamrClient: StreamrClient;
+	let consumerStreamrClient: StreamrClient;
+	let consumerLogStoreClient: LogStoreClient;
 
 	// Contracts
 	let nodeManager: LogStoreNodeManager;
@@ -165,19 +165,22 @@ describe('http works', () => {
 		// Wait for the granted permissions to the system stream
 		await sleep(5000);
 
-		[logStoreBroker, publisherClient, consumerClient] = await Promise.all([
-			startLogStoreBroker({
-				privateKey: logStoreBrokerAccount.privateKey,
-				trackerPort: TRACKER_PORT,
-			}),
-			createLogStoreClient(tracker, publisherAccount.privateKey),
-			createLogStoreClient(tracker, storeConsumerAccount.privateKey),
-		]);
+		[logStoreBroker, publisherStreamrClient, consumerStreamrClient] =
+			await Promise.all([
+				startLogStoreBroker({
+					privateKey: logStoreBrokerAccount.privateKey,
+					trackerPort: TRACKER_PORT,
+				}),
+				createStreamrClient(tracker, publisherAccount.privateKey),
+				createStreamrClient(tracker, storeConsumerAccount.privateKey),
+			]);
+
+		consumerLogStoreClient = await createLogStoreClient(consumerStreamrClient);
 
 		// Grant permission for querying
 
 		// Creates a stream
-		testStream = await createTestStream(publisherClient, module);
+		testStream = await createTestStream(publisherStreamrClient, module);
 		// Stakes for storage
 		await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
 		await storeManager
@@ -192,15 +195,15 @@ describe('http works', () => {
 			})(),
 			// makes it readable by the consumer
 			testStream.grantPermissions({
-				user: await consumerClient.getAddress(),
+				user: await consumerStreamrClient.getAddress(),
 				permissions: [StreamPermission.SUBSCRIBE],
 			}),
 		]);
 	});
 
 	afterEach(async () => {
-		await publisherClient.destroy();
-		await consumerClient.destroy();
+		await publisherStreamrClient.destroy();
+		await consumerStreamrClient.destroy();
 		await Promise.allSettled([
 			logStoreBroker?.stop(),
 			nodeManager.leave().then((tx) => tx.wait()),
@@ -212,7 +215,7 @@ describe('http works', () => {
 
 	async function publishMessages(numOfMessages: number) {
 		for (const idx of range(numOfMessages)) {
-			await publisherClient.publish(
+			await publisherStreamrClient.publish(
 				{
 					id: testStream.id,
 					partition: 0,
@@ -233,7 +236,7 @@ describe('http works', () => {
 		type: string;
 		options: any;
 	}) => {
-		return consumerClient.createQueryUrl(
+		return consumerLogStoreClient.createQueryUrl(
 			BROKER_URL,
 			{
 				streamId: testStream.id,
@@ -309,7 +312,7 @@ describe('http works', () => {
 					fromTimestamp: timestampBefore - 10,
 					toTimestamp: timestampAfter + 10,
 				});
-			const { token } = await consumerClient.apiAuth();
+			const { token } = await consumerLogStoreClient.apiAuth();
 
 			const queryResponses = await Promise.all(
 				[queryUrlLast, queryUrlFrom, queryUrlRange].map((queryUrl) =>
@@ -318,7 +321,7 @@ describe('http works', () => {
 			);
 
 			queryResponses.forEach((resp) => {
-				console.log('HTTP RESPONSE:', resp);
+				// console.log('HTTP RESPONSE:', resp);
 				expect(resp.messages).toHaveLength(BASE_NUMBER_OF_MESSAGES);
 				expect(resp.metadata.hasNext).toBe(false);
 				expect(resp.metadata.nextTimestamp).toBeUndefined();
@@ -347,7 +350,7 @@ describe('http works', () => {
 					toTimestamp: timestampAfter + 10,
 				});
 
-			const { token } = await consumerClient.apiAuth();
+			const { token } = await consumerLogStoreClient.apiAuth();
 
 			const queryResponses = await Promise.all(
 				[queryUrlLast, queryUrlFrom, queryUrlRange].map((queryUrl) =>
@@ -358,7 +361,7 @@ describe('http works', () => {
 			await sleep(10_000);
 
 			queryResponses.forEach((resp) => {
-				console.log('HTTP RESPONSE:', resp);
+				// console.log('HTTP RESPONSE:', resp);
 				expect(resp.messages).toHaveLength(mockTestLimit);
 				expect(resp.metadata.hasNext).toBe(true);
 				expect(resp.metadata.nextTimestamp).toBeGreaterThan(timestampBefore);
@@ -386,7 +389,7 @@ describe('http works', () => {
 				options: { format: 'object', count: BASE_NUMBER_OF_MESSAGES },
 			});
 
-			const { token } = await consumerClient.apiAuth();
+			const { token } = await consumerLogStoreClient.apiAuth();
 
 			const queryResponse = await performQuery({
 				queryUrl: queryUrlLast,
@@ -522,7 +525,7 @@ describe('http works', () => {
 					format: 'raw',
 				});
 
-			const { token } = await consumerClient.apiAuth();
+			const { token } = await consumerLogStoreClient.apiAuth();
 
 			const queryResponses = await Promise.all(
 				[queryUrlLast, queryUrlFrom, queryUrlRange].map((queryUrl) =>
@@ -549,7 +552,7 @@ describe('http works', () => {
 					toTimestamp: timestampAfter + 10,
 				});
 
-			const { token } = await consumerClient.apiAuth();
+			const { token } = await consumerLogStoreClient.apiAuth();
 
 			const queryResponses = await Promise.all(
 				[queryUrlLast, queryUrlFrom, queryUrlRange].map((queryUrl) =>
@@ -578,7 +581,7 @@ describe('http works', () => {
 					toTimestamp: timestampAfter + 10,
 				});
 
-			const { token } = await consumerClient.apiAuth();
+			const { token } = await consumerLogStoreClient.apiAuth();
 
 			const queryResponses = await Promise.all(
 				[queryUrlLast, queryUrlFrom, queryUrlRange].map((queryUrl) =>

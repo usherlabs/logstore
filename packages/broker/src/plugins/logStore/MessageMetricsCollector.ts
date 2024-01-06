@@ -1,10 +1,9 @@
-import {
-	LogStoreClient,
+import { SystemMessageType } from '@logsn/protocol';
+import StreamrClient, {
 	MessageMetadata,
 	Stream,
 	Subscription,
-} from '@logsn/client';
-import { SystemMessageType } from '@logsn/protocol';
+} from 'streamr-client';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import {
@@ -41,7 +40,7 @@ export class MessageMetricsCollector {
 	private recoverySubscription?: Subscription;
 
 	constructor(
-		private readonly client: LogStoreClient,
+		private readonly client: StreamrClient,
 		private readonly systemSubscriber: BroadbandSubscriber,
 		private readonly recoveryStream: Stream
 	) {

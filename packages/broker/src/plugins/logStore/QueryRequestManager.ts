@@ -1,4 +1,3 @@
-import { MessageMetadata, StreamMessage } from '@logsn/client';
 import {
 	QueryFromOptions,
 	QueryLastOptions,
@@ -9,10 +8,11 @@ import {
 	SystemMessage,
 	SystemMessageType,
 } from '@logsn/protocol';
-import { createSignaturePayload } from '@streamr/protocol';
+import { createSignaturePayload, StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
 import { keccak256 } from 'ethers/lib/utils';
 import { Readable } from 'stream';
+import { MessageMetadata } from 'streamr-client';
 
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
@@ -56,11 +56,10 @@ export class QueryRequestManager {
 		}
 
 		const queryRequest = systemMessage as QueryRequest;
-		logger.debug(
-			'Received QueryRequest, content: %s metadata: %s',
+		logger.debug('Received QueryRequest', {
 			content,
-			metadata
-		);
+			metadata,
+		});
 		const readableStream = this.getDataForQueryRequest(queryRequest);
 
 		const hashMap = await this.getHashMap(readableStream);

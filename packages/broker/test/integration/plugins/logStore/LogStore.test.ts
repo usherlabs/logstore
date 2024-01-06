@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-shadow */
 import {
 	EncryptionType,
 	MessageID,
@@ -93,6 +94,7 @@ function buildEncryptedMsg({
 		content,
 		encryptionType: EncryptionType.AES,
 		signature: 'signature',
+		groupKeyId: 'groupKeyId',
 	});
 }
 

@@ -1,10 +1,4 @@
 import {
-	LogStoreClient,
-	MessageMetadata,
-	Stream,
-	Subscription,
-} from '@logsn/client';
-import {
 	RecoveryComplete,
 	RecoveryRequest,
 	RecoveryResponse,
@@ -12,6 +6,11 @@ import {
 	SystemMessageType,
 } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
+import StreamrClient, {
+	MessageMetadata,
+	Stream,
+	Subscription,
+} from 'streamr-client';
 
 import { SystemCache } from './SystemCache';
 
@@ -25,7 +24,7 @@ export class SystemRecovery {
 	private subscription?: Subscription;
 
 	constructor(
-		private readonly client: LogStoreClient,
+		private readonly client: StreamrClient,
 		private readonly recoveryStream: Stream,
 		private readonly systemStream: Stream,
 		private readonly cache: SystemCache
@@ -55,10 +54,9 @@ export class SystemRecovery {
 		}
 
 		const recoveryRequest = systemMessage as RecoveryRequest;
-		logger.debug(
-			'Received RecoveryRequest %s',
-			JSON.stringify(recoveryRequest)
-		);
+		logger.debug('Received RecoveryRequest', {
+			recoveryRequest,
+		});
 
 		setImmediate(async () => {
 			await this.processRequest(
@@ -107,14 +105,11 @@ export class SystemRecovery {
 		const recoveryResponseSeralized = recoveryResponse.serialize();
 
 		await this.recoveryStream.publish(recoveryResponseSeralized);
-		logger.debug(
-			'Published RecoveryResponse %s',
-			JSON.stringify({
-				requestId: recoveryResponse.requestId,
-				seqNum: recoveryResponse.seqNum,
-				bytes: recoveryResponseSeralized.length,
-			})
-		);
+		logger.debug('Published RecoveryResponse', {
+			requestId: recoveryResponse.requestId,
+			seqNum: recoveryResponse.seqNum,
+			bytes: recoveryResponseSeralized.length,
+		});
 	}
 
 	private async sendComplete(requestId: string, isFulfilled: boolean) {
@@ -126,13 +121,10 @@ export class SystemRecovery {
 		const recoveryCompleteSeralized = recoveryComplete.serialize();
 
 		await this.recoveryStream.publish(recoveryCompleteSeralized);
-		logger.debug(
-			'Published RecoveryComplete %s',
-			JSON.stringify({
-				requestId: recoveryComplete.requestId,
-				seqNum: recoveryComplete.seqNum,
-				bytes: recoveryCompleteSeralized.length,
-			})
-		);
+		logger.debug('Published RecoveryComplete', {
+			requestId: recoveryComplete.requestId,
+			seqNum: recoveryComplete.seqNum,
+			bytes: recoveryCompleteSeralized.length,
+		});
 	}
 }

@@ -1,6 +1,6 @@
 import { EVENTS_PER_RESPONSE_LIMIT_ON_NON_STREAM } from './constants';
+import { QueryHttpRequest } from './requestTypes';
 import { isStreamRequest } from './utils';
-import { QueryHttpRequest } from "./requestTypes";
 
 /*
  * @dev

@@ -1,4 +1,4 @@
-import { EthereumAddress, MessageMetadata } from '@logsn/client';
+import { EthereumAddress, MessageMetadata } from 'streamr-client';
 
 import { BroadbandSubscriber } from '../shared/BroadbandSubscriber';
 

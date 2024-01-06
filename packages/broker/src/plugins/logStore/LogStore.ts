@@ -274,6 +274,7 @@ export class LogStore extends EventEmitter {
 	 */
 	requestByMessageIds(messageIdsSerialized: string[]) {
 		const messageIds = messageIdsSerialized.map((messageId) =>
+			// @ts-expect-error Property 'fromArray' does not exist on type 'typeof MessageID'
 			MessageID.fromArray(JSON.parse(messageId))
 		);
 
@@ -568,8 +569,7 @@ export class LogStore extends EventEmitter {
 				});
 
 				const streams = queries.map((q) => {
-					const select = `SELECT payload
-													FROM stream_data ${q.queryStatement} ALLOW FILTERING`;
+					const select = `SELECT payload FROM stream_data ${q.queryStatement} ALLOW FILTERING`;
 
 					return this.queryWithStreamingResults(select, q.params);
 				});

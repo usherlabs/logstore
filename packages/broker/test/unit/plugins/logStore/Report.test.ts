@@ -1,9 +1,5 @@
 import { Wallet } from '@ethersproject/wallet';
-import LogStoreClient, {
-	CONFIG_TEST,
-	NodeMetadata,
-	StreamPermission,
-} from '@logsn/client';
+import { NodeMetadata } from '@logsn/client';
 import { LogStoreNodeManager } from '@logsn/contracts';
 import {
 	getNodeManagerContract,
@@ -18,11 +14,12 @@ import { Tracker } from '@streamr/network-tracker';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers } from 'ethers';
 import { range } from 'lodash';
+import StreamrClient, { CONFIG_TEST, StreamPermission } from 'streamr-client';
 
 // import { StrictConfig } from '../../../../src/config/config';
 import { ReportPoller } from '../../../../src/plugins/logStore/ReportPoller';
 import {
-	createLogStoreClient,
+	createStreamrClient,
 	createTestStream,
 	startTestTracker,
 } from '../../../utils';
@@ -35,12 +32,12 @@ const NUM_NODES = 1;
 
 describe(ReportPoller, () => {
 	let tracker: Tracker;
-	let client1: LogStoreClient;
+	let client1: StreamrClient;
 	let brokerWallet: Wallet;
 	let testStream: any;
 	let provider: providers.JsonRpcProvider;
 	let logStoreBrokerWallets: Wallet[] = [];
-	let publisherClients: LogStoreClient[] = [];
+	let publisherClients: StreamrClient[] = [];
 	let _localReport: any;
 	const nodeManagers: LogStoreNodeManager[] = [];
 
@@ -62,7 +59,7 @@ describe(ReportPoller, () => {
 		publisherClients = await Promise.all(
 			range(NUM_NODES).map(async (_, index) => {
 				const newPK = logStoreBrokerWallets[index].privateKey;
-				const client = await createLogStoreClient(tracker, newPK);
+				const client = await createStreamrClient(tracker, newPK);
 				return client;
 			})
 		);
@@ -153,74 +150,74 @@ describe(ReportPoller, () => {
 		}
 	});
 
-	// test('Report Can be submitted by one node in the network', async () => {
-	// 	const reportPoller = new ReportPoller(
-	// 		CONFIG_TEST as StrictConfig,
-	// 		client1 as LogStoreClient,
-	// 		brokerWallet,
-	// 		testStream
-	// 	);
-	// 	// generate a report with the address of a broker node that has been staked in query and store manager contracts
-	// 	const [submitReportTX] = (await reportPoller.processNewReport(
-	// 		localReport
-	// 	)) as ethers.ContractTransaction[];
-	// 	const reportManager = await getReportManagerContract(
-	// 		logStoreBrokerWallets[0]
-	// 	);
-
-	// 	const latestReport = await reportManager.getLastReport();
-	// 	const latestReportId = latestReport.id;
-
-	// 	expect(submitReportTX.chainId).toBe(
-	// 		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	// 	);
-	// 	expect(latestReportId).toBe(localReport.id);
-
-	// 	const latestReportPostProcess = await reportManager.getLastReport();
-	// 	expect(latestReportPostProcess._processed).toBe(true);
-	// });
-
-	// test('Report Can only be submitted when more than half the nodes submit one', async () => {
-	// 	// check how many nodes are joined
-	// 	const testReport = { ...localReport };
-	// 	const reportManager = await getReportManagerContract(
-	// 		logStoreBrokerWallets[0]
-	// 	);
-	// 	const nodeManager = await getNodeManagerContract(logStoreBrokerWallets[0]);
-	// 	const nodes = await nodeManager.nodeAddresses();
-	// 	const reporters = await reportManager.getReporters();
-	// 	console.log({ activeNodes: nodes, reporters });
-	// 	// start report listener
-	// 	const reportPoller = new ReportPoller(
-	// 		CONFIG_TEST as StrictConfig,
-	// 		client1 as LogStoreClient,
-	// 		brokerWallet,
-	// 		testStream
-	// 	);
-	// 	const reportPollerPromise = reportPoller.processNewReport(testReport);
-	// 	// publish to stream with more than enough positives
-	// 	for await (const i of range(0, NUM_NODES).slice(1)) {
-	// 		const poller = new ReportPoller(
-	// 			CONFIG_TEST as StrictConfig,
-	// 			publisherClients[i] as LogStoreClient,
-	// 			logStoreBrokerWallets[i],
-	// 			testStream
-	// 		);
-	// 		await poller.publishReport(testReport);
-	// 	}
-	// 	const [submitReportTX] = (await reportPollerPromise) as [any, any];
-	// 	// wait until report listener resolves with transactions
-	// 	// veryfy success
-
-	// 	const latestReport = await reportManager.getLastReport();
-	// 	const latestReportId = latestReport.id;
-
-	// 	expect(submitReportTX.chainId).toBe(
-	// 		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	// 	);
-	// 	expect(latestReportId).toBe(localReport.id);
-
-	// 	const latestReportPostProcess = await reportManager.getLastReport();
-	// 	expect(latestReportPostProcess._processed).toBe(true);
-	// });
+	test.skip('Report Can be submitted by one node in the network', async () => {
+		// 	const reportPoller = new ReportPoller(
+		// 		CONFIG_TEST as StrictConfig,
+		// 		client1 as LogStoreClient,
+		// 		brokerWallet,
+		// 		testStream
+		// 	);
+		// 	// generate a report with the address of a broker node that has been staked in query and store manager contracts
+		// 	const [submitReportTX] = (await reportPoller.processNewReport(
+		// 		localReport
+		// 	)) as ethers.ContractTransaction[];
+		// 	const reportManager = await getReportManagerContract(
+		// 		logStoreBrokerWallets[0]
+		// 	);
+		//
+		// 	const latestReport = await reportManager.getLastReport();
+		// 	const latestReportId = latestReport.id;
+		//
+		// 	expect(submitReportTX.chainId).toBe(
+		// 		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+		// 	);
+		// 	expect(latestReportId).toBe(localReport.id);
+		//
+		// 	const latestReportPostProcess = await reportManager.getLastReport();
+		// 	expect(latestReportPostProcess._processed).toBe(true);
+		// });
+		//
+		// test('Report Can only be submitted when more than half the nodes submit one', async () => {
+		// 	// check how many nodes are joined
+		// 	const testReport = { ...localReport };
+		// 	const reportManager = await getReportManagerContract(
+		// 		logStoreBrokerWallets[0]
+		// 	);
+		// 	const nodeManager = await getNodeManagerContract(logStoreBrokerWallets[0]);
+		// 	const nodes = await nodeManager.nodeAddresses();
+		// 	const reporters = await reportManager.getReporters();
+		// 	console.log({ activeNodes: nodes, reporters });
+		// 	// start report listener
+		// 	const reportPoller = new ReportPoller(
+		// 		CONFIG_TEST as StrictConfig,
+		// 		client1 as LogStoreClient,
+		// 		brokerWallet,
+		// 		testStream
+		// 	);
+		// 	const reportPollerPromise = reportPoller.processNewReport(testReport);
+		// 	// publish to stream with more than enough positives
+		// 	for await (const i of range(0, NUM_NODES).slice(1)) {
+		// 		const poller = new ReportPoller(
+		// 			CONFIG_TEST as StrictConfig,
+		// 			publisherClients[i] as LogStoreClient,
+		// 			logStoreBrokerWallets[i],
+		// 			testStream
+		// 		);
+		// 		await poller.publishReport(testReport);
+		// 	}
+		// 	const [submitReportTX] = (await reportPollerPromise) as [any, any];
+		// 	// wait until report listener resolves with transactions
+		// 	// veryfy success
+		//
+		// 	const latestReport = await reportManager.getLastReport();
+		// 	const latestReportId = latestReport.id;
+		//
+		// 	expect(submitReportTX.chainId).toBe(
+		// 		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+		// 	);
+		// 	expect(latestReportId).toBe(localReport.id);
+		//
+		// 	const latestReportPostProcess = await reportManager.getLastReport();
+		// 	expect(latestReportPostProcess._processed).toBe(true);
+	});
 });

@@ -1,5 +1,5 @@
 import type { StreamMessage } from '@streamr/protocol';
-import { Logger } from '@streamr/utils';
+import { Logger, merge } from '@streamr/utils';
 import { Client } from 'cassandra-driver';
 import { EventEmitter } from 'events';
 
@@ -41,7 +41,7 @@ export class BatchManager extends EventEmitter {
 	) {
 		super();
 		ID += 1;
-		this.logger = new Logger(module, `${ID}`);
+		this.logger = new Logger(module, { id: `${ID}` });
 
 		const defaultOptions = {
 			useTtl: false,
@@ -52,10 +52,7 @@ export class BatchManager extends EventEmitter {
 			batchMaxRetries: 1000, // in total max ~16 minutes timeout
 		};
 
-		this.opts = {
-			...defaultOptions,
-			...opts,
-		};
+		this.opts = merge(defaultOptions, opts);
 
 		// bucketId => batch
 		this.batches = Object.create(null);
@@ -66,7 +63,6 @@ export class BatchManager extends EventEmitter {
 		this.insertStatement = this.opts.useTtl
 			? INSERT_STATEMENT_WITH_TTL
 			: INSERT_STATEMENT;
-		this.logger.trace('create %o', this.opts);
 	}
 
 	store(
@@ -81,7 +77,7 @@ export class BatchManager extends EventEmitter {
 		}
 
 		if (this.batches[bucketId] === undefined) {
-			this.logger.trace('creating new batch');
+			this.logger.trace('Create new batch');
 
 			const newBatch = new Batch(
 				bucketId,
@@ -109,7 +105,6 @@ export class BatchManager extends EventEmitter {
 	}
 
 	private moveFullBatch(bucketId: BucketId, batch: Batch): void {
-		this.logger.trace('moving batch to pendingBatches');
 		const batchId = batch.getId();
 		this.pendingBatches[batchId] = batch;
 		batch.scheduleInsert();
@@ -141,26 +136,23 @@ export class BatchManager extends EventEmitter {
 				prepare: true,
 			});
 
-			this.logger.trace(`inserted batch id:${batch.getId()}`);
+			this.logger.trace('Insert batch', { batchId: batch.getId() });
 			batch.done();
 			batch.clear();
 			delete this.pendingBatches[batch.getId()];
 		} catch (err) {
-			this.logger.trace(`failed to insert batch, error ${err}`);
 			if (this.opts.logErrors) {
-				this.logger.error(`Failed to insert batchId: (${batchId})`);
-				this.logger.error(err);
+				this.logger.error('Failed to insert batch', { batchId, err });
 			}
 
 			// stop if reached max retries
 			// TODO: This probably belongs in Batch
 			if (batch.reachedMaxRetries()) {
 				if (this.opts.logErrors) {
-					this.logger.error(
-						`Batch %s reached max retries %s, dropping batch`,
-						batch.getId(),
-						batch.retries
-					);
+					this.logger.error('Drop batch (max retries reached)', {
+						batchId: batch.getId(),
+						retries: batch.retries,
+					});
 				}
 				batch.clear();
 				delete this.pendingBatches[batch.getId()];

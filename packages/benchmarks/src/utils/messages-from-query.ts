@@ -1,6 +1,7 @@
-import { LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import type { QueryInput } from '@logsn/client/src/Queries';
 import { Observable } from 'rxjs';
+import { Stream } from 'streamr-client';
 
 export const messagesFromQuery = (
 	client: LogStoreClient,
@@ -18,7 +19,7 @@ export const messagesFromQuery = (
 
 		return () => {
 			void streamPromise.then((stream) => {
-				stream.endWrite();
+				stream.messageStream.endWrite();
 			});
 		};
 	});

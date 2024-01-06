@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 
 import { Pulse } from '../../Pulse';
-import { getClient } from '../../utils/getClient';
+import { getClients } from '../../utils/getClient';
 // import { waitForKyve } from '../../utils/waitForKyve';
 import { amountArgument } from '../arguments';
 import {
@@ -44,7 +44,10 @@ export const initCommand = new Command('init')
 		// 	await waitForKyve(options.kyveApiUrl, options.kyvePoolId);
 		// }
 
-		const client = getClient(options.privateKey, options.devNetwork);
-		const pulse = new Pulse(client);
+		const { logStoreClient, streamrClient } = getClients(
+			options.privateKey,
+			options.devNetwork
+		);
+		const pulse = new Pulse(logStoreClient, streamrClient);
 		await pulse.createStream(amount);
 	});

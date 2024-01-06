@@ -1,5 +1,4 @@
 import type { IRuntime } from '@kyvejs/protocol';
-import { MessageMetadata } from '@logsn/client';
 import type {
 	IReportV1,
 	QueryPropagate,
@@ -8,6 +7,7 @@ import type {
 } from '@logsn/protocol';
 import Decimal from 'decimal.js';
 import { BigNumber } from 'ethers';
+import { MessageMetadata } from 'streamr-client';
 
 import type { SystemListener, TimeIndexer } from '../threads';
 import type Validator from '../validator';

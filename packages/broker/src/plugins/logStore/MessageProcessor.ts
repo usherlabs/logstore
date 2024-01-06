@@ -1,7 +1,7 @@
 import { BrokerProgram, BrokerProgramModule } from '@logsn/broker-program';
-import { LogStoreClient, Stream } from '@logsn/client';
 import { StreamMessage } from '@streamr/protocol';
 import { Logger } from '@streamr/utils';
+import StreamrClient, { Stream } from 'streamr-client';
 
 import { LogStorePluginConfig } from './LogStorePlugin';
 
@@ -22,7 +22,7 @@ export class MessageProcessor {
 
 	constructor(
 		private readonly config: Pick<LogStorePluginConfig, 'programs'>,
-		private readonly logStoreClient: LogStoreClient,
+		private readonly streamrClient: StreamrClient,
 		private readonly topicsStream: Stream
 	) {
 		//
@@ -51,21 +51,18 @@ export class MessageProcessor {
 
 			const processedContent = await program.process(content);
 
-			await this.logStoreClient.publish(this.topicsStream, {
+			await this.streamrClient.publish(this.topicsStream, {
 				logStoreChainId: __logStoreChainId,
 				logStoreChannelId: __logStoreChannelId,
 				logStoreStreamId: msg.getStreamId(),
 				...(processedContent as object),
 			});
 		} catch (error) {
-			logger.error(
-				'Failed to process Event by BrokerProgram %o',
-				{
-					logStoreChainId: __logStoreChainId,
-					logStoreChannelId: __logStoreChannelId,
-				},
-				error
-			);
+			logger.error('Failed to process Event by BrokerProgram', {
+				logStoreChainId: __logStoreChainId,
+				logStoreChannelId: __logStoreChannelId,
+				error,
+			});
 		}
 	}
 

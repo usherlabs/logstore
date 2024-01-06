@@ -1,5 +1,4 @@
-import { CONFIG_TEST, LogStoreClient } from '@logsn/client';
-import type { Message, Stream, StreamPermission } from '@logsn/client';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { LogStoreManager, LogStoreQueryManager } from '@logsn/contracts';
 import {
 	getQueryManagerContract,
@@ -10,6 +9,12 @@ import {
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
+import StreamrClient, {
+	Message,
+	Stream,
+	StreamPermission,
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
+} from 'streamr-client';
 
 import { createTestStream } from '../utils/test-stream';
 
@@ -41,8 +46,8 @@ type Fixtures = {
 	storeConsumerAccount: Wallet;
 	storeManager: LogStoreManager;
 	queryManager: LogStoreQueryManager;
-	publisherClient: LogStoreClient;
-	consumerClient: LogStoreClient;
+	publisherClient: StreamrClient;
+	consumerClient: StreamrClient;
 	stream: StreamBag;
 };
 
@@ -53,8 +58,8 @@ const useProvider: Resource<providers.JsonRpcProvider> = async (
 	use
 ) => {
 	const provider = new providers.JsonRpcProvider(
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
+		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
 	);
 	await use(provider);
 };
@@ -107,11 +112,11 @@ const useQueryManager: Resource<
 };
 
 const useConsumerClient: Resource<
-	LogStoreClient,
+	StreamrClient,
 	Pick<Fixtures, 'storeConsumerAccount'>
 > = async ({ storeConsumerAccount }, use) => {
-	const client = new LogStoreClient({
-		...CONFIG_TEST,
+	const client = new StreamrClient({
+		...STREAMR_CONFIG_TEST,
 		auth: {
 			privateKey: storeConsumerAccount.privateKey,
 		},
@@ -122,11 +127,11 @@ const useConsumerClient: Resource<
 };
 
 const usePublisherClient: Resource<
-	LogStoreClient,
+	StreamrClient,
 	Pick<Fixtures, 'publisherAccount'>
 > = async ({ publisherAccount }, use) => {
-	const client = new LogStoreClient({
-		...CONFIG_TEST,
+	const client = new StreamrClient({
+		...STREAMR_CONFIG_TEST,
 		auth: {
 			privateKey: publisherAccount.privateKey,
 		},

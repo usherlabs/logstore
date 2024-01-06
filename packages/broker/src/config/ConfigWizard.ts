@@ -1,4 +1,3 @@
-import { CONFIG_TEST } from '@logsn/client';
 import { toEthereumAddress } from '@streamr/utils';
 import chalk from 'chalk';
 import { Wallet } from 'ethers';
@@ -35,7 +34,8 @@ const PRIVATE_KEY_SOURCE_IMPORT = 'Import';
 export const CONFIG_TEMPLATE: any = {
 	// TODO: config schema URI
 	// $schema: formSchemaUrl(CURRENT_CONFIGURATION_VERSION),
-	client: {
+	logStoreClient: {},
+	streamrClient: {
 		auth: {},
 	},
 	// TODO: configure LogStore plugin by the ConfigWizard

@@ -8,9 +8,15 @@
 		"$schema": {
 			"type": "string"
 		},
-		"client": {
+		"logStoreClient": {
 			"type": "object",
-			"description": "Client configuration",
+			"description": "LogStore Client configuration",
+			"additionalProperties": true,
+			"default": {}
+		},
+		"streamrClient": {
+			"type": "object",
+			"description": "Streamr Client configuration",
 			"additionalProperties": true,
 			"properties": {
 				"auth": {
@@ -67,7 +73,11 @@
 					"type": "number"
 				}
 			},
-			"required": ["id", "url", "pollInterval"],
+			"required": [
+				"id",
+				"url",
+				"pollInterval"
+			],
 			"default": {
 				"id": "26",
 				"url": "https://api-eu-1.korellia.kyve.network",

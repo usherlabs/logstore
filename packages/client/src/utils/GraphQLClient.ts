@@ -1,4 +1,3 @@
-import { HttpFetcher, LoggerFactory } from '@logsn/streamr-client';
 import { Logger } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
@@ -6,6 +5,11 @@ import {
 	LogStoreClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
 } from '../Config';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from '../streamr/LoggerFactory';
+import { HttpFetcher } from '../streamr/utils/HttpFetcher';
 
 export interface GraphQLQuery {
 	query: string;
@@ -19,7 +23,7 @@ export class GraphQLClient {
 	private readonly logger: Logger;
 
 	constructor(
-		@inject(LoggerFactory) loggerFactory: LoggerFactory,
+		@inject(LoggerFactoryInjectionToken) loggerFactory: LoggerFactory,
 		@inject(HttpFetcher) httpFetcher: HttpFetcher,
 		@inject(LogStoreClientConfigInjectionToken)
 		config: Pick<StrictLogStoreClientConfig, 'contracts'>
@@ -30,7 +34,7 @@ export class GraphQLClient {
 	}
 
 	async sendQuery(query: GraphQLQuery): Promise<any> {
-		this.logger.debug('GraphQL query: %s', query);
+		this.logger.debug('GraphQL query', { query });
 		const res = await this.httpFetcher.fetch(
 			this.config.contracts.logStoreTheGraphUrl,
 			{

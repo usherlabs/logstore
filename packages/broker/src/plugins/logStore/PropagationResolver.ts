@@ -1,4 +1,4 @@
-import { EthereumAddress, MessageMetadata, verify } from '@logsn/client';
+import { verify } from '@logsn/client';
 import {
 	QueryPropagate,
 	QueryRequest,
@@ -7,7 +7,8 @@ import {
 	SystemMessageType,
 } from '@logsn/protocol';
 import { createSignaturePayload, StreamMessage } from '@streamr/protocol';
-import { Logger, toEthereumAddress } from '@streamr/utils';
+import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
+import { MessageMetadata } from 'streamr-client';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { Heartbeat } from './Heartbeat';
@@ -177,16 +178,12 @@ export class PropagationResolver {
 		return Promise.race([
 			new Promise<never>((_, reject) => {
 				timeout = setTimeout(() => {
-					logger.warn(
-						'Propagation timeout on request %s',
-						queryRequest.requestId
-					);
-					logger.debug(
-						'Current state of the query on timeout: %s',
-						JSON.stringify(
-							this.queryPropagationStateMap.get(queryRequest.requestId)
-						)
-					);
+					logger.warn('Propagation timeout on request', {
+						requestId: queryRequest.requestId,
+					});
+					logger.debug('Current state of the query on timeout', {
+						state: this.queryPropagationStateMap.get(queryRequest.requestId),
+					});
 					this.clean(queryRequest.requestId);
 					reject('Propagation timeout');
 				}, TIMEOUT);

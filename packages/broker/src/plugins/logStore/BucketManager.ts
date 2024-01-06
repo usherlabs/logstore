@@ -1,4 +1,4 @@
-import { Logger } from '@streamr/utils';
+import { Logger, merge } from '@streamr/utils';
 import { types as cassandraTypes, Client } from 'cassandra-driver';
 import Heap from 'heap';
 
@@ -54,10 +54,7 @@ export class BucketManager {
 			bucketKeepAliveSeconds: 60,
 		};
 
-		this.opts = {
-			...defaultOptions,
-			...opts,
-		};
+		this.opts = merge(defaultOptions, opts);
 
 		this.streamParts = Object.create(null);
 		this.buckets = Object.create(null);
@@ -81,7 +78,7 @@ export class BucketManager {
 		const key = toKey(streamId, partition);
 
 		if (this.streamParts[key]) {
-			logger.trace(`stream ${key} found`);
+			logger.trace('Found stream', { key });
 			bucketId = this.findBucketId(key, timestamp);
 
 			if (!bucketId) {
@@ -92,7 +89,7 @@ export class BucketManager {
 						: timestamp;
 			}
 		} else {
-			logger.trace(`stream ${key} not found, create new`);
+			logger.trace('Create new (stream not found)', { key });
 
 			this.streamParts[key] = {
 				streamId,
@@ -110,7 +107,9 @@ export class BucketManager {
 		if (bucket) {
 			bucket.incrementBucket(size);
 		} else {
-			logger.warn(`${bucketId} not found`);
+			logger.warn('Failed to increment bucket (bucket not found)', {
+				bucketId,
+			});
 		}
 	}
 
@@ -127,9 +126,10 @@ export class BucketManager {
 		timestamp: number
 	): string | undefined {
 		let bucketId;
-		logger.trace(
-			`checking stream: ${key}, timestamp: ${timestamp} in BucketManager state`
-		);
+		logger.trace('Check stream in state', {
+			key,
+			timestamp,
+		});
 
 		const stream = this.streamParts[key];
 		if (stream) {
@@ -157,13 +157,6 @@ export class BucketManager {
 				}
 			}
 		}
-
-		// just for logger.debugging
-		logger.trace(
-			`bucketId ${
-				bucketId ? 'FOUND' : ' NOT FOUND'
-			} for stream: ${key}, timestamp: ${timestamp}`
-		);
 		return bucketId;
 	}
 
@@ -225,7 +218,8 @@ export class BucketManager {
 
 			if (insertNewBucket) {
 				logger.trace(
-					`bucket for timestamp: ${minTimestamp} not found, create new bucket`
+					'Create new bucket (existing bucket for timestamp not found)',
+					{ minTimestamp }
 				);
 
 				// we create first in memory, so don't wait for database, then _storeBuckets inserts bucket into database
@@ -383,8 +377,8 @@ export class BucketManager {
 	}
 
 	stop(): void {
-		clearInterval(this.checkFullBucketsTimeout!);
-		clearInterval(this.storeBucketsTimeout!);
+		clearInterval(this.checkFullBucketsTimeout);
+		clearInterval(this.storeBucketsTimeout);
 	}
 
 	private async storeBuckets(): Promise<void> {

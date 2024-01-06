@@ -1,6 +1,6 @@
-import { MessageMetadata } from '@logsn/client';
 import { SystemMessage, SystemMessageType } from '@logsn/protocol';
 import { Logger } from '@streamr/utils';
+import { MessageMetadata } from 'streamr-client';
 
 import { BroadbandSubscriber } from '../../shared/BroadbandSubscriber';
 import { KyvePool } from './KyvePool';
@@ -102,9 +102,9 @@ export class SystemCache {
 	private async shrink(timestamp: number) {
 		this.records = this.get(timestamp);
 
-		logger.debug(
-			'Shrunk %s',
-			JSON.stringify({ timestamp, records: this.records.length })
-		);
+		logger.debug('Shrunk', {
+			timestamp,
+			records: this.records.length,
+		});
 	}
 }

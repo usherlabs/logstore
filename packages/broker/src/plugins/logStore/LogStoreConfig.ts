@@ -1,6 +1,7 @@
-import { LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import { StreamPartID } from '@streamr/protocol';
 import { keyToArrayIndex, Logger } from '@streamr/utils';
+import StreamrClient, { Stream } from 'streamr-client';
 
 import { LogStoreEventListener } from './LogStoreEventListener';
 import { LogStorePoller } from './LogStorePoller';
@@ -47,6 +48,7 @@ export class LogStoreConfig {
 		myIndexInCluster: number,
 		pollInterval: number,
 		logStoreClient: LogStoreClient,
+		streamrClient: StreamrClient,
 		listener: LogStoreConfigListener
 	) {
 		this.clusterSize = clusterSize;
@@ -69,6 +71,7 @@ export class LogStoreConfig {
 		);
 		this.logStoreEventListener = new LogStoreEventListener(
 			logStoreClient,
+			streamrClient,
 			(stream, type, block) => {
 				const streamParts = this.createMyStreamParts(stream);
 				this.handleDiff(
@@ -113,6 +116,9 @@ export class LogStoreConfig {
 		removed.forEach((streamPart) =>
 			this.listener.onStreamPartRemoved(streamPart)
 		);
-		logger.info('added %j to and removed %j from state', added, removed);
+		logger.info('Updated state', {
+			added,
+			removed,
+		});
 	}
 }

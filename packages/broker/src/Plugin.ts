@@ -1,7 +1,8 @@
-import { LogStoreClient, Stream } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import { LogStoreNodeManager } from '@logsn/contracts';
 import { Schema } from 'ajv';
 import { Signer } from 'ethers';
+import StreamrClient, { Stream } from 'streamr-client';
 
 import { StrictConfig } from './config/config';
 import { validateConfig } from './config/validateConfig';
@@ -10,6 +11,7 @@ import { Endpoint } from './httpServer';
 export interface PluginOptions {
 	name: string;
 	logStoreClient: LogStoreClient;
+	streamrClient: StreamrClient;
 	heartbeatStream: Stream;
 	recoveryStream: Stream;
 	systemStream: Stream;
@@ -24,6 +26,7 @@ export type HttpServerEndpoint = Omit<Endpoint, 'apiAuthentication'>;
 export abstract class Plugin<T extends object> {
 	readonly name: string;
 	readonly logStoreClient: LogStoreClient;
+	readonly streamrClient: StreamrClient;
 	readonly heartbeatStream: Stream;
 	readonly recoveryStream: Stream;
 	readonly systemStream: Stream;
@@ -37,6 +40,7 @@ export abstract class Plugin<T extends object> {
 	constructor(options: PluginOptions) {
 		this.name = options.name;
 		this.logStoreClient = options.logStoreClient;
+		this.streamrClient = options.streamrClient;
 		this.heartbeatStream = options.heartbeatStream;
 		this.recoveryStream = options.recoveryStream;
 		this.systemStream = options.systemStream;

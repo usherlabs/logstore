@@ -1,6 +1,6 @@
-import { Stream } from '@logsn/client';
 import { EthereumAddress, Logger, MetricsContext } from '@streamr/utils';
 import { Schema } from 'ajv';
+import { Stream } from 'streamr-client';
 
 import { Plugin, PluginOptions } from '../../Plugin';
 import { BroadbandPublisher } from '../../shared/BroadbandPublisher';
@@ -83,12 +83,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		super(options);
 
 		this.systemPublisher = new BroadbandPublisher(
-			this.logStoreClient,
+			this.streamrClient,
 			this.systemStream
 		);
 
 		this.systemSubscriber = new BroadbandSubscriber(
-			this.logStoreClient,
+			this.streamrClient,
 			this.systemStream
 		);
 
@@ -98,12 +98,12 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		);
 
 		this.heartbeatSubscriber = new BroadbandSubscriber(
-			this.logStoreClient,
+			this.streamrClient,
 			this.heartbeatStream
 		);
 
 		this.heartbeatPublisher = new BroadbandPublisher(
-			this.logStoreClient,
+			this.streamrClient,
 			this.heartbeatStream
 		);
 
@@ -114,14 +114,14 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 
 		this.messageProcessor = new MessageProcessor(
 			this.pluginConfig,
-			this.logStoreClient,
+			this.streamrClient,
 			this.topicsStream
 		);
 
-		this.messageListener = new MessageListener(this.logStoreClient);
+		this.messageListener = new MessageListener(this.streamrClient);
 
 		this.messageMetricsCollector = new MessageMetricsCollector(
-			this.logStoreClient,
+			this.streamrClient,
 			this.systemSubscriber,
 			this.recoveryStream
 		);
@@ -129,7 +129,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		this.systemCache = new SystemCache(this.systemSubscriber, this.kyvePool);
 
 		this.systemRecovery = new SystemRecovery(
-			this.logStoreClient,
+			this.streamrClient,
 			this.recoveryStream,
 			this.systemStream,
 			this.systemCache
@@ -179,7 +179,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	}
 
 	async start(): Promise<void> {
-		const clientId = await this.logStoreClient.getAddress();
+		const clientId = await this.streamrClient.getAddress();
 
 		// Context permits usage of this object in the current execution context
 		// i.e. getting the queryRequestManager inside our http endpoint handlers
@@ -190,7 +190,7 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 		});
 
 		const metricsContext = (
-			await this.logStoreClient.getNode()
+			await this.streamrClient.getNode()
 		).getMetricsContext();
 
 		this.maybeLogStore = await this.startCassandraStorage(metricsContext);
@@ -287,13 +287,14 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 	private async startLogStoreConfig(
 		systemStream: Stream
 	): Promise<LogStoreConfig> {
-		const node = await this.logStoreClient.getNode();
+		const node = await this.streamrClient.getNode();
 
 		const logStoreConfig = new LogStoreConfig(
 			this.pluginConfig.cluster.clusterSize,
 			this.pluginConfig.cluster.myIndexInCluster,
 			this.pluginConfig.logStoreConfig.refreshInterval,
 			this.logStoreClient,
+			this.streamrClient,
 			{
 				onStreamPartAdded: async (streamPart) => {
 					try {
@@ -309,16 +310,14 @@ export class LogStorePlugin extends Plugin<LogStorePluginConfig> {
 						// await systemStream.publish({
 						// 	streamPart,
 						// });
-						logger.debug(
-							'published Assignment message to system stream %s',
-							systemStream.id
-						);
+						logger.debug('published Assignment message to system stream', {
+							streamrId: systemStream.id,
+						});
 					} catch (e) {
-						logger.warn(
-							'failed to publish to system stream %s, reason: %s',
-							systemStream.id,
-							e
-						);
+						logger.warn('failed to publish to system stream', {
+							streamId: systemStream.id,
+							error: e,
+						});
 					}
 				},
 				onStreamPartRemoved: (streamPart) => {

@@ -31,7 +31,7 @@ function retryFlakyTest(
 				return;
 			} catch (e) {
 				if (isFlakyError(e)) {
-					logger.warn('Flaky test run detected %d/%d run', i, maxRuns);
+					logger.warn('Flaky test run detected', { i, maxRuns });
 					if (i === maxRuns) {
 						throw e;
 					}
