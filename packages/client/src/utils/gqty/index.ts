@@ -1,11 +1,11 @@
 /**
  * GQty: You can safely modify this file based on your needs.
  */
-import { HttpFetcher } from '@logsn/streamr-client';
 import { Cache, createClient, GQtyError, type QueryFetcher } from 'gqty';
 import { createClient as createSubscriptionsClient } from 'graphql-ws';
 import { Headers } from 'node-fetch';
 
+import type { HttpFetcher } from '../../streamr/utils/HttpFetcher';
 import {
 	generatedSchema,
 	type GeneratedSchema,

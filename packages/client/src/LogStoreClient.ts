@@ -1,4 +1,5 @@
 import type { Overrides } from '@ethersproject/contracts';
+import type { Schema } from 'ajv';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';

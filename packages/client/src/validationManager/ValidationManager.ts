@@ -1,17 +1,21 @@
-import { type StreamID, type StreamMetadata } from '@logsn/streamr-client';
 import type { Schema } from 'ajv';
 import { Option } from 'effect';
+import {
+	type StreamID,
+	type StreamMetadata,
+	StreamrClient,
+} from 'streamr-client';
 import { delay, inject, Lifecycle, scoped } from 'tsyringe';
 
-import { LogStoreClient } from '../LogStoreClient';
 import { defaultAjv, getSchemaFromMetadata } from './getStreamSchema';
 import type { SchemaParams } from './types';
+
 
 @scoped(Lifecycle.ContainerScoped)
 export class ValidationManager {
 	constructor(
-		@inject(delay(() => LogStoreClient))
-		private streamrClient: LogStoreClient
+		@inject(delay(() => StreamrClient))
+		private streamrClient: StreamrClient
 	) {}
 
 	public async setValidationSchema({

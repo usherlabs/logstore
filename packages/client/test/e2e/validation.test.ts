@@ -1,19 +1,24 @@
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
 import { catchError, firstValueFrom, of, skip, timeout } from 'rxjs';
+import {
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
+	StreamrClient,
+} from 'streamr-client';
 
-import { CONFIG_TEST, LogStoreClient } from '../../src';
+import { LogStoreClient } from '../../src';
 import { createTestStream } from '../test-utils/utils';
 
 const TIMEOUT = 90 * 1000;
 describe('validations', () => {
 	const provider = new providers.JsonRpcProvider(
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
+		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
 	);
 
 	let account: Wallet;
-	let accountClient: LogStoreClient;
+	let accountStreamrClient: StreamrClient;
+	let accountLogStoreClient: LogStoreClient;
 
 	const schemaOrHash = {
 		$schema: 'http://json-schema.org/draft-07/schema#',
@@ -31,30 +36,31 @@ describe('validations', () => {
 		console.debug('Initializing tests for: ');
 		console.debug(`Account address: ${account.address}`);
 		console.debug(`Account private key: ${account.privateKey}`);
-		accountClient = new LogStoreClient({
-			...CONFIG_TEST,
+		accountStreamrClient = new StreamrClient({
+			...STREAMR_CONFIG_TEST,
 			auth: {
 				privateKey: account.privateKey,
 			},
 		});
+		accountLogStoreClient = new LogStoreClient(accountStreamrClient);
 	}, TIMEOUT);
 
 	afterAll(async () => {
-		await Promise.allSettled([accountClient?.destroy()]);
+		await Promise.allSettled([accountStreamrClient?.destroy()]);
 	}, TIMEOUT);
 
 	test(
 		'set validation schema',
 		async () => {
-			const stream = await createTestStream(accountClient, module);
+			const stream = await createTestStream(accountStreamrClient, module);
 
-			await accountClient.setValidationSchema({
+			await accountLogStoreClient.setValidationSchema({
 				streamId: stream.id,
 				protocol: 'RAW',
 				schemaOrHash: schemaOrHash,
 			});
 
-			const metadata = await accountClient.getValidationSchema({
+			const metadata = await accountLogStoreClient.getValidationSchema({
 				streamId: stream.id,
 			});
 
@@ -66,19 +72,19 @@ describe('validations', () => {
 	test(
 		'remove validation schema',
 		async () => {
-			const stream = await createTestStream(accountClient, module);
+			const stream = await createTestStream(accountStreamrClient, module);
 
-			await accountClient.setValidationSchema({
+			await accountLogStoreClient.setValidationSchema({
 				streamId: stream.id,
 				protocol: 'RAW',
 				schemaOrHash: schemaOrHash,
 			});
 
-			await accountClient.removeValidationSchema({
+			await accountLogStoreClient.removeValidationSchema({
 				streamId: stream.id,
 			});
 
-			const metadata = await accountClient.getValidationSchema({
+			const metadata = await accountLogStoreClient.getValidationSchema({
 				streamId: stream.id,
 			});
 
@@ -92,18 +98,16 @@ describe('validations', () => {
 	test(
 		'metadataObservable works',
 		async () => {
-			const stream = await createTestStream(accountClient, module);
+			const stream = await createTestStream(accountStreamrClient, module);
 
-			await accountClient.setValidationSchema({
+			await accountLogStoreClient.setValidationSchema({
 				streamId: stream.id,
 				protocol: 'RAW',
 				schemaOrHash: schemaOrHash,
 			});
 
-			const { metadataObservable } = accountClient.createStreamObservable(
-				stream.id,
-				2_000
-			);
+			const { metadataObservable } =
+				accountLogStoreClient.createStreamObservable(stream.id, 2_000);
 
 			const metadata = await firstValueFrom(metadataObservable);
 
@@ -124,7 +128,7 @@ describe('validations', () => {
 			expect(JSON.stringify(metadata)).toInclude(JSON.stringify(schemaOrHash));
 
 			// this should emit the new metadata
-			await accountClient.removeValidationSchema({
+			await accountLogStoreClient.removeValidationSchema({
 				streamId: stream.id,
 			});
 

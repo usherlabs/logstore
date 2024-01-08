@@ -1,8 +1,8 @@
-import type { StreamMetadata } from '@logsn/streamr-client';
 import Ajv, { Schema } from 'ajv';
 import addFormats from 'ajv-formats';
 import { Option } from 'effect';
 import { pipe } from 'rxjs';
+import type { StreamMetadata } from 'streamr-client';
 import { U } from 'ts-toolbelt';
 
 import type { Protocols, SchemaParams } from './types';
