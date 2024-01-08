@@ -1,36 +1,36 @@
 import {
-	counting,
-	createSubscribePipeline,
-	DestroySignal,
-	GroupKeyManager,
-	IResends,
-	LoggerFactory,
-	MessageStream,
+	StreamMessage,
 	StreamPartID,
-	StreamrClientError,
-	StreamRegistryCached,
-	StrictStreamrClientConfig,
-} from '@logsn/streamr-client';
-import { StreamMessage, StreamPartIDUtils } from '@streamr/protocol';
-import { EthereumAddress, Logger, toEthereumAddress } from '@streamr/utils';
-import { defer, EMPTY, partition, shareReplay } from 'rxjs';
-import { delay, inject, Lifecycle, scoped } from 'tsyringe';
+	StreamPartIDUtils,
+} from '@streamr/protocol';
+import { Logger, randomString, toEthereumAddress } from '@streamr/utils';
+import { defer, EMPTY, map, partition, shareReplay } from 'rxjs';
+import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
-	LogStoreClientConfigInjectionToken,
-	StreamrClientConfigInjectionToken,
-	type StrictLogStoreClientConfig,
-} from './Config';
-import { HttpUtil } from './HttpUtil';
+	FetchHttpStreamResponseError,
+	HttpUtil,
+	RequestMetadata,
+} from './HttpUtil';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from './streamr/LoggerFactory';
+import { StreamrClientError } from './streamr/StreamrClientError';
+import {
+	MessagePipelineFactory,
+	MessagePipelineFactoryInjectionToken,
+} from './streamr/subscribe/MessagePipelineFactory';
+import { transformError } from './streamr/utils/GeneratorUtils';
+import { pull } from './streamr/utils/IPushBuffer';
 import {
 	validateWithNetworkResponses,
 	type VerificationOptions,
 } from './utils/networkValidation/validateNetworkResponses';
 import { SystemMessageObservable } from './utils/SystemMessageObservable';
 import { LogStoreClientSystemMessagesInjectionToken } from './utils/systemStreamUtils';
-import { counterId } from './utils/utils';
 
 const MIN_SEQUENCE_NUMBER_VALUE = 0;
 
@@ -139,50 +139,55 @@ function isQueryRange<T extends QueryRangeOptions>(options: any): options is T {
 }
 
 export type QueryOptions = {
+	abortSignal?: AbortSignal;
 	verifyNetworkResponses?: VerificationOptions | boolean;
 };
 
+const getHttpErrorTransform = (): ((
+	error: any
+) => Promise<StreamrClientError>) => {
+	return async (err: any) => {
+		let message;
+		if (err instanceof FetchHttpStreamResponseError) {
+			const body = await err.response.text();
+			let descriptionSnippet;
+			try {
+				const json = JSON.parse(body);
+				descriptionSnippet = `: ${json.error}`;
+			} catch {
+				descriptionSnippet = '';
+			}
+			message = `Storage node fetch failed${descriptionSnippet}, httpStatus=${err.response.status}, url=${err.response.url}`;
+		} else {
+			message = err?.message ?? 'Unknown error';
+		}
+		return new StreamrClientError(message, 'STORAGE_NODE_ERROR');
+	};
+};
+
 @scoped(Lifecycle.ContainerScoped)
-export class Queries implements IResends {
-	private readonly streamRegistryCached: StreamRegistryCached;
+export class Queries {
 	private readonly nodeManager: NodeManager;
 	private readonly httpUtil: HttpUtil;
-	private readonly groupKeyManager: GroupKeyManager;
-	private readonly destroySignal: DestroySignal;
-	private readonly config: StrictLogStoreClientConfig;
-	private readonly streamrConfig: StrictStreamrClientConfig;
-	private readonly loggerFactory: LoggerFactory;
 	private readonly logger: Logger;
+	private readonly messagePipelineFactory: MessagePipelineFactory;
 
 	constructor(
-		@inject(delay(() => StreamRegistryCached))
-		streamRegistryCached: StreamRegistryCached,
 		@inject(NodeManager)
 		nodeManager: NodeManager,
 		@inject(HttpUtil)
 		httpUtil: HttpUtil,
-		@inject(GroupKeyManager)
-		groupKeyManager: GroupKeyManager,
-		@inject(DestroySignal)
-		destroySignal: DestroySignal,
-		@inject(LogStoreClientConfigInjectionToken)
-		config: StrictLogStoreClientConfig,
-		@inject(StreamrClientConfigInjectionToken)
-		streamrConfig: StrictStreamrClientConfig,
-		@inject(LoggerFactory)
+		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,
 		@inject(LogStoreClientSystemMessagesInjectionToken)
-		private systemMessages$: SystemMessageObservable
+		private systemMessages$: SystemMessageObservable,
+		@inject(MessagePipelineFactoryInjectionToken)
+		messagePipelineFactory: MessagePipelineFactory
 	) {
-		this.streamRegistryCached = streamRegistryCached;
 		this.nodeManager = nodeManager;
 		this.httpUtil = httpUtil;
-		this.groupKeyManager = groupKeyManager;
-		this.destroySignal = destroySignal;
-		this.config = config;
-		this.streamrConfig = streamrConfig;
-		this.loggerFactory = loggerFactory;
 		this.logger = loggerFactory.createLogger(module);
+		this.messagePipelineFactory = messagePipelineFactory;
 	}
 
 	async query(
@@ -191,14 +196,23 @@ export class Queries implements IResends {
 		options?: QueryOptions
 	): Promise<LogStoreMessageStream> {
 		if (isQueryLast(input)) {
-			const inputObject = {
-				count: input.last,
-			};
-			return this.last(streamPartId, inputObject, options);
-		}
-
-		if (isQueryRange(input)) {
-			return this.logStoreRange(
+			if (input.last <= 0) {
+				const emptyStream = this.messagePipelineFactory.createMessagePipeline({
+					streamPartId,
+				});
+				return new LogStoreMessageStream(emptyStream, EMPTY);
+			}
+			return this.fetchStream(
+				QueryType.Last,
+				streamPartId,
+				{
+					count: input.last,
+				},
+				options
+			);
+		} else if (isQueryRange(input)) {
+			return this.fetchStream(
+				QueryType.Range,
 				streamPartId,
 				{
 					fromTimestamp: new Date(input.from.timestamp).getTime(),
@@ -213,10 +227,9 @@ export class Queries implements IResends {
 				},
 				options
 			);
-		}
-
-		if (isQueryFrom(input)) {
-			return this.from(
+		} else if (isQueryFrom(input)) {
+			return this.fetchStream(
+				QueryType.From,
 				streamPartId,
 				{
 					fromTimestamp: new Date(input.from.timestamp).getTime(),
@@ -228,15 +241,15 @@ export class Queries implements IResends {
 				},
 				options
 			);
+		} else {
+			throw new StreamrClientError(
+				`can not query without valid query options: ${JSON.stringify({
+					streamPartId,
+					options: input,
+				})}`,
+				'INVALID_ARGUMENT'
+			);
 		}
-
-		throw new StreamrClientError(
-			`can not query without valid query options: ${JSON.stringify({
-				streamPartId,
-				options: input,
-			})}`,
-			'INVALID_ARGUMENT'
-		);
 	}
 
 	private async fetchStream(
@@ -245,14 +258,13 @@ export class Queries implements IResends {
 		query: HttpApiQueryDict,
 		options?: QueryOptions
 	): Promise<LogStoreMessageStream> {
-		const loggerIdx = counterId('fetchStream');
-		this.logger.debug(
-			'[%s] fetching query %s for %s with options %o',
-			loggerIdx,
+		const traceId = randomString(5);
+		this.logger.debug('Fetch query data', {
+			loggerIdx: traceId,
 			queryType,
 			streamPartId,
-			query
-		);
+			query,
+		});
 
 		const nodeUrl =
 			this.config.nodeUrl ?? (await this.nodeManager.getRandomNodeUrl());
@@ -262,18 +274,30 @@ export class Queries implements IResends {
 			format: 'raw',
 			verifyNetworkResponses: !!options?.verifyNetworkResponses,
 		});
-		const messageStream = createSubscribePipeline({
+		const messageStream = this.messagePipelineFactory.createMessagePipeline({
 			streamPartId,
-			resends: this,
-			groupKeyManager: this.groupKeyManager,
-			streamRegistryCached: this.streamRegistryCached,
-			destroySignal: this.destroySignal,
-			config: this.streamrConfig,
-			loggerFactory: this.loggerFactory,
 		});
 
-		const dataStream = defer(() => this.httpUtil.fetchHttpStream(url)).pipe(
-			shareReplay()
+		const lines = transformError(
+			this.httpUtil.fetchHttpStream(url, options?.abortSignal),
+			getHttpErrorTransform()
+		);
+
+		const dataStream = defer(() => lines).pipe(
+			shareReplay({
+				refCount: true,
+			}),
+			map((line: string) => {
+				const msgObject = JSON.parse(line);
+				if (Array.isArray(msgObject)) {
+					return StreamMessage.deserialize(msgObject);
+				}
+				// last message must be metadata
+				if (msgObject.type === 'metadata') {
+					return msgObject as RequestMetadata;
+				}
+				throw new Error('Invalid message');
+			})
 		);
 
 		const isStreamMessage = (msg: any): msg is StreamMessage =>
@@ -284,22 +308,14 @@ export class Queries implements IResends {
 			isStreamMessage
 		);
 
-		const countedSource$ = defer(() =>
-			counting(messagesSource, (count: number) => {
-				this.logger.debug(
-					'[%s] total of %d messages received for query fetch',
-					loggerIdx,
-					count
-				);
-			})
-		).pipe(shareReplay());
+		setImmediate(async () => {
+			await pull(messagesSource, messageStream);
+		});
 
 		const logStoreMessageStream = new LogStoreMessageStream(
 			messageStream,
 			metadataSource
 		);
-
-		logStoreMessageStream.setSourceOnStart(countedSource$);
 
 		if (options?.verifyNetworkResponses) {
 			await validateWithNetworkResponses({
@@ -321,100 +337,6 @@ export class Queries implements IResends {
 		}
 
 		return logStoreMessageStream;
-	}
-
-	private async last(
-		streamPartId: StreamPartID,
-		{ count }: { count: number },
-		options?: QueryOptions
-	): Promise<LogStoreMessageStream> {
-		if (count <= 0) {
-			const emptyStream = new MessageStream();
-			emptyStream.endWrite();
-			return new LogStoreMessageStream(emptyStream, EMPTY);
-		}
-
-		return this.fetchStream(
-			QueryType.Last,
-			streamPartId,
-			{
-				count,
-			},
-			options
-		);
-	}
-
-	private async from(
-		streamPartId: StreamPartID,
-		{
-			fromTimestamp,
-			fromSequenceNumber = MIN_SEQUENCE_NUMBER_VALUE,
-			publisherId,
-		}: {
-			fromTimestamp: number;
-			fromSequenceNumber?: number;
-			publisherId?: EthereumAddress;
-		},
-		options?: QueryOptions
-	): Promise<LogStoreMessageStream> {
-		return this.fetchStream(
-			QueryType.From,
-			streamPartId,
-			{
-				fromTimestamp,
-				fromSequenceNumber,
-				publisherId,
-			},
-			options
-		);
-	}
-
-	async logStoreRange(
-		streamPartId: StreamPartID,
-		{
-			fromTimestamp,
-			fromSequenceNumber = MIN_SEQUENCE_NUMBER_VALUE,
-			toTimestamp,
-			toSequenceNumber = MIN_SEQUENCE_NUMBER_VALUE,
-			publisherId,
-			msgChainId,
-		}: {
-			fromTimestamp: number;
-			fromSequenceNumber?: number;
-			toTimestamp: number;
-			toSequenceNumber?: number;
-			publisherId?: EthereumAddress;
-			msgChainId?: string;
-		},
-		options?: QueryOptions
-	): Promise<LogStoreMessageStream> {
-		const logStoreStream = await this.fetchStream(
-			QueryType.Range,
-			streamPartId,
-			{
-				fromTimestamp,
-				fromSequenceNumber,
-				toTimestamp,
-				toSequenceNumber,
-				publisherId,
-				msgChainId,
-			},
-			options
-		);
-
-		return logStoreStream;
-	}
-
-	/**
-	 * @internal
-	 */
-	async range(
-		...args: Parameters<Queries['logStoreRange']>
-	): Promise<MessageStream> {
-		const logStoreStream = await this.logStoreRange(...args);
-		// This is still returning messageStream, as to be a valid Resend class,
-		// it must not ovewrite this type. It is used when we create the subscription pipeline
-		return logStoreStream.messageStream;
 	}
 
 	createUrl(

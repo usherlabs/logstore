@@ -1,8 +1,6 @@
 import {
+	CONFIG_TEST as LOGSTORE_CONFIG_TEST,
 	LogStoreClient,
-	Message,
-	Stream,
-	StreamPermission,
 } from '@logsn/client';
 import { LogStoreManager, LogStoreQueryManager } from '@logsn/contracts';
 import {
@@ -15,12 +13,17 @@ import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
 import _ from 'lodash';
 import { firstValueFrom, take, tap, toArray } from 'rxjs';
+import StreamrClient, {
+	Message,
+	Stream,
+	StreamPermission,
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
+} from 'streamr-client';
 import Bench from 'tinybench';
 import { Logger } from 'tslog';
 import { afterAll, beforeAll, describe, expect, it, Test } from 'vitest';
 
 // it's important to import CONFIG_TEST relatively, otherwise it won't work
-import { CONFIG_TEST } from '../../client/src/ConfigTest';
 import {
 	LOG_LEVEL,
 	NUMBER_OF_ITERATIONS,
@@ -43,8 +46,8 @@ const MESSAGE_STORE_TIMEOUT = 9 * 1000;
 describe('Client Package Benchmarks', () => {
 	const jsonReporter = createJsonReporter({ filename: 'client-package.json' });
 	const provider = new providers.JsonRpcProvider(
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
+		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
 	);
 
 	// Accounts
@@ -53,8 +56,9 @@ describe('Client Package Benchmarks', () => {
 	let storeConsumerAccount: Wallet;
 
 	// Clients
-	let publisherClient: LogStoreClient;
-	let consumerClient: LogStoreClient;
+	let publisherClient: StreamrClient;
+	let consumerStreamrClient: StreamrClient;
+	let consumerLogStoreClient: LogStoreClient;
 
 	// Contracts
 	let storeManager: LogStoreManager;
@@ -94,24 +98,30 @@ describe('Client Package Benchmarks', () => {
 		logger.info('Contracts prepared');
 
 		// Clients
-		publisherClient = new LogStoreClient({
-			...CONFIG_TEST,
+		publisherClient = new StreamrClient({
+			...STREAMR_CONFIG_TEST,
 			// eslint-disable-next-line
 			// @ts-ignore
-			logLevel: LOG_LEVEL,
+			logLevel: 'debug',
 			auth: {
 				privateKey: publisherAccount.privateKey,
 			},
 		});
 
-		consumerClient = new LogStoreClient({
-			...CONFIG_TEST,
+		consumerStreamrClient = new StreamrClient({
+			...STREAMR_CONFIG_TEST,
 			// eslint-disable-next-line
 			// @ts-ignore
 			logLevel: LOG_LEVEL,
 			auth: {
 				privateKey: storeConsumerAccount.privateKey,
 			},
+		});
+		consumerLogStoreClient = new LogStoreClient(consumerStreamrClient, {
+			...LOGSTORE_CONFIG_TEST,
+			// eslint-disable-next-line
+			// @ts-ignore
+			logLevel: LOG_LEVEL,
 		});
 	}, TEST_TIMEOUT);
 
@@ -130,7 +140,6 @@ describe('Client Package Benchmarks', () => {
 
 		await Promise.allSettled([
 			publisherClient?.destroy(),
-			consumerClient?.destroy(),
 			jsonReporter.save(result),
 		]);
 	}, TEST_TIMEOUT);
@@ -164,7 +173,7 @@ describe('Client Package Benchmarks', () => {
 
 			// TODO: the consumer must have permission to subscribe to the stream or the stream have to be public
 			const grantPermissionPromise = stream.grantPermissions({
-				user: await consumerClient.getAddress(),
+				user: await consumerStreamrClient.getAddress(),
 				permissions: [StreamPermission.SUBSCRIBE],
 			});
 			// await stream.grantPermissions({
@@ -215,7 +224,7 @@ describe('Client Package Benchmarks', () => {
 
 			// messages$ will be a cold stream
 			// so it will restart on each iteration
-			const messages$ = messagesFromQuery(consumerClient, stream, {
+			const messages$ = messagesFromQuery(consumerLogStoreClient, stream, {
 				last: numberOfMessages,
 			}).pipe(
 				// when we get the first message, we know it didn't hanged

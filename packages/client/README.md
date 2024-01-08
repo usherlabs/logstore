@@ -82,6 +82,44 @@ await logStoreClient.addStreamToLogStore(newStream.id, STAKE_AMOUNT);
 await logStoreClient.queryStake(STAKE_AMOUNT);
 ```
 
+## **Using the HTTP Query API**
+
+The Logstore provides two methods to query data: Server-Sent Events (SSE) and HTTP GET requests.
+
+```tsx
+// Create a query URL
+const queryUrl = await logstoreClient.createQueryUrl(
+  'http://some-broker-endpoint.com',
+  { streamId, partition },
+  "Last",
+  { count: NUM_OF_LAST_MESSAGES },
+);
+```
+
+### Server-Sent Events (SSE)
+
+```tsx
+// Fetch data using SSE
+const streamResponse = await axios.get(queryUrl, {
+  headers: { Authorization: `Basic ${token}`, Accept: "text/event-stream" },
+  responseType: "stream",
+});
+```
+
+### HTTP GET Requests
+
+```tsx
+// Fetch data using HTTP GET
+const response = await axios.get(queryUrl, {
+  headers: { Authorization: `Basic ${token}` },
+}).then(({ data }) => data as HTTPQueryJSONResponse);
+```
+
+The API supports different types of queries and response formats. Regular HTTP responses are limited to 5000 messages per request. For real-time or incremental processing, use SSE.
+
+For more detailed information, please refer to the [Logstore API Reference](https://logsn-docs-git-query-api-rsoury.vercel.app/network/api/api-reference).
+
+
 ## Contributing
 
 ### Installation

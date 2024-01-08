@@ -1,6 +1,6 @@
 // import chokidar from 'chokidar';
 import { sha256 } from '@kyvejs/protocol';
-import { LogStoreClient, MessageMetadata } from '@logsn/client';
+import { LogStoreClient } from '@logsn/client';
 import {
 	QueryPropagate,
 	QueryRequest,
@@ -10,6 +10,7 @@ import {
 } from '@logsn/protocol';
 import fse from 'fs-extra';
 import path from 'path';
+import { MessageMetadata } from 'streamr-client';
 import type { Logger } from 'tslog';
 
 import { BroadbandSubscriber } from '../shared/BroadbandSubscriber';
