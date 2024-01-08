@@ -8,6 +8,10 @@ import { defer, EMPTY, map, partition, shareReplay } from 'rxjs';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
+	LogStoreClientConfigInjectionToken,
+	type StrictLogStoreClientConfig,
+} from './Config';
+import {
 	FetchHttpStreamResponseError,
 	HttpUtil,
 	RequestMetadata,
@@ -177,6 +181,8 @@ export class Queries {
 		nodeManager: NodeManager,
 		@inject(HttpUtil)
 		httpUtil: HttpUtil,
+		@inject(LogStoreClientConfigInjectionToken)
+		private logStoreClientConfig: StrictLogStoreClientConfig,
 		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,
 		@inject(LogStoreClientSystemMessagesInjectionToken)
@@ -266,7 +272,9 @@ export class Queries {
 			query,
 		});
 
-		const nodeUrl = await this.nodeManager.getRandomNodeUrl();
+		const nodeUrl =
+			this.logStoreClientConfig.nodeUrl ??
+			(await this.nodeManager.getRandomNodeUrl());
 		const url = this.createUrl(nodeUrl, queryType, streamPartId, {
 			...query,
 			// we will get raw request to desserialize and decrypt

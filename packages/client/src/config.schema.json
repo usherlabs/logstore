@@ -13,6 +13,9 @@
 			"enum": ["silent", "fatal", "error", "warn", "info", "debug", "trace"],
 			"default": "info"
 		},
+		"nodeUrl": {
+			"type": "string"
+		},
 		"contracts": {
 			"type": "object",
 			"additionalProperties": false,

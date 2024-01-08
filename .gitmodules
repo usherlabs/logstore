@@ -2,3 +2,7 @@
 	path = modules/arweave-js
 	url = git@github.com:usherlabs/arweave-js.git
 	branch = logstore
+[submodule "modules/logstore-node"]
+	path = modules/logstore-node
+	url = git@github.com:usherlabs/logstore-node.git
+	branch = master

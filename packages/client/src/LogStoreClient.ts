@@ -2,10 +2,11 @@ import type { Overrides } from '@ethersproject/contracts';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';
-import StreamrClient, {
+import {
 	MessageListener,
 	Stream,
 	StreamDefinition,
+	StreamrClient,
 } from 'streamr-client';
 import { container as rootContainer } from 'tsyringe';
 

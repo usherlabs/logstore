@@ -21,6 +21,7 @@ import axios from 'axios';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
 import * as fetch from 'node-fetch';
+import { firstValueFrom } from 'rxjs';
 import { Transform, TransformCallback } from 'stream';
 import StreamrClient, {
 	Stream,
@@ -307,6 +308,9 @@ describe('query', () => {
 					// more than one node contains it
 					expect(value.size).toBeGreaterThan(0);
 				});
+				const metadata = await firstValueFrom(messagesQuery.metadataStream);
+
+				expect(metadata.participatingNodesAddress?.length).toBeGreaterThan(1);
 			},
 			TIMEOUT
 		);
@@ -558,6 +562,21 @@ describe('query', () => {
 				},
 				TIMEOUT
 			);
+		});
+	});
+
+	describe('standalone node', () => {
+		test('can configure to query from a standalone node', async () => {
+			const streamrClient = new StreamrClient({
+				...STREAMR_CONFIG_TEST,
+				auth: {
+					privateKey: publisherAccount.privateKey,
+				},
+			});
+			const standaloneClient = new LogStoreClient(streamrClient, {
+				...LOGSTORE_CONFIG_TEST,
+				nodeUrl: 'http://127.0.0.1:7171',
+			});
 		});
 	});
 });
