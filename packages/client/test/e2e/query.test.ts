@@ -567,11 +567,14 @@ describe('query', () => {
 
 	describe('standalone node', () => {
 		test('can configure to query from a standalone node', async () => {
-			const standaloneClient = new LogStoreClient({
-				...CONFIG_TEST,
+			const streamrClient = new StreamrClient({
+				...STREAMR_CONFIG_TEST,
 				auth: {
 					privateKey: publisherAccount.privateKey,
 				},
+			});
+			const standaloneClient = new LogStoreClient(streamrClient, {
+				...LOGSTORE_CONFIG_TEST,
 				nodeUrl: 'http://127.0.0.1:7171',
 			});
 		});

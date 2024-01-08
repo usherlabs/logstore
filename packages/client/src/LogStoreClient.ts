@@ -2,23 +2,17 @@ import type { Overrides } from '@ethersproject/contracts';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';
-import StreamrClient, {
+import {
 	MessageListener,
 	Stream,
 	StreamDefinition,
-} from '@logsn/streamr-client';
-import { StreamrClient } from '@logsn/streamr-client';
-import { ContractTransaction } from 'ethers';
-import { cloneDeep } from 'lodash';
-import 'reflect-metadata';
-import { map, share, switchMap } from 'rxjs';
+	StreamrClient,
+} from 'streamr-client';
 import { container as rootContainer } from 'tsyringe';
 
 import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
-	redactConfig,
-	StreamrClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
@@ -145,10 +139,6 @@ export class LogStoreClient {
 
 		container.register(LogStoreClientConfigInjectionToken, {
 			useValue: this.strictLogStoreClientConfig,
-		});
-
-		container.register(StreamrClientConfigInjectionToken, {
-			useValue: streamrClientConfig,
 		});
 
 		container.register(LogStoreClientSystemMessagesInjectionToken, {
