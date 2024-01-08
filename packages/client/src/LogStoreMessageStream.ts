@@ -4,19 +4,17 @@
  * Not all MessageStreams are Subscriptions.
  */
 import {
-	type Message,
-	MessageListener,
-	MessageStream,
-} from '@logsn/streamr-client';
-import {
 	EncryptedGroupKey,
 	MessageID,
 	MessageRef,
 	StreamMessage,
 } from '@streamr/protocol';
-import { defer, type Observable, shareReplay, switchMap } from 'rxjs';
+import { omit } from 'lodash';
+import { defer, Observable, shareReplay, switchMap } from 'rxjs';
+import { Message, MessageListener } from 'streamr-client';
 
 import type { RequestMetadata } from './HttpUtil';
+import { IPushPipeline } from './streamr/utils/IPushPipeline';
 
 export type LogStoreMessageMetadata = {
 	id: MessageID;
@@ -39,18 +37,16 @@ export type LogStoreMessage = {
  * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of | for await .. of}.
  */
 export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
-	private messages$: Observable<Message>;
+	private messages$: Observable<StreamMessage>;
 
 	constructor(
-		public messageStream: MessageStream,
+		public messageStream: IPushPipeline<StreamMessage, StreamMessage>,
 		public metadataStream: Observable<RequestMetadata>
 	) {
-		this.messages$ = defer(() => messageStream).pipe(
-			// TODO this is a hack to be able to use the same MessageStream the user is using,
-			// 	otherwise is hard to check the network state at the same time
-			// so we don't get error if we try to iterate more than once
-			shareReplay({ refCount: true })
-		);
+		this.messages$ = defer(() => {
+			// @ts-expect-error Property 'iterate' does not exist on type 'IPushPipeline<StreamMessage<unknown>, StreamMessage<unknown>>'
+			return messageStream.iterate() as AsyncGenerator<StreamMessage>;
+		}).pipe(shareReplay({ refCount: true }));
 	}
 
 	/**
@@ -58,43 +54,42 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 	 * onMessage is passed parsed content as first arument, and streamMessage as second argument.
 	 */
 	useLegacyOnMessageHandler(onMessage: MessageListener): this {
-		this.messageStream.useLegacyOnMessageHandler(onMessage);
+		this.messageStream.onMessage.listen(async (streamMessage) => {
+			const msg = convertStreamMessageToMessage(streamMessage);
+			await onMessage(msg.content, omit(msg, 'content'));
+		});
+		this.messageStream.flow();
+
 		return this;
 	}
 
 	public asObservable() {
-		return defer(async () => {
-			// for some reason, when used as observable does not trigger pipeline onStart signal, needed here
-			// @ts-expect-error pipeline is internal
-			await this.messageStream.pipeline.onStart.trigger();
-		}).pipe(switchMap(() => this));
-	}
-
-	// pull method from messageStream runs the async iterator eagerly
-	// however, to be able to postpone the stream usage (e.g. after system subscription) we make it lazy
-	// by attaching the source when the pipeline is executed
-	public setSourceOnStart(src$: Observable<StreamMessage<unknown>>) {
-		// @ts-expect-error pipeline is internal
-		const oldOnStart = this.messageStream.pipeline.onStart;
-		// @ts-expect-error pipeline is internal
-		this.messageStream.pipeline.onStart = {
-			trigger: async () => {
-				await this.messageStream.pull(src$[Symbol.asyncIterator]());
-				await oldOnStart.trigger();
-			},
-		};
+		return defer(async () => this).pipe(switchMap(() => this));
 	}
 
 	async *[Symbol.asyncIterator](): AsyncIterator<LogStoreMessage> {
 		for await (const msg of this.messages$) {
-			// @ts-expect-error this is marked as internal in MessageStream
-			const streamMessage: StreamMessage = msg.streamMessage;
-			yield convertStreamMessageToMessage(streamMessage);
+			yield convertStreamMessageToLogStoreMessage(msg);
 		}
 	}
 }
 
-export const convertStreamMessageToMessage = (
+export const convertStreamMessageToMessage = (msg: StreamMessage): Message => {
+	return {
+		content: msg.getParsedContent(),
+		streamId: msg.getStreamId(),
+		streamPartition: msg.getStreamPartition(),
+		timestamp: msg.getTimestamp(),
+		sequenceNumber: msg.getSequenceNumber(),
+		signature: msg.signature,
+		publisherId: msg.getPublisherId(),
+		msgChainId: msg.getMsgChainId(),
+		// @ts-expect-error streamMessage is marked as internal in Message interface
+		streamMessage: msg,
+	};
+};
+
+export const convertStreamMessageToLogStoreMessage = (
 	msg: StreamMessage
 ): LogStoreMessage => {
 	return {

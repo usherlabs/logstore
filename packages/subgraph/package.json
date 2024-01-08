@@ -3,6 +3,7 @@
 	"license": "GPL-3.0",
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
 	"version": "0.0.1",
+	"private": true,
 	"description": "Subgraph definitions for the Log Store",
 	"repository": {
 		"type": "git",

@@ -1,21 +1,18 @@
 import type { Overrides } from '@ethersproject/contracts';
-import type {
+import { ContractTransaction, Signer } from 'ethers';
+import 'reflect-metadata';
+import { map, share, switchMap } from 'rxjs';
+import {
 	MessageListener,
 	Stream,
 	StreamDefinition,
-} from '@logsn/streamr-client';
-import { StreamrClient } from '@logsn/streamr-client';
-import type { Schema } from 'ajv';
-import { ContractTransaction } from 'ethers';
-import { cloneDeep } from 'lodash';
-import 'reflect-metadata';
-import { map, share, switchMap } from 'rxjs';
+	StreamrClient,
+} from 'streamr-client';
 import { container as rootContainer } from 'tsyringe';
 
 import {
 	createStrictConfig,
 	LogStoreClientConfigInjectionToken,
-	redactConfig,
 	StrictLogStoreClientConfig,
 } from './Config';
 import { LogStoreClientEventEmitter, LogStoreClientEvents } from './events';
@@ -32,6 +29,20 @@ import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
 import { StreamObservableFactory } from './StreamObservableFactory';
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+} from './streamr/Authentication';
+import { StreamrClientConfigInjectionToken } from './streamr/Config';
+import { ContractFactoryInjectionToken } from './streamr/ContractFactory';
+import { DestroySignalInjectionToken } from './streamr/DestroySignal';
+import { LoggerFactoryInjectionToken } from './streamr/LoggerFactory';
+import {
+	StreamIDBuilder,
+	StreamIDBuilderInjectionToken,
+} from './streamr/StreamIDBuilder';
+import { StreamrClientInjectionToken } from './streamr/StreamrClient';
+import { MessagePipelineFactoryInjectionToken } from './streamr/subscribe/MessagePipelineFactory';
 import { AmountTypes } from './types';
 import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
 import { GQtyClients } from './utils/GraphQLClient';
@@ -45,43 +56,46 @@ import {
 } from './utils/systemStreamUtils';
 import { ValidationManager } from './validationManager/ValidationManager';
 
-export class LogStoreClient extends StreamrClient {
+export class LogStoreClient {
+	private readonly authentication: Authentication;
+	private readonly streamrClient: StreamrClient;
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 	private readonly logStoreQueryManager: QueryManager;
 	private readonly logstoreTokenManager: TokenManager;
 	private readonly validationManager: ValidationManager;
-	private readonly strictConfig: StrictLogStoreClientConfig;
+	private readonly strictLogStoreClientConfig: StrictLogStoreClientConfig;
 	private readonly systemMessages$: SystemMessageObservable;
 	private readonly streamObservableFactory: StreamObservableFactory;
+	private readonly streamIdBuilder: StreamIDBuilder;
 
 	constructor(
-		config: LogStoreClientConfig = {},
+		streamrClient: StreamrClient,
+		logStoreClientConfig: LogStoreClientConfig = {},
 		/** @internal */
 		parentContainer = rootContainer
 	) {
+		this.streamrClient = streamrClient;
+
 		const container = parentContainer.createChildContainer();
 
-		// Prepare a copy of `config` to call the super() method
-		const streamrClientConfig = cloneDeep(config);
-		delete streamrClientConfig.contracts?.logStoreNodeManagerChainAddress;
-		delete streamrClientConfig.contracts?.logStoreStoreManagerChainAddress;
-		delete streamrClientConfig.contracts?.logStoreTheGraphUrl;
-		delete streamrClientConfig.contracts?.logStoreTokenManagerChainAddress;
-		delete streamrClientConfig.contracts?.logStoreQueryManagerChainAddress;
+		container.register(StreamrClientInjectionToken, {
+			useValue: streamrClient,
+		});
 
-		super(streamrClientConfig, container);
-		// TODO: Using parentContainer breaks authentication in the Broker's tests
-		// super(streamrClientConfig, parentContainer);
+		container.register(StreamrClientConfigInjectionToken, {
+			// @ts-expect-error config is marked as private in StreamrClient
+			useValue: streamrClient.config,
+		});
 
-		const strictConfig = createStrictConfig(config);
-		redactConfig(strictConfig);
+		this.strictLogStoreClientConfig = createStrictConfig(logStoreClientConfig);
 
-		this.strictConfig = strictConfig;
-
-		this.systemMessages$ = systemStreamFromClient(this).pipe(
-			map((stream) => new BroadbandSubscriber(this, stream)),
+		this.systemMessages$ = systemStreamFromClient(
+			this.streamrClient,
+			this.strictLogStoreClientConfig
+		).pipe(
+			map((stream) => new BroadbandSubscriber(this.streamrClient, stream)),
 			switchMap(systemMessageFromSubscriber),
 			// we share the observable so that multiple subscribers can listen to the same stream
 			// and turn off the subscription when there are no more subscribers
@@ -90,12 +104,46 @@ export class LogStoreClient extends StreamrClient {
 			})
 		);
 
+		container.register(LoggerFactoryInjectionToken, {
+			// @ts-expect-error loggerFactory is marked as private in StreamrClient
+			useValue: streamrClient.loggerFactory,
+		});
+
+		// @ts-expect-error authentication is marked as private in StreamrClient
+		this.authentication = streamrClient.authentication;
+		container.register(AuthenticationInjectionToken, {
+			// @ts-expect-error authentication is marked as private in StreamrClient
+			useValue: streamrClient.authentication,
+		});
+
+		container.register(ContractFactoryInjectionToken, {
+			// @ts-expect-error streamRegistry.contractFactory is marked as private in StreamrClient
+			useValue: streamrClient.streamRegistry.contractFactory,
+		});
+
+		// @ts-expect-error streamIdBuilder is marked as private in StreamrClient
+		this.streamIdBuilder = streamrClient.streamIdBuilder;
+		container.register(StreamIDBuilderInjectionToken, {
+			// @ts-expect-error streamIdBuilder is marked as private in StreamrClient
+			useValue: streamrClient.streamIdBuilder,
+		});
+
+		container.register(DestroySignalInjectionToken, {
+			// @ts-expect-error destroySignal is marked as private in StreamrClient
+			useValue: streamrClient.destroySignal,
+		});
+
+		container.register(MessagePipelineFactoryInjectionToken, {
+			// @ts-expect-error Property 'resends' is private and only accessible within class 'StreamrClient'
+			useValue: streamrClient.resends.messagePipelineFactory,
+		});
+
 		container.register(LogStoreClient, {
 			useValue: this,
 		});
 
 		container.register(LogStoreClientConfigInjectionToken, {
-			useValue: strictConfig,
+			useValue: this.strictLogStoreClientConfig,
 		});
 
 		container.register(LogStoreClientSystemMessagesInjectionToken, {
@@ -122,6 +170,10 @@ export class LogStoreClient extends StreamrClient {
 		this.streamObservableFactory = container.resolve<StreamObservableFactory>(
 			StreamObservableFactory
 		);
+	}
+
+	async getSigner(): Promise<Signer> {
+		return this.authentication.getStreamRegistryChainSigner();
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -312,7 +364,7 @@ export class LogStoreClient extends StreamrClient {
 	// --------------------------------------------------------------------------------------------
 
 	getConfig(): LogStoreClientConfig {
-		return this.strictConfig;
+		return this.strictLogStoreClientConfig;
 	}
 
 	/**
@@ -322,10 +374,6 @@ export class LogStoreClient extends StreamrClient {
 	 * @remarks As the name implies, the client instance (or any streams or subscriptions returned by it) should _not_
 	 * be used after calling this method.
 	 */
-	override destroy(): Promise<void> {
-		this.logStoreClientEventEmitter.removeAllListeners();
-		return super.destroy();
-	}
 
 	// --------------------------------------------------------------------------------------------
 	// Events
@@ -336,7 +384,7 @@ export class LogStoreClient extends StreamrClient {
 	 * @param eventName - event name, see {@link LogStoreClientEvents} for options
 	 * @param listener - the callback function
 	 */
-	override on<T extends keyof LogStoreClientEvents>(
+	on<T extends keyof LogStoreClientEvents>(
 		eventName: T,
 		listener: LogStoreClientEvents[T]
 	): void {
@@ -348,7 +396,7 @@ export class LogStoreClient extends StreamrClient {
 	 * @param eventName - event name, see {@link LogStoreClientEvents} for options
 	 * @param listener - the callback function
 	 */
-	override once<T extends keyof LogStoreClientEvents>(
+	once<T extends keyof LogStoreClientEvents>(
 		eventName: T,
 		listener: LogStoreClientEvents[T]
 	): void {
@@ -360,7 +408,7 @@ export class LogStoreClient extends StreamrClient {
 	 * @param eventName - event name, see {@link LogStoreClientEvents} for options
 	 * @param listener - the callback function to remove
 	 */
-	override off<T extends keyof LogStoreClientEvents>(
+	off<T extends keyof LogStoreClientEvents>(
 		eventName: T,
 		listener: LogStoreClientEvents[T]
 	): void {

@@ -1,10 +1,7 @@
 import type { ConnectionInfo } from '@ethersproject/web';
-import type { PrivateKeyAuthConfig } from '@logsn/streamr-client';
 import Ajv, { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import cloneDeep from 'lodash/cloneDeep';
-// import type { BigNumber } from '@ethersproject/bignumber';
-import { MarkOptional } from 'ts-essentials';
 
 import CONFIG_SCHEMA from './config.schema.json';
 import { LogStoreClientConfig } from './LogStoreClientConfig';
@@ -15,18 +12,8 @@ export interface TrackerRegistryContract {
 	contractAddress: string;
 }
 
-export type StrictLogStoreClientConfig = MarkOptional<
-	Required<LogStoreClientConfig>,
-	'auth' | 'metrics'
-> & {
-	network: MarkOptional<
-		Exclude<Required<LogStoreClientConfig['network']>, undefined>,
-		'location'
-	>;
+export type StrictLogStoreClientConfig = Required<LogStoreClientConfig> & {
 	contracts: Exclude<Required<LogStoreClientConfig['contracts']>, undefined>;
-	encryption: Exclude<Required<LogStoreClientConfig['encryption']>, undefined>;
-	cache: Exclude<Required<LogStoreClientConfig['cache']>, undefined>;
-	// _timeouts: Exclude<DeepRequired<LogStoreClientConfig['_timeouts']>, undefined>;
 };
 
 export const createStrictConfig = (
@@ -63,12 +50,8 @@ export const validateConfig = (
 	return data;
 };
 
-export const redactConfig = (config: StrictLogStoreClientConfig): void => {
-	if ((config.auth as PrivateKeyAuthConfig)?.privateKey !== undefined) {
-		(config.auth as PrivateKeyAuthConfig).privateKey = '(redacted)';
-	}
-};
-
 export const LogStoreClientConfigInjectionToken = Symbol(
 	'LogStoreClientConfig'
 );
+
+export const StreamrClientConfigInjectionToken = Symbol('StreamrClientConfig');

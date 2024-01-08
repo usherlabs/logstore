@@ -5,23 +5,31 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
-import { Stream, StreamPermission } from '@logsn/streamr-client';
-import type { ErrorSignal } from '@logsn/streamr-client/dist/types/src/utils/Signal';
 import {
 	MessageID,
 	MessageRef,
 	StreamMessage,
 	toStreamID,
 } from '@streamr/protocol';
-import { fastWallet, fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import {
+	fastWallet,
+	fetchPrivateKeyWithGas,
+	KeyServer,
+} from '@streamr/test-utils';
 import { toEthereumAddress, wait, waitForCondition } from '@streamr/utils';
 import axios from 'axios';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
 import * as fetch from 'node-fetch';
+import { firstValueFrom } from 'rxjs';
 import { Transform, TransformCallback } from 'stream';
+import StreamrClient, {
+	Stream,
+	StreamPermission,
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
+} from 'streamr-client';
 
-import { CONFIG_TEST } from '../../src/ConfigTest';
+import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
 import { LogStoreMessage } from '../../src/LogStoreMessageStream';
 import type { StorageMatrix } from '../../src/utils/networkValidation/manageStorageMatrix';
@@ -46,8 +54,8 @@ function sleep(ms: number) {
 
 describe('query', () => {
 	const provider = new providers.JsonRpcProvider(
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
+		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
+		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
 	);
 
 	// Accounts
@@ -56,8 +64,9 @@ describe('query', () => {
 	let storeConsumerAccount: Wallet;
 
 	// Clients
-	let publisherClient: LogStoreClient;
-	let consumerClient: LogStoreClient;
+	let publisherStreamrClient: StreamrClient;
+	let consumerStreamrClient: StreamrClient;
+	let consumerLogStoreClient: LogStoreClient;
 
 	// Contracts
 	let storeManager: LogStoreManager;
@@ -82,25 +91,30 @@ describe('query', () => {
 		]);
 
 		// Clients
-		publisherClient = new LogStoreClient({
-			...CONFIG_TEST,
+		publisherStreamrClient = new StreamrClient({
+			...STREAMR_CONFIG_TEST,
 			auth: {
 				privateKey: publisherAccount.privateKey,
 			},
 		});
 
-		consumerClient = new LogStoreClient({
-			...CONFIG_TEST,
+		consumerStreamrClient = new StreamrClient({
+			...STREAMR_CONFIG_TEST,
 			auth: {
 				privateKey: storeConsumerAccount.privateKey,
 			},
 		});
+		consumerLogStoreClient = new LogStoreClient(
+			consumerStreamrClient,
+			LOGSTORE_CONFIG_TEST
+		);
 	}, TIMEOUT);
 
 	afterAll(async () => {
 		await Promise.allSettled([
-			publisherClient?.destroy(),
-			consumerClient?.destroy(),
+			publisherStreamrClient?.destroy(),
+			consumerStreamrClient?.destroy(),
+			KeyServer.stopIfRunning(),
 		]);
 	}, TIMEOUT);
 
@@ -113,7 +127,7 @@ describe('query', () => {
 
 		async function publishMessages(numOfMessages: number) {
 			for (const idx of range(numOfMessages)) {
-				await publisherClient.publish(
+				await publisherStreamrClient.publish(
 					{
 						id: stream.id,
 						partition: 0,
@@ -128,13 +142,17 @@ describe('query', () => {
 		}
 
 		beforeAll(async () => {
-			stream = await createTestStream(publisherClient, module, {
+			stream = await createTestStream(publisherStreamrClient, module, {
 				partitions: 1,
 			});
 
 			// TODO: the consumer must have permission to subscribe to the stream or the strem have to be public
 			await stream.grantPermissions({
-				user: await consumerClient.getAddress(),
+				user: await consumerStreamrClient.getAddress(),
+				permissions: [StreamPermission.SUBSCRIBE],
+			});
+			await stream.grantPermissions({
+				public: true,
 				permissions: [StreamPermission.SUBSCRIBE],
 			});
 			// await stream.grantPermissions({
@@ -160,7 +178,7 @@ describe('query', () => {
 
 				const messages: StreamMessage[] = [];
 
-				await consumerClient.query(
+				await consumerLogStoreClient.query(
 					{
 						streamId: stream.id,
 						partition: 0,
@@ -192,7 +210,7 @@ describe('query', () => {
 				await publishMessages(NUM_OF_FROM_MESSAGES);
 
 				const messages: unknown[] = [];
-				await consumerClient.query(
+				await consumerLogStoreClient.query(
 					{
 						streamId: stream.id,
 						partition: 0,
@@ -227,7 +245,7 @@ describe('query', () => {
 				await publishMessages(5);
 
 				const messages: unknown[] = [];
-				await consumerClient.query(
+				await consumerLogStoreClient.query(
 					{
 						streamId: stream.id,
 						partition: 0,
@@ -261,7 +279,7 @@ describe('query', () => {
 				const storageSpy = jest.spyOn(verifyPkg, 'convertToStorageMatrix');
 				const messages: LogStoreMessage[] = [];
 
-				const messagesQuery = await consumerClient.query(
+				const messagesQuery = await consumerLogStoreClient.query(
 					{
 						streamId: stream.id,
 						partition: 0,
@@ -290,6 +308,9 @@ describe('query', () => {
 					// more than one node contains it
 					expect(value.size).toBeGreaterThan(0);
 				});
+				const metadata = await firstValueFrom(messagesQuery.metadataStream);
+
+				expect(metadata.participatingNodesAddress?.length).toBeGreaterThan(1);
 			},
 			TIMEOUT
 		);
@@ -299,7 +320,7 @@ describe('query', () => {
 			async () => {
 				const timesToTest = 3;
 				let initialNumberrOfMessagesToFetch = 2;
-				const storageSpy = jest.spyOn(verifyPkg, 'convertToStorageMatrix');
+				// const storageSpy = jest.spyOn(verifyPkg, 'convertToStorageMatrix');
 				const maxNumOfMessagesQueried =
 					initialNumberrOfMessagesToFetch + timesToTest;
 				await publishMessages(maxNumOfMessagesQueried);
@@ -309,7 +330,7 @@ describe('query', () => {
 					const numOfMessagesForThisTest = initialNumberrOfMessagesToFetch++;
 					const messages: LogStoreMessage[] = [];
 
-					const messagesQuery = await consumerClient.query(
+					const messagesQuery = await consumerLogStoreClient.query(
 						{
 							streamId: stream.id,
 							partition: 0,
@@ -394,7 +415,7 @@ describe('query', () => {
 
 				const messages: LogStoreMessage[] = [];
 
-				const messagesQuery = await consumerClient.query(
+				const messagesQuery = await consumerLogStoreClient.query(
 					{
 						streamId: stream.id,
 						partition: 0,
@@ -406,7 +427,6 @@ describe('query', () => {
 				// there are some data pipelines that make it hard
 				// @ts-expect-error this is marked as @internal
 				const signal: ErrorSignal = messagesQuery.messageStream.onError;
-				// @ts-expect-error mocking
 				signal.listeners = [errorListener];
 
 				// using this form to ensure that the iterator is done before the test ends
@@ -431,7 +451,7 @@ describe('query', () => {
 			beforeAll(async () => {
 				await publishMessages(NUM_OF_LAST_MESSAGES);
 
-				queryUrl = await consumerClient.createQueryUrl(
+				queryUrl = await consumerLogStoreClient.createQueryUrl(
 					BASE_NODE_URL,
 					{
 						streamId: stream.id,
@@ -442,7 +462,7 @@ describe('query', () => {
 						count: NUM_OF_LAST_MESSAGES,
 					}
 				);
-				({ token } = await consumerClient.apiAuth());
+				({ token } = await consumerLogStoreClient.apiAuth());
 			}, TIMEOUT);
 
 			it(
@@ -542,6 +562,21 @@ describe('query', () => {
 				},
 				TIMEOUT
 			);
+		});
+	});
+
+	describe('standalone node', () => {
+		test('can configure to query from a standalone node', async () => {
+			const streamrClient = new StreamrClient({
+				...STREAMR_CONFIG_TEST,
+				auth: {
+					privateKey: publisherAccount.privateKey,
+				},
+			});
+			const standaloneClient = new LogStoreClient(streamrClient, {
+				...LOGSTORE_CONFIG_TEST,
+				nodeUrl: 'http://127.0.0.1:7171',
+			});
 		});
 	});
 });

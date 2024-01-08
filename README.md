@@ -167,6 +167,11 @@ pnpm run build
 
 More scripts are present on package directories, specific to each use case.
 
+### Publishing to NPM
+
+
+For instructions on how to publish packages to NPM, please refer to [publishing documentation](./.changeset/README.md).
+
 ## **💡 What Can You Build?**
 
 In an ever-evolving technological landscape, the possibilities with Log Store are limitless. We’re anxious to know what you are up to!
@@ -183,12 +188,12 @@ We believe that community is one of the most vital assets. Your insights, experi
 
 - Join our 🗨️ [Discord](https://go.usher.so/discord) channel to participate in discussions, ask questions, and share your experiences.
 - Follow us on 🐦 [Twitter](https://go.usher.so/twitter) for the latest updates and announcements.
-- Check out our 🏡[GitHub repository](https://github.com/usherlabs/logstore-mirror) to contribute to the code or report issues.
+- Check out our 🏡[GitHub repository](https://github.com/usherlabs/logstore) to contribute to the code or report issues.
 
 ### **Get Support**
 
 - Have questions or need help? Visit our 📚 [Documentation](https://docs.logstore.usher.so/) for in-depth guides and tutorials.
-- Encounter an issue? Please report it on our ⚠️[GitHub issues](https://github.com/usherlabs/logstore-mirror/issues) page or reach out to our team through Discord.
+- Encounter an issue? Please report it on our ⚠️[GitHub issues](https://github.com/usherlabs/logstore/issues) page or reach out to our team through Discord.
 
 Your involvement is not just welcome. It's essential! Help us create a robust, efficient, and secure decentralized data storage and retrieval ecosystem.
 

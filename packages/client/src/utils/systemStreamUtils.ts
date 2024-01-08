@@ -1,12 +1,16 @@
 import { toStreamID } from '@streamr/protocol';
 import { toEthereumAddress } from '@streamr/utils';
 import { defer } from 'rxjs';
+import StreamrClient from 'streamr-client';
 
-import { LogStoreClient } from '../LogStoreClient';
+import { StrictLogStoreClientConfig } from '../Config';
 
-export function systemStreamFromClient(client: LogStoreClient) {
+export function systemStreamFromClient(
+	client: StreamrClient,
+	config: StrictLogStoreClientConfig
+) {
 	const nodeManagerAddress = toEthereumAddress(
-		client.getConfig().contracts!.logStoreNodeManagerChainAddress!
+		config.contracts.logStoreNodeManagerChainAddress!
 	);
 
 	const systemStreamId = toStreamID('/system', nodeManagerAddress);
