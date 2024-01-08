@@ -6,37 +6,60 @@ import {
 	StrictLogStoreClientConfig,
 } from '../Config';
 import {
+	StreamrClientConfigInjectionToken,
+	type StrictStreamrClientConfig,
+} from '../streamr/Config';
+import {
 	LoggerFactory,
 	LoggerFactoryInjectionToken,
 } from '../streamr/LoggerFactory';
 import { HttpFetcher } from '../streamr/utils/HttpFetcher';
+import { createStreamrGraphQLClient, type GQtyClient } from './gqty';
 
 export interface GraphQLQuery {
 	query: string;
 	variables?: Record<string, any>;
 }
 
+export const GraphQLClientInjectionToken = Symbol(
+	'GraphQLClientInjectionToken'
+);
+
+@scoped(Lifecycle.ContainerScoped)
+export class GQtyClients {
+	public streamrClient: GQtyClient;
+
+	constructor(
+		@inject(HttpFetcher) httpFetcher: HttpFetcher,
+		@inject(StreamrClientConfigInjectionToken)
+		config: Pick<StrictStreamrClientConfig, 'contracts'>
+	) {
+		this.streamrClient = createStreamrGraphQLClient(
+			config.contracts.theGraphUrl,
+			httpFetcher
+		);
+	}
+}
+
 @scoped(Lifecycle.ContainerScoped)
 export class GraphQLClient {
 	private httpFetcher: HttpFetcher;
-	private config: Pick<StrictLogStoreClientConfig, 'contracts'>;
 	private readonly logger: Logger;
 
 	constructor(
 		@inject(LoggerFactoryInjectionToken) loggerFactory: LoggerFactory,
 		@inject(HttpFetcher) httpFetcher: HttpFetcher,
 		@inject(LogStoreClientConfigInjectionToken)
-		config: Pick<StrictLogStoreClientConfig, 'contracts'>
+		private logStoreClientConfig: StrictLogStoreClientConfig
 	) {
 		this.httpFetcher = httpFetcher;
-		this.config = config;
 		this.logger = loggerFactory.createLogger(module);
 	}
 
 	async sendQuery(query: GraphQLQuery): Promise<any> {
 		this.logger.debug('GraphQL query', { query });
 		const res = await this.httpFetcher.fetch(
-			this.config.contracts.logStoreTheGraphUrl,
+			this.logStoreClientConfig.contracts.logStoreTheGraphUrl,
 			{
 				method: 'POST',
 				headers: {
@@ -52,7 +75,7 @@ export class GraphQLClient {
 			resJson = JSON.parse(resText);
 		} catch {
 			throw new Error(
-				`GraphQL query failed with "${resText}", check that your logStoreTheGraphUrl="${this.config.contracts.logStoreTheGraphUrl}" is correct`
+				`GraphQL query failed with "${resText}", check that your logStoreTheGraphUrl="${this.logStoreClientConfig.contracts.logStoreTheGraphUrl}" is correct`
 			);
 		}
 		this.logger.debug('GraphQL response: %j', resJson);

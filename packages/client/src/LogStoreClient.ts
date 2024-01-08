@@ -1,4 +1,5 @@
 import type { Overrides } from '@ethersproject/contracts';
+import type { Schema } from 'ajv';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';
@@ -28,6 +29,7 @@ import {
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
+import { StreamObservableFactory } from './StreamObservableFactory';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
@@ -44,6 +46,7 @@ import { StreamrClientInjectionToken } from './streamr/StreamrClient';
 import { MessagePipelineFactoryInjectionToken } from './streamr/subscribe/MessagePipelineFactory';
 import { AmountTypes } from './types';
 import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
+import { GQtyClients } from './utils/GraphQLClient';
 import {
 	systemMessageFromSubscriber,
 	SystemMessageObservable,
@@ -52,6 +55,7 @@ import {
 	LogStoreClientSystemMessagesInjectionToken,
 	systemStreamFromClient,
 } from './utils/systemStreamUtils';
+import { ValidationManager } from './validationManager/ValidationManager';
 
 export class LogStoreClient {
 	private readonly authentication: Authentication;
@@ -61,8 +65,10 @@ export class LogStoreClient {
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 	private readonly logStoreQueryManager: QueryManager;
 	private readonly logstoreTokenManager: TokenManager;
+	private readonly validationManager: ValidationManager;
 	private readonly strictLogStoreClientConfig: StrictLogStoreClientConfig;
 	private readonly systemMessages$: SystemMessageObservable;
+	private readonly streamObservableFactory: StreamObservableFactory;
 	private readonly streamIdBuilder: StreamIDBuilder;
 
 	constructor(
@@ -145,6 +151,8 @@ export class LogStoreClient {
 			useValue: this.systemMessages$,
 		});
 
+		container.resolve<GQtyClients>(GQtyClients);
+
 		this.logStoreClientEventEmitter =
 			container.resolve<LogStoreClientEventEmitter>(LogStoreClientEventEmitter);
 
@@ -156,6 +164,13 @@ export class LogStoreClient {
 		this.logStoreQueryManager = container.resolve<QueryManager>(QueryManager);
 
 		this.logstoreTokenManager = container.resolve<TokenManager>(TokenManager);
+
+		this.validationManager =
+			container.resolve<ValidationManager>(ValidationManager);
+
+		this.streamObservableFactory = container.resolve<StreamObservableFactory>(
+			StreamObservableFactory
+		);
 	}
 
 	async getSigner(): Promise<Signer> {
@@ -286,6 +301,34 @@ export class LogStoreClient {
 		return this.logStoreRegistry.getStoreBalance();
 	}
 
+	async setValidationSchema(
+		...params: Parameters<ValidationManager['setValidationSchema']>
+	): Promise<void> {
+		return this.validationManager.setValidationSchema(...params);
+	}
+
+	async removeValidationSchema(
+		...params: Parameters<ValidationManager['removeValidationSchema']>
+	): Promise<void> {
+		return this.validationManager.removeValidationSchema(...params);
+	}
+
+	async getValidationSchema(
+		...params: Parameters<ValidationManager['getValidationSchema']>
+	): Promise<Schema | null> {
+		return this.validationManager.getValidationSchema(...params);
+	}
+
+	public getValidationSchemaFromStreamMetadata(
+		...params: Parameters<
+			ValidationManager['getValidationSchemaFromStreamMetadata']
+		>
+	): Promise<Schema | null> {
+		return this.validationManager.getValidationSchemaFromStreamMetadata(
+			...params
+		);
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// Token utilities
 	// --------------------------------------------------------------------------------------------
@@ -371,5 +414,11 @@ export class LogStoreClient {
 		listener: LogStoreClientEvents[T]
 	): void {
 		this.logStoreClientEventEmitter.off(eventName, listener as any);
+	}
+
+	public createStreamObservable(
+		...params: Parameters<StreamObservableFactory['createStreamObservable']>
+	) {
+		return this.streamObservableFactory.createStreamObservable(...params);
 	}
 }

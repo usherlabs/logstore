@@ -53,5 +53,3 @@ export const validateConfig = (
 export const LogStoreClientConfigInjectionToken = Symbol(
 	'LogStoreClientConfig'
 );
-
-export const StreamrClientConfigInjectionToken = Symbol('StreamrClientConfig');
