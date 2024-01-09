@@ -17,7 +17,6 @@
 	"updateInternalDependencies": "patch",
 	"ignore": [
 		"@logsn/benchmarks",
-		"@logsn/broker*",
 		"@logsn/pulse",
 		"@logsn/subgraph",
 		"@logsn/validator"
