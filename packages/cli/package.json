@@ -18,6 +18,7 @@
 		"build:binaries": "run-s build bin",
 		"start": "node ./dist/src/index.js",
 		"format": "prettier --write .",
+		"test": "vitest --",
 		"start:fresh": "npm-run-all -s build start",
 		"ts": "tsc --noEmit",
 		"lint": "eslint -c ./.eslintrc ./src/**/*.ts"
@@ -33,6 +34,7 @@
 		"@inquirer/prompts": "^3.3.0",
 		"@logsn/client": "workspace:*",
 		"@logsn/shared": "workspace:*",
+		"streamr-client": "^8.5.5",
 		"chalk": "^4.1.2",
 		"commander": "^11.0.0",
 		"decimal.js": "^10.4.3",

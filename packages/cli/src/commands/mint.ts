@@ -1,8 +1,8 @@
 import { getRootOptions } from '@/commands/options';
 import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
+	getClientsFromOptions,
 	getCredentialsFromOptions,
-	getLogStoreClientFromOptions,
 } from '@/utils/logstore-client';
 import { keepRetryingWithIncreasedGasPrice } from '@/utils/speedupTx';
 import {
@@ -43,7 +43,7 @@ export const mintCommand = new Command()
 		const { signer, provider } = getCredentialsFromOptions();
 
 		try {
-			const client = getLogStoreClientFromOptions();
+			const { logStoreClient } = getClientsFromOptions();
 
 			const mintType = cmdOptions.usd
 				? 'usd'
@@ -53,14 +53,14 @@ export const mintCommand = new Command()
 
 			await printPrices();
 
-			const amountInToken = await client.convert({
+			const amountInToken = await logStoreClient.convert({
 				amount,
 				from: mintType,
 				to: 'wei',
 			});
 
 			console.log(`Minting ${amountInToken} wei...`);
-			const result = await client.mint(
+			const result = await logStoreClient.mint(
 				BigInt(new Decimal(amountInToken).toHex()),
 				{
 					maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),

@@ -1,4 +1,4 @@
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
+import { getClientsFromOptions } from '@/utils/logstore-client';
 import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
@@ -15,11 +15,11 @@ const balanceCommand = new Command()
 		}
 
 		try {
-			const client = getLogStoreClientFromOptions();
-			const price = new Decimal((await client.getPrice()).toString());
+			const { logStoreClient } = getClientsFromOptions();
+			const price = new Decimal((await logStoreClient.getPrice()).toString());
 
 			const streamBalance = new Decimal(
-				(await client.getStreamBalance(streamId)).toString()
+				(await logStoreClient.getStreamBalance(streamId)).toString()
 			);
 
 			const availableStorage = streamBalance.div(price);
