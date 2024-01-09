@@ -5,8 +5,9 @@ import {
 	type StreamMetadata,
 	StreamrClient,
 } from 'streamr-client';
-import { delay, inject, Lifecycle, scoped } from 'tsyringe';
+import { inject, Lifecycle, scoped } from 'tsyringe';
 
+import { StreamrClientInjectionToken } from '../streamr/StreamrClient';
 import { defaultAjv, getSchemaFromMetadata } from './getStreamSchema';
 import type { SchemaParams } from './types';
 
@@ -14,7 +15,7 @@ import type { SchemaParams } from './types';
 @scoped(Lifecycle.ContainerScoped)
 export class ValidationManager {
 	constructor(
-		@inject(delay(() => StreamrClient))
+		@inject(StreamrClientInjectionToken)
 		private streamrClient: StreamrClient
 	) {}
 

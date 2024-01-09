@@ -207,6 +207,9 @@ importers:
       rxjs:
         specifier: 8.0.0-alpha.12
         version: 8.0.0-alpha.12
+      streamr-client:
+        specifier: ^8.5.5
+        version: 8.5.5(@ethersproject/hash@5.7.0)(typescript@4.9.5)
       tslog:
         specifier: ^4.8.2
         version: 4.8.2
@@ -896,7 +899,7 @@ importers:
     dependencies:
       '@graphprotocol/graph-cli':
         specifier: ^0.46.1
-        version: 0.46.1(@types/node@18.15.13)(typescript@5.3.3)
+        version: 0.46.1(@types/node@18.15.13)(node-fetch@2.7.0)(typescript@5.3.3)
       '@graphprotocol/graph-ts':
         specifier: ^0.29.3
         version: 0.29.3
@@ -3651,7 +3654,7 @@ packages:
     dev: false
     optional: true
 
-  /@graphprotocol/graph-cli@0.46.1(@types/node@18.15.13)(typescript@5.3.3):
+  /@graphprotocol/graph-cli@0.46.1(@types/node@18.15.13)(node-fetch@2.7.0)(typescript@5.3.3):
     resolution: {integrity: sha512-594BiH2m9gThP1xdvxguVzvVlOb1KzJyVdh2F4dV78NPfMRFY2fe1nakmadKcewc72VVLXNgfdBu/J4IPfo0eg==}
     engines: {node: '>=14'}
     hasBin: true
@@ -3671,7 +3674,7 @@ packages:
       gluegun: github.com/edgeandnode/gluegun/b34b9003d7bf556836da41b57ef36eb21570620a(debug@4.3.4)
       graphql: 15.5.0
       immutable: 4.2.1
-      ipfs-http-client: 55.0.0
+      ipfs-http-client: 55.0.0(node-fetch@2.7.0)
       jayson: 4.0.0
       js-yaml: 3.14.1
       prettier: 1.19.1
@@ -12611,6 +12614,7 @@ packages:
 
   /humanize-ms@1.2.1:
     resolution: {integrity: sha512-Fl70vYtsAFb/C06PTS9dZBo7ihau+Tu/DNCk/OyHhea07S+aeMWpFFkUaXRa8fI+ScZbEI8dfSxwY7gxZ9SAVQ==}
+    requiresBuild: true
     dependencies:
       ms: 2.1.3
     dev: false
@@ -12865,7 +12869,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-core-types@0.9.0:
+  /ipfs-core-types@0.9.0(node-fetch@2.7.0):
     resolution: {integrity: sha512-VJ8vJSHvI1Zm7/SxsZo03T+zzpsg8pkgiIi5hfwSJlsrJ1E2v68QPlnLshGHUSYw89Oxq0IbETYl2pGTFHTWfg==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
@@ -12877,7 +12881,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-core-utils@0.13.0:
+  /ipfs-core-utils@0.13.0(node-fetch@2.7.0):
     resolution: {integrity: sha512-HP5EafxU4/dLW3U13CFsgqVO5Ika8N4sRSIb/dTg16NjLOozMH31TXV0Grtu2ZWo1T10ahTzMvrfT5f4mhioXw==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
@@ -12886,7 +12890,7 @@ packages:
       browser-readablestream-to-it: 1.0.3
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0
+      ipfs-core-types: 0.9.0(node-fetch@2.7.0)
       ipfs-unixfs: 6.0.9
       ipfs-utils: 9.0.14
       it-all: 1.0.6
@@ -12937,7 +12941,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-http-client@55.0.0:
+  /ipfs-http-client@55.0.0(node-fetch@2.7.0):
     resolution: {integrity: sha512-GpvEs7C7WL9M6fN/kZbjeh4Y8YN7rY8b18tVWZnKxRsVwM25cIFrRI8CwNt3Ugin9yShieI3i9sPyzYGMrLNnQ==}
     engines: {node: '>=14.0.0', npm: '>=3.0.0'}
     dependencies:
@@ -12948,8 +12952,8 @@ packages:
       any-signal: 2.1.2
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0
-      ipfs-core-utils: 0.13.0
+      ipfs-core-types: 0.9.0(node-fetch@2.7.0)
+      ipfs-core-utils: 0.13.0(node-fetch@2.7.0)
       ipfs-utils: 9.0.14
       it-first: 1.0.7
       it-last: 1.0.6

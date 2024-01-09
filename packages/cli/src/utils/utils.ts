@@ -1,5 +1,5 @@
 import { readFeeMultiplier } from '@/configuration';
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
+import { getClientsFromOptions } from '@/utils/logstore-client';
 import { allowanceConfirmFn } from '@logsn/shared';
 import chalk from 'chalk';
 import Decimal from 'decimal.js';
@@ -91,13 +91,13 @@ export const withRetry = async (
 };
 
 export const getTransactionFee = async (receipt: ContractReceipt) => {
-	const client = getLogStoreClientFromOptions();
+	const { logStoreClient } = getClientsFromOptions();
 
 	const gasUsed = receipt.gasUsed;
 	// in tests, effective gas price doesnt exist
 	const gasPrice = receipt.effectiveGasPrice ?? 0;
 	const feeWei = gasUsed.mul(gasPrice).toString();
-	const feeUsd = await client.convert({
+	const feeUsd = await logStoreClient.convert({
 		amount: feeWei,
 		from: 'wei',
 		to: 'usd',
@@ -111,12 +111,12 @@ export const getTransactionFee = async (receipt: ContractReceipt) => {
 type BaseAmount = 'byte' | 'query' | 'wei' | 'usd';
 
 export async function printPrices(base: BaseAmount = 'byte') {
-	const client = getLogStoreClientFromOptions();
+	const { logStoreClient } = getClientsFromOptions();
 
-	const weiPerBytePrice = await client
+	const weiPerBytePrice = await logStoreClient
 		.getPrice()
 		.then((c) => new Decimal('0x' + c.toString(16)));
-	const usdPerByte = await client
+	const usdPerByte = await logStoreClient
 		.convert({
 			amount: '1',
 			from: 'bytes',
@@ -157,7 +157,6 @@ export async function printPrices(base: BaseAmount = 'byte') {
 
 // TODO: maybe from client we could get the network name?
 export async function printTransactionLink(receipt: ContractReceipt) {
-	const client = getLogStoreClientFromOptions();
 	const polyScanUrl = `https://polygonscan.com/tx/${receipt.transactionHash}`;
 	console.info(chalk.bold(`View transaction:`));
 	console.info(polyScanUrl);
@@ -200,8 +199,8 @@ export async function getTransferAmountFromEcr2Transfer(
 
 export async function checkLSANFunds(_triedUsing: Decimal.Value) {
 	const triedUsing = new Decimal(_triedUsing);
-	const client = getLogStoreClientFromOptions();
-	const balance = await client.getBalance().then(String);
+	const { logStoreClient } = getClientsFromOptions();
+	const balance = await logStoreClient.getBalance().then(String);
 
 	if (triedUsing.greaterThan(balance)) {
 		throw new Error(

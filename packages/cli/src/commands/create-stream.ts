@@ -1,4 +1,4 @@
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
+import { getClientsFromOptions } from '@/utils/logstore-client';
 import { Command } from '@commander-js/extra-typings';
 
 export const createStreamCommand = new Command()
@@ -10,9 +10,9 @@ export const createStreamCommand = new Command()
 	.action(async (name: string) => {
 		// const provider = new ethers.providers.JsonRpcProvider(rootOptions.host);
 		// const signer = new ethers.Wallet(rootOptions.wallet, provider);
-		const client = getLogStoreClientFromOptions();
+		const { streamrClient } = getClientsFromOptions();
 		console.log('Creating a stream...');
-		const stream = await client.createStream({
+		const stream = await streamrClient.createStream({
 			// id: name.charAt(0) === '/' ? name : `/${name}`,
 			id: name,
 		});

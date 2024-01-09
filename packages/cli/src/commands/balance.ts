@@ -1,5 +1,5 @@
 import { readFeeMultiplier } from '@/configuration';
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
+import { getClientsFromOptions } from '@/utils/logstore-client';
 import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk, { bold } from 'chalk';
@@ -17,9 +17,11 @@ export const balanceCommand = new Command()
 	)
 	.action(async (cmdOptions) => {
 		try {
-			const client = getLogStoreClientFromOptions();
-			const balanceInLSAN = new Decimal((await client.getBalance()).toString());
-			const price = new Decimal((await client.getPrice()).toString());
+			const { logStoreClient } = getClientsFromOptions();
+			const balanceInLSAN = new Decimal(
+				(await logStoreClient.getBalance()).toString()
+			);
+			const price = new Decimal((await logStoreClient.getPrice()).toString());
 
 			// TODO review this when multiplier from contract != 1
 			const availableStorage = balanceInLSAN;
@@ -29,7 +31,7 @@ export const balanceCommand = new Command()
 
 			console.log(
 				`The LSAN balance for address ${bold(
-					await client.getAddress()
+					await logStoreClient.getSigner().then((s) => s.getAddress())
 				)} is ${bold(balanceInLSAN.toString())}.`
 			);
 			console.log(

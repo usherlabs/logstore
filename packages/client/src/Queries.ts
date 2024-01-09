@@ -4,7 +4,7 @@ import {
 	StreamPartIDUtils,
 } from '@streamr/protocol';
 import { Logger, randomString, toEthereumAddress } from '@streamr/utils';
-import { defer, EMPTY, map, partition, shareReplay } from 'rxjs';
+import { defer, EMPTY, filter, map, partition, shareReplay } from 'rxjs';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
@@ -294,6 +294,8 @@ export class Queries {
 			shareReplay({
 				refCount: true,
 			}),
+			map((line: string) => line.trim()), // remove ' ' and '\n' from the end of the line
+			filter(Boolean), // remove empty lines
 			map((line: string) => {
 				const msgObject = JSON.parse(line);
 				if (Array.isArray(msgObject)) {
