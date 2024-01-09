@@ -28,7 +28,7 @@ Before starting, ensure you have a clean git state. This helps in accurately ide
 2. **Version Bumping**
 
 	```bash
-	pnpm version
+	pnpm changeset version
 	```
 
     - This step updates all relevant **`package.json`** files and amends changelogs.
@@ -36,7 +36,7 @@ Before starting, ensure you have a clean git state. This helps in accurately ide
 3. **Publishing Changes**
 
 	```bash
-	pnpm publish
+	pnpm changeset publish
 	```
 
     - Publishes new versions to npm, omitting packages marked as **`private: true`**.
