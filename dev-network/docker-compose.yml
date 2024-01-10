@@ -140,6 +140,10 @@ services:
       - type: bind
         source: ../modules/logstore-node/packages/core/configs/docker-1.env.json
         target: /home/node/.logstore/config/default.json
+      - type: bind
+        source: ./assets/broker/data/
+        target: /home/node/.logstore/data/
+
     env_file:
       - ./assets/broker/.env.broker-1
     depends_on:
@@ -167,6 +171,9 @@ services:
       - type: bind
         source: ../modules/logstore-node/packages/core/configs/docker-2.env.json
         target: /home/node/.logstore/config/default.json
+      - type: bind
+        source: ./assets/broker/data/
+        target: /home/node/.logstore/data/
     env_file:
       - ./assets/broker/.env.broker-2
     depends_on:
@@ -196,6 +203,9 @@ services:
       - type: bind
         source: ../modules/logstore-node/packages/core/configs/docker-3.env.json
         target: /home/node/.logstore/config/default.json
+      - type: bind
+        source: ./assets/broker/data/
+        target: /home/node/.logstore/data/
     env_file:
       - ./assets/broker/.env.broker-3
     depends_on:
