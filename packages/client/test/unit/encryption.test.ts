@@ -155,7 +155,8 @@ describe('Encryption subleties', () => {
 	) {
 		fakeNextQueryResponse(streamMessage);
 
-		// we use this method of mocking and fetching, se we know it will go through
+		// we use this method of mocking and fetching, so we know it will go through
+		// the normal decryption flow of our client
 		const subscription = await logStoreClient.query('FAKE_QUERY', {
 			last: 1,
 		});
