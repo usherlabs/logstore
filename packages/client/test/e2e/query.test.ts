@@ -34,6 +34,7 @@ import { LogStoreClient } from '../../src/LogStoreClient';
 import { LogStoreMessage } from '../../src/LogStoreMessageStream';
 import type { StorageMatrix } from '../../src/utils/networkValidation/manageStorageMatrix';
 import * as verifyPkg from '../../src/utils/networkValidation/manageStorageMatrix';
+import { sleep } from '../test-utils/sleep';
 import { createTestStream } from '../test-utils/utils';
 
 const originalFetch = fetch.default;
@@ -47,10 +48,6 @@ const MESSAGE_STORE_TIMEOUT = 15 * 1000;
 const TIMEOUT = 90 * 1000;
 
 const BASE_NODE_URL = `http://localhost:7771`;
-
-function sleep(ms: number) {
-	return new Promise((resolve) => setTimeout(() => resolve(undefined), ms));
-}
 
 describe('query', () => {
 	const provider = new providers.JsonRpcProvider(

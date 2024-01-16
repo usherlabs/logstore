@@ -10,4 +10,5 @@ export type IPipeline<InType, OutType = InType> = {
 	): IPipeline<InType, NewOutType>;
 	flow(): IPipeline<InType, OutType>;
 	onMessage: Signal<[OutType]>;
+	onError: Signal<[Error]>;
 } & AsyncGenerator<OutType>;
