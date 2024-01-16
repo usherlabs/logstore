@@ -2,6 +2,7 @@ import { Wallet } from '@ethersproject/wallet';
 import { StreamMessage } from '@streamr/protocol';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { providers } from 'ethers';
+import type { Response } from 'node-fetch';
 import * as nodeFetch from 'node-fetch';
 import {
 	BehaviorSubject,
@@ -22,28 +23,7 @@ import { createTestStream } from '../test-utils/utils';
 
 const TIMEOUT = 90 * 1000;
 
-const collectQueryResults = async (logStoreClient: LogStoreClient) => {
-	const subscription = await logStoreClient.query(
-		'doesnt matter, http should be proxied',
-		{
-			last: 1,
-		}
-	);
-
-	// group key error is 30 seconds, however for this test 2 seconds is enough
-	setTimeout(() => jest.advanceTimersByTime(30000), 2000);
-	const error$ = new BehaviorSubject<Error | null>(null);
-	subscription.messageStream.onError.listen((e) => error$.next(e));
-
-	const messages$ = from(subscription).pipe(toArray());
-
-	const results$ = combineLatest({
-		messages: messages$,
-		error: error$,
-	});
-
-	return firstValueFrom(results$);
-};
+const originalFetch = jest.requireActual('node-fetch').default;
 
 describe('Encryption subleties', () => {
 	jest.setTimeout(TIMEOUT);
@@ -65,6 +45,8 @@ describe('Encryption subleties', () => {
 	let unauthorizedStreamrClient: StreamrClient;
 
 	const fetchSpy = jest.spyOn(nodeFetch, 'default');
+	// keep it original now
+	fetchSpy.mockImplementation(originalFetch);
 
 	let authorizedLogStoreClient: LogStoreClient;
 	let unauthorizedLogStoreClient: LogStoreClient;
@@ -128,15 +110,6 @@ describe('Encryption subleties', () => {
 			permissions: [StreamPermission.SUBSCRIBE],
 		});
 
-		const message = await publisherStreamrClient.publish(
-			stream.id,
-			messageContent
-		);
-		// @ts-expect-error internal
-		const streamMessage = message.streamMessage as StreamMessage;
-
-		mockNextFetchResponse(streamMessage);
-
 		await Promise.all(
 			[
 				publisherStreamrClient,
@@ -176,9 +149,52 @@ describe('Encryption subleties', () => {
 		await publisherStreamrClient.connect();
 	}
 
+	async function tryDecryptMessage(
+		logStoreClient: LogStoreClient,
+		streamMessage: StreamMessage
+	) {
+		fakeNextQueryResponse(streamMessage);
+
+		// we use this method of mocking and fetching, se we know it will go through
+		const subscription = await logStoreClient.query('FAKE_QUERY', {
+			last: 1,
+		});
+
+		// group key error is 30 seconds, however for this test 5 seconds is enough
+		setTimeout(() => jest.advanceTimersByTime(30000), 5000);
+		const error$ = new BehaviorSubject<Error | null>(null);
+		subscription.messageStream.onError.listen((e) => error$.next(e));
+
+		const messages$ = from(subscription).pipe(toArray());
+
+		const results$ = combineLatest({
+			messages: messages$,
+			error: error$,
+		});
+
+		return firstValueFrom(results$);
+	}
+
+	async function getStreamMessage(streamrClient: StreamrClient) {
+		// publish message
+		const message = await streamrClient.publish(stream.id, messageContent);
+
+		// @ts-expect-error internal
+		const streamMessage = message.streamMessage as StreamMessage;
+
+		return streamMessage;
+	}
+
 	test('authorized client is able to decrypt messages', async () => {
-		const { messages, error } = await collectQueryResults(
-			authorizedLogStoreClient
+		const streamMessage = await getStreamMessage(publisherStreamrClient);
+
+		// this oddly makes it fail if commented out. Should it?
+		// await recreatePublisher()
+		// await sleep(5000);
+
+		const { messages, error } = await tryDecryptMessage(
+			authorizedLogStoreClient,
+			streamMessage
 		);
 
 		expect(messages.length).toBe(1);
@@ -187,6 +203,7 @@ describe('Encryption subleties', () => {
 	});
 
 	test('authorized client is not able to decrypt if publisher is offline', async () => {
+		const streamMessage = await getStreamMessage(publisherStreamrClient);
 		// ensure it's authorized
 		await expect(
 			authorizedStreamrClient.isStreamSubscriber(
@@ -197,8 +214,9 @@ describe('Encryption subleties', () => {
 
 		await publisherStreamrClient.destroy();
 
-		const { messages, error } = await collectQueryResults(
-			authorizedLogStoreClient
+		const { messages, error } = await tryDecryptMessage(
+			authorizedLogStoreClient,
+			streamMessage
 		);
 
 		expect(messages.length).toBe(0);
@@ -206,6 +224,8 @@ describe('Encryption subleties', () => {
 	});
 
 	test('unauthorized client is not able to decrypt messages', async () => {
+		const streamMessage = await getStreamMessage(publisherStreamrClient);
+
 		// ensure it's not authorized
 		await expect(
 			unauthorizedStreamrClient.isStreamSubscriber(
@@ -214,8 +234,9 @@ describe('Encryption subleties', () => {
 			)
 		).resolves.toBe(false);
 
-		const { messages, error } = await collectQueryResults(
-			unauthorizedLogStoreClient
+		const { messages, error } = await tryDecryptMessage(
+			unauthorizedLogStoreClient,
+			streamMessage
 		);
 
 		expect(messages.length).toBe(0);
@@ -223,6 +244,8 @@ describe('Encryption subleties', () => {
 	});
 
 	test('later authorization is still able to decrypt messages', async () => {
+		const streamMessage = await getStreamMessage(publisherStreamrClient);
+
 		// ensure it's not authorized
 		await expect(
 			unauthorizedStreamrClient.isStreamSubscriber(
@@ -242,8 +265,9 @@ describe('Encryption subleties', () => {
 			],
 		});
 
-		const { messages, error } = await collectQueryResults(
-			unauthorizedLogStoreClient
+		const { messages, error } = await tryDecryptMessage(
+			unauthorizedLogStoreClient,
+			streamMessage
 		);
 
 		expect(messages.length).toBe(1);
@@ -252,6 +276,8 @@ describe('Encryption subleties', () => {
 	});
 
 	test('later authorization will still decrypt messages if the key is rotated (REKEY) in between', async () => {
+		const streamMessage = await getStreamMessage(publisherStreamrClient);
+
 		// ensure it's not authorized
 		await expect(
 			unauthorizedStreamrClient.isStreamSubscriber(
@@ -281,16 +307,17 @@ describe('Encryption subleties', () => {
 			],
 		});
 
-		const { messages, error } = await collectQueryResults(
-			unauthorizedLogStoreClient
+		const { messages, error } = await tryDecryptMessage(
+			unauthorizedLogStoreClient,
+			streamMessage
 		);
 
-		expect(messages.length).toBe(1);
 		expect(error).toBeNull();
+		expect(messages.length).toBe(1);
 		expect(messages[0].content).toEqual(messageContent);
 	});
 
-	function mockNextFetchResponse(streamMessage: StreamMessage<unknown>) {
+	function fakeNextQueryResponse(streamMessage: StreamMessage) {
 		const metadata = {
 			type: 'metadata',
 		};
@@ -299,12 +326,19 @@ describe('Encryption subleties', () => {
 			'\n'
 		);
 
-		fetchSpy.mockResolvedValue({
-			status: 200,
-			text: () => Promise.resolve(payload),
-			body: Readable.from(payload),
-			ok: true,
-		} as any);
+		fetchSpy.mockImplementationOnce(async (...args) => {
+			// FAKE_QUERY is included as the streamId to be fetched
+			if (args[0].toString().includes('FAKE_QUERY')) {
+				return {
+					status: 200,
+					text: () => Promise.resolve(payload),
+					body: Readable.from(payload),
+					ok: true,
+				} as unknown as Response;
+			} else {
+				return originalFetch(...args);
+			}
+		});
 	}
 
 	describe('decrypt is based on publisher presence, and not the stream owner', () => {
@@ -329,17 +363,6 @@ describe('Encryption subleties', () => {
 				permissions: [StreamPermission.PUBLISH, StreamPermission.SUBSCRIBE],
 			});
 
-			// publish message
-			const message = await secondPublisherStreamrClient.publish(
-				stream.id,
-				messageContent
-			);
-
-			// @ts-expect-error internal
-			const streamMessage = message.streamMessage as StreamMessage;
-
-			mockNextFetchResponse(streamMessage);
-
 			// ensure everyone is connected
 			await Promise.all(
 				[
@@ -356,8 +379,13 @@ describe('Encryption subleties', () => {
 		});
 
 		test('authorized client is able to decrypt messages, with both publishers online', async () => {
-			const { messages, error } = await collectQueryResults(
-				authorizedLogStoreClient
+			const streamMessage = await getStreamMessage(
+				secondPublisherStreamrClient
+			);
+
+			const { messages, error } = await tryDecryptMessage(
+				authorizedLogStoreClient,
+				streamMessage
 			);
 
 			expect(messages.length).toBe(1);
@@ -366,10 +394,14 @@ describe('Encryption subleties', () => {
 		});
 
 		test('authorized client is able to decrypt messages, even with stream owner offline', async () => {
+			const streamMessage = await getStreamMessage(
+				secondPublisherStreamrClient
+			);
 			await publisherStreamrClient.destroy();
 
-			const { messages, error } = await collectQueryResults(
-				authorizedLogStoreClient
+			const { messages, error } = await tryDecryptMessage(
+				authorizedLogStoreClient,
+				streamMessage
 			);
 
 			expect(error).toBeNull();
@@ -378,20 +410,31 @@ describe('Encryption subleties', () => {
 		});
 
 		test('authorized client is able to decrypt messages, with stream owner being offline before the message is even published', async () => {
-			await publisherStreamrClient.destroy();
-
-			// publish message
-			const message = await secondPublisherStreamrClient.publish(
-				stream.id,
-				messageContent
+			const thirdPublisher = new Wallet(
+				await fetchPrivateKeyWithGas(),
+				provider
 			);
 
-			// @ts-expect-error internal
-			const streamMessage = message.streamMessage as StreamMessage;
-			mockNextFetchResponse(streamMessage);
+			// grant acccess to this third publisher
+			await publisherStreamrClient.grantPermissions(stream.id, {
+				user: await thirdPublisher.getAddress(),
+				permissions: [StreamPermission.PUBLISH, StreamPermission.SUBSCRIBE],
+			});
 
-			const { messages, error } = await collectQueryResults(
-				authorizedLogStoreClient
+			await publisherStreamrClient.destroy();
+
+			const thirdPublisherStreamrClient = new StreamrClient({
+				...STREAMR_CONFIG_TEST,
+				auth: {
+					privateKey: thirdPublisher.privateKey,
+				},
+			});
+
+			const streamMessage = await getStreamMessage(thirdPublisherStreamrClient);
+
+			const { messages, error } = await tryDecryptMessage(
+				authorizedLogStoreClient,
+				streamMessage
 			);
 
 			expect(error).toBeNull();
@@ -400,6 +443,10 @@ describe('Encryption subleties', () => {
 		});
 
 		test('authorized client is not able to decrypt if publisher is offline', async () => {
+			const streamMessage = await getStreamMessage(
+				secondPublisherStreamrClient
+			);
+
 			// ensure it's authorized
 			await expect(
 				authorizedStreamrClient.isStreamSubscriber(
@@ -410,8 +457,9 @@ describe('Encryption subleties', () => {
 
 			await secondPublisherStreamrClient.destroy();
 
-			const { messages, error } = await collectQueryResults(
-				authorizedLogStoreClient
+			const { messages, error } = await tryDecryptMessage(
+				authorizedLogStoreClient,
+				streamMessage
 			);
 
 			expect(messages.length).toBe(0);
@@ -419,6 +467,10 @@ describe('Encryption subleties', () => {
 		});
 
 		test('unauthorized client is not able to decrypt messages', async () => {
+			const streamMessage = await getStreamMessage(
+				secondPublisherStreamrClient
+			);
+
 			// ensure it's not authorized
 			await expect(
 				unauthorizedStreamrClient.isStreamSubscriber(
@@ -427,8 +479,9 @@ describe('Encryption subleties', () => {
 				)
 			).resolves.toBe(false);
 
-			const { messages, error } = await collectQueryResults(
-				unauthorizedLogStoreClient
+			const { messages, error } = await tryDecryptMessage(
+				unauthorizedLogStoreClient,
+				streamMessage
 			);
 
 			expect(messages.length).toBe(0);
