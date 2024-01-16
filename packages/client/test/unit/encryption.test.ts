@@ -135,22 +135,8 @@ describe('Encryption subleties', () => {
 		// @ts-expect-error internal
 		const streamMessage = message.streamMessage as StreamMessage;
 
-		const metadata = {
-			type: 'metadata',
-		};
+		mockNextFetchResponse(streamMessage);
 
-		const payload = [streamMessage.serialize(), JSON.stringify(metadata)].join(
-			'\n'
-		);
-
-		fetchSpy.mockResolvedValueOnce({
-			status: 200,
-			text: () => Promise.resolve(payload),
-			body: Readable.from(payload),
-			ok: true,
-		} as any);
-
-		// ensure everyone is connected
 		await Promise.all(
 			[
 				publisherStreamrClient,
@@ -191,7 +177,9 @@ describe('Encryption subleties', () => {
 	}
 
 	test('authorized client is able to decrypt messages', async () => {
-		const { messages, error } = await collectQueryResults(authorizedLogStoreClient);
+		const { messages, error } = await collectQueryResults(
+			authorizedLogStoreClient
+		);
 
 		expect(messages.length).toBe(1);
 		expect(error).toBeNull();
@@ -209,7 +197,9 @@ describe('Encryption subleties', () => {
 
 		await publisherStreamrClient.destroy();
 
-		const { messages, error } = await collectQueryResults(authorizedLogStoreClient);
+		const { messages, error } = await collectQueryResults(
+			authorizedLogStoreClient
+		);
 
 		expect(messages.length).toBe(0);
 		expect(error?.message).toContain('Decrypt error: Could not get GroupKey');
@@ -300,6 +290,23 @@ describe('Encryption subleties', () => {
 		expect(messages[0].content).toEqual(messageContent);
 	});
 
+	function mockNextFetchResponse(streamMessage: StreamMessage<unknown>) {
+		const metadata = {
+			type: 'metadata',
+		};
+
+		const payload = [streamMessage.serialize(), JSON.stringify(metadata)].join(
+			'\n'
+		);
+
+		fetchSpy.mockResolvedValue({
+			status: 200,
+			text: () => Promise.resolve(payload),
+			body: Readable.from(payload),
+			ok: true,
+		} as any);
+	}
+
 	describe('decrypt is based on publisher presence, and not the stream owner', () => {
 		let secondPublisher: Wallet;
 		let secondPublisherStreamrClient: StreamrClient;
@@ -331,21 +338,7 @@ describe('Encryption subleties', () => {
 			// @ts-expect-error internal
 			const streamMessage = message.streamMessage as StreamMessage;
 
-			const metadata = {
-				type: 'metadata',
-			};
-
-			const payload = [
-				streamMessage.serialize(),
-				JSON.stringify(metadata),
-			].join('\n');
-
-			fetchSpy.mockResolvedValue({
-				status: 200,
-				text: () => Promise.resolve(payload),
-				body: Readable.from(payload),
-				ok: true,
-			} as any);
+			mockNextFetchResponse(streamMessage);
 
 			// ensure everyone is connected
 			await Promise.all(
@@ -374,6 +367,28 @@ describe('Encryption subleties', () => {
 
 		test('authorized client is able to decrypt messages, even with stream owner offline', async () => {
 			await publisherStreamrClient.destroy();
+
+			const { messages, error } = await collectQueryResults(
+				authorizedLogStoreClient
+			);
+
+			expect(error).toBeNull();
+			expect(messages.length).toBe(1);
+			expect(messages[0].content).toEqual(messageContent);
+		});
+
+		test('authorized client is able to decrypt messages, with stream owner being offline before the message is even published', async () => {
+			await publisherStreamrClient.destroy();
+
+			// publish message
+			const message = await secondPublisherStreamrClient.publish(
+				stream.id,
+				messageContent
+			);
+
+			// @ts-expect-error internal
+			const streamMessage = message.streamMessage as StreamMessage;
+			mockNextFetchResponse(streamMessage);
 
 			const { messages, error } = await collectQueryResults(
 				authorizedLogStoreClient
