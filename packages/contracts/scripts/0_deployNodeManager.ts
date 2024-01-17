@@ -205,6 +205,8 @@ async function main() {
 		const VALIDATOR_PK_PREFIX = 'cc';
 		const PULSE_PK =
 			'1111111111111111111111111111111111111111111111111111111111111111';
+		const STORAGE_PROXY_PK =
+			'0000000000000000000000000000000000000000000000000000000000000111';
 		const NUM_ACCOUNTS = 100;
 		const NUM_BROKERS = 3;
 		const NUM_VALIDATORS = 4;
@@ -328,18 +330,37 @@ async function main() {
 			}
 		}
 
-		console.log();
-		console.log(
-			`Minting native token and LSAN to the Pulse account with Primary Key: ${PULSE_PK}`
-		);
-		const address = new Wallet(PULSE_PK).address;
+		// Pulse
+		{
+			console.log();
+			console.log(
+				`Minting native token and LSAN to the Pulse account with Primary Key: ${PULSE_PK}`
+			);
+			const address = new Wallet(PULSE_PK).address;
 
-		const tx = {
-			to: address,
-			value: hre.ethers.utils.parseEther('1'),
-		};
-		await (await signer.sendTransaction(tx)).wait();
-		await (await token.mintTokens(address, MINT_AMOUNT)).wait();
+			const tx = {
+				to: address,
+				value: hre.ethers.utils.parseEther('1'),
+			};
+			await (await signer.sendTransaction(tx)).wait();
+			await (await token.mintTokens(address, MINT_AMOUNT)).wait();
+		}
+
+		// Storage Proxy
+		{
+			console.log();
+			console.log(
+				`Minting native token and LSAN to the Storage Proxy account with Primary Key: ${STORAGE_PROXY_PK}`
+			);
+			const address = new Wallet(STORAGE_PROXY_PK).address;
+
+			const tx = {
+				to: address,
+				value: hre.ethers.utils.parseEther('1'),
+			};
+			await (await signer.sendTransaction(tx)).wait();
+			await (await token.mintTokens(address, MINT_AMOUNT)).wait();
+		}
 	}
 	// --------------------------- mint dev token to the test accounts ------------------------- //
 
