@@ -15,6 +15,7 @@ import { Message, MessageListener } from 'streamr-client';
 
 import type { RequestMetadata } from './HttpUtil';
 import { IPushPipeline } from './streamr/utils/IPushPipeline';
+import { PushBuffer } from './streamr/utils/PushBuffer';
 
 export type LogStoreMessageMetadata = {
 	id: MessageID;
@@ -40,7 +41,9 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 	private messages$: Observable<StreamMessage>;
 
 	constructor(
-		public messageStream: IPushPipeline<StreamMessage, StreamMessage>,
+		public messageStream:
+			| PushBuffer<string | StreamMessage>
+			| IPushPipeline<StreamMessage, StreamMessage>,
 		public metadataStream: Observable<RequestMetadata>
 	) {
 		this.messages$ = defer(() => {
@@ -54,9 +57,15 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 	 * onMessage is passed parsed content as first arument, and streamMessage as second argument.
 	 */
 	useLegacyOnMessageHandler(onMessage: MessageListener): this {
+		if (this.messageStream instanceof PushBuffer) {
+			return this;
+		}
+
 		this.messageStream.onMessage.listen(async (streamMessage) => {
-			const msg = convertStreamMessageToMessage(streamMessage);
-			await onMessage(msg.content, omit(msg, 'content'));
+			if (typeof streamMessage !== 'string') {
+				const msg = convertStreamMessageToMessage(streamMessage);
+				await onMessage(msg.content, omit(msg, 'content'));
+			}
 		});
 		this.messageStream.flow();
 
@@ -69,7 +78,11 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 
 	async *[Symbol.asyncIterator](): AsyncIterator<LogStoreMessage> {
 		for await (const msg of this.messages$) {
-			yield convertStreamMessageToLogStoreMessage(msg);
+			if (typeof msg === 'string') {
+				yield msg;
+			} else {
+				yield convertStreamMessageToLogStoreMessage(msg);
+			}
 		}
 	}
 }

@@ -20,6 +20,7 @@ import StreamrClient, {
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST, LogStoreClient } from '../../src';
 import { createTestStream } from '../test-utils/utils';
+import { IPushPipeline } from '../../src/streamr/utils/IPushPipeline';
 
 const TIMEOUT = 90 * 1000;
 
@@ -174,7 +175,7 @@ describe('Encryption subleties', () => {
 		// group key error is 30 seconds, however for this test 5 seconds is enough
 		setTimeout(() => jest.advanceTimersByTime(30000), 5000);
 		const error$ = new BehaviorSubject<Error | null>(null);
-		subscription.messageStream.onError.listen((e) => error$.next(e));
+		(subscription.messageStream as IPushPipeline<StreamMessage>).onError.listen((e) => error$.next(e));
 
 		const messages$ = from(subscription).pipe(toArray());
 

@@ -28,7 +28,7 @@ import {
 	MessagePipelineFactoryInjectionToken,
 } from './streamr/subscribe/MessagePipelineFactory';
 import { transformError } from './streamr/utils/GeneratorUtils';
-import { pull } from './streamr/utils/IPushBuffer';
+import { pull, PushBuffer } from './streamr/utils/PushBuffer';
 import {
 	validateWithNetworkResponses,
 	type VerificationOptions,
@@ -145,6 +145,7 @@ function isQueryRange<T extends QueryRangeOptions>(options: any): options is T {
 export type QueryOptions = {
 	abortSignal?: AbortSignal;
 	verifyNetworkResponses?: VerificationOptions | boolean;
+	raw?: boolean;
 };
 
 const getHttpErrorTransform = (): ((
@@ -203,9 +204,7 @@ export class Queries {
 	): Promise<LogStoreMessageStream> {
 		if (isQueryLast(input)) {
 			if (input.last <= 0) {
-				const emptyStream = this.messagePipelineFactory.createMessagePipeline({
-					streamPartId,
-				});
+				const emptyStream = new PushBuffer<StreamMessage<unknown>>();
 				return new LogStoreMessageStream(emptyStream, EMPTY);
 			}
 			return this.fetchStream(
@@ -281,9 +280,9 @@ export class Queries {
 			format: 'raw',
 			verifyNetworkResponses: !!options?.verifyNetworkResponses,
 		});
-		const messageStream = this.messagePipelineFactory.createMessagePipeline({
-			streamPartId,
-		});
+		const messageStream = options?.raw
+			? new PushBuffer<string | StreamMessage<unknown>>()
+			: this.messagePipelineFactory.createMessagePipeline({ streamPartId });
 
 		const lines = transformError(
 			this.httpUtil.fetchHttpStream(url, options?.abortSignal),
@@ -299,6 +298,9 @@ export class Queries {
 			map((line: string) => {
 				const msgObject = JSON.parse(line);
 				if (Array.isArray(msgObject)) {
+					if (options?.raw) {
+						return line;
+					}
 					return StreamMessage.deserialize(msgObject);
 				}
 				// last message must be metadata
@@ -309,8 +311,8 @@ export class Queries {
 			})
 		);
 
-		const isStreamMessage = (msg: any): msg is StreamMessage =>
-			msg instanceof StreamMessage;
+		const isStreamMessage = (msg: any): msg is StreamMessage | string =>
+			msg instanceof StreamMessage || typeof msg === 'string';
 
 		const [messagesSource, metadataSource] = partition(
 			dataStream,
@@ -357,7 +359,7 @@ export class Queries {
 		const [streamId, streamPartition] =
 			StreamPartIDUtils.getStreamIDAndPartition(streamPartId);
 		const queryString = this.httpUtil.createQueryString(query);
-		return `${baseUrl}/streams/${encodeURIComponent(
+		return `${baseUrl}/stores/${encodeURIComponent(
 			streamId
 		)}/data/partitions/${streamPartition}/${endpointSuffix}?${queryString}`;
 	}
