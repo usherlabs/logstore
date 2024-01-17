@@ -7,11 +7,12 @@ import { priceCommand } from '@/commands/price';
 import { queryCommand } from '@/commands/query';
 import { storeCommand } from '@/commands/store';
 import { versionCommand } from '@/commands/version';
-import { defaultConfigPath, IConfig, resolveHome } from '@/configuration';
+import { IConfig, defaultConfigPath, resolveHome } from '@/configuration';
 import { appVersion } from '@/env-config';
 import { logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import jsonfile from 'jsonfile';
+import { storageProxyCommand } from './storage-proxy';
 
 export const rootProgram = new Command()
 	.name('logstore-cli')
@@ -72,3 +73,4 @@ rootProgram.addCommand(priceCommand);
 rootProgram.addCommand(queryCommand);
 rootProgram.addCommand(createStreamCommand);
 rootProgram.addCommand(storeCommand);
+rootProgram.addCommand(storageProxyCommand);

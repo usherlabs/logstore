@@ -34,7 +34,7 @@
 		"@inquirer/prompts": "^3.3.0",
 		"@logsn/client": "workspace:*",
 		"@logsn/shared": "workspace:*",
-		"streamr-client": "^8.5.5",
+		"@streamr/utils": "^8.5.5",
 		"chalk": "^4.1.2",
 		"commander": "^11.0.0",
 		"decimal.js": "^10.4.3",
@@ -44,6 +44,7 @@
 		"lodash": "^4.17.21",
 		"mkdirp": "^3.0.1",
 		"rxjs": "8.0.0-alpha.12",
+		"streamr-client": "^8.5.5",
 		"tslog": "^4.8.2"
 	},
 	"devDependencies": {
