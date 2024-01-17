@@ -25,6 +25,16 @@ const TIMEOUT = 90 * 1000;
 
 const originalFetch = jest.requireActual('node-fetch').default;
 
+/*
+ * Subjects:
+ * Publisher A === Stream Owner: The owner of the stream. May also publish.
+ * Publisher B: Authorized publisher
+ * Publisher C: Authorized publisher
+ *
+ * Authorized client: Client that has been initially granted permissions to subscribe to the stream
+ * Unauthorized client: Client that has not been initially granted permissions to subscribe to the stream
+ */
+
 describe('Encryption subleties', () => {
 	jest.setTimeout(TIMEOUT);
 	jest.useFakeTimers({
@@ -36,11 +46,11 @@ describe('Encryption subleties', () => {
 		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
 	);
 
-	let publisherAccount: Wallet;
+	let publisherA_Account: Wallet;
 	let authorizedAccount: Wallet;
 	let unauthorizedAccount: Wallet;
 
-	let publisherStreamrClient: StreamrClient;
+	let publisherA_StreamrClient: StreamrClient;
 	let authorizedStreamrClient: StreamrClient;
 	let unauthorizedStreamrClient: StreamrClient;
 
@@ -64,16 +74,16 @@ describe('Encryption subleties', () => {
 			fetchPrivateKeyWithGas(),
 		]);
 
-		publisherAccount = new Wallet(walletsForAccounts[0], provider);
+		publisherA_Account = new Wallet(walletsForAccounts[0], provider);
 		authorizedAccount = new Wallet(walletsForAccounts[1], provider);
 		unauthorizedAccount = new Wallet(walletsForAccounts[2], provider);
 	});
 
 	beforeEach(async () => {
-		publisherStreamrClient = new StreamrClient({
+		publisherA_StreamrClient = new StreamrClient({
 			...STREAMR_CONFIG_TEST,
 			auth: {
-				privateKey: publisherAccount.privateKey,
+				privateKey: publisherA_Account.privateKey,
 			},
 		});
 
@@ -101,18 +111,18 @@ describe('Encryption subleties', () => {
 			LOGSTORE_CONFIG_TEST
 		);
 
-		stream = await createTestStream(publisherStreamrClient, module, {
+		stream = await createTestStream(publisherA_StreamrClient, module, {
 			partitions: 1,
 		});
 
-		await publisherStreamrClient.grantPermissions(stream.id, {
+		await publisherA_StreamrClient.grantPermissions(stream.id, {
 			user: await authorizedStreamrClient.getAddress(),
 			permissions: [StreamPermission.SUBSCRIBE],
 		});
 
 		await Promise.all(
 			[
-				publisherStreamrClient,
+				publisherA_StreamrClient,
 				authorizedStreamrClient,
 				unauthorizedStreamrClient,
 			].map((c) => c.connect())
@@ -121,7 +131,7 @@ describe('Encryption subleties', () => {
 
 	afterEach(async () => {
 		await Promise.allSettled([
-			publisherStreamrClient.destroy(),
+			publisherA_StreamrClient.destroy(),
 			authorizedStreamrClient.destroy(),
 			unauthorizedStreamrClient.destroy(),
 		]);
@@ -136,17 +146,17 @@ describe('Encryption subleties', () => {
 
 	async function recreatePublisher() {
 		// destroy the publisher
-		await publisherStreamrClient.destroy();
+		await publisherA_StreamrClient.destroy();
 
 		// recreate the publisher, to ensure we have clean state
-		publisherStreamrClient = new StreamrClient({
+		publisherA_StreamrClient = new StreamrClient({
 			...STREAMR_CONFIG_TEST,
 			auth: {
-				privateKey: publisherAccount.privateKey,
+				privateKey: publisherA_Account.privateKey,
 			},
 		});
 
-		await publisherStreamrClient.connect();
+		await publisherA_StreamrClient.connect();
 	}
 
 	async function tryDecryptMessage(
@@ -187,7 +197,7 @@ describe('Encryption subleties', () => {
 	}
 
 	test('authorized client is able to decrypt messages', async () => {
-		const streamMessage = await getStreamMessage(publisherStreamrClient);
+		const streamMessage = await getStreamMessage(publisherA_StreamrClient);
 
 		// this oddly makes it fail if commented out. Should it?
 		// await recreatePublisher()
@@ -204,7 +214,7 @@ describe('Encryption subleties', () => {
 	});
 
 	test('authorized client is not able to decrypt if publisher is offline', async () => {
-		const streamMessage = await getStreamMessage(publisherStreamrClient);
+		const streamMessage = await getStreamMessage(publisherA_StreamrClient);
 		// ensure it's authorized
 		await expect(
 			authorizedStreamrClient.isStreamSubscriber(
@@ -213,7 +223,7 @@ describe('Encryption subleties', () => {
 			)
 		).resolves.toBe(true);
 
-		await publisherStreamrClient.destroy();
+		await publisherA_StreamrClient.destroy();
 
 		const { messages, error } = await tryDecryptMessage(
 			authorizedLogStoreClient,
@@ -225,7 +235,7 @@ describe('Encryption subleties', () => {
 	});
 
 	test('unauthorized client is not able to decrypt messages', async () => {
-		const streamMessage = await getStreamMessage(publisherStreamrClient);
+		const streamMessage = await getStreamMessage(publisherA_StreamrClient);
 
 		// ensure it's not authorized
 		await expect(
@@ -245,7 +255,7 @@ describe('Encryption subleties', () => {
 	});
 
 	test('later authorization is still able to decrypt messages', async () => {
-		const streamMessage = await getStreamMessage(publisherStreamrClient);
+		const streamMessage = await getStreamMessage(publisherA_StreamrClient);
 
 		// ensure it's not authorized
 		await expect(
@@ -256,7 +266,7 @@ describe('Encryption subleties', () => {
 		).resolves.toBe(false);
 
 		// now authorize
-		await publisherStreamrClient.setPermissions({
+		await publisherA_StreamrClient.setPermissions({
 			streamId: stream.id,
 			assignments: [
 				{
@@ -277,7 +287,7 @@ describe('Encryption subleties', () => {
 	});
 
 	test('later authorization will still decrypt messages if the key is rotated (REKEY) in between', async () => {
-		const streamMessage = await getStreamMessage(publisherStreamrClient);
+		const streamMessage = await getStreamMessage(publisherA_StreamrClient);
 
 		// ensure it's not authorized
 		await expect(
@@ -288,7 +298,7 @@ describe('Encryption subleties', () => {
 		).resolves.toBe(false);
 
 		// rotate key
-		await publisherStreamrClient.updateEncryptionKey({
+		await publisherA_StreamrClient.updateEncryptionKey({
 			streamId: stream.id,
 			distributionMethod: 'rekey',
 		});
@@ -298,7 +308,7 @@ describe('Encryption subleties', () => {
 		// await recreatePublisher();
 
 		// now authorize
-		await publisherStreamrClient.setPermissions({
+		await publisherA_StreamrClient.setPermissions({
 			streamId: stream.id,
 			assignments: [
 				{
@@ -343,50 +353,50 @@ describe('Encryption subleties', () => {
 	}
 
 	describe('decrypt is based on publisher presence, and not the stream owner', () => {
-		let secondPublisher: Wallet;
-		let secondPublisherStreamrClient: StreamrClient;
+		let publisherB_Account: Wallet;
+		let publisherB_StreamrClient: StreamrClient;
 
 		beforeAll(async () => {
-			secondPublisher = new Wallet(await fetchPrivateKeyWithGas(), provider);
+			publisherB_Account = new Wallet(await fetchPrivateKeyWithGas(), provider);
 		});
 
 		beforeEach(async () => {
-			secondPublisherStreamrClient = new StreamrClient({
+			publisherB_StreamrClient = new StreamrClient({
 				...STREAMR_CONFIG_TEST,
 				auth: {
-					privateKey: secondPublisher.privateKey,
+					privateKey: publisherB_Account.privateKey,
 				},
 			});
 
-			// authorize second publisher to publish to stream
-			await publisherStreamrClient.grantPermissions(stream.id, {
-				user: await secondPublisherStreamrClient.getAddress(),
+			// authorize publisher B to publish to stream
+			await publisherA_StreamrClient.grantPermissions(stream.id, {
+				user: await publisherB_StreamrClient.getAddress(),
 				permissions: [StreamPermission.PUBLISH, StreamPermission.SUBSCRIBE],
 			});
 
 			// ensure everyone is connected
 			await Promise.all(
 				[
-					publisherStreamrClient,
+					publisherA_StreamrClient,
 					authorizedStreamrClient,
 					unauthorizedStreamrClient,
-					secondPublisherStreamrClient,
+					publisherB_StreamrClient,
 				].map((c) => c.connect())
 			);
 		});
 
 		afterEach(async () => {
-			await secondPublisherStreamrClient.destroy();
+			await publisherB_StreamrClient.destroy();
 		});
 
 		test('authorized client is able to decrypt messages, with both publishers online', async () => {
-			const streamMessage = await getStreamMessage(
-				secondPublisherStreamrClient
+			const streamMessageCreatedByPublisherB = await getStreamMessage(
+				publisherB_StreamrClient
 			);
 
 			const { messages, error } = await tryDecryptMessage(
 				authorizedLogStoreClient,
-				streamMessage
+				streamMessageCreatedByPublisherB
 			);
 
 			expect(messages.length).toBe(1);
@@ -395,14 +405,14 @@ describe('Encryption subleties', () => {
 		});
 
 		test('authorized client is able to decrypt messages, even with stream owner offline', async () => {
-			const streamMessage = await getStreamMessage(
-				secondPublisherStreamrClient
+			const streamMessageCreatedByPublisherB = await getStreamMessage(
+				publisherB_StreamrClient
 			);
-			await publisherStreamrClient.destroy();
+			await publisherA_StreamrClient.destroy();
 
 			const { messages, error } = await tryDecryptMessage(
 				authorizedLogStoreClient,
-				streamMessage
+				streamMessageCreatedByPublisherB
 			);
 
 			expect(error).toBeNull();
@@ -411,27 +421,24 @@ describe('Encryption subleties', () => {
 		});
 
 		test('authorized client is able to decrypt messages, with stream owner being offline before the message is even published', async () => {
-			const thirdPublisher = new Wallet(
-				await fetchPrivateKeyWithGas(),
-				provider
-			);
+			const publisherC = new Wallet(await fetchPrivateKeyWithGas(), provider);
 
-			// grant acccess to this third publisher
-			await publisherStreamrClient.grantPermissions(stream.id, {
-				user: await thirdPublisher.getAddress(),
+			// grant acccess to this publisher C
+			await publisherA_StreamrClient.grantPermissions(stream.id, {
+				user: await publisherC.getAddress(),
 				permissions: [StreamPermission.PUBLISH, StreamPermission.SUBSCRIBE],
 			});
 
-			await publisherStreamrClient.destroy();
+			await publisherA_StreamrClient.destroy();
 
-			const thirdPublisherStreamrClient = new StreamrClient({
+			const publisherCStreamrClient = new StreamrClient({
 				...STREAMR_CONFIG_TEST,
 				auth: {
-					privateKey: thirdPublisher.privateKey,
+					privateKey: publisherC.privateKey,
 				},
 			});
 
-			const streamMessage = await getStreamMessage(thirdPublisherStreamrClient);
+			const streamMessage = await getStreamMessage(publisherCStreamrClient);
 
 			const { messages, error } = await tryDecryptMessage(
 				authorizedLogStoreClient,
@@ -444,9 +451,7 @@ describe('Encryption subleties', () => {
 		});
 
 		test('authorized client is not able to decrypt if publisher is offline', async () => {
-			const streamMessage = await getStreamMessage(
-				secondPublisherStreamrClient
-			);
+			const streamMessage = await getStreamMessage(publisherB_StreamrClient);
 
 			// ensure it's authorized
 			await expect(
@@ -456,7 +461,7 @@ describe('Encryption subleties', () => {
 				)
 			).resolves.toBe(true);
 
-			await secondPublisherStreamrClient.destroy();
+			await publisherB_StreamrClient.destroy();
 
 			const { messages, error } = await tryDecryptMessage(
 				authorizedLogStoreClient,
@@ -468,9 +473,7 @@ describe('Encryption subleties', () => {
 		});
 
 		test('unauthorized client is not able to decrypt messages', async () => {
-			const streamMessage = await getStreamMessage(
-				secondPublisherStreamrClient
-			);
+			const streamMessage = await getStreamMessage(publisherB_StreamrClient);
 
 			// ensure it's not authorized
 			await expect(
@@ -487,6 +490,66 @@ describe('Encryption subleties', () => {
 
 			expect(messages.length).toBe(0);
 			expect(error?.message).toContain('Decrypt error: Could not get GroupKey');
+		});
+
+		test('decrypt of a message is based on its direct publisher only', async () => {
+			const messageCreatedByOwner = await getStreamMessage(
+				publisherA_StreamrClient
+			);
+
+			const publisherC = new Wallet(await fetchPrivateKeyWithGas(), provider);
+
+			// grant acccess to this publisher C
+			await publisherA_StreamrClient.grantPermissions(stream.id, {
+				user: await publisherC.getAddress(),
+				permissions: [StreamPermission.PUBLISH, StreamPermission.SUBSCRIBE],
+			});
+
+			await publisherA_StreamrClient.destroy();
+
+			const publisherC_StreamrClient = new StreamrClient({
+				...STREAMR_CONFIG_TEST,
+				auth: {
+					privateKey: publisherC.privateKey,
+				},
+			});
+
+			const messageCreatedByPublisherC = await getStreamMessage(
+				publisherC_StreamrClient
+			);
+
+			// ensure it's authorized
+			await expect(
+				authorizedStreamrClient.isStreamSubscriber(
+					stream.id,
+					authorizedAccount.address
+				)
+			).resolves.toBe(true);
+
+			{
+				// message by publisher C is able to decrypted -- reason: publisher C is online
+				const { messages, error } = await tryDecryptMessage(
+					authorizedLogStoreClient,
+					messageCreatedByPublisherC
+				);
+
+				expect(error).toBeNull();
+				expect(messages.length).toBe(1);
+				expect(messages[0].content).toEqual(messageContent);
+			}
+
+			{
+				// message by owner is not able to decrypted -- reason: owner is offline
+				const { messages, error } = await tryDecryptMessage(
+					authorizedLogStoreClient,
+					messageCreatedByOwner
+				);
+
+				expect(messages.length).toBe(0);
+				expect(error?.message).toContain(
+					'Decrypt error: Could not get GroupKey'
+				);
+			}
 		});
 	});
 });
