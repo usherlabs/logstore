@@ -3,6 +3,7 @@ FROM logstore-base
 USER root
 RUN mkdir /firstrun && chown node:node /firstrun
 RUN npm i -g /home/node/logstore/packages/cli
+RUN npm i -g /home/node/logstore/packages/storage-proxy-cli
 
 USER node
 WORKDIR /home/node

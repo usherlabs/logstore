@@ -1,23 +1,27 @@
-import { getClientsFromOptions } from '@/utils/logstore-client';
-import { logger } from '@/utils/utils';
-import { Command } from '@commander-js/extra-typings';
-import chalk from 'chalk';
+import { Logger } from '@streamr/utils';
+import { Command, program } from 'commander';
 import { StorageNodeMetadata, StreamPermission, formStorageNodeAssignmentStreamId } from "streamr-client";
-import { metadataOption } from './options';
+import { metadataArgument } from '../arguments';
+import { getStreamrClient } from '../utils/getStreamrClient';
+
+const logger = new Logger(module);
 
 interface Options {
-  metadata: StorageNodeMetadata;
+  devNetwork: boolean;
+  privateKey: string;
 }
 
-export const storageProxyInit = new Command("init")
+export const initCommand = new Command("init")
   .description('Initialize a StorageProxy')
-  .addOption(metadataOption)
-  .action(async (options: Options) => {
+  .addArgument(metadataArgument)
+  .action(async (metadata: StorageNodeMetadata) => {
     try {
-      const { streamrClient } = getClientsFromOptions();
+      const options = program.optsWithGlobals() as Options;
+
+      const streamrClient = getStreamrClient(options);
       const clusterId = await streamrClient.getAddress();
 
-      logger.info(`Initializing a StorageProxy with address ${chalk.green(clusterId)}...`);
+      logger.info(`Initializing a StorageProxy with address ${clusterId}...`);
 
       const assignmentsStreamId = formStorageNodeAssignmentStreamId(clusterId);
 
@@ -31,11 +35,10 @@ export const storageProxyInit = new Command("init")
       });
 
       logger.info(`Setting metadata to the StorageProxy...`);
-      await streamrClient.setStorageNodeMetadata(options.metadata);
+      await streamrClient.setStorageNodeMetadata(metadata);
 
       logger.info(`Done.`);
-    } catch (e) {
-      logger.info(chalk.red('Initialize a StorageProxy failed'));
-      logger.error(e);
+    } catch (err) {
+      logger.error('Initialize a StorageProxy failed', { err });
     }
   });

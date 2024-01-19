@@ -34,7 +34,6 @@
 		"@inquirer/prompts": "^3.3.0",
 		"@logsn/client": "workspace:*",
 		"@logsn/shared": "workspace:*",
-		"@streamr/utils": "^8.5.5",
 		"chalk": "^4.1.2",
 		"commander": "^11.0.0",
 		"decimal.js": "^10.4.3",
