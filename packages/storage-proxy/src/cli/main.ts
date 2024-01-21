@@ -1,8 +1,8 @@
 import { program } from 'commander';
 import 'dotenv/config';
 
-import pkg from '../package.json';
-import { initCommand, joinCommand } from './commands';
+import pkg from '../../package.json';
+import { createCommand, dropCommand, joinCommand, leaveCommand } from './commands';
 import { devNetworkOption, privateKeyOption } from './options';
 
 program
@@ -11,6 +11,8 @@ program
 	.description(pkg.description)
 	.addOption(devNetworkOption)
 	.addOption(privateKeyOption)
-	.addCommand(initCommand)
+	.addCommand(createCommand)
 	.addCommand(joinCommand)
+	.addCommand(leaveCommand)
+	.addCommand(dropCommand)
 	.parse(process.argv);

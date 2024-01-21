@@ -13,4 +13,3 @@ export const privateKeyOption = new Option(
 )
   .env('PRIVATE_KEY')
   .makeOptionMandatory();
-
