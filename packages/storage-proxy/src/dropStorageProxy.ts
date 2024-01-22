@@ -23,5 +23,5 @@ export const dropStorageProxy = async (options: Options) => {
   logger.info(`Deleting assignments stream...`);
   await streamrClient.deleteStream(assignmentsStreamId);
 
-  logger.info(`Initialized a StorageProxy with address ${clusterId}...`);
+  logger.info(`Dropped a StorageProxy with address ${clusterId}...`);
 };

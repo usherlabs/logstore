@@ -10,19 +10,19 @@ interface Options {
   devNetwork?: boolean;
 }
 
-export const joinStorageProxy = async (options: Options) => {
+export const removeNodeFromStorageProxy = async (options: Options) => {
   const streamrClient = getStreamrClient(options);
   const clusterId = await streamrClient.getAddress();
 
-  logger.info(`Joining the StorageProxy Node ${options.node} to the StorageProxy ${clusterId}...`);
+  logger.info(`Removing the StorageProxy Node ${options.node} from the StorageProxy ${clusterId}...`);
 
   const assignmentsStreamId = formStorageNodeAssignmentStreamId(clusterId);
 
-  logger.info(`Setting permissions to the assignments stream...`);
-  await streamrClient.grantPermissions(assignmentsStreamId, {
+  logger.info(`Revoking permissions to the assignments stream...`);
+  await streamrClient.revokePermissions(assignmentsStreamId, {
     user: options.node,
     permissions: [StreamPermission.PUBLISH],
   });
 
-  logger.info(`Joined the StorageProxy Node ${options.node} to the StorageProxy ${clusterId}...`);
+  logger.info(`Removed the StorageProxy Node ${options.node} from the StorageProxy ${clusterId}...`);
 };

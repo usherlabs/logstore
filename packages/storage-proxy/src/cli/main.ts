@@ -2,7 +2,7 @@ import { program } from 'commander';
 import 'dotenv/config';
 
 import pkg from '../../package.json';
-import { createCommand, dropCommand, joinCommand, leaveCommand } from './commands';
+import { addNodeCommand, createCommand, dropCommand, removeNodeCommand } from './commands';
 import { devNetworkOption, privateKeyOption } from './options';
 
 program
@@ -12,7 +12,7 @@ program
 	.addOption(devNetworkOption)
 	.addOption(privateKeyOption)
 	.addCommand(createCommand)
-	.addCommand(joinCommand)
-	.addCommand(leaveCommand)
+	.addCommand(addNodeCommand)
+	.addCommand(removeNodeCommand)
 	.addCommand(dropCommand)
 	.parse(process.argv);
