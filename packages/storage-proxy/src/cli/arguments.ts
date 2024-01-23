@@ -1,6 +1,6 @@
-import { toEthereumAddress } from "@streamr/utils";
+import { toEthereumAddress } from '@streamr/utils';
 import { Argument } from 'commander';
-import { StorageNodeMetadata, } from "streamr-client";
+import { StorageNodeMetadata } from 'streamr-client';
 
 export const metadataArgument = new Argument(
 	'metadata',
@@ -12,7 +12,6 @@ export const metadataArgument = new Argument(
 export const nodeArgument = new Argument(
 	'node <address>',
 	'StorageProxy Node address'
-)
-	.argParser((value) => {
-		return toEthereumAddress(value);
-	});
+).argParser((value) => {
+	return toEthereumAddress(value);
+});

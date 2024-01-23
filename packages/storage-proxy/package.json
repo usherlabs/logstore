@@ -1,31 +1,31 @@
 {
-  "name": "@logsn/storage-proxy",
-  "version": "0.0.11",
-  "description": "The Log Store StorageProxy CLI",
-  "keywords": [],
-  "author": "Victor Shevtsov <victor.shevtsov@usher.so>",
-  "license": "GPL-3.0",
-  "types": "./dist/types/src/exports.d.ts",
-  "main": "./dist/bin/logstore-storage-proxy.js",
-  "bin": {
-    "logstore-storage-proxy": "./dist/bin/logstore-storage-proxy.js"
-  },
-  "exports": "./dist/src/exports.js",
-  "files": [
-    "./dist"
-  ],
-  "scripts": {
-    "build": "del dist && tsc",
+	"name": "@logsn/storage-proxy",
+	"version": "0.0.11",
+	"description": "The Log Store StorageProxy CLI",
+	"keywords": [],
+	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
+	"license": "GPL-3.0",
+	"types": "./dist/types/src/exports.d.ts",
+	"main": "./dist/bin/logstore-storage-proxy.js",
+	"bin": {
+		"logstore-storage-proxy": "./dist/bin/logstore-storage-proxy.js"
+	},
+	"exports": "./dist/src/exports.js",
+	"files": [
+		"./dist"
+	],
+	"scripts": {
+		"build": "del dist && tsc",
 		"format": "prettier --write ."
-  },
-  "dependencies": {
-    "@streamr/utils": "^8.5.5",
-    "commander": "^11.1.0",
-    "dotenv": "^16.3.1",
-    "streamr-client": "^8.5.5"
-  },
-  "devDependencies": {
-    "del-cli": "^5.0.0",
-    "typescript": "^4.9.5"
-  }
+	},
+	"dependencies": {
+		"@streamr/utils": "^8.5.5",
+		"commander": "^11.1.0",
+		"dotenv": "^16.3.1",
+		"streamr-client": "^8.5.5"
+	},
+	"devDependencies": {
+		"del-cli": "^5.0.0",
+		"typescript": "^4.9.5"
+	}
 }
