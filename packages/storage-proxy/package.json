@@ -15,7 +15,8 @@
     "./dist"
   ],
   "scripts": {
-    "build": "del dist && tsc"
+    "build": "del dist && tsc",
+		"format": "prettier --write ."
   },
   "dependencies": {
     "@streamr/utils": "^8.5.5",
