@@ -1,5 +1,5 @@
 import { IPipeline, PipelineTransform } from './IPipeline';
-import { IPushBuffer } from './IPushBuffer';
+import { IPushBuffer } from './PushBuffer';
 
 /**
  * Pipeline that is also a PushBuffer.

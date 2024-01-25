@@ -23,6 +23,7 @@ COPY --chown=node:node ./packages/protocol/package.json ./packages/protocol/
 COPY --chown=node:node ./packages/shared/package.json ./packages/shared/
 COPY --chown=node:node ./packages/client/package.json ./packages/client/
 COPY --chown=node:node ./packages/cli/package.json ./packages/cli/
+COPY --chown=node:node ./packages/storage-proxy/package.json ./packages/storage-proxy/
 COPY --chown=node:node ./packages/validator/package.json ./packages/validator/
 COPY --chown=node:node ./packages/pulse/package.json ./packages/pulse/
 COPY --chown=node:node ./packages/benchmarks/package.json ./packages/benchmarks/

@@ -121,6 +121,30 @@ services:
     depends_on:
       - logstore-base
 
+  logstore-deploy-storage-proxy:
+    container_name: logstore-deploy-storage-proxy
+    image: logstore-deploy-storage-proxy
+    build:
+      context: ../
+      dockerfile: ./dev-network/Dockerfile.storage-proxy
+    restart: on-failure # exits on success
+    networks:
+      - streamr-network
+    volumes:
+      - type: volume
+        source: data-logstore-deploy-storage-proxy
+        target: /firstrun
+        volume:
+          nocopy: false
+      - type: bind
+        source: ./assets/storage-proxy/start-in-docker.sh
+        target: /usr/local/bin/start-in-docker
+    env_file:
+      - ./assets/storage-proxy/.env.storage-proxy
+    depends_on:
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
+
   logstore-broker-1:
     container_name: logstore-broker-1
     hostname: logstore-broker-1
@@ -146,6 +170,8 @@ services:
       logstore-deploy-subgraph:
         condition: service_completed_successfully
       logstore-deploy-contracts:
+        condition: service_completed_successfully
+      logstore-deploy-storage-proxy:
         condition: service_completed_successfully
 
   logstore-broker-2:
@@ -366,3 +392,4 @@ volumes:
   data-pulse:
   data-logstore-deploy-contracts:
   data-logstore-deploy-subgraph:
+  data-logstore-deploy-storage-proxy:
