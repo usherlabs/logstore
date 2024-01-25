@@ -7,8 +7,9 @@
 			"@logsn/cli",
 			"@logsn/client",
 			"@logsn/contracts",
+			"@logsn/protocol",
 			"@logsn/shared",
-			"@logsn/protocol"
+			"@logsn/storage-proxy"
 		]
 	],
 	"linked": [],
