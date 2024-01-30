@@ -1,7 +1,7 @@
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { DataItem, sha256 } from '@kyvejs/protocol';
 import {
-	CONFIG_TEST,
+	CONFIG_TEST as LOGSTORE_CONFIG_TEST,
 	LogStoreClient,
 	validateConfig as validateClientConfig,
 } from '@logsn/client';
@@ -9,6 +9,9 @@ import ContractAddresses from '@logsn/contracts/address.json';
 import { SystemMessageType } from '@logsn/protocol';
 import { ethers } from 'ethers';
 import fse from 'fs-extra';
+import StreamrClient, {
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
+} from 'streamr-client';
 
 import { Item } from './core/item';
 import { Report } from './core/report';
@@ -87,44 +90,53 @@ export default class Runtime implements IRuntimeExtended {
 	async setupThreads(core: Validator, homeDir: string) {
 		this._homeDir = homeDir;
 
-		const clientConfig = useStreamrTestConfig() ? CONFIG_TEST : {};
-		validateClientConfig(clientConfig);
+		const streamrClientConfig = useStreamrTestConfig()
+			? STREAMR_CONFIG_TEST
+			: {};
+		const logStoreClientConfig = useStreamrTestConfig()
+			? LOGSTORE_CONFIG_TEST
+			: {};
+		validateClientConfig(streamrClientConfig);
 
 		// Tweaks suggested by the Streamr Team
 		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		clientConfig.network!.webrtcSendBufferMaxMessageCount = 5000;
-		clientConfig.gapFill = true;
-		clientConfig.gapFillTimeout = 30 * 1000;
+		streamrClientConfig.network!.webrtcSendBufferMaxMessageCount = 5000;
+		streamrClientConfig.gapFill = true;
+		streamrClientConfig.gapFillTimeout = 30 * 1000;
 
 		// core.logger.debug('Streamr Config', streamrConfig);
 		const privateKey = getEvmPrivateKey(); // The Validator needs to stake in QueryManager
 		const signer = new ethers.Wallet(privateKey);
-		const logStoreClient = new LogStoreClient({
-			...clientConfig,
+		const streamrClient = new StreamrClient({
+			...streamrClientConfig,
 			auth: {
 				privateKey,
 			},
 		});
+		const logStoreClient = new LogStoreClient(
+			streamrClient,
+			logStoreClientConfig
+		);
 
-		const heartbeatStream = await logStoreClient.getStream(
+		const heartbeatStream = await streamrClient.getStream(
 			this.config.heartbeatStreamId
 		);
 
-		const systemStream = await logStoreClient.getStream(
+		const systemStream = await streamrClient.getStream(
 			this.config.systemStreamId
 		);
 
-		const recoveryStream = await logStoreClient.getStream(
+		const recoveryStream = await streamrClient.getStream(
 			this.config.recoveryStreamId
 		);
 
 		const heartbeatSubscriber = new BroadbandSubscriber(
-			logStoreClient,
+			streamrClient,
 			heartbeatStream
 		);
 
 		const systemSubscriber = new BroadbandSubscriber(
-			logStoreClient,
+			streamrClient,
 			systemStream
 		);
 
@@ -133,7 +145,7 @@ export default class Runtime implements IRuntimeExtended {
 		this.heartbeat = new Heartbeat(heartbeatSubscriber);
 
 		const recovery = new SystemRecovery(
-			logStoreClient,
+			streamrClient,
 			recoveryStream,
 			signer,
 			messageMetricsSummary,

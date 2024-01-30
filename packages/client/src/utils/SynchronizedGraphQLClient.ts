@@ -1,7 +1,11 @@
-import { Gate, LoggerFactory } from '@logsn/streamr-client';
 import { Logger, TimeoutError, wait, withTimeout } from '@streamr/utils';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from '../streamr/LoggerFactory';
+import { Gate } from '../streamr/utils/Gate';
 // import { ClientConfigInjectionToken, StrictStreamrClientConfig } from '../Config';
 import { GraphQLClient, GraphQLQuery } from './GraphQLClient';
 
@@ -52,10 +56,9 @@ class IndexingState {
 	}
 
 	async waitUntilIndexed(blockNumber: number): Promise<void> {
-		this.logger.debug(
-			'waiting until The Graph is synchronized to block %d',
-			blockNumber
-		);
+		this.logger.debug('waiting until The Graph is synchronized', {
+			blockNumber,
+		});
 		const gate = this.getOrCreateGate(blockNumber);
 		try {
 			await withTimeout(
@@ -90,7 +93,7 @@ class IndexingState {
 			const newBlockNumber = await this.getCurrentBlockNumber();
 			if (newBlockNumber !== this.blockNumber) {
 				this.blockNumber = newBlockNumber;
-				this.logger.trace('poll result is blockNumber=%d', this.blockNumber);
+				this.logger.trace('poll result', { blockNumber: this.blockNumber });
 				this.gates.forEach((gate) => {
 					if (gate.blockNumber <= this.blockNumber) {
 						gate.open();
@@ -113,7 +116,7 @@ export class SynchronizedGraphQLClient {
 	private indexingState: IndexingState;
 
 	constructor(
-		@inject(LoggerFactory) loggerFactory: LoggerFactory,
+		@inject(LoggerFactoryInjectionToken) loggerFactory: LoggerFactory,
 		@inject(GraphQLClient) delegate: GraphQLClient
 		// @inject(ClientConfigInjectionToken)
 		// config: Pick<StrictStreamrClientConfig, '_timeouts'>

@@ -1,15 +1,7 @@
-import { LoggerFactory, Stream, StreamMetadata } from '@logsn/streamr-client';
 import crypto from 'crypto';
+import StreamrClient, { Stream, StreamMetadata } from 'streamr-client';
 
-import { LogStoreClient } from '../../src/LogStoreClient';
 import { counterId } from '../../src/utils/utils';
-
-export function mockLoggerFactory(clientId?: string): LoggerFactory {
-	return new LoggerFactory({
-		id: clientId ?? counterId('TestCtx'),
-		logLevel: 'info',
-	});
-}
 
 export const uid = (prefix?: string): string =>
 	counterId(`p${process.pid}${prefix ? '-' + prefix : ''}`);
@@ -36,11 +28,11 @@ export const createRelativeTestStreamId = (
 };
 
 export const createTestStream = async (
-	logStoreClient: LogStoreClient,
+	streamrClient: StreamrClient,
 	module: NodeModule,
 	props?: Partial<StreamMetadata>
 ): Promise<Stream> => {
-	const stream = await logStoreClient.createStream({
+	const stream = await streamrClient.createStream({
 		id: createRelativeTestStreamId(module),
 		...props,
 	});

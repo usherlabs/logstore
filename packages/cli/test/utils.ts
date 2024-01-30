@@ -1,4 +1,4 @@
-import { getLogstoreClientForCredentials } from '@/utils/logstore-client';
+import { getClientsForCredentials } from '@/utils/logstore-client';
 import { exec } from 'child_process';
 import path from 'path';
 
@@ -36,7 +36,7 @@ export const executeOnCli = async (
 		(resolve) => {
 			exec(execCommand, (error, stdout, stderr) => {
 				if (error) {
-					resolve({ stdout, stderr, code: error.code });
+					resolve({ stdout, stderr, code: Number( error.code ) });
 				} else {
 					resolve({ stdout, stderr, code: 0 });
 				}
@@ -46,7 +46,7 @@ export const executeOnCli = async (
 };
 
 export function getTestLogStoreClient(privateKey: string) {
-	return getLogstoreClientForCredentials({
+	return getClientsForCredentials({
 		host: 'http://localhost:8546',
 		wallet: privateKey,
 	});

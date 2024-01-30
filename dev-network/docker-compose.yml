@@ -121,13 +121,37 @@ services:
     depends_on:
       - logstore-base
 
+  logstore-deploy-storage-proxy:
+    container_name: logstore-deploy-storage-proxy
+    image: logstore-deploy-storage-proxy
+    build:
+      context: ../
+      dockerfile: ./dev-network/Dockerfile.storage-proxy
+    restart: on-failure # exits on success
+    networks:
+      - streamr-network
+    volumes:
+      - type: volume
+        source: data-logstore-deploy-storage-proxy
+        target: /firstrun
+        volume:
+          nocopy: false
+      - type: bind
+        source: ./assets/storage-proxy/start-in-docker.sh
+        target: /usr/local/bin/start-in-docker
+    env_file:
+      - ./assets/storage-proxy/.env.storage-proxy
+    depends_on:
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
+
   logstore-broker-1:
     container_name: logstore-broker-1
     hostname: logstore-broker-1
     image: logstore-broker
     build:
-      context: ../
-      dockerfile: ./dev-network/Dockerfile.broker
+      context: ../modules/logstore-node
+      dockerfile: ./dev-network/Dockerfile
     restart: always
     ports:
       - '7771:7771'
@@ -138,16 +162,16 @@ services:
         source: ./assets/broker/start-in-docker.sh
         target: /usr/local/bin/start-in-docker
       - type: bind
-        source: ../packages/broker/configs/docker-1.env.json
+        source: ./assets/broker/docker-1.env.json
         target: /home/node/.logstore/config/default.json
     env_file:
       - ./assets/broker/.env.broker-1
     depends_on:
-      logstore-base:
-        condition: service_completed_successfully
       logstore-deploy-subgraph:
         condition: service_completed_successfully
       logstore-deploy-contracts:
+        condition: service_completed_successfully
+      logstore-deploy-storage-proxy:
         condition: service_completed_successfully
 
   logstore-broker-2:
@@ -155,8 +179,8 @@ services:
     hostname: logstore-broker-2
     image: logstore-broker
     build:
-      context: ../
-      dockerfile: ./dev-network/Dockerfile.broker
+      context: ../modules/logstore-node
+      dockerfile: ./dev-network/Dockerfile
     restart: always
     ports:
       - '7772:7772'
@@ -167,7 +191,7 @@ services:
         source: ./assets/broker/start-in-docker.sh
         target: /usr/local/bin/start-in-docker
       - type: bind
-        source: ../packages/broker/configs/docker-2.env.json
+        source: ./assets/broker/docker-2.env.json
         target: /home/node/.logstore/config/default.json
     env_file:
       - ./assets/broker/.env.broker-2
@@ -184,8 +208,8 @@ services:
     hostname: logstore-broker-3
     image: logstore-broker
     build:
-      context: ../
-      dockerfile: ./dev-network/Dockerfile.broker
+      context: ../modules/logstore-node
+      dockerfile: ./dev-network/Dockerfile
     restart: always
     ports:
       - '7773:7773'
@@ -196,8 +220,11 @@ services:
         source: ./assets/broker/start-in-docker.sh
         target: /usr/local/bin/start-in-docker
       - type: bind
-        source: ../packages/broker/configs/docker-3.env.json
+        source: ./assets/broker/docker-3.env.json
         target: /home/node/.logstore/config/default.json
+      - type: bind
+        source: ./assets/broker/data/
+        target: /home/node/.logstore/data/
     env_file:
       - ./assets/broker/.env.broker-3
     depends_on:
@@ -365,3 +392,4 @@ volumes:
   data-pulse:
   data-logstore-deploy-contracts:
   data-logstore-deploy-subgraph:
+  data-logstore-deploy-storage-proxy:

@@ -1,7 +1,7 @@
 import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
+	getClientsFromOptions,
 	getCredentialsFromOptions,
-	getLogStoreClientFromOptions,
 } from '@/utils/logstore-client';
 import { keepRetryingWithIncreasedGasPrice } from '@/utils/speedupTx';
 import {
@@ -45,7 +45,7 @@ const stakeCommand = new Command()
 		});
 
 		try {
-			const logStoreClient = getLogStoreClientFromOptions();
+			const { logStoreClient } = getClientsFromOptions();
 			const amountToStakeInLSAN = cmdOptions.usd
 				? // todo this assumes the price is 1:1 (multiplier)
 				  await logStoreClient.convert({

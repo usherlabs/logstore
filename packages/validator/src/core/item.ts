@@ -1,7 +1,7 @@
 import { callWithBackoffStrategy } from '@kyvejs/protocol';
-import { MessageMetadata } from '@logsn/client';
 import { BigNumber } from 'ethers';
 import { omit } from 'lodash';
+import { MessageMetadata } from 'streamr-client';
 
 import { Managers } from '../managers';
 import { rollingConfig } from '../shared/rollingConfig';

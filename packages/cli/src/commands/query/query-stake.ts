@@ -1,8 +1,8 @@
 import { getRootOptions } from '@/commands/options';
 import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
+	getClientsFromOptions,
 	getCredentialsFromOptions,
-	getLogStoreClientFromOptions,
 } from '@/utils/logstore-client';
 import { keepRetryingWithIncreasedGasPrice } from '@/utils/speedupTx';
 import {
@@ -37,7 +37,7 @@ const stakeCommand = new Command()
 	.option('-y, --assume-yes', 'Assume Yes to all queries and do not prompt')
 	.action(async (amt, cmdOptions) => {
 		const rootOptions = getRootOptions();
-		const logStoreClient = getLogStoreClientFromOptions();
+		const { logStoreClient } = getClientsFromOptions();
 
 		const amountToStakeInLSAN = cmdOptions.usd
 			? // todo: 1 LSAN = 1 by here
