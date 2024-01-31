@@ -1,5 +1,4 @@
 import { BigNumberish } from '@ethersproject/bignumber';
-import type { Overrides } from '@ethersproject/contracts';
 import { Provider } from '@ethersproject/providers';
 import { LSAN as LogStoreTokenManagerContract } from '@logsn/contracts';
 import { abi as LogStoreTokenManagerAbi } from '@logsn/contracts/artifacts/src/alpha/Token.sol/LSAN.json';
@@ -13,7 +12,10 @@ import {
 	LogStoreClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
 } from '../Config';
-import { getStreamRegistryChainProviders } from '../Ethereum';
+import {
+	getStreamRegistryChainProviders,
+	getStreamRegistryOverrides,
+} from '../Ethereum';
 import {
 	Authentication,
 	AuthenticationInjectionToken,
@@ -117,12 +119,10 @@ export class TokenManager {
 		}, this.logstoreTokenManagerContractsReadonly);
 	}
 
-	public async mint(
-		amount: BigNumberish,
-		overrides?: Overrides
-	): Promise<ContractTransaction> {
+	public async mint(amount: BigNumberish): Promise<ContractTransaction> {
 		this.logger.debug('mint amount: ' + amount);
 		await this.connectToContract();
+		const overrides = getStreamRegistryOverrides(this.streamrClientConfig);
 		return this.logStoreTokenManagerContract!.mint({
 			value: amount,
 			...overrides,
