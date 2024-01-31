@@ -351,6 +351,21 @@ export class LogStoreClient {
 		);
 	}
 
+	/**
+	 * Creates important observables for a stream.
+	 *
+	 * An observable is a stream of data that an observer can subscribe to.
+	 * It provides a way to handle or execute tasks whenever an event occurs, such as metadata updates.
+	 *
+	 * @param params - Parameters for stream observable creation
+	 * @returns A dictionary of observables that provides an alternative way to process stream data.
+	 */
+	public createStreamObservable(
+		...params: Parameters<StreamObservableFactory['createStreamObservable']>
+	) {
+		return this.streamObservableFactory.createStreamObservable(...params);
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// Token utilities
 	// --------------------------------------------------------------------------------------------
@@ -445,20 +460,5 @@ export class LogStoreClient {
 		listener: LogStoreClientEvents[T]
 	): void {
 		this.logStoreClientEventEmitter.off(eventName, listener as any);
-	}
-
-	/**
-	 * Creates important observables for a stream.
-	 *
-	 * An observable is a stream of data that an observer can subscribe to.
-	 * It provides a way to handle or execute tasks whenever an event occurs, such as metadata updates.
-	 *
-	 * @param params - Parameters for stream observable creation
-	 * @returns A dictionary of observables that provides an alternative way to process stream data.
-	 */
-	public createStreamObservable(
-		...params: Parameters<StreamObservableFactory['createStreamObservable']>
-	) {
-		return this.streamObservableFactory.createStreamObservable(...params);
 	}
 }
