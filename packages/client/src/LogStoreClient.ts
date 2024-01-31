@@ -293,32 +293,54 @@ export class LogStoreClient {
 		return this.logStoreRegistry.getStoredStreams();
 	}
 
+	/**
+	 * Retrieves the balance of a stream.
+	 *
+	 * @param {string} streamIdOrPath - The ID or path of the stream.
+	 *
+	 * @return {Promise<bigint>} The balance of the stream as a bigint.
+	 */
 	async getStreamBalance(streamIdOrPath: string): Promise<bigint> {
 		return this.logStoreRegistry.getStreamBalance(streamIdOrPath);
 	}
 
+	/**
+	 * Retrieves the balance of the store for this account.
+	 */
 	async getStoreBalance(): Promise<bigint> {
 		return this.logStoreRegistry.getStoreBalance();
 	}
 
+	/**
+	 * Sets the validation schema to validate new messages before storing on LogStore nodes.
+	 */
 	async setValidationSchema(
 		...params: Parameters<ValidationManager['setValidationSchema']>
 	): Promise<void> {
 		return this.validationManager.setValidationSchema(...params);
 	}
 
+	/**
+	 * Removes the validation schema from a stream.
+	 */
 	async removeValidationSchema(
 		...params: Parameters<ValidationManager['removeValidationSchema']>
 	): Promise<void> {
 		return this.validationManager.removeValidationSchema(...params);
 	}
 
+	/**
+	 * Retrieves the validation schema for a stream.
+	 */
 	async getValidationSchema(
 		...params: Parameters<ValidationManager['getValidationSchema']>
 	): Promise<Schema | null> {
 		return this.validationManager.getValidationSchema(...params);
 	}
 
+	/**
+	 * Extracts the validation schema for a stream from the stream metadata object.
+	 */
 	public getValidationSchemaFromStreamMetadata(
 		...params: Parameters<
 			ValidationManager['getValidationSchemaFromStreamMetadata']
@@ -337,6 +359,9 @@ export class LogStoreClient {
 		return this.logstoreTokenManager.getBalance();
 	}
 
+	/**
+	 * Mints tokens for the account, using MATIC. Tokens are used to stake for querying and storage.
+	 */
 	async mint(
 		weiAmountToMint: bigint,
 		overrides?: Overrides
@@ -344,10 +369,16 @@ export class LogStoreClient {
 		return this.logstoreTokenManager.mint(weiAmountToMint, overrides);
 	}
 
+	/**
+	 * Gets price data for the token.
+	 */
 	async getPrice(): Promise<bigint> {
 		return this.logstoreTokenManager.getPrice();
 	}
 
+	/**
+	 * Gets conversion rate for the token, from/to multiple amount types.
+	 */
 	async convert({
 		amount,
 		from,
@@ -416,6 +447,15 @@ export class LogStoreClient {
 		this.logStoreClientEventEmitter.off(eventName, listener as any);
 	}
 
+	/**
+	 * Creates important observables for a stream.
+	 *
+	 * An observable is a stream of data that an observer can subscribe to.
+	 * It provides a way to handle or execute tasks whenever an event occurs, such as metadata updates.
+	 *
+	 * @param params - Parameters for stream observable creation
+	 * @returns A dictionary of observables that provides an alternative way to process stream data.
+	 */
 	public createStreamObservable(
 		...params: Parameters<StreamObservableFactory['createStreamObservable']>
 	) {
