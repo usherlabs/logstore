@@ -1,3 +1,4 @@
+import { EthereumAddress } from '@streamr/utils';
 import type { Schema } from 'ajv';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
@@ -220,6 +221,10 @@ export class LogStoreClient {
 
 	async getQueryBalance(): Promise<bigint> {
 		return this.logStoreQueryManager.getQueryBalance();
+	}
+
+	async getQueryBalanceOf(address: EthereumAddress): Promise<bigint> {
+		return this.logStoreQueryManager.getQueryBalanceOf(address);
 	}
 
 	async createQueryUrl(
