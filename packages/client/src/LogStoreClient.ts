@@ -1,4 +1,5 @@
 import type { Overrides } from '@ethersproject/contracts';
+import { toEthereumAddress } from '@streamr/utils';
 import type { Schema } from 'ajv';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
@@ -27,6 +28,7 @@ import {
 	QueryType,
 } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
+import { NodeManager } from './registry/NodeManager';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
 import { StreamObservableFactory } from './StreamObservableFactory';
@@ -65,6 +67,7 @@ export class LogStoreClient {
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 	private readonly logStoreQueryManager: QueryManager;
 	private readonly logstoreTokenManager: TokenManager;
+	private readonly logStoreNodeManager: NodeManager;
 	private readonly validationManager: ValidationManager;
 	private readonly strictLogStoreClientConfig: StrictLogStoreClientConfig;
 	private readonly systemMessages$: SystemMessageObservable;
@@ -164,6 +167,8 @@ export class LogStoreClient {
 		this.logStoreQueryManager = container.resolve<QueryManager>(QueryManager);
 
 		this.logstoreTokenManager = container.resolve<TokenManager>(TokenManager);
+
+		this.logStoreNodeManager = container.resolve<NodeManager>(NodeManager);
 
 		this.validationManager =
 			container.resolve<ValidationManager>(ValidationManager);
@@ -421,6 +426,28 @@ export class LogStoreClient {
 	 * @remarks As the name implies, the client instance (or any streams or subscriptions returned by it) should _not_
 	 * be used after calling this method.
 	 */
+
+	// --------------------------------------------------------------------------------------------
+	// Network Utilities
+	// --------------------------------------------------------------------------------------------
+
+	/**
+	 * Get the URL for a LogStore Node, given the address, using on-chain data.
+	 * Not all nodes are guaranteed to expose a Gateway.
+	 *
+	 * @param address
+	 */
+	getNodeUrl(address: string): Promise<string | null> {
+		const ethAddress = toEthereumAddress(address);
+		return this.logStoreNodeManager.getNodeUrl(ethAddress);
+	}
+
+	/**
+	 * Get node URLs list for LogStore, ordered by latency.
+	 */
+	public async getBestNodeUrls() {
+		return this.logStoreNodeManager.getBestNodeUrls();
+	}
 
 	// --------------------------------------------------------------------------------------------
 	// Events

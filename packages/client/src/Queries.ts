@@ -273,7 +273,7 @@ export class Queries {
 
 		const nodeUrl =
 			this.logStoreClientConfig.nodeUrl ??
-			(await this.nodeManager.getRandomNodeUrl());
+			(await this.nodeManager.getBestNodeUrls())[0]; // first node is the best node
 		const url = this.createUrl(nodeUrl, queryType, streamPartId, {
 			...query,
 			// we will get raw request to desserialize and decrypt
