@@ -13,9 +13,10 @@ export const ensureEnoughAllowance = async (
 	manager: Exclude<Manager, Manager.ReportManager>,
 	amount: bigint,
 	signer: Signer,
-	confirm?: allowanceConfirmFn
+	confirm?: allowanceConfirmFn,
+	overrides?: Overrides
 ): Promise<boolean> => {
-	return requestAllowanceIfNeeded(manager, amount, signer, confirm)
+	return requestAllowanceIfNeeded(manager, amount, signer, confirm, overrides)
 		.then((tx) => {
 			if (tx) {
 				return tx.wait().then((receipt) => {
@@ -45,15 +46,15 @@ export const requestAllowanceIfNeeded = async (
 	confirm?: allowanceConfirmFn,
 	overrides?: Overrides
 ): Promise<null | ContractTransaction> => {
-	const mangerContract = await getManagerContract(signer, manager);
+	const managerContract = await getManagerContract(signer, manager);
 	// @ts-expect-error -- manager excludes ReportManager
-	const stakeTokenAddress = await mangerContract.stakeTokenAddress();
+	const stakeTokenAddress = await managerContract.stakeTokenAddress();
 	const stakeToken = LSAN__factory.connect(stakeTokenAddress, signer);
 
 	const currentAllowance = (
 		await stakeToken.allowance(
 			await signer.getAddress(),
-			mangerContract.address
+			managerContract.address
 		)
 	).toBigInt();
 
@@ -63,7 +64,7 @@ export const requestAllowanceIfNeeded = async (
 			!confirm || (await confirm(currentAllowance, requiredAllowance));
 
 		if (confirmed) {
-			return stakeToken.approve(mangerContract.address, amount, {
+			return stakeToken.approve(managerContract.address, amount, {
 				...overrides,
 			});
 		} else {
