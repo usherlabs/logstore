@@ -59,7 +59,7 @@ export class NodeManager {
 		EthereumAddress,
 		string | null
 	>({
-		maxAge: 300_000,
+		maxAge: 300_000, // 5 min
 	});
 
 	// ==== Node URL List Management ====
@@ -101,17 +101,15 @@ export class NodeManager {
 
 		// throttledUpdateList is a function that, when called, updates the lastList$ with the bestList$ output.
 		// Remembering that bestList$ automatically completes after 3 seconds, avoiding memory leaks and unfinished searches.
-		// This function is throttled to run at most once every 5 minutes.
+		// This function is throttled to run at most once every minute.
 		// Also, we're able to get the lastList$ value instantly, as soon as the first heartbeat message arrives.
-		this.throttledUpdateList = pThrottle({ limit: 1, interval: 300_000 })(
-			() => {
-				this.bestList$.subscribe({
-					next: (list) => {
-						this.lastList$.next(list);
-					},
-				});
-			}
-		);
+		this.throttledUpdateList = pThrottle({ limit: 1, interval: 60_000 })(() => {
+			this.bestList$.subscribe({
+				next: (list) => {
+					this.lastList$.next(list);
+				},
+			});
+		});
 		this.throttledUpdateList();
 	}
 
