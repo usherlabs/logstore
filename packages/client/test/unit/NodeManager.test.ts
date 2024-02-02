@@ -34,6 +34,10 @@ describe('NodeManager', () => {
 		});
 	}, TIMEOUT);
 
+	afterEach(async () => {
+		jest.clearAllMocks();
+	});
+
 	afterAll(async () => {
 		await Promise.allSettled([
 			streamrClient?.destroy(),
@@ -44,30 +48,53 @@ describe('NodeManager', () => {
 	test(
 		'getBestUrls',
 		async () => {
+			let updateCalls = 0;
 			const logStoreClient = new LogStoreClient(
 				streamrClient,
 				LOGSTORE_CONFIG_TEST
 			);
 
+			const nodeManager = logStoreClient['logStoreNodeManager'];
+
+			const spiedUpdate = jest.spyOn(nodeManager['lastList$'], 'next');
+			const getUpdateCalls = () => spiedUpdate.mock.calls.length;
+
+			const expectUpdateIncrease = () => {
+				const newCalls = getUpdateCalls();
+				expect(newCalls).toBeGreaterThan(updateCalls);
+				updateCalls = newCalls;
+			};
+			const expectSameUpdateCalls = () => {
+				expect(getUpdateCalls()).toBe(updateCalls);
+			};
+
+			// more than 5 seconds to make sure there's time to trigger the first update and stop
 			await sleep(7000);
 
+			updateCalls = getUpdateCalls();
+
 			const bestUrls = await logStoreClient.getBestNodeUrls();
-			console.log({ bestUrls });
+
+			expectSameUpdateCalls();
 
 			expect(bestUrls.length).toBeGreaterThan(1);
 
+			// advance timer, in order to trigger the cache while revalidate behavior on next trial
 			jest.advanceTimersByTime(305_000);
 
-			const bestUrls2 = await logStoreClient.getBestNodeUrls();
-			console.log({ bestUrls2 });
+			expectSameUpdateCalls();
 
+			const bestUrls2 = await logStoreClient.getBestNodeUrls();
 			expect(bestUrls2.length).toBeGreaterThan(1);
 
+			// more than 3 seconds to make sure there's time to end the next update
 			await sleep(3_500);
 
-			console.log('NO MORE UPDATES EXPECTED');
+			expectUpdateIncrease();
 
 			await sleep(5_000);
+
+			expectSameUpdateCalls();
 		},
 		TIMEOUT
 	);
