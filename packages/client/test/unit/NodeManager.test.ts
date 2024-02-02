@@ -56,7 +56,7 @@ describe('NodeManager', () => {
 
 			const nodeManager = logStoreClient['logStoreNodeManager'];
 
-			const spiedUpdate = jest.spyOn(nodeManager['lastList$'], 'next');
+			const spiedUpdate = jest.spyOn(nodeManager['lastUrlList$'], 'next');
 			const getUpdateCalls = () => spiedUpdate.mock.calls.length;
 
 			const expectUpdateIncrease = () => {

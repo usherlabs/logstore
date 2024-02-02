@@ -47,6 +47,15 @@ import { AsyncStaleThenRevalidateCache } from '../utils/AsyncStaleThenRevalidate
 import { createBroadbandObservable } from '../utils/rxjs/BroadbandObservable';
 import { takeUntilWithFilter } from '../utils/rxjs/takeUntilWithFilter';
 
+type HeartbeatInfo = {
+	/// Node address
+	nodeAddress: EthereumAddress;
+	/// Date of the heartbeat
+	publishDate: Date;
+	/// in milliseconds
+	latency: number;
+};
+
 @scoped(Lifecycle.ContainerScoped)
 export class NodeManager {
 	private contractFactory: ContractFactory;
@@ -63,8 +72,8 @@ export class NodeManager {
 
 	// ==== Node URL List Management ====
 	// replay subject emits the last value to new subscribers. But if there's no value, it won't emit until it does.
-	private readonly lastList$ = new ReplaySubject<string[]>(1);
-	// throttledUpdateList will help us to update the lastList$ with the timedNodeUrlListByLatency$ output at most once every X minutes.
+	private readonly lastUrlList$ = new ReplaySubject<string[]>(1);
+	// throttledUpdateList will help us to update the lastUrlList$ with the node information output at most once every X minutes.
 	private throttledUpdateList = () => Promise<void>;
 
 	// ==================================
@@ -98,20 +107,11 @@ export class NodeManager {
 			) as LogStoreNodeManagerContract;
 		});
 
-		// throttledUpdateList is a function that, when called, updates the lastList$ with the timedNodeUrlListByLatency$ output.
-		// Remembering that timedNodeUrlListByLatency$ automatically completes after 3 seconds, avoiding memory leaks and unfinished searches.
 		// This function is throttled to run at most once every minute.
-		// Also, we're able to get the lastList$ value instantly, as soon as the first heartbeat message arrives.
-		this.throttledUpdateList = pThrottle({ limit: 1, interval: 60_000 })(() => {
-			this.timedNodeUrlListByLatency$.subscribe({
-				next: (list) => {
-					this.lastList$.next(list);
-				},
-				error: (e) => {
-					this.logger.error('Error getting node URL list', e);
-				},
-			});
-		});
+		// Also, we're able to get the lastUrlList$ value instantly, as soon as the first heartbeat message arrives.
+		this.throttledUpdateList = pThrottle({ limit: 1, interval: 60_000 })(() =>
+			this.updateNodeUrlList()
+		);
 		this.throttledUpdateList();
 	}
 
@@ -134,10 +134,11 @@ export class NodeManager {
 	};
 
 	/**
-	 * Returns an observable that emits a list of the most performant node URLs,
-	 * sorted in order of their lag-time (from lowest to highest).
+	 * Returns an observable that emits a list nodes,
+	 * sorted in order of their latency (from lowest to highest).
+	 * Latency is calculated from the time the message was published to the time it was received.
 	 */
-	public get nodeUrlListByLatency$() {
+	public get nodeListByLatency$() {
 		const heartbeatStreamAddress =
 			this.logStoreClientConfig.contracts.logStoreNodeManagerChainAddress +
 			'/heartbeat';
@@ -154,38 +155,38 @@ export class NodeManager {
 			)
 		);
 
-		// gets messages to the format [url, lagTime]
-		const urlAndLagTime$ = heartbeatMessage$.pipe(
+		const heartbeatInfo$ = heartbeatMessage$.pipe(
 			// merge map is used because it's a Promise. We need to wait for the promise to resolve.
 			mergeMap(async ([_content, metadata]) => {
 				// calculates the lag time
 				// we know the message timestamp is the time the message was published, and we can compare it to the current time
-				const lagTime = Date.now() - metadata.timestamp;
-				const url = await this.getNodeUrl(metadata.publisherId);
-				return [url, lagTime] as const;
-			}),
-			// filters nodes without a url. Nodes can join the network without a url, but they won't be considered here.
-			filter((values): values is [string, number] => {
-				const [url] = values;
-				return url !== null;
+				const latency = Date.now() - metadata.timestamp;
+				return {
+					nodeAddress: metadata.publisherId,
+					publishDate: new Date(metadata.timestamp),
+					latency,
+				} satisfies HeartbeatInfo;
 			})
 		);
 
-		return urlAndLagTime$.pipe(
-			// creates a map of URLs to lagTime
-			// map is used so there's no repeated URL
-			scan((acc, [url, lagTime]) => {
-				acc.set(url, lagTime);
+		return heartbeatInfo$.pipe(
+			// creates a map of EthereumAddress to latency
+			// map is used so there's no repeated EthereumAddress
+			scan((acc, info) => {
+				acc.set(info.nodeAddress, info);
 				return acc;
-			}, new Map<string, number>()),
+			}, new Map<EthereumAddress, HeartbeatInfo>()),
 			// audit is like throttle but emits the last value instead of the first.
 			// avoids emitting a new value for every heartbeat message, like a batch.
 			auditTime(10), // in milliseconds
-			// orders the output list by lagTime, ascending
+			// orders the output list by latency, ascending
 			map((nodeMap) =>
-				Array.from(nodeMap.entries()).sort((a, b) => a[1] - b[1])
+				Array.from(nodeMap.entries()).sort(
+					(a, b) => a[1].latency - b[1].latency
+				)
 			),
-			map((nodeList) => nodeList.map(([url]) => url)),
+			// extract only heartbeat information
+			map((nodeList) => nodeList.map((infoMap) => infoMap[1])),
 			// Share so that if the user also subscribes directly,
 			// it wouldn't create another subscription, but reuse the same.
 			share()
@@ -193,31 +194,51 @@ export class NodeManager {
 	}
 
 	/**
-	 * Initially, the observable listens to the heartbeat stream for three seconds before stopping.
-	 * Exceptions are made if there are no heartbeats in a while - in such case, the search will continue indefinitely
-	 * until at least one heatbeat is found.
+	 * updateNodeUrl is a function that, when called, updates the lastUrlList$
 	 *
-	 * The maximum time to wait for the first heartbeat is 15 seconds, otherwise it should throw a timeout error.
+	 * Steps:
+	 *
+	 * - Transforms the list of addresses in a list of URLs.
+	 * - After subscription, a counter is initiated after 3 seconds after the first URL is found.
+	 * - Otherwise it runs and times out after 15 seconds.
 	 * @private
 	 */
-	private get timedNodeUrlListByLatency$() {
-		return this.nodeUrlListByLatency$.pipe(
-			// We should take until 3 seconds, but this timer should start after the first value is emitted.
-			takeUntilWithFilter((list) => list.length > 0, timer(3_000)),
-			// Emits a value just if there's one url or more. This function cannot return an empty list.
-			filter((urlList) => urlList.length > 0),
-			// Should emit at least one-value list within 15 seconds.
-			// If didn't receive any data until then, it's an error.
-			timeout(15_000)
-		);
+	private updateNodeUrlList() {
+		this.nodeListByLatency$
+			.pipe(
+				// transform node addresses into URLs
+				mergeMap((heartbeatInfoList) =>
+					Promise.all(
+						heartbeatInfoList.map((info) => this.getNodeUrl(info.nodeAddress))
+					)
+				),
+				// remove nulls -- nodes that choose not to expose a gateway
+				map((urlList) => urlList.filter((url): url is string => url !== null)),
+				// We should take until 3 seconds, but this timer should start after the first value is emitted.
+				takeUntilWithFilter((list) => list.length > 0, timer(3_000)),
+				// Emits a value just if there's one url or more. This function cannot return an empty list.
+				filter((urlList) => urlList.length > 0),
+				// Should emit at least one-value list within 15 seconds.
+				// If didn't receive any data until then, it's an error.
+				timeout(15_000)
+			)
+			// we subscribe indefinetely, but we don't worry about memory leak because it completes after 3 or 15 seconds.
+			.subscribe({
+				next: (list) => {
+					this.lastUrlList$.next(list);
+				},
+				error: (e) => {
+					this.logger.error('Error getting node URL list', e);
+				},
+			});
 	}
 
 	public async getNodeUrlsByLatency() {
 		this.throttledUpdateList();
-		// should be instant, as the lastList$ is a replay subject
-		// however if the lastList$ is empty, it will wait for the first value to be emitted
+		// should be instant, as the lastUrlList$ is a replay subject
+		// however if the lastUrlList$ is empty, it will wait for the first value to be emitted
 		// and it should throw a timeout error if something goes wrong.
-		return firstValueFrom(this.lastList$.pipe(timeout(15_000)));
+		return firstValueFrom(this.lastUrlList$.pipe(timeout(15_000)));
 	}
 
 	public async getNodeAddressFromUrl(url: string): Promise<string | null> {
