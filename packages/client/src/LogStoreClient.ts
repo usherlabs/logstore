@@ -439,7 +439,7 @@ export class LogStoreClient {
 	/**
 	 * This observable emits lists of nodes information from the LogStore, ordered by latency, as heartbeat messages are received.
 	 */
-	public get nodeListByListObservable() {
+	public get nodesHeartbeatInformationListObservable() {
 		return this.logStoreNodeManager.nodeListByLatency$;
 	}
 
