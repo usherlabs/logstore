@@ -107,6 +107,9 @@ export class NodeManager {
 				next: (list) => {
 					this.lastList$.next(list);
 				},
+				error: (e) => {
+					this.logger.error('Error getting node URL list', e);
+				},
 			});
 		});
 		this.throttledUpdateList();
@@ -211,7 +214,10 @@ export class NodeManager {
 
 	public async getBestNodeUrls() {
 		this.throttledUpdateList();
-		return firstValueFrom(this.lastList$);
+		// should be instant, as the lastList$ is a replay subject
+		// however if the lastList$ is empty, it will wait for the first value to be emitted
+		// and it should throw a timeout error if something goes wrong.
+		return firstValueFrom(this.lastList$.pipe(timeout(15_000)));
 	}
 
 	public async getNodeAddressFromUrl(url: string): Promise<string | null> {
