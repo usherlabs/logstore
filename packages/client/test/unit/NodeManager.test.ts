@@ -73,7 +73,7 @@ describe('NodeManager', () => {
 
 			updateCalls = getUpdateCalls();
 
-			const bestUrls = await logStoreClient.getBestNodeUrls();
+			const bestUrls = await logStoreClient.getNodeUrlsByLatency();
 
 			expectSameUpdateCalls();
 
@@ -84,7 +84,7 @@ describe('NodeManager', () => {
 
 			expectSameUpdateCalls();
 
-			const bestUrls2 = await logStoreClient.getBestNodeUrls();
+			const bestUrls2 = await logStoreClient.getNodeUrlsByLatency();
 			expect(bestUrls2.length).toBeGreaterThan(1);
 
 			// more than 3 seconds to make sure there's time to end the next update
