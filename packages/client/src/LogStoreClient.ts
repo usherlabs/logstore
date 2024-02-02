@@ -1,5 +1,4 @@
-import { EthereumAddress } from '@streamr/utils';
-import { toEthereumAddress } from '@streamr/utils';
+import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import type { Schema } from 'ajv';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
@@ -435,6 +434,13 @@ export class LogStoreClient {
 	 */
 	public async getBestNodeUrls() {
 		return this.logStoreNodeManager.getBestNodeUrls();
+	}
+
+	/**
+	 * This observable emits lists of node URLs for LogStore, ordered by latency, as heartbeat messages are received.
+	 */
+	public get nodeUrlListByLatencyObservable() {
+		return this.logStoreNodeManager.nodeUrlListByLatency$;
 	}
 
 	// --------------------------------------------------------------------------------------------

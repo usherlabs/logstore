@@ -6,7 +6,6 @@ import {
 	Logger,
 	toEthereumAddress,
 } from '@streamr/utils';
-import { shuffle } from 'lodash';
 import pThrottle from 'p-throttle';
 import {
 	auditTime,
@@ -17,6 +16,7 @@ import {
 	mergeMap,
 	ReplaySubject,
 	scan,
+	share,
 	timeout,
 	timer,
 } from 'rxjs';
@@ -47,7 +47,6 @@ import { AsyncStaleThenRevalidateCache } from '../utils/AsyncStaleThenRevalidate
 import { createBroadbandObservable } from '../utils/rxjs/BroadbandObservable';
 import { takeUntilWithFilter } from '../utils/rxjs/takeUntilWithFilter';
 
-
 @scoped(Lifecycle.ContainerScoped)
 export class NodeManager {
 	private contractFactory: ContractFactory;
@@ -65,7 +64,7 @@ export class NodeManager {
 	// ==== Node URL List Management ====
 	// replay subject emits the last value to new subscribers. But if there's no value, it won't emit until it does.
 	private readonly lastList$ = new ReplaySubject<string[]>(1);
-	// throttledUpdateList will help us to update the lastList$ with the bestList$ output at most once every X minutes.
+	// throttledUpdateList will help us to update the lastList$ with the timedNodeUrlListByLatency$ output at most once every X minutes.
 	private throttledUpdateList = () => Promise<void>;
 
 	// ==================================
@@ -99,48 +98,18 @@ export class NodeManager {
 			) as LogStoreNodeManagerContract;
 		});
 
-		// throttledUpdateList is a function that, when called, updates the lastList$ with the bestList$ output.
-		// Remembering that bestList$ automatically completes after 3 seconds, avoiding memory leaks and unfinished searches.
+		// throttledUpdateList is a function that, when called, updates the lastList$ with the timedNodeUrlListByLatency$ output.
+		// Remembering that timedNodeUrlListByLatency$ automatically completes after 3 seconds, avoiding memory leaks and unfinished searches.
 		// This function is throttled to run at most once every minute.
 		// Also, we're able to get the lastList$ value instantly, as soon as the first heartbeat message arrives.
 		this.throttledUpdateList = pThrottle({ limit: 1, interval: 60_000 })(() => {
-			this.bestList$.subscribe({
+			this.timedNodeUrlListByLatency$.subscribe({
 				next: (list) => {
 					this.lastList$.next(list);
 				},
 			});
 		});
 		this.throttledUpdateList();
-	}
-
-	async getRandomNodeUrl() {
-		const nodeAddresses = shuffle(
-			await queryAllReadonlyContracts(
-				(contract: LogStoreNodeManagerContract) => {
-					return contract.nodeAddresses();
-				},
-				this.logStoreManagerContractsReadonly
-			)
-		);
-
-		for (const nodeAddress of nodeAddresses) {
-			const node = await queryAllReadonlyContracts(
-				(contract: LogStoreNodeManagerContract) => {
-					return contract.nodes(nodeAddress);
-				},
-				this.logStoreManagerContractsReadonly
-			);
-			if (node.metadata.includes('http')) {
-				try {
-					const metadata = JSON.parse(node.metadata) as NodeMetadata;
-					return metadata.http;
-				} catch (e) {
-					// ...
-				}
-			}
-		}
-
-		throw new Error('There are no nodes with a proper metadata');
 	}
 
 	private getNodeFromAddress = async (address: string) => {
@@ -164,14 +133,8 @@ export class NodeManager {
 	/**
 	 * Returns an observable that emits a list of the most performant node URLs,
 	 * sorted in order of their lag-time (from lowest to highest).
-	 *
-	 * Initially, the observable listens to the heartbeat stream for three seconds before stopping.
-	 * Exceptions are made if there are no heartbeats in a while - in such case, the search will continue indefinitely
-	 * until at least one heatbeat is found.
-	 *
-	 * The maximum time to wait for the first heartbeat is 15 seconds, otherwise it should throw a timeout error.
 	 */
-	private get bestList$() {
+	public get nodeUrlListByLatency$() {
 		const heartbeatStreamAddress =
 			this.logStoreClientConfig.contracts.logStoreNodeManagerChainAddress +
 			'/heartbeat';
@@ -205,7 +168,7 @@ export class NodeManager {
 			})
 		);
 
-		const bestNodes$ = urlAndLagTime$.pipe(
+		return urlAndLagTime$.pipe(
 			// creates a map of URLs to lagTime
 			// map is used so there's no repeated URL
 			scan((acc, [url, lagTime]) => {
@@ -219,10 +182,23 @@ export class NodeManager {
 			map((nodeMap) =>
 				Array.from(nodeMap.entries()).sort((a, b) => a[1] - b[1])
 			),
-			map((nodeList) => nodeList.map(([url]) => url))
+			map((nodeList) => nodeList.map(([url]) => url)),
+			// Share so that if the user also subscribes directly,
+			// it wouldn't create another subscription, but reuse the same.
+			share()
 		);
+	}
 
-		return bestNodes$.pipe(
+	/**
+	 * Initially, the observable listens to the heartbeat stream for three seconds before stopping.
+	 * Exceptions are made if there are no heartbeats in a while - in such case, the search will continue indefinitely
+	 * until at least one heatbeat is found.
+	 *
+	 * The maximum time to wait for the first heartbeat is 15 seconds, otherwise it should throw a timeout error.
+	 * @private
+	 */
+	private get timedNodeUrlListByLatency$() {
+		return this.nodeUrlListByLatency$.pipe(
 			// We should take until 3 seconds, but this timer should start after the first value is emitted.
 			takeUntilWithFilter((list) => list.length > 0, timer(3_000)),
 			// Emits a value just if there's one url or more. This function cannot return an empty list.

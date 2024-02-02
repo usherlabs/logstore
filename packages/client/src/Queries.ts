@@ -271,6 +271,7 @@ export class Queries {
 			query,
 		});
 
+		// TODO: make it more robust, dealing with staleness of first best url
 		const nodeUrl =
 			this.logStoreClientConfig.nodeUrl ??
 			(await this.nodeManager.getBestNodeUrls())[0]; // first node is the best node
