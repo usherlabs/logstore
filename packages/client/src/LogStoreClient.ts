@@ -1,4 +1,4 @@
-import type { Overrides } from '@ethersproject/contracts';
+import { EthereumAddress } from '@streamr/utils';
 import { toEthereumAddress } from '@streamr/utils';
 import type { Schema } from 'ajv';
 import { ContractTransaction, Signer } from 'ethers';
@@ -189,16 +189,8 @@ export class LogStoreClient {
 	/**
 	 * Stake funds so can query
 	 */
-	async queryStake(
-		amount: bigint,
-		options = { usd: false },
-		overrides?: Overrides
-	) {
-		return this.logStoreQueryManager.queryStake(
-			amount,
-			{ usd: options.usd },
-			overrides
-		);
+	async queryStake(amount: bigint, options = { usd: false }) {
+		return this.logStoreQueryManager.queryStake(amount, { usd: options.usd });
 	}
 
 	/**
@@ -236,6 +228,10 @@ export class LogStoreClient {
 		return this.logStoreQueryManager.getQueryBalance();
 	}
 
+	async getQueryBalanceOf(address: EthereumAddress): Promise<bigint> {
+		return this.logStoreQueryManager.getQueryBalanceOf(address);
+	}
+
 	async createQueryUrl(
 		nodeUrl: string,
 		streamDefinition: StreamDefinition,
@@ -269,14 +265,9 @@ export class LogStoreClient {
 	 */
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
-		amount: bigint,
-		overrides?: Overrides
+		amount: bigint
 	): Promise<ContractTransaction> {
-		return this.logStoreRegistry.stakeOrCreateStore(
-			streamIdOrPath,
-			amount,
-			overrides
-		);
+		return this.logStoreRegistry.stakeOrCreateStore(streamIdOrPath, amount);
 	}
 
 	/**
@@ -382,11 +373,8 @@ export class LogStoreClient {
 	/**
 	 * Mints tokens for the account, using MATIC. Tokens are used to stake for querying and storage.
 	 */
-	async mint(
-		weiAmountToMint: bigint,
-		overrides?: Overrides
-	): Promise<ContractTransaction> {
-		return this.logstoreTokenManager.mint(weiAmountToMint, overrides);
+	async mint(weiAmountToMint: bigint): Promise<ContractTransaction> {
+		return this.logstoreTokenManager.mint(weiAmountToMint);
 	}
 
 	/**

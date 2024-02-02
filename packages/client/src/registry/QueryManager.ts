@@ -1,5 +1,5 @@
 import { BigNumberish } from '@ethersproject/bignumber';
-import { ContractReceipt, type Overrides } from '@ethersproject/contracts';
+import { ContractReceipt } from '@ethersproject/contracts';
 import { Provider } from '@ethersproject/providers';
 import { LogStoreQueryManager as QueryManagerContract } from '@logsn/contracts';
 import { abi as QueryManagerAbi } from '@logsn/contracts/artifacts/src/QueryManager.sol/LogStoreQueryManager.json';
@@ -115,8 +115,7 @@ export class QueryManager {
 
 	async queryStake(
 		amount: BigNumberish,
-		options = { usd: false },
-		overrides?: Overrides
+		options = { usd: false }
 	): Promise<ContractReceipt> {
 		this.logger.debug(
 			`Staking ${amount} with options: ${JSON.stringify(options)}...`
@@ -126,21 +125,17 @@ export class QueryManager {
 			await this.authentication.getStreamRegistryChainSigner();
 
 		await this.connectToContract();
+		const overrides = getStreamRegistryOverrides(this.streamrClientConfig);
 		const stakeAmount = prepareStakeForQueryManager(
 			chainSigner,
 			Number(amount),
-			options.usd
+			options.usd,
+			undefined,
+			true,
+			overrides
 		);
 		this.logger.debug(`Stake amount prepared: ${stakeAmount}`);
 
-		const ethersOverrides = getStreamRegistryOverrides(
-			this.streamrClientConfig
-		);
-		return waitForTx(
-			this.queryManagerContract!.stake(stakeAmount, {
-				...ethersOverrides,
-				...overrides,
-			})
-		);
+		return waitForTx(this.queryManagerContract!.stake(stakeAmount, overrides));
 	}
 }
