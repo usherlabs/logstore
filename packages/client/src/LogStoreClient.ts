@@ -432,8 +432,8 @@ export class LogStoreClient {
 	/**
 	 * Get node URLs list for LogStore, ordered by latency.
 	 */
-	public async getBestNodeUrls() {
-		return this.logStoreNodeManager.getBestNodeUrls();
+	public async getNodeUrlsByLatency() {
+		return this.logStoreNodeManager.getNodeUrlsByLatency();
 	}
 
 	/**

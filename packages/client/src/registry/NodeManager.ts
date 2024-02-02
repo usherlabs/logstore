@@ -212,7 +212,7 @@ export class NodeManager {
 		);
 	}
 
-	public async getBestNodeUrls() {
+	public async getNodeUrlsByLatency() {
 		this.throttledUpdateList();
 		// should be instant, as the lastList$ is a replay subject
 		// however if the lastList$ is empty, it will wait for the first value to be emitted
