@@ -1,4 +1,4 @@
-import { EthereumAddress } from '@streamr/utils';
+import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import type { Schema } from 'ajv';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
@@ -27,6 +27,7 @@ import {
 	QueryType,
 } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
+import { NodeManager } from './registry/NodeManager';
 import { QueryManager } from './registry/QueryManager';
 import { TokenManager } from './registry/TokenManager';
 import { StreamObservableFactory } from './StreamObservableFactory';
@@ -65,6 +66,7 @@ export class LogStoreClient {
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
 	private readonly logStoreQueryManager: QueryManager;
 	private readonly logstoreTokenManager: TokenManager;
+	private readonly logStoreNodeManager: NodeManager;
 	private readonly validationManager: ValidationManager;
 	private readonly strictLogStoreClientConfig: StrictLogStoreClientConfig;
 	private readonly systemMessages$: SystemMessageObservable;
@@ -164,6 +166,8 @@ export class LogStoreClient {
 		this.logStoreQueryManager = container.resolve<QueryManager>(QueryManager);
 
 		this.logstoreTokenManager = container.resolve<TokenManager>(TokenManager);
+
+		this.logStoreNodeManager = container.resolve<NodeManager>(NodeManager);
 
 		this.validationManager =
 			container.resolve<ValidationManager>(ValidationManager);
@@ -284,32 +288,54 @@ export class LogStoreClient {
 		return this.logStoreRegistry.getStoredStreams();
 	}
 
+	/**
+	 * Retrieves the balance of a stream.
+	 *
+	 * @param {string} streamIdOrPath - The ID or path of the stream.
+	 *
+	 * @return {Promise<bigint>} The balance of the stream as a bigint.
+	 */
 	async getStreamBalance(streamIdOrPath: string): Promise<bigint> {
 		return this.logStoreRegistry.getStreamBalance(streamIdOrPath);
 	}
 
+	/**
+	 * Retrieves the balance of the store for this account.
+	 */
 	async getStoreBalance(): Promise<bigint> {
 		return this.logStoreRegistry.getStoreBalance();
 	}
 
+	/**
+	 * Sets the validation schema to validate new messages before storing on LogStore nodes.
+	 */
 	async setValidationSchema(
 		...params: Parameters<ValidationManager['setValidationSchema']>
 	): Promise<void> {
 		return this.validationManager.setValidationSchema(...params);
 	}
 
+	/**
+	 * Removes the validation schema from a stream.
+	 */
 	async removeValidationSchema(
 		...params: Parameters<ValidationManager['removeValidationSchema']>
 	): Promise<void> {
 		return this.validationManager.removeValidationSchema(...params);
 	}
 
+	/**
+	 * Retrieves the validation schema for a stream.
+	 */
 	async getValidationSchema(
 		...params: Parameters<ValidationManager['getValidationSchema']>
 	): Promise<Schema | null> {
 		return this.validationManager.getValidationSchema(...params);
 	}
 
+	/**
+	 * Extracts the validation schema for a stream from the stream metadata object.
+	 */
 	public getValidationSchemaFromStreamMetadata(
 		...params: Parameters<
 			ValidationManager['getValidationSchemaFromStreamMetadata']
@@ -320,6 +346,21 @@ export class LogStoreClient {
 		);
 	}
 
+	/**
+	 * Creates important observables for a stream.
+	 *
+	 * An observable is a stream of data that an observer can subscribe to.
+	 * It provides a way to handle or execute tasks whenever an event occurs, such as metadata updates.
+	 *
+	 * @param params - Parameters for stream observable creation
+	 * @returns A dictionary of observables that provides an alternative way to process stream data.
+	 */
+	public createStreamObservable(
+		...params: Parameters<StreamObservableFactory['createStreamObservable']>
+	) {
+		return this.streamObservableFactory.createStreamObservable(...params);
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// Token utilities
 	// --------------------------------------------------------------------------------------------
@@ -328,14 +369,23 @@ export class LogStoreClient {
 		return this.logstoreTokenManager.getBalance();
 	}
 
+	/**
+	 * Mints tokens for the account, using MATIC. Tokens are used to stake for querying and storage.
+	 */
 	async mint(weiAmountToMint: bigint): Promise<ContractTransaction> {
 		return this.logstoreTokenManager.mint(weiAmountToMint);
 	}
 
+	/**
+	 * Gets price data for the token.
+	 */
 	async getPrice(): Promise<bigint> {
 		return this.logstoreTokenManager.getPrice();
 	}
 
+	/**
+	 * Gets conversion rate for the token, from/to multiple amount types.
+	 */
 	async convert({
 		amount,
 		from,
@@ -363,6 +413,35 @@ export class LogStoreClient {
 	 * @remarks As the name implies, the client instance (or any streams or subscriptions returned by it) should _not_
 	 * be used after calling this method.
 	 */
+
+	// --------------------------------------------------------------------------------------------
+	// Network Utilities
+	// --------------------------------------------------------------------------------------------
+
+	/**
+	 * Get the URL for a LogStore Node, given the address, using on-chain data.
+	 * Not all nodes are guaranteed to expose a Gateway.
+	 *
+	 * @param address
+	 */
+	getNodeUrl(address: string): Promise<string | null> {
+		const ethAddress = toEthereumAddress(address);
+		return this.logStoreNodeManager.getNodeUrl(ethAddress);
+	}
+
+	/**
+	 * Get node URLs list for LogStore, ordered by latency.
+	 */
+	public async getNodeUrlsByLatency() {
+		return this.logStoreNodeManager.getNodeUrlsByLatency();
+	}
+
+	/**
+	 * This observable emits lists of nodes information from the LogStore, ordered by latency, as heartbeat messages are received.
+	 */
+	public get nodesHeartbeatInformationListObservable() {
+		return this.logStoreNodeManager.nodeListByLatency$;
+	}
 
 	// --------------------------------------------------------------------------------------------
 	// Events
@@ -402,11 +481,5 @@ export class LogStoreClient {
 		listener: LogStoreClientEvents[T]
 	): void {
 		this.logStoreClientEventEmitter.off(eventName, listener as any);
-	}
-
-	public createStreamObservable(
-		...params: Parameters<StreamObservableFactory['createStreamObservable']>
-	) {
-		return this.streamObservableFactory.createStreamObservable(...params);
 	}
 }

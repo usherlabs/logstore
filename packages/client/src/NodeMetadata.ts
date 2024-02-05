@@ -1,3 +1,3 @@
 export type NodeMetadata = {
-	http: string;
+	http?: string;
 };

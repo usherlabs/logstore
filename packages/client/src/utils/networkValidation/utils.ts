@@ -16,7 +16,11 @@ import type { RequestMetadata } from '../../HttpUtil';
 import { NodeManager } from '../../registry/NodeManager';
 
 export const nodeAddressFromUrl = (url: string, nodeManager: NodeManager) =>
-	defer(() => nodeManager.getNodeAddressFromUrl(url)).pipe(share());
+	defer(() => nodeManager.getNodeAddressFromUrl(url)).pipe(
+		// should error if completed without a value.
+		first(Boolean),
+		share()
+	);
 
 export function tapDebugComplete<T>(name: string) {
 	return tap<T>({
