@@ -13,7 +13,7 @@
 		"directory": "packages/cli"
 	},
 	"scripts": {
-		"build": "del dist && tsx build.ts",
+		"build": "del dist && tsc -noEmit && tsx build.ts",
 		"bin": "del out && pkg --no-bytecode --public-packages '*' --output out/logstore package.json",
 		"build:binaries": "run-s build bin",
 		"start": "node ./dist/src/index.js",
