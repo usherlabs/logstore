@@ -499,4 +499,8 @@ export class LogStoreClient {
 	): void {
 		this.logStoreClientEventEmitter.off(eventName, listener as any);
 	}
+
+	destroy(): Promise<void> {
+		return this.streamrClient.destroy();
+	}
 }
