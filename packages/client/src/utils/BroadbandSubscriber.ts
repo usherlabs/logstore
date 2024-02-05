@@ -1,9 +1,9 @@
-import StreamrClient, {
-	MessageListener,
-	Stream,
-	Subscription,
-} from 'streamr-client';
+import StreamrClient, { MessageListener, Stream, Subscription } from 'streamr-client';
 
+
+/**
+ * A class that subscribes to all partitions of a Streamr stream.
+ */
 export class BroadbandSubscriber {
 	private readonly partitions: number;
 	private readonly subscriptions: Subscription[] = [];

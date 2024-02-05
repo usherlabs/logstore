@@ -21,6 +21,7 @@ export function takeUntilWithFilter<T>(
 					// filter the source based on the predicate, not emitting if the predicate returns false
 					filter(predicate),
 					// now we subscribe to the source, and that's the difference between takeUntil and takeUntilWithFilter
+					// For example, if notifier is a timer, we don't want to start the timer until the predicate is true
 					mergeMap(() => notifier)
 				)
 				.subscribe(
