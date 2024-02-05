@@ -8,8 +8,8 @@ type InferCommmandOptions<T extends Command> = T extends Command<
 >
 	? Options
 	: never;
-type RootOptions = InferCommmandOptions<typeof rootProgram>;
-const rootOptions = new BehaviorSubject<RootOptions | null>(null);
+type RootOptions = Partial<InferCommmandOptions<typeof rootProgram>>;
+const rootOptions = new BehaviorSubject<RootOptions>({});
 export const setRootOptions = (
 	newOptionsOrUpdate:
 		| Partial<RootOptions>

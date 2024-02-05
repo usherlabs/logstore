@@ -7,7 +7,7 @@ export interface IConfig {
 
 export function resolveHome(filepath = '') {
 	if (filepath.length > 0 && filepath[0] === '~') {
-		return path.join(process.env.HOME, filepath.slice(1));
+		return path.join(process.env.HOME!, filepath.slice(1));
 	}
 	return filepath;
 }

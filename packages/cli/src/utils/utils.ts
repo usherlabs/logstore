@@ -62,7 +62,7 @@ export const withRetry = async (
 	provider: ethers.providers.JsonRpcProvider,
 	fn: (estimate?: ethers.BigNumber) => Promise<ethers.ContractTransaction>
 ) => {
-	let tx: ethers.ContractTransaction;
+	let tx: ethers.ContractTransaction | undefined;
 	let estimate = await provider.getGasPrice();
 	let retryCount = 0;
 	while (!tx) {
