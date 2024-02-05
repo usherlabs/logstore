@@ -1,4 +1,5 @@
 import { BigNumberish } from '@ethersproject/bignumber';
+import type { Overrides } from '@ethersproject/contracts';
 import { ContractReceipt } from '@ethersproject/contracts';
 import { Provider } from '@ethersproject/providers';
 import { LogStoreQueryManager as QueryManagerContract } from '@logsn/contracts';
@@ -115,7 +116,8 @@ export class QueryManager {
 
 	async queryStake(
 		amount: BigNumberish,
-		options = { usd: false }
+		options = { usd: false },
+		overrides?: Overrides
 	): Promise<ContractReceipt> {
 		this.logger.debug(
 			`Staking ${amount} with options: ${JSON.stringify(options)}...`
@@ -125,17 +127,22 @@ export class QueryManager {
 			await this.authentication.getStreamRegistryChainSigner();
 
 		await this.connectToContract();
-		const overrides = getStreamRegistryOverrides(this.streamrClientConfig);
+		const mergedOverrides = {
+			...getStreamRegistryOverrides(this.streamrClientConfig),
+			...overrides,
+		};
 		const stakeAmount = prepareStakeForQueryManager(
 			chainSigner,
 			Number(amount),
 			options.usd,
 			undefined,
 			true,
-			overrides
+			mergedOverrides
 		);
 		this.logger.debug(`Stake amount prepared: ${stakeAmount}`);
 
-		return waitForTx(this.queryManagerContract!.stake(stakeAmount, overrides));
+		return waitForTx(
+			this.queryManagerContract!.stake(stakeAmount, mergedOverrides)
+		);
 	}
 }

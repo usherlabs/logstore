@@ -189,7 +189,8 @@ export class LogStoreRegistry {
 
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
-		amount: bigint
+		amount: bigint,
+		overrides?: Overrides
 	): Promise<ContractTransaction> {
 		const streamId = await this.streamIdBuilder.toStreamID(streamIdOrPath);
 		this.logger.debug('adding stream to LogStore', { streamId });
@@ -201,17 +202,24 @@ export class LogStoreRegistry {
 		// @dev depending on if a pk was passed into the contract
 		const chainSigner =
 			await this.authentication.getStreamRegistryChainSigner();
-		const overrides = getStreamRegistryOverrides(this.streamrClientConfig);
+		const mergedOverrides = {
+			...getStreamRegistryOverrides(this.streamrClientConfig),
+			...overrides,
+		};
 		await prepareStakeForStoreManager(
 			chainSigner,
 			amount,
 			false,
 			undefined,
 			true,
-			overrides
+			mergedOverrides
 		);
 		this.logger.debug('About to call stake()');
-		return this.logStoreManagerContract!.stake(streamId, amount, overrides);
+		return this.logStoreManagerContract!.stake(
+			streamId,
+			amount,
+			mergedOverrides
+		);
 	}
 
 	async getStreamBalance(streamIdOrPath: string): Promise<bigint> {
