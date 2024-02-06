@@ -12,6 +12,12 @@ const queryBalanceCommand = new Command()
 		try {
 			const { logStoreClient } = getClientsFromOptions();
 
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.streamrClient.destroy();
+				logStoreClient.destroy();
+			});
+
 			const queryBalance = new Decimal(
 				(await logStoreClient.getQueryBalance()).toString()
 			);

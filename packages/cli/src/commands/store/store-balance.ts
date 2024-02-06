@@ -11,6 +11,12 @@ const balanceCommand = new Command()
 		try {
 			const { logStoreClient } = getClientsFromOptions();
 
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.destroy();
+				logStoreClient.streamrClient.destroy();
+			});
+
 			const storeBalance = new Decimal(
 				(await logStoreClient.getStoreBalance()).toString()
 			);

@@ -93,6 +93,12 @@ export const withRetry = async (
 export const getTransactionFee = async (receipt: ContractReceipt) => {
 	const { logStoreClient } = getClientsFromOptions();
 
+	using cleanup = new DisposableStack();
+	cleanup.defer(() => {
+		logStoreClient.streamrClient.destroy();
+		logStoreClient.destroy();
+	});
+
 	const gasUsed = receipt.gasUsed;
 	// in tests, effective gas price doesnt exist
 	const gasPrice = receipt.effectiveGasPrice ?? 0;
@@ -113,6 +119,12 @@ type BaseAmount = 'byte' | 'query' | 'wei' | 'usd';
 export async function printPrices(base: BaseAmount = 'byte') {
 	const { logStoreClient } = getClientsFromOptions();
 
+	using cleanup = new DisposableStack();
+	cleanup.defer(() => {
+		logStoreClient.streamrClient.destroy();
+		logStoreClient.destroy();
+	});
+
 	const weiPerBytePrice = await logStoreClient
 		.getPrice()
 		.then((c) => new Decimal('0x' + c.toString(16)));
@@ -132,12 +144,12 @@ export async function printPrices(base: BaseAmount = 'byte') {
 		base === 'byte'
 			? storagePrice
 			: base === 'query'
-			? queryBytes
-			: base === 'wei'
-			? weiPerBytePrice
-			: base === 'usd'
-			? usdPerByte
-			: new Error('Invalid base amount');
+				? queryBytes
+				: base === 'wei'
+					? weiPerBytePrice
+					: base === 'usd'
+						? usdPerByte
+						: new Error('Invalid base amount');
 
 	if (baseAmount instanceof Error) {
 		throw baseAmount;
@@ -200,6 +212,13 @@ export async function getTransferAmountFromEcr2Transfer(
 export async function checkLSANFunds(_triedUsing: Decimal.Value) {
 	const triedUsing = new Decimal(_triedUsing);
 	const { logStoreClient } = getClientsFromOptions();
+
+	using cleanup = new DisposableStack();
+	cleanup.defer(() => {
+		logStoreClient.streamrClient.destroy();
+		logStoreClient.destroy();
+	});
+
 	const balance = await logStoreClient.getBalance().then(String);
 
 	if (triedUsing.greaterThan(balance)) {

@@ -16,6 +16,13 @@ const balanceCommand = new Command()
 
 		try {
 			const { logStoreClient } = getClientsFromOptions();
+
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.streamrClient.destroy();
+				logStoreClient.destroy();
+			});
+
 			const price = new Decimal((await logStoreClient.getPrice()).toString());
 
 			const streamBalance = new Decimal(

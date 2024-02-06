@@ -45,11 +45,17 @@ export const mintCommand = new Command()
 		try {
 			const { logStoreClient } = getClientsFromOptions();
 
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.streamrClient.destroy();
+				logStoreClient.destroy();
+			});
+
 			const mintType = cmdOptions.usd
 				? 'usd'
 				: cmdOptions.bytes
-				? 'bytes'
-				: 'wei';
+					? 'bytes'
+					: 'wei';
 
 			await printPrices();
 

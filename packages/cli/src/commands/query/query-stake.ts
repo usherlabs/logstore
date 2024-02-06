@@ -39,9 +39,15 @@ const stakeCommand = new Command()
 		const rootOptions = getRootOptions();
 		const { logStoreClient } = getClientsFromOptions();
 
+		using cleanup = new DisposableStack();
+		cleanup.defer(() => {
+			logStoreClient.streamrClient.destroy();
+			logStoreClient.destroy();
+		});
+
 		const amountToStakeInLSAN = cmdOptions.usd
 			? // todo: 1 LSAN = 1 by here
-			  await logStoreClient
+				await logStoreClient
 					.convert({
 						amount: amt,
 						from: 'usd',

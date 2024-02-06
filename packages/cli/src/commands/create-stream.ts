@@ -11,6 +11,12 @@ export const createStreamCommand = new Command()
 		// const provider = new ethers.providers.JsonRpcProvider(rootOptions.host);
 		// const signer = new ethers.Wallet(rootOptions.wallet, provider);
 		const { streamrClient } = getClientsFromOptions();
+
+		using cleanup = new DisposableStack();
+		cleanup.defer(() => {
+			streamrClient.destroy();
+		});
+
 		console.log('Creating a stream...');
 		const stream = await streamrClient.createStream({
 			// id: name.charAt(0) === '/' ? name : `/${name}`,
