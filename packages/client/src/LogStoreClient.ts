@@ -1,6 +1,7 @@
 import type { Overrides } from '@ethersproject/contracts';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import type { Schema } from 'ajv';
+import 'disposablestack/auto';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';
@@ -59,9 +60,9 @@ import {
 } from './utils/systemStreamUtils';
 import { ValidationManager } from './validationManager/ValidationManager';
 
-export class LogStoreClient {
+export class LogStoreClient implements Disposable {
+	public readonly streamrClient: StreamrClient;
 	private readonly authentication: Authentication;
-	private readonly streamrClient: StreamrClient;
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
@@ -423,14 +424,6 @@ export class LogStoreClient {
 		return this.strictLogStoreClientConfig;
 	}
 
-	/**
-	 * Destroys an instance of a {@link StreamrClient} by disconnecting from peers, clearing any pending tasks, and
-	 * freeing up resources. This should be called once a user is done with the instance.
-	 *
-	 * @remarks As the name implies, the client instance (or any streams or subscriptions returned by it) should _not_
-	 * be used after calling this method.
-	 */
-
 	// --------------------------------------------------------------------------------------------
 	// Network Utilities
 	// --------------------------------------------------------------------------------------------
@@ -500,7 +493,18 @@ export class LogStoreClient {
 		this.logStoreClientEventEmitter.off(eventName, listener as any);
 	}
 
-	destroy(): Promise<void> {
-		return this.streamrClient.destroy();
+	/**
+	 * Destroys an instance of a {@link LogStoreClient} by disconnecting from peers, clearing any pending tasks, and
+	 * freeing up resources. This should be called once a user is done with the instance.
+	 *
+	 * @remarks As the name implies, the client instance (or any streams or subscriptions returned by it) should _not_
+	 * be used after calling this method.
+	 */
+	destroy(): void {
+		this.logStoreNodeManager.destroy();
+	}
+
+	[Symbol.dispose](): void {
+		this.destroy();
 	}
 }
