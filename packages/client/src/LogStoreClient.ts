@@ -1,7 +1,6 @@
 import type { Overrides } from '@ethersproject/contracts';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import type { Schema } from 'ajv';
-import 'disposablestack/auto';
 import { ContractTransaction, Signer } from 'ethers';
 import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';
@@ -219,9 +218,8 @@ export class LogStoreClient implements Disposable {
 		onMessage?: MessageListener,
 		options?: QueryOptions
 	): Promise<LogStoreMessageStream> {
-		const streamPartId = await this.streamIdBuilder.toStreamPartID(
-			streamDefinition
-		);
+		const streamPartId =
+			await this.streamIdBuilder.toStreamPartID(streamDefinition);
 		const messageStream = await this.logStoreQueries.query(
 			streamPartId,
 			input,
@@ -247,9 +245,8 @@ export class LogStoreClient implements Disposable {
 		type: QueryType | string,
 		queryParams: HttpApiQueryDict
 	) {
-		const streamPartId = await this.streamIdBuilder.toStreamPartID(
-			streamDefinition
-		);
+		const streamPartId =
+			await this.streamIdBuilder.toStreamPartID(streamDefinition);
 
 		const url = this.logStoreQueries.createUrl(
 			nodeUrl,
