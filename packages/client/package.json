@@ -35,6 +35,7 @@
 		"clean": "jest --clearCache || true; del dist  *.tsbuildinfo node_modules/.cache || true",
 		"test-browser": "pnpm build-browser-production && concurrently -k --success=first 'node ./test/browser/server.js' 'sleep 5 && nightwatch --headless --verbose --timeout=30000 --config=nightwatch.conf.js ./test/browser/browser.js'",
 		"test-exports": "cd test/exports && npm run link && tsc --noEmit --project ./tsconfig.json && npm test",
+		"build:wasm": "RUSTC_BOOTSTRAP=1 wasm-pack build --target web wasm/prover",
 		"browser": "node ./test/browser/server.js"
 	},
 	"dependencies": {
@@ -91,6 +92,7 @@
 		"sqlite3": "^5.1.6",
 		"streamr-client": "^8.5.5",
 		"strict-event-emitter-types": "^2.0.0",
+		"tlsn-verify-rs": "file://./wasm/prover/pkg",
 		"ts-toolbelt": "^9.6.0",
 		"tsyringe": "^4.8.0",
 		"uuid": "^9.0.0",

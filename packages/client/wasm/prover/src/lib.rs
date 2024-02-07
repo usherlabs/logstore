@@ -1,19 +1,11 @@
-extern crate console_error_panic_hook;
-
-use std::panic;
-use std::time::Duration;
-
 use elliptic_curve::pkcs8::DecodePublicKey;
 use futures::AsyncWriteExt;
-use js_sys::JSON;
-use tlsn_core::proof::{SessionProof, TlsProof};
+use js_sys::{Array, JSON};
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 pub use wasm_bindgen_rayon::init_thread_pool;
-use web_sys::{Request as WebsysRequest, RequestInit, Response};
-
-use crate::request_opt::VerifyResult;
+use web_sys::{Headers, Request as WebsysRequest, RequestInit, RequestMode, Response};
 
 mod request_opt;
 
