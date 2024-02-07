@@ -48,6 +48,7 @@ import {
 } from './streamr/StreamIDBuilder';
 import { StreamrClientInjectionToken } from './streamr/StreamrClient';
 import { MessagePipelineFactoryInjectionToken } from './streamr/subscribe/MessagePipelineFactory';
+import { TLSNManager } from './tlsn/TLSNManager';
 import { AmountTypes } from './types';
 import { BroadbandSubscriber } from './utils/BroadbandSubscriber';
 import { GQtyClients } from './utils/GraphQLClient';
@@ -72,6 +73,7 @@ export class LogStoreClient implements Disposable {
 	private readonly logStoreNodeManager: NodeManager;
 	private readonly validationManager: ValidationManager;
 	private readonly strictLogStoreClientConfig: StrictLogStoreClientConfig;
+	private readonly tlsnManager: TLSNManager;
 	private readonly systemMessages$: SystemMessageObservable;
 	private readonly streamObservableFactory: StreamObservableFactory;
 	private readonly streamIdBuilder: StreamIDBuilder;
@@ -171,6 +173,8 @@ export class LogStoreClient implements Disposable {
 		this.logstoreTokenManager = container.resolve<TokenManager>(TokenManager);
 
 		this.logStoreNodeManager = container.resolve<NodeManager>(NodeManager);
+
+		this.tlsnManager = container.resolve<TLSNManager>(TLSNManager);
 
 		this.validationManager =
 			container.resolve<ValidationManager>(ValidationManager);
@@ -373,6 +377,24 @@ export class LogStoreClient implements Disposable {
 		...params: Parameters<StreamObservableFactory['createStreamObservable']>
 	) {
 		return this.streamObservableFactory.createStreamObservable(...params);
+	}
+
+	// --------------------------------------------------------------------------------------------
+	// TLS Notary
+	// --------------------------------------------------------------------------------------------
+
+	/**
+	 * Verifies a TLSN proof.
+	 *
+	 * @param proof - the TLSN proof to verify
+	 * @param notaryPublicKey - the public key of the notary
+	 * @returns the verified proof
+	 */
+	async verifyTlsProof(
+		proof: string,
+		notaryPublicKey: string
+	): Promise<string> {
+		return this.tlsnManager.verifyTlsProof(proof, notaryPublicKey);
 	}
 
 	// --------------------------------------------------------------------------------------------
