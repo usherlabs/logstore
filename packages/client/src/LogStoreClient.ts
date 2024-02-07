@@ -60,7 +60,7 @@ import {
 import { ValidationManager } from './validationManager/ValidationManager';
 
 export class LogStoreClient implements Disposable {
-	public readonly streamrClient: StreamrClient;
+	private readonly streamrClient: StreamrClient;
 	private readonly authentication: Authentication;
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;

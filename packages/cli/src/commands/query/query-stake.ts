@@ -15,8 +15,8 @@ import {
 } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import {
-	getQueryManagerContract,
 	Manager,
+	getQueryManagerContract,
 	requestAllowanceIfNeeded,
 } from '@logsn/shared';
 import chalk from 'chalk';
@@ -37,12 +37,12 @@ const stakeCommand = new Command()
 	.option('-y, --assume-yes', 'Assume Yes to all queries and do not prompt')
 	.action(async (amt, cmdOptions) => {
 		const rootOptions = getRootOptions();
-		const { logStoreClient } = getClientsFromOptions();
+		const { streamrClient, logStoreClient } = getClientsFromOptions();
 
 		using cleanup = new DisposableStack();
 		cleanup.defer(() => {
-			logStoreClient.streamrClient.destroy();
 			logStoreClient.destroy();
+			streamrClient.destroy();
 		});
 
 		const amountToStakeInLSAN = cmdOptions.usd

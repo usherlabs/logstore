@@ -17,12 +17,12 @@ export const balanceCommand = new Command()
 	)
 	.action(async (cmdOptions) => {
 		try {
-			const { logStoreClient } = getClientsFromOptions();
+			const { streamrClient, logStoreClient } = getClientsFromOptions();
 
 			using cleanup = new DisposableStack();
 			cleanup.defer(() => {
-				logStoreClient.streamrClient.destroy();
 				logStoreClient.destroy();
+				streamrClient.destroy();
 			});
 
 			const balanceInLSAN = new Decimal(
