@@ -501,6 +501,12 @@ export class LogStoreClient implements Disposable {
 		this.logStoreNodeManager.destroy();
 	}
 
+	/**
+	 * Part of the Explicit Resource Management feature from ECMAScript. Polyfilled to work from ES3 onwards.
+	 * Supports the `using` statement in TypeScript 5.2+.
+	 *
+	 * @see {link https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-2.html#using-declarations-and-explicit-resource-management}
+	 */
 	[Symbol.dispose](): void {
 		this.destroy();
 	}
