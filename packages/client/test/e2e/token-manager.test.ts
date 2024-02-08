@@ -39,6 +39,10 @@ describe('Manage tokens', () => {
 		await Promise.allSettled([streamrClient?.destroy()]);
 	}, TIMEOUT);
 
+	afterEach(() => {
+		jest.restoreAllMocks();
+	})
+
 	test(
 		'Gets balance',
 		async () => {
@@ -100,6 +104,11 @@ describe('Manage tokens', () => {
 	test(
 		'Converts tokens',
 		async () => {
+			const fixedDate = new Date('2023-07-28T00:00:00Z').getTime();
+			// make jest date return fixed date for deterministic tests on getTime
+			jest
+				.spyOn(global.Date.prototype, 'getTime')
+				.mockImplementation((...args: Array<any>) => fixedDate);
 			const price = await logStoreClient.getPrice();
 
 			const inWei = new Decimal('1e18');
@@ -120,17 +129,20 @@ describe('Manage tokens', () => {
 				amount: inWei.toString(),
 			});
 
-			expect(ethers.utils.formatEther(bytesToWei)).toMatchInlineSnapshot(
-				`"0.99999999864981264"`
+			expect(ethers.utils.formatEther(bytesToWei)).toBe(
+				ethers.utils.formatEther(inBytes.mul(price.toString()).toString())
 			);
 
 			// $0.709104 at 28/07/2023. We will assume that pricing will be between 0.3 and 1.5 USD
-			expect(+weiToUsd).toBeGreaterThan(0.3);
-			expect(+weiToUsd).toBeLessThan(1.5);
+			expect(+weiToUsd).toBe(0.7165);
 
 			expect(
-				await logStoreClient.convert({ amount: '1', from: 'usd', to: 'bytes' })
-			).toBe('');
+				+(await logStoreClient.convert({
+					amount: '1',
+					from: 'usd',
+					to: 'bytes',
+				}))
+			).toBe(2020449279);
 		},
 		TIMEOUT
 	);
