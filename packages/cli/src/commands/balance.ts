@@ -17,17 +17,24 @@ export const balanceCommand = new Command()
 	)
 	.action(async (cmdOptions) => {
 		try {
-			const { logStoreClient } = getClientsFromOptions();
+			const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.destroy();
+				streamrClient.destroy();
+			});
+
 			const balanceInLSAN = new Decimal(
 				(await logStoreClient.getBalance()).toString()
 			);
-			const price = new Decimal((await logStoreClient.getPrice()).toString());
+			// const price = new Decimal((await logStoreClient.getPrice()).toString());
 
 			// TODO review this when multiplier from contract != 1
 			const availableStorage = balanceInLSAN;
 			const availableQueries = balanceInLSAN.div(readFeeMultiplier);
 
-			const msgSuffix = `are available to be staked on the Log Store Network.`;
+			// const msgSuffix = `are available to be staked on the Log Store Network.`;
 
 			console.log(
 				`The LSAN balance for address ${bold(

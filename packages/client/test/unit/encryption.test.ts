@@ -19,8 +19,8 @@ import StreamrClient, {
 } from 'streamr-client';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST, LogStoreClient } from '../../src';
-import { createTestStream } from '../test-utils/utils';
 import { IPushPipeline } from '../../src/streamr/utils/IPushPipeline';
+import { createTestStream } from '../test-utils/utils';
 
 const TIMEOUT = 90 * 1000;
 
@@ -132,9 +132,11 @@ describe('Encryption subleties', () => {
 
 	afterEach(async () => {
 		await Promise.allSettled([
-			publisherA_StreamrClient.destroy(),
-			authorizedStreamrClient.destroy(),
-			unauthorizedStreamrClient.destroy(),
+			publisherA_StreamrClient?.destroy(),
+			authorizedStreamrClient?.destroy(),
+			unauthorizedStreamrClient?.destroy(),
+			authorizedLogStoreClient?.destroy(),
+			unauthorizedLogStoreClient?.destroy(),
 		]);
 
 		jest.clearAllTimers();
@@ -175,7 +177,9 @@ describe('Encryption subleties', () => {
 		// group key error is 30 seconds, however for this test 5 seconds is enough
 		setTimeout(() => jest.advanceTimersByTime(30000), 5000);
 		const error$ = new BehaviorSubject<Error | null>(null);
-		(subscription.messageStream as IPushPipeline<StreamMessage>).onError.listen((e) => error$.next(e));
+		(subscription.messageStream as IPushPipeline<StreamMessage>).onError.listen(
+			(e) => error$.next(e)
+		);
 
 		const messages$ = from(subscription).pipe(toArray());
 

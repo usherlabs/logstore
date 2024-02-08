@@ -7,10 +7,10 @@ import { getTestLogStoreClient } from './utils';
  */
 
 test('instantiates client correctly', async () => {
-	const client = getTestLogStoreClient(
+	const { logStoreClient } = getTestLogStoreClient(
 		'0x0000000000000000000000000000000000000000000000000000000000000011'
 	);
-	const price = await client.getPrice();
+	const price = await logStoreClient.getPrice();
 	expect(typeof price).toBe('bigint');
 	expect(price).toBe(517348683n);
 });

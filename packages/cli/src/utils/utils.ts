@@ -62,7 +62,7 @@ export const withRetry = async (
 	provider: ethers.providers.JsonRpcProvider,
 	fn: (estimate?: ethers.BigNumber) => Promise<ethers.ContractTransaction>
 ) => {
-	let tx: ethers.ContractTransaction;
+	let tx: ethers.ContractTransaction | undefined;
 	let estimate = await provider.getGasPrice();
 	let retryCount = 0;
 	while (!tx) {
@@ -91,7 +91,13 @@ export const withRetry = async (
 };
 
 export const getTransactionFee = async (receipt: ContractReceipt) => {
-	const { logStoreClient } = getClientsFromOptions();
+	const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+	using cleanup = new DisposableStack();
+	cleanup.defer(() => {
+		logStoreClient.destroy();
+		streamrClient.destroy();
+	});
 
 	const gasUsed = receipt.gasUsed;
 	// in tests, effective gas price doesnt exist
@@ -111,7 +117,13 @@ export const getTransactionFee = async (receipt: ContractReceipt) => {
 type BaseAmount = 'byte' | 'query' | 'wei' | 'usd';
 
 export async function printPrices(base: BaseAmount = 'byte') {
-	const { logStoreClient } = getClientsFromOptions();
+	const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+	using cleanup = new DisposableStack();
+	cleanup.defer(() => {
+		logStoreClient.destroy();
+		streamrClient.destroy();
+	});
 
 	const weiPerBytePrice = await logStoreClient
 		.getPrice()
@@ -132,12 +144,12 @@ export async function printPrices(base: BaseAmount = 'byte') {
 		base === 'byte'
 			? storagePrice
 			: base === 'query'
-			? queryBytes
-			: base === 'wei'
-			? weiPerBytePrice
-			: base === 'usd'
-			? usdPerByte
-			: new Error('Invalid base amount');
+				? queryBytes
+				: base === 'wei'
+					? weiPerBytePrice
+					: base === 'usd'
+						? usdPerByte
+						: new Error('Invalid base amount');
 
 	if (baseAmount instanceof Error) {
 		throw baseAmount;
@@ -199,7 +211,14 @@ export async function getTransferAmountFromEcr2Transfer(
 
 export async function checkLSANFunds(_triedUsing: Decimal.Value) {
 	const triedUsing = new Decimal(_triedUsing);
-	const { logStoreClient } = getClientsFromOptions();
+	const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+	using cleanup = new DisposableStack();
+	cleanup.defer(() => {
+		logStoreClient.destroy();
+		streamrClient.destroy();
+	});
+
 	const balance = await logStoreClient.getBalance().then(String);
 
 	if (triedUsing.greaterThan(balance)) {

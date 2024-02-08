@@ -7,11 +7,12 @@ import { priceCommand } from '@/commands/price';
 import { queryCommand } from '@/commands/query';
 import { storeCommand } from '@/commands/store';
 import { versionCommand } from '@/commands/version';
-import { IConfig, defaultConfigPath, resolveHome } from '@/configuration';
+import { defaultConfigPath, IConfig, resolveHome } from '@/configuration';
 import { appVersion } from '@/env-config';
 import { logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import jsonfile from 'jsonfile';
+import '../polyfill';
 
 export const rootProgram = new Command()
 	.name('logstore-cli')

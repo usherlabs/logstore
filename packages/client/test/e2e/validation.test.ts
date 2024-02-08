@@ -46,7 +46,10 @@ describe('validations', () => {
 	}, TIMEOUT);
 
 	afterAll(async () => {
-		await Promise.allSettled([accountStreamrClient?.destroy()]);
+		await Promise.allSettled([
+			accountStreamrClient?.destroy(),
+			accountLogStoreClient?.destroy(),
+		]);
 	}, TIMEOUT);
 
 	test(

@@ -38,7 +38,7 @@ describe('stakes', () => {
 	afterAll(async () => {
 		await Promise.allSettled([
 			streamrClient?.destroy(),
-			// logStoreClient?.destroy(),
+			logStoreClient?.destroy(),
 		]);
 	}, TIMEOUT);
 

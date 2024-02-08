@@ -52,11 +52,27 @@ export function getClientsForCredentials({
 			},
 		},
 	});
-	const logStoreClient = new LogStoreClient(streamrClient, {
-		logLevel,
-		...logStoreConfig,
-	});
-	return { logStoreClient, streamrClient };
+
+	let logStoreClient: LogStoreClient | undefined;
+
+	return {
+		// We define this as a getter, so if anyone instantiate this helper and do not use it, it won't execute logStoreClient
+		// startup process.
+		// It's not meant to be like this, but a workaround for backward compatibility of this code.
+		get logStoreClient() {
+			if (logStoreClient) {
+				return logStoreClient;
+			}
+
+			logStoreClient = new LogStoreClient(streamrClient, {
+				logLevel,
+				...logStoreConfig,
+			});
+
+			return logStoreClient;
+		},
+		streamrClient,
+	};
 }
 
 export const getClientsFromOptions = () => {
