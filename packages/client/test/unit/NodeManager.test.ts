@@ -1,14 +1,11 @@
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
-import StreamrClient, {
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
-} from 'streamr-client';
+import StreamrClient, { CONFIG_TEST as STREAMR_CONFIG_TEST } from 'streamr-client';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
 import { sleep } from '../test-utils/sleep';
 
-const STAKE_AMOUNT = BigInt('1000000000');
 const TIMEOUT = 90 * 1000;
 
 describe('NodeManager', () => {
@@ -29,8 +26,8 @@ describe('NodeManager', () => {
 		streamrClient = new StreamrClient({
 			...STREAMR_CONFIG_TEST,
 			auth: {
-				privateKey: account.privateKey,
-			},
+				privateKey: account.privateKey
+			}
 		});
 	}, TIMEOUT);
 
@@ -40,8 +37,7 @@ describe('NodeManager', () => {
 
 	afterAll(async () => {
 		await Promise.allSettled([
-			streamrClient?.destroy(),
-			// logStoreClient?.destroy(),
+			streamrClient?.destroy()
 		]);
 	}, TIMEOUT);
 
@@ -49,7 +45,7 @@ describe('NodeManager', () => {
 		'getBestUrls',
 		async () => {
 			let updateCalls = 0;
-			const logStoreClient = new LogStoreClient(
+			using logStoreClient = new LogStoreClient(
 				streamrClient,
 				LOGSTORE_CONFIG_TEST
 			);

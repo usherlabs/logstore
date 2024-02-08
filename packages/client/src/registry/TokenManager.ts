@@ -1,4 +1,5 @@
 import { BigNumberish } from '@ethersproject/bignumber';
+import type { Overrides } from '@ethersproject/contracts';
 import { Provider } from '@ethersproject/providers';
 import { LSAN as LogStoreTokenManagerContract } from '@logsn/contracts';
 import { abi as LogStoreTokenManagerAbi } from '@logsn/contracts/artifacts/src/alpha/Token.sol/LSAN.json';
@@ -119,13 +120,19 @@ export class TokenManager {
 		}, this.logstoreTokenManagerContractsReadonly);
 	}
 
-	public async mint(amount: BigNumberish): Promise<ContractTransaction> {
+	public async mint(
+		amount: BigNumberish,
+		overrides?: Overrides
+	): Promise<ContractTransaction> {
 		this.logger.debug('mint amount: ' + amount);
 		await this.connectToContract();
-		const overrides = getStreamRegistryOverrides(this.streamrClientConfig);
+		const mergedOverrides = {
+			...getStreamRegistryOverrides(this.streamrClientConfig),
+			...overrides,
+		};
 		return this.logStoreTokenManagerContract!.mint({
 			value: amount,
-			...overrides,
+			...mergedOverrides,
 		});
 	}
 

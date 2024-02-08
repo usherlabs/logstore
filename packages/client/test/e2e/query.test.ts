@@ -111,6 +111,7 @@ describe('query', () => {
 		await Promise.allSettled([
 			publisherStreamrClient?.destroy(),
 			consumerStreamrClient?.destroy(),
+			consumerLogStoreClient?.destroy(),
 			KeyServer.stopIfRunning(),
 		]);
 	}, TIMEOUT);

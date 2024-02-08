@@ -17,6 +17,8 @@ import {
 	ReplaySubject,
 	scan,
 	share,
+	Subject,
+	takeUntil,
 	timeout,
 	timer,
 } from 'rxjs';
@@ -63,6 +65,7 @@ export class NodeManager {
 	private streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>;
 	private readonly logStoreManagerContractsReadonly: LogStoreNodeManagerContract[];
 	private readonly logger: Logger;
+	private readonly abort$ = new Subject<1>();
 	private readonly nodeUrlCache = new AsyncStaleThenRevalidateCache<
 		EthereumAddress,
 		string | null
@@ -220,7 +223,8 @@ export class NodeManager {
 				filter((urlList) => urlList.length > 0),
 				// Should emit at least one-value list within 15 seconds.
 				// If didn't receive any data until then, it's an error.
-				timeout(15_000)
+				timeout(15_000),
+				takeUntil(this.abort$)
 			)
 			// we subscribe indefinetely, but we don't worry about memory leak because it completes after 3 or 15 seconds.
 			.subscribe({
@@ -286,5 +290,14 @@ export class NodeManager {
 			},
 			this.logStoreManagerContractsReadonly
 		);
+	}
+
+	public destroy() {
+		this.abort$.next(1);
+		this.lastUrlList$.complete();
+	}
+
+	[Symbol.dispose]() {
+		this.destroy();
 	}
 }

@@ -14,10 +14,10 @@ import { providers, Wallet } from 'ethers';
 import _ from 'lodash';
 import { firstValueFrom, take, tap, toArray } from 'rxjs';
 import StreamrClient, {
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	Message,
 	Stream,
 	StreamPermission,
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
 } from 'streamr-client';
 import Bench from 'tinybench';
 import { Logger } from 'tslog';
@@ -140,6 +140,7 @@ describe('Client Package Benchmarks', () => {
 
 		await Promise.allSettled([
 			publisherClient?.destroy(),
+			consumerLogStoreClient?.destroy(),
 			jsonReporter.save(result),
 		]);
 	}, TEST_TIMEOUT);

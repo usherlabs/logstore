@@ -2,7 +2,8 @@
 	"extends": "./tsconfig.node.json",
 	"compilerOptions": {
 		"allowJs": true,
-		"types": ["jest", "node"]
+		"types": ["jest", "node"],
+		"lib": ["ESNext.Disposable"]
 	},
 	"exclude": ["dist"],
 	"include": [

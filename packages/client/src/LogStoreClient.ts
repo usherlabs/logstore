@@ -1,3 +1,4 @@
+import type { Overrides } from '@ethersproject/contracts';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import type { Schema } from 'ajv';
 import { ContractTransaction, Signer } from 'ethers';
@@ -58,9 +59,9 @@ import {
 } from './utils/systemStreamUtils';
 import { ValidationManager } from './validationManager/ValidationManager';
 
-export class LogStoreClient {
-	private readonly authentication: Authentication;
+export class LogStoreClient implements Disposable {
 	private readonly streamrClient: StreamrClient;
+	private readonly authentication: Authentication;
 	private readonly logStoreRegistry: LogStoreRegistry;
 	private readonly logStoreQueries: Queries;
 	private readonly logStoreClientEventEmitter: LogStoreClientEventEmitter;
@@ -188,8 +189,16 @@ export class LogStoreClient {
 	/**
 	 * Stake funds so can query
 	 */
-	async queryStake(amount: bigint, options = { usd: false }) {
-		return this.logStoreQueryManager.queryStake(amount, { usd: options.usd });
+	async queryStake(
+		amount: bigint,
+		options = { usd: false },
+		overrides?: Overrides
+	) {
+		return this.logStoreQueryManager.queryStake(
+			amount,
+			{ usd: options.usd },
+			overrides
+		);
 	}
 
 	/**
@@ -209,9 +218,8 @@ export class LogStoreClient {
 		onMessage?: MessageListener,
 		options?: QueryOptions
 	): Promise<LogStoreMessageStream> {
-		const streamPartId = await this.streamIdBuilder.toStreamPartID(
-			streamDefinition
-		);
+		const streamPartId =
+			await this.streamIdBuilder.toStreamPartID(streamDefinition);
 		const messageStream = await this.logStoreQueries.query(
 			streamPartId,
 			input,
@@ -237,9 +245,8 @@ export class LogStoreClient {
 		type: QueryType | string,
 		queryParams: HttpApiQueryDict
 	) {
-		const streamPartId = await this.streamIdBuilder.toStreamPartID(
-			streamDefinition
-		);
+		const streamPartId =
+			await this.streamIdBuilder.toStreamPartID(streamDefinition);
 
 		const url = this.logStoreQueries.createUrl(
 			nodeUrl,
@@ -264,9 +271,14 @@ export class LogStoreClient {
 	 */
 	async stakeOrCreateStore(
 		streamIdOrPath: string,
-		amount: bigint
+		amount: bigint,
+		overrides?: Overrides
 	): Promise<ContractTransaction> {
-		return this.logStoreRegistry.stakeOrCreateStore(streamIdOrPath, amount);
+		return this.logStoreRegistry.stakeOrCreateStore(
+			streamIdOrPath,
+			amount,
+			overrides
+		);
 	}
 
 	/**
@@ -372,8 +384,11 @@ export class LogStoreClient {
 	/**
 	 * Mints tokens for the account, using MATIC. Tokens are used to stake for querying and storage.
 	 */
-	async mint(weiAmountToMint: bigint): Promise<ContractTransaction> {
-		return this.logstoreTokenManager.mint(weiAmountToMint);
+	async mint(
+		weiAmountToMint: bigint,
+		overrides?: Overrides
+	): Promise<ContractTransaction> {
+		return this.logstoreTokenManager.mint(weiAmountToMint, overrides);
 	}
 
 	/**
@@ -405,14 +420,6 @@ export class LogStoreClient {
 	getConfig(): LogStoreClientConfig {
 		return this.strictLogStoreClientConfig;
 	}
-
-	/**
-	 * Destroys an instance of a {@link StreamrClient} by disconnecting from peers, clearing any pending tasks, and
-	 * freeing up resources. This should be called once a user is done with the instance.
-	 *
-	 * @remarks As the name implies, the client instance (or any streams or subscriptions returned by it) should _not_
-	 * be used after calling this method.
-	 */
 
 	// --------------------------------------------------------------------------------------------
 	// Network Utilities
@@ -481,5 +488,20 @@ export class LogStoreClient {
 		listener: LogStoreClientEvents[T]
 	): void {
 		this.logStoreClientEventEmitter.off(eventName, listener as any);
+	}
+
+	/**
+	 * Destroys an instance of a {@link LogStoreClient} by disconnecting from peers, clearing any pending tasks, and
+	 * freeing up resources. This should be called once a user is done with the instance.
+	 *
+	 * @remarks As the name implies, the client instance (or any streams or subscriptions returned by it) should _not_
+	 * be used after calling this method.
+	 */
+	destroy(): void {
+		this.logStoreNodeManager.destroy();
+	}
+
+	[Symbol.dispose](): void {
+		this.destroy();
 	}
 }
