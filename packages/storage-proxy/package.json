@@ -1,6 +1,6 @@
 {
 	"name": "@logsn/storage-proxy",
-	"version": "0.0.13",
+	"version": "0.0.14",
 	"description": "The Log Store StorageProxy CLI",
 	"keywords": [],
 	"author": "Victor Shevtsov <victor.shevtsov@usher.so>",
