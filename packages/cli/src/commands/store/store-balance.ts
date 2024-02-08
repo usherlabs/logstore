@@ -9,7 +9,13 @@ const balanceCommand = new Command()
 	.description('Check your balance staked for Storage')
 	.action(async () => {
 		try {
-			const { logStoreClient } = getClientsFromOptions();
+			const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.destroy();
+				streamrClient.destroy();
+			});
 
 			const storeBalance = new Decimal(
 				(await logStoreClient.getStoreBalance()).toString()

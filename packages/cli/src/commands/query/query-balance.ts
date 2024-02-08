@@ -10,7 +10,13 @@ const queryBalanceCommand = new Command()
 	.description('Check your balance staked for Query requests')
 	.action(async () => {
 		try {
-			const { logStoreClient } = getClientsFromOptions();
+			const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.destroy();
+				streamrClient.destroy();
+			});
 
 			const queryBalance = new Decimal(
 				(await logStoreClient.getQueryBalance()).toString()
