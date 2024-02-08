@@ -6,7 +6,6 @@ import {
 	Logger,
 	toEthereumAddress,
 } from '@streamr/utils';
-import pThrottle from 'p-throttle';
 import {
 	auditTime,
 	defer,
@@ -48,6 +47,7 @@ import { queryAllReadonlyContracts } from '../streamr/utils/contract';
 import { AsyncStaleThenRevalidateCache } from '../utils/AsyncStaleThenRevalidateCache';
 import { createBroadbandObservable } from '../utils/rxjs/BroadbandObservable';
 import { takeUntilWithFilter } from '../utils/rxjs/takeUntilWithFilter';
+import { debounce } from 'lodash';
 
 type HeartbeatInfo = {
 	/// Node address
@@ -77,7 +77,7 @@ export class NodeManager {
 	// replay subject emits the last value to new subscribers. But if there's no value, it won't emit until it does.
 	private readonly lastUrlList$ = new ReplaySubject<string[]>(1);
 	// throttledUpdateList will help us to update the lastUrlList$ with the node information output at most once every X minutes.
-	private throttledUpdateList = () => Promise<void>;
+	private throttledUpdateList = () => {};
 
 	// ==================================
 
@@ -112,8 +112,10 @@ export class NodeManager {
 
 		// This function is throttled to run at most once every minute.
 		// Also, we're able to get the lastUrlList$ value instantly, as soon as the first heartbeat message arrives.
-		this.throttledUpdateList = pThrottle({ limit: 1, interval: 60_000 })(() =>
-			this.updateNodeUrlList()
+		this.throttledUpdateList = debounce(
+			() => this.updateNodeUrlList(),
+			60_000,
+			{ leading: true }
 		);
 		this.throttledUpdateList();
 	}
@@ -179,7 +181,7 @@ export class NodeManager {
 				acc.set(info.nodeAddress, info);
 				return acc;
 			}, new Map<EthereumAddress, HeartbeatInfo>()),
-			// audit is like throttle but emits the last value instead of the first.
+			// audit is like debounce but emits the last value instead of the first.
 			// avoids emitting a new value for every heartbeat message, like a batch.
 			auditTime(10), // in milliseconds
 			// orders the output list by latency, ascending
