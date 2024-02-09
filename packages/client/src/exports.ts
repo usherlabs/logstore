@@ -1,3 +1,6 @@
+// before any other imports, load polyfills
+import './polyfills';
+
 export { validateConfig } from './Config';
 export { CONFIG_TEST } from './ConfigTest';
 export { LogStoreClientEvents } from './events';
