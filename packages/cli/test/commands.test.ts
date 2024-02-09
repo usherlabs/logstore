@@ -22,6 +22,7 @@ const test = rawTest.extend<{
 		const clients = getTestLogStoreClient(walletPrivateKey);
 		await use(clients);
 		await clients.streamrClient.destroy();
+		clients.logStoreClient.destroy();
 	},
 	provider: async ({ clients: { logStoreClient } }, use) => {
 		const signer = await logStoreClient.getSigner();
