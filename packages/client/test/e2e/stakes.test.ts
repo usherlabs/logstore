@@ -3,13 +3,12 @@ import { providers, Wallet } from 'ethers';
 import StreamrClient, {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
 } from 'streamr-client';
-import * as T from 'effect';
 import { Duration, Schedule } from 'effect';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
 import { createTestStream } from '../test-utils/utils';
-import { retry, tryPromise } from 'effect/Effect';
+import { retryAsyncFnWithStrategy } from '../utils/retryAsyncFnWithStrategy';
 
 const STAKE_AMOUNT = BigInt('1000000000');
 const TIMEOUT = 90 * 1000;
@@ -67,19 +66,18 @@ describe('stakes', () => {
 					);
 
 				// Define the retry mechanism with exponential backoff and max 10 seconds
-				const retryMechanism = retry(
-					Schedule.compose(
-						Schedule.exponential(200, 2),
-						Schedule.recurUpTo(Duration.seconds(10))
-					)
+				const backoffStrategy = Schedule.compose(
+					Schedule.exponential(200, 2),
+					Schedule.recurUpTo(Duration.seconds(10))
 				);
 
-				// Define the retry logic for expectStreamBalanceToBeOk function
-				await T.Effect.runPromise(
-					tryPromise(expectStreamBalanceToBeOk).pipe(retryMechanism)
+				await retryAsyncFnWithStrategy(
+					expectStreamBalanceToBeOk,
+					backoffStrategy
 				);
-				await T.Effect.runPromise(
-					tryPromise(expectStoreBalanceToBeOk).pipe(retryMechanism)
+				await retryAsyncFnWithStrategy(
+					expectStoreBalanceToBeOk,
+					backoffStrategy
 				);
 			},
 			TIMEOUT

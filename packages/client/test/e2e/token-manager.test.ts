@@ -1,4 +1,5 @@
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import * as sharedLib from '@logsn/shared';
 import { Logger } from '@streamr/utils';
 import Decimal from 'decimal.js';
 import { ethers, providers, Wallet } from 'ethers';
@@ -41,7 +42,7 @@ describe('Manage tokens', () => {
 
 	afterEach(() => {
 		jest.restoreAllMocks();
-	})
+	});
 
 	test(
 		'Gets balance',
@@ -104,15 +105,22 @@ describe('Manage tokens', () => {
 	test(
 		'Converts tokens',
 		async () => {
-			const fixedDate = new Date('2023-07-28T00:00:00Z').getTime();
-			// make jest date return fixed date for deterministic tests on getTime
-			jest
-				.spyOn(global.Date.prototype, 'getTime')
-				.mockImplementation((...args: Array<any>) => fixedDate);
-			const price = await logStoreClient.getPrice();
+			// This test assumes that we're using a dev network that was not modified
+			// at the time of this test.
+			// If the price of LSAN changes, this test will fail, and should be updated.
 
-			const inWei = new Decimal('1e18');
+			// get matic is used inside conversion fn
+			const getMaticPriceSpy = jest.spyOn(sharedLib, 'getMaticPrice');
+			// make matic price return fixed value for deterministic tests
+			getMaticPriceSpy.mockResolvedValue(0.8453466722213528); // as in 09 fev 2024
+
+			// deterministic, a reasonable price. would be the result of logStoreClient.price
+			const price = 652430556n;
+
+			const inWei = new Decimal('1e18'); // 1 ether
 			const inBytes = inWei.div(price.toString()).floor();
+
+			expect(+inBytes).toBe(1_532_730_174); // 1 ether = 1_532_730_174 bytes
 
 			logger.debug(`Converting ${inBytes} bytes to wei`);
 			logger.debug(`Converting ${inWei} wei to usd`);
@@ -129,12 +137,19 @@ describe('Manage tokens', () => {
 				amount: inWei.toString(),
 			});
 
-			expect(ethers.utils.formatEther(bytesToWei)).toBe(
-				ethers.utils.formatEther(inBytes.mul(price.toString()).toString())
+			// Showing that the conversion is aproximate, but is not exact due to roundings
+			const bytesToWeiAfterConversion = +ethers.utils.formatEther(bytesToWei);
+			expect(bytesToWeiAfterConversion).toBeCloseTo(
+				1,
+				8 // digits
+			);
+			expect(bytesToWeiAfterConversion).not.toBeCloseTo(
+				1,
+				10 // digits
 			);
 
 			// $0.709104 at 28/07/2023. We will assume that pricing will be between 0.3 and 1.5 USD
-			expect(+weiToUsd).toBe(0.7165);
+			expect(+weiToUsd).toBe(0.8453466722213528); // 1 USD = 0.8453466722213528 wei
 
 			expect(
 				+(await logStoreClient.convert({
@@ -142,7 +157,7 @@ describe('Manage tokens', () => {
 					from: 'usd',
 					to: 'bytes',
 				}))
-			).toBe(2020449279);
+			).toBe(1813138000); // 1 USD = 1_813_138_000 bytes
 		},
 		TIMEOUT
 	);

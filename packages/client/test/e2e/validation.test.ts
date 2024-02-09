@@ -1,6 +1,6 @@
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
-import { catchError, firstValueFrom, of, skip, timeout } from 'rxjs';
+import { firstValueFrom, skip } from 'rxjs';
 import {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	StreamrClient,
@@ -8,6 +8,7 @@ import {
 
 import { LogStoreClient } from '../../src';
 import { createTestStream } from '../test-utils/utils';
+import { sleep } from '../test-utils/sleep';
 
 const TIMEOUT = 90 * 1000;
 describe('validations', () => {
@@ -103,32 +104,41 @@ describe('validations', () => {
 		async () => {
 			const stream = await createTestStream(accountStreamrClient, module);
 
+			const { metadataObservable } =
+				accountLogStoreClient.createStreamObservable(stream.id, 2_000);
+
+			const waitForNthMetadata = (n: number) =>
+				firstValueFrom(metadataObservable.pipe(skip(n)));
+
+			// this promises we start right now, so we can collect it in order, as they come
+
+			// first time we set the schema
+			const firsSchemaChangePromise = waitForNthMetadata(1);
+			// for when we delete the metadata, changing it
+			const secondSchemaChangePromise = waitForNthMetadata(2);
+			// we want to ensure if we don't change anything, nothing is being emitted here
+			const inexistentThirdSchemaChangePromise = secondSchemaChangePromise.then(
+				() => {
+					// a promise that starts only after second change
+					return new Promise((resolve, reject) => {
+						waitForNthMetadata(3).then(reject);
+						sleep(5_000).then(resolve);
+					});
+				}
+			);
+
+			// just ensuring the default metadata is already there
+			await waitForNthMetadata(0);
+
 			await accountLogStoreClient.setValidationSchema({
 				streamId: stream.id,
 				protocol: 'RAW',
 				schemaOrHash: schemaOrHash,
 			});
 
-			const { metadataObservable } =
-				accountLogStoreClient.createStreamObservable(stream.id, 2_000);
-
-			const metadata = await firstValueFrom(metadataObservable);
-
-			// soon we will update the metadata, then we want to ensure it's being emitted
-			const secondMetadataPromise = firstValueFrom(
-				metadataObservable.pipe(skip(1))
+			expect(JSON.stringify(await firsSchemaChangePromise)).toInclude(
+				JSON.stringify(schemaOrHash)
 			);
-
-			// we want to ensure if we don't change anything, nothing is being emitted here
-			const inexistentThirdMetadataPromise = firstValueFrom(
-				metadataObservable.pipe(
-					skip(2),
-					timeout(5_000),
-					catchError(() => of(undefined))
-				)
-			);
-
-			expect(JSON.stringify(metadata)).toInclude(JSON.stringify(schemaOrHash));
 
 			// this should emit the new metadata
 			await accountLogStoreClient.removeValidationSchema({
@@ -136,12 +146,11 @@ describe('validations', () => {
 			});
 
 			// we deleted, so we expect not to find the schema
-			expect(JSON.stringify(await secondMetadataPromise)).not.toInclude(
+			expect(JSON.stringify(await secondSchemaChangePromise)).not.toInclude(
 				JSON.stringify(schemaOrHash)
 			);
 
-			// we expect nothing to be emitted here
-			expect(await inexistentThirdMetadataPromise).toBe(undefined);
+			await expect(inexistentThirdSchemaChangePromise).toResolve();
 		},
 		TIMEOUT
 	);
