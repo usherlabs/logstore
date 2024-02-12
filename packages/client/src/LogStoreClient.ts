@@ -1,3 +1,4 @@
+// also imported here to ensure the polyfills are included on tests that import this file directly
 import './polyfills';
 
 import type { Overrides } from '@ethersproject/contracts';
