@@ -82,7 +82,7 @@
 		"p-memoize": "4.0.3",
 		"p-throttle": "4.0.0",
 		"quick-lru": "^6.0.1",
-		"@abraham/reflection": "^0.12.0",
+		"reflect-metadata": "^0.2.1",
 		"rxjs": "8.0.0-alpha.12",
 		"secp256k1": "^5.0.0",
 		"sha3": "^2.1.4",
