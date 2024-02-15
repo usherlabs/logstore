@@ -2,7 +2,7 @@
  * GQty: You can safely modify this file based on your needs.
  */
 import { Cache, createClient, GQtyError, type QueryFetcher } from 'gqty';
-import { createClient as createSubscriptionsClient } from 'graphql-ws';
+// import { createClient as createSubscriptionsClient } from 'graphql-ws';
 import { Headers } from 'node-fetch';
 
 import type { HttpFetcher } from '../../streamr/utils/HttpFetcher';
@@ -49,18 +49,18 @@ export const createQueryFetcher = (
 		}
 	};
 
-const subscriptionsClient =
-	typeof window !== 'undefined'
-		? createSubscriptionsClient({
-				lazy: true,
-				url: () => {
-					// Modify if needed
-					const url = new URL('/api/graphql', window.location.href);
-					url.protocol = url.protocol.replace('http', 'ws');
-					return url.href;
-				},
-		  })
-		: undefined;
+// const subscriptionsClient =
+// 	typeof window !== 'undefined'
+// 		? createSubscriptionsClient({
+// 				lazy: true,
+// 				url: () => {
+// 					// Modify if needed
+// 					const url = new URL('/api/graphql', window.location.href);
+// 					url.protocol = url.protocol.replace('http', 'ws');
+// 					return url.href;
+// 				},
+// 		  })
+// 		: undefined;
 
 const cache = new Cache(
 	undefined,
@@ -82,7 +82,7 @@ export const createStreamrGraphQLClient = (url: string, fetcher: HttpFetcher) =>
 		cache,
 		fetchOptions: {
 			fetcher: createQueryFetcher(url, fetcher),
-			subscriber: subscriptionsClient,
+			// subscriber: subscriptionsClient,
 			cache: 'no-store',
 		},
 	});

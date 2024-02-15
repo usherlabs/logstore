@@ -4,7 +4,7 @@ import {
 	ContractTransaction,
 } from '@ethersproject/contracts';
 import EventEmitter from 'eventemitter3';
-import { shuffle } from 'lodash';
+import shuffle from 'lodash/shuffle';
 
 import { tryInSequence } from '../../utils/promises';
 

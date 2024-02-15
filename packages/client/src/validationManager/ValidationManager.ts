@@ -1,5 +1,4 @@
 import type { Schema } from 'ajv';
-import { Option } from 'effect';
 import {
 	type StreamID,
 	type StreamMetadata,
@@ -10,7 +9,7 @@ import { inject, Lifecycle, scoped } from 'tsyringe';
 import { StreamrClientInjectionToken } from '../streamr/StreamrClient';
 import { defaultAjv, getSchemaFromMetadata } from './getStreamSchema';
 import type { SchemaParams } from './types';
-
+import { getOrNull } from 'effect/Option';
 
 @scoped(Lifecycle.ContainerScoped)
 export class ValidationManager {
@@ -69,9 +68,7 @@ export class ValidationManager {
 	}
 
 	public async getValidationSchemaFromStreamMetadata(metadata: StreamMetadata) {
-		const maybeSchemaPromise = getSchemaFromMetadata(metadata).pipe(
-			Option.getOrNull
-		);
+		const maybeSchemaPromise = getSchemaFromMetadata(metadata).pipe(getOrNull);
 
 		if (!maybeSchemaPromise) {
 			return null;
