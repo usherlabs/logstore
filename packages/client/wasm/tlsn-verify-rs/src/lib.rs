@@ -1,9 +1,8 @@
 use elliptic_curve::pkcs8::DecodePublicKey;
 use futures::AsyncWriteExt;
-use js_sys::{Array, JSON};
+use js_sys::Array;
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 pub use wasm_bindgen_rayon::init_thread_pool;
 use web_sys::{Headers, Request as WebsysRequest, RequestInit, RequestMode, Response};
 
@@ -20,19 +19,6 @@ macro_rules! log {
 extern "C" {
 	#[wasm_bindgen(js_namespace = self)]
 	fn fetch(request: &web_sys::Request) -> js_sys::Promise;
-}
-
-async fn fetch_as_json_string(url: &str, opts: &RequestInit) -> Result<String, JsValue> {
-	let request = WebsysRequest::new_with_str_and_init(url, opts)?;
-	let promise = fetch(&request);
-	let future = JsFuture::from(promise);
-	let resp_value = future.await?;
-	let resp: Response = resp_value.dyn_into()?;
-	let json = JsFuture::from(resp.json()?).await?;
-	let stringified = JSON::stringify(&json)?;
-	stringified
-		.as_string()
-		.ok_or_else(|| JsValue::from_str("Could not stringify JSON"))
 }
 
 #[wasm_bindgen]
