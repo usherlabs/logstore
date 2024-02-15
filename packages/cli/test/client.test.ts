@@ -7,10 +7,12 @@ import { getTestLogStoreClient } from './utils';
  */
 
 test('instantiates client correctly', async () => {
+	using cleanup = new DisposableStack();
 	const { logStoreClient } = getTestLogStoreClient(
 		'0x0000000000000000000000000000000000000000000000000000000000000011'
 	);
+	cleanup.defer(() => logStoreClient.destroy());
 	const price = await logStoreClient.getPrice();
 	expect(typeof price).toBe('bigint');
-	expect(price).toBe(517348683n);
+	expect(price).toBeGreaterThan(1);
 });

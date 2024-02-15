@@ -1,10 +1,9 @@
-import { distinctUntilChanged, filter, interval, map, switchMap } from 'rxjs';
+import { distinctUntilChanged, filter, map, switchMap, timer } from 'rxjs';
 import type { StreamMetadata } from 'streamr-client';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import { type GQtyClient } from './utils/gqty';
 import { GQtyClients } from './utils/GraphQLClient';
-
 
 @scoped(Lifecycle.ContainerScoped)
 export class StreamObservableFactory {
@@ -22,7 +21,7 @@ export class StreamObservableFactory {
 		updateInterval: number
 	) => {
 		return {
-			metadataObservable: interval(updateInterval).pipe(
+			metadataObservable: timer(0, updateInterval).pipe(
 				switchMap(() =>
 					this.streamrGraphClient.resolve(
 						// using the graph

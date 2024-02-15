@@ -5,7 +5,6 @@
  * @module LogStoreClient
  */
 import { LogStoreClient } from './LogStoreClient';
-import './polyfill';
 
 export * from './exports';
 export default LogStoreClient;
