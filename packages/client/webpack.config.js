@@ -41,18 +41,50 @@ module.exports = (_, argv) => {
 			moduleIds: 'named',
 		},
 		module: {
+			parser: {
+				javascript: {
+					// for wasm
+					// see https://stackoverflow.com/a/72484751
+					importMeta: false,
+				},
+			},
 			rules: [
 				{
-					test: /(\.jsx|\.js|\.ts)$/,
-					exclude: /(node_modules|bower_components)/,
+					// wasm
+					test: /\.wasm$/,
+					type: 'javascript/auto',
 					use: {
-						loader: 'babel-loader',
+						// if we've used asset/source, it would lose information about the wasm file
+						loader: require.resolve('binary-loader'),
 						options: {
-							configFile: path.resolve(__dirname, '.babel.browser.config.js'),
-							babelrc: false,
-							cacheDirectory: true,
+							name: '[name].[ext]',
 						},
 					},
+				},
+				{
+					oneOf: [
+						{
+							// worker helper should be loading the source code instead, as we'll
+							// send it to the worker
+							test: /workerHelpers\.worker\.js$/,
+							type: 'asset/source',
+						},
+						{
+							test: /(\.jsx|\.js|\.ts)$/,
+							exclude: /(node_modules|bower_components)/,
+							use: {
+								loader: 'babel-loader',
+								options: {
+									configFile: path.resolve(
+										__dirname,
+										'.babel.browser.config.js',
+									),
+									babelrc: false,
+									cacheDirectory: true,
+								},
+							},
+						},
+					],
 				},
 			],
 		},
