@@ -1,7 +1,7 @@
 import initWASM, {
 	initThreadPool,
 	verify,
-} from 'tlsn-verify-rs/tlsn_verify_rs';
+} from '../../wasm/tlsn-verify-rs/pkg/tlsn_verify_rs';
 import { Lifecycle, scoped } from 'tsyringe';
 import type { BufferSource } from 'node:stream/web';
 
@@ -26,7 +26,7 @@ const getWasmSource = async (): Promise<BufferSource | undefined> => {
 		// webpack will replace this import with a binary string from the wasm file
 		const { default: wasm } = await import(
 			/* webpackMode: 'eager' */
-			'tlsn-verify-rs/tlsn_verify_rs_bg.wasm'
+			'../../wasm/tlsn-verify-rs/pkg/tlsn_verify_rs_bg.wasm'
 		);
 		if (typeof wasm !== 'string') {
 			throw new Error(
@@ -36,8 +36,12 @@ const getWasmSource = async (): Promise<BufferSource | undefined> => {
 		return Buffer.from(wasm, 'binary'); // Create a Buffer from binary string
 	} else {
 		const fs = await import(/* webpackIgnore: true */ 'fs');
-		const wasmPath = require.resolve('tlsn-verify-rs/tlsn_verify_rs_bg.wasm');
-		return fs.promises.readFile(wasmPath);
+		// this file must be present at the out directory to work on nodejs
+		return fs.promises.readFile(
+			require.resolve(
+				/* webpackIgnore: true */
+				'../../wasm/tlsn-verify-rs/pkg/tlsn_verify_rs_bg.wasm')
+		);
 	}
 };
 
