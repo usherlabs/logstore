@@ -13,7 +13,8 @@
 		"src/**/*",
 		"src/**/*.json",
 		"vendor/**/*",
-		"src/config.schema.json"
+		"src/config.schema.json",
+		"wasm/tlsn-verify-rs/pkg/**/*",
 	],
 	"exclude": ["src/exports-esm.mjs"]
 }
