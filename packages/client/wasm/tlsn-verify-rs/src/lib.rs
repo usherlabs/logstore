@@ -1,12 +1,21 @@
+#![cfg(target_arch = "wasm32")]
+
+use std::time::Duration;
+
 use elliptic_curve::pkcs8::DecodePublicKey;
 use futures::AsyncWriteExt;
 use js_sys::Array;
+use tlsn_core::proof::{SessionProof, TlsProof};
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use wasm_bindgen::prelude::*;
 pub use wasm_bindgen_rayon::init_thread_pool;
 use web_sys::{Headers, Request as WebsysRequest, RequestInit, RequestMode, Response};
 
+use crate::request_opt::VerifyResult;
+
 mod request_opt;
+
+
 
 // A macro to provide `println!(..)`-style syntax for `console.log` logging.
 macro_rules! log {
