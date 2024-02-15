@@ -1,6 +1,8 @@
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { providers, Wallet } from 'ethers';
-import StreamrClient, { CONFIG_TEST as STREAMR_CONFIG_TEST } from 'streamr-client';
+import StreamrClient, {
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
+} from 'streamr-client';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
@@ -84,7 +86,7 @@ describe('NodeManager', () => {
 			expect(bestUrls2.length).toBeGreaterThan(1);
 
 			// more than 3 seconds to make sure there's time to end the next update
-			await sleep(3_500);
+			await sleep(4_500);
 
 			expectUpdateIncrease();
 
