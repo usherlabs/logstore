@@ -27,7 +27,6 @@
 		"dist"
 	],
 	"scripts": {
-		"pnpm:devPreinstall": "./scripts/preinstall.sh",
 		"prebuild": "pnpm build:wasm",
 		"postbuild": "bash copy-package.sh && bash fix-esm.sh",
 		"prepublishOnly": "pnpm build-production",
@@ -98,7 +97,6 @@
 		"sqlite3": "^5.1.6",
 		"streamr-client": "^8.5.5",
 		"strict-event-emitter-types": "^2.0.0",
-		"tlsn-verify-rs": "file:./wasm/tlsn-verify-rs/pkg",
 		"ts-toolbelt": "^9.6.0",
 		"tsyringe": "^4.8.0",
 		"uuid": "^9.0.0",
