@@ -24,6 +24,8 @@
 		"dist"
 	],
 	"scripts": {
+		"pnpm:devPreinstall": "./scripts/preinstall.sh",
+		"prebuild": "pnpm build:wasm",
 		"postbuild": "bash copy-package.sh && bash fix-esm.sh",
 		"prepublishOnly": "pnpm build-production",
 		"format": "prettier --write .",
@@ -35,7 +37,7 @@
 		"clean": "jest --clearCache || true; del dist  *.tsbuildinfo node_modules/.cache || true",
 		"test-browser": "pnpm build-browser-production && concurrently -k --success=first 'node ./test/browser/server.js' 'sleep 5 && nightwatch --headless --verbose --timeout=30000 --config=nightwatch.conf.js ./test/browser/browser.js'",
 		"test-exports": "cd test/exports && npm run link && tsc --noEmit --project ./tsconfig.json && npm test",
-		"build:wasm": "RUSTC_BOOTSTRAP=1 wasm-pack build --target web wasm/prover",
+		"build:wasm": "RUSTC_BOOTSTRAP=1 pnpm wasm-pack build --target web ./wasm/tlsn-verify-rs && tsx ./scripts/fix-wasm.ts",
 		"browser": "node ./test/browser/server.js"
 	},
 	"dependencies": {
@@ -92,7 +94,7 @@
 		"sqlite3": "^5.1.6",
 		"streamr-client": "^8.5.5",
 		"strict-event-emitter-types": "^2.0.0",
-		"tlsn-verify-rs": "file://./wasm/prover/pkg",
+		"tlsn-verify-rs": "file:./wasm/tlsn-verify-rs/pkg",
 		"ts-toolbelt": "^9.6.0",
 		"tsyringe": "^4.8.0",
 		"uuid": "^9.0.0",
@@ -145,6 +147,7 @@
 		"ts-jest": "^29.0.5",
 		"ts-loader": "^9.3.1",
 		"ts-node": "^10.9.1",
+		"tsx": "^4.7.1",
 		"typescript": "^5.3.3",
 		"webpack": "^5.64.1",
 		"webpack-bundle-analyzer": "^4.5.0",
