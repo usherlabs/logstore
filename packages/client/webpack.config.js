@@ -37,6 +37,7 @@ module.exports = (_, argv) => {
 			umdNamedDefine: true,
 		},
 		optimization: {
+			usedExports: true,
 			minimize: false,
 			moduleIds: 'named',
 		},
