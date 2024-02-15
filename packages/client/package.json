@@ -128,6 +128,7 @@
 		"babel-plugin-add-module-exports": "^1.0.4",
 		"babel-plugin-lodash": "^3.3.4",
 		"babel-plugin-transform-typescript-metadata": "^0.3.2",
+		"binary-loader": "0.0.1",
 		"chromedriver": "^113.0.0",
 		"concurrently": "^8.0.1",
 		"cpy-cli": "^5.0.0",
