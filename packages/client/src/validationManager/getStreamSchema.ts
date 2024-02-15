@@ -1,11 +1,11 @@
 import Ajv, { Schema } from 'ajv';
 import addFormats from 'ajv-formats';
-import { Option } from 'effect';
 import { pipe } from 'rxjs';
 import type { StreamMetadata } from 'streamr-client';
 import { U } from 'ts-toolbelt';
 
 import type { Protocols, SchemaParams } from './types';
+import * as Option from 'effect/Option';
 
 export const defaultAjv = new Ajv({
 	useDefaults: true,

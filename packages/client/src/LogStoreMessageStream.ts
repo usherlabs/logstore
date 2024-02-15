@@ -9,7 +9,7 @@ import {
 	MessageRef,
 	StreamMessage,
 } from '@streamr/protocol';
-import { omit } from 'lodash';
+import omit from 'lodash/omit';
 import { defer, Observable, shareReplay, switchMap } from 'rxjs';
 import { Message, MessageListener } from 'streamr-client';
 

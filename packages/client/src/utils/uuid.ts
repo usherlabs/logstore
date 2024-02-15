@@ -1,4 +1,4 @@
-import { uniqueId } from 'lodash';
+import uniqueId from 'lodash/uniqueId';
 import { v4 as uuidv4 } from 'uuid';
 
 export const SEPARATOR = '-';

@@ -7,7 +7,7 @@ import { prepareStakeForStoreManager } from '@logsn/shared';
 import { toStreamID } from '@streamr/protocol';
 import { collect, Logger, toEthereumAddress } from '@streamr/utils';
 import { ContractTransaction } from 'ethers';
-import { min } from 'lodash';
+import min from 'lodash/min';
 import StreamrClient, { Stream } from 'streamr-client';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
