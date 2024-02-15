@@ -1,5 +1,7 @@
 // ESM EntryPoint
+import './polyfillsNodeOnly.js';
 import LogStoreClient from './index.js';
+
 export * from './index.js';
 export { CONFIG_TEST } from './ConfigTest.js';
 // required to get import LogStoreClient from '@logsn/streamr-client' to work

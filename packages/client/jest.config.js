@@ -13,5 +13,10 @@ module.exports = {
 			},
 		],
 	},
-	setupFilesAfterEnv: ['jest-extended/all', 'dotenv/config', 'disposablestack/auto'],
+	setupFilesAfterEnv: [
+		'jest-extended/all',
+		'dotenv/config',
+		'<rootDir>/src/polyfills.ts',
+		'<rootDir>/src/polyfillsNodeOnly.ts',
+	],
 };
