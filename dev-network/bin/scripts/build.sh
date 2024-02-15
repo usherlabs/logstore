@@ -37,7 +37,6 @@ then
     logstore/smart-contracts-init:dev
 
   docker logs -f logstore-dev-smart-contracts-init 2>&1 | tee $LOG
-  # docker logs -f logstore-dev-smart-contracts-init &> $LOG
   INITSTATUS=`docker wait logstore-dev-smart-contracts-init`
   echo "logstore-dev-smart-contracts-init finished with status $INITSTATUS. Logs in $LOG"
   docker exec logstore-dev-parity-sidechain-node0 /bin/bash -c 'rm -rf /home/parity/parity_data.default'
