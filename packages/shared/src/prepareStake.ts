@@ -1,5 +1,5 @@
 import { LSAN__factory } from '@logsn/contracts';
-import { Signer } from 'ethers';
+import { Overrides, Signer } from 'ethers';
 import { Logger } from 'tslog';
 
 import { allowanceConfirmFn, ensureEnoughAllowance } from './allowance';
@@ -15,7 +15,8 @@ export async function prepareStakeForNodeManager(
 	amount: bigint | number,
 	isUsd?: boolean,
 	confirm?: allowanceConfirmFn,
-	ensureAllowance: boolean = true
+	ensureAllowance: boolean = true,
+	overrides?: Overrides
 ) {
 	return prepareStake(
 		Manager.NodeManager,
@@ -23,7 +24,8 @@ export async function prepareStakeForNodeManager(
 		amount,
 		isUsd,
 		confirm,
-		ensureAllowance
+		ensureAllowance,
+		overrides
 	);
 }
 
@@ -32,7 +34,8 @@ export async function prepareStakeForStoreManager(
 	amount: bigint | number,
 	isUsd?: boolean,
 	confirm?: allowanceConfirmFn,
-	ensureAllowance: boolean = true
+	ensureAllowance: boolean = true,
+	overrides?: Overrides
 ) {
 	return prepareStake(
 		Manager.StoreManager,
@@ -40,7 +43,8 @@ export async function prepareStakeForStoreManager(
 		amount,
 		isUsd,
 		confirm,
-		ensureAllowance
+		ensureAllowance,
+		overrides
 	);
 }
 
@@ -49,7 +53,8 @@ export async function prepareStakeForQueryManager(
 	amount: bigint | number,
 	isUsd?: boolean,
 	confirm?: allowanceConfirmFn,
-	ensureAllowance: boolean = true
+	ensureAllowance: boolean = true,
+	overrides?: Overrides
 ) {
 	return prepareStake(
 		Manager.QueryManager,
@@ -57,7 +62,8 @@ export async function prepareStakeForQueryManager(
 		amount,
 		isUsd,
 		confirm,
-		ensureAllowance
+		ensureAllowance,
+		overrides
 	);
 }
 
@@ -67,7 +73,8 @@ async function prepareStake(
 	amount: bigint | number,
 	isUsd?: boolean,
 	confirm?: allowanceConfirmFn,
-	ensureAllowance: boolean = true
+	ensureAllowance: boolean = true,
+	overrides?: Overrides
 ) {
 	if (amount <= 0) {
 		throw new Error('Amount must be > 0');
@@ -101,7 +108,8 @@ async function prepareStake(
 			manager,
 			bnAmount,
 			signer,
-			confirm
+			confirm,
+			overrides,
 		);
 
 		if (!isEnoughAllowance) {

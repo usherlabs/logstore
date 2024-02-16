@@ -4,14 +4,6 @@ import { Provider } from '@ethersproject/providers';
 import { LSAN as LogStoreTokenManagerContract } from '@logsn/contracts';
 import { abi as LogStoreTokenManagerAbi } from '@logsn/contracts/artifacts/src/alpha/Token.sol/LSAN.json';
 import { getMaticPrice } from '@logsn/shared';
-import {
-	Authentication,
-	AuthenticationInjectionToken,
-	ContractFactory,
-	LoggerFactory,
-	queryAllReadonlyContracts,
-} from '@logsn/streamr-client';
-import { ObservableContract } from '@logsn/streamr-client/dist/types/src/utils/contract';
 import { Logger, toEthereumAddress } from '@streamr/utils';
 import Decimal from 'decimal.js';
 import { ContractTransaction } from 'ethers';
@@ -21,38 +13,65 @@ import {
 	LogStoreClientConfigInjectionToken,
 	StrictLogStoreClientConfig,
 } from '../Config';
-import { getStreamRegistryChainProviders } from '../Ethereum';
+import {
+	getStreamRegistryChainProviders,
+	getStreamRegistryOverrides,
+} from '../Ethereum';
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+} from '../streamr/Authentication';
+import {
+	StreamrClientConfigInjectionToken,
+	StrictStreamrClientConfig,
+} from '../streamr/Config';
+import {
+	ContractFactory,
+	ContractFactoryInjectionToken,
+} from '../streamr/ContractFactory';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from '../streamr/LoggerFactory';
+import {
+	ObservableContract,
+	queryAllReadonlyContracts,
+} from '../streamr/utils/contract';
 import { AmountTypes } from '../types';
 
 @scoped(Lifecycle.ContainerScoped)
 export class TokenManager {
 	private contractFactory: ContractFactory;
 	private authentication: Authentication;
-	private clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>;
+	private streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>;
 	private logStoreTokenManagerContract?: ObservableContract<LogStoreTokenManagerContract>;
 	private readonly logstoreTokenManagerContractsReadonly: LogStoreTokenManagerContract[];
 	private readonly logger: Logger;
 
 	constructor(
-		@inject(ContractFactory)
+		@inject(ContractFactoryInjectionToken)
 		contractFactory: ContractFactory,
-		@inject(LoggerFactory)
+		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory,
 		@inject(AuthenticationInjectionToken)
 		authentication: Authentication,
 		@inject(LogStoreClientConfigInjectionToken)
-		clientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>
+		logStoreClientConfig: Pick<StrictLogStoreClientConfig, 'contracts'>,
+		@inject(StreamrClientConfigInjectionToken)
+		streamrClientConfig: Pick<StrictStreamrClientConfig, 'contracts'>
 	) {
 		this.contractFactory = contractFactory;
-		this.clientConfig = clientConfig;
+		this.logStoreClientConfig = logStoreClientConfig;
+		this.streamrClientConfig = streamrClientConfig;
 		this.logger = loggerFactory.createLogger(module);
 		this.authentication = authentication;
 		this.logstoreTokenManagerContractsReadonly =
-			getStreamRegistryChainProviders(clientConfig).map(
+			getStreamRegistryChainProviders(this.streamrClientConfig).map(
 				(provider: Provider) => {
 					this.logger.debug('provider: ' + provider);
 					const tokenManagerAddress = toEthereumAddress(
-						this.clientConfig.contracts.logStoreTokenManagerChainAddress
+						this.logStoreClientConfig.contracts.logStoreTokenManagerChainAddress
 					);
 					this.logger.debug('tokenManagerAddress: ' + tokenManagerAddress);
 					return this.contractFactory.createReadContract(
@@ -72,7 +91,7 @@ export class TokenManager {
 			this.logStoreTokenManagerContract =
 				this.contractFactory.createWriteContract<LogStoreTokenManagerContract>(
 					toEthereumAddress(
-						this.clientConfig.contracts.logStoreTokenManagerChainAddress
+						this.logStoreClientConfig.contracts.logStoreTokenManagerChainAddress
 					),
 					LogStoreTokenManagerAbi,
 					chainSigner,
@@ -107,9 +126,13 @@ export class TokenManager {
 	): Promise<ContractTransaction> {
 		this.logger.debug('mint amount: ' + amount);
 		await this.connectToContract();
+		const mergedOverrides = {
+			...getStreamRegistryOverrides(this.streamrClientConfig),
+			...overrides,
+		};
 		return this.logStoreTokenManagerContract!.mint({
 			value: amount,
-			...overrides,
+			...mergedOverrides,
 		});
 	}
 

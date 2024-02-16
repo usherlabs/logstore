@@ -8,8 +8,8 @@ type InferCommmandOptions<T extends Command> = T extends Command<
 >
 	? Options
 	: never;
-type RootOptions = InferCommmandOptions<typeof rootProgram>;
-const rootOptions = new BehaviorSubject<RootOptions | null>(null);
+type RootOptions = Partial<InferCommmandOptions<typeof rootProgram>>;
+const rootOptions = new BehaviorSubject<RootOptions>({});
 export const setRootOptions = (
 	newOptionsOrUpdate:
 		| Partial<RootOptions>
@@ -24,7 +24,8 @@ export const setRootOptions = (
 
 export const getRootOptions = () => {
 	const result = rootOptions.getValue();
-	if (!result) {
+	const resultAlreadySet = Object.keys(result).length > 0;
+	if (!resultAlreadySet) {
 		const newResult = rootProgram.opts();
 		rootOptions.next(newResult);
 		return newResult;

@@ -1,8 +1,7 @@
-import type { Stream, StreamMetadata } from '@logsn/client';
 import crypto from 'crypto';
+import type { Stream, StreamMetadata, StreamrClient } from 'streamr-client';
 
 // using relative otherwise won't work without messing with exports from client
-import { LogStoreClient } from '../../../client/src/LogStoreClient';
 import { counterId } from '../../../client/src/utils/utils';
 
 export const uid = (prefix?: string): string =>
@@ -24,11 +23,11 @@ export const createTestPath = (uniqueId: string, suffix?: string): string => {
  * This one is different from the found on @logsn/client because module doesn't work well with vite
  */
 export const createTestStream = async (
-	logStoreClient: LogStoreClient,
+	streamrClient: StreamrClient,
 	uniqueId: string,
 	props?: Partial<StreamMetadata>
 ): Promise<Stream> => {
-	const stream = await logStoreClient.createStream({
+	const stream = await streamrClient.createStream({
 		id: createTestPath(uniqueId),
 		...props,
 	});

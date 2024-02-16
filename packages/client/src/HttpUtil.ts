@@ -1,23 +1,36 @@
-import {
-	Authentication,
-	AuthenticationInjectionToken,
-	LoggerFactory,
-	WebStreamToNodeStream,
-} from '@logsn/streamr-client';
-import { StreamMessage } from '@streamr/protocol';
-import { Logger } from '@streamr/utils';
+import { composeAbortSignals, Logger } from '@streamr/utils';
 import { Base64 } from 'js-base64';
+import compact from 'lodash/compact';
 import fetch, { Response } from 'node-fetch';
+import { AbortSignal as FetchAbortSignal } from 'node-fetch/externals';
 import split2 from 'split2';
 import { Readable } from 'stream';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+} from './streamr/Authentication';
+import {
+	LoggerFactory,
+	LoggerFactoryInjectionToken,
+} from './streamr/LoggerFactory';
+import { WebStreamToNodeStream } from './streamr/utils/WebStreamToNodeStream';
 import { getVersionString } from './utils/utils';
 
 export enum ErrorCode {
 	NOT_FOUND = 'NOT_FOUND',
 	VALIDATION_ERROR = 'VALIDATION_ERROR',
 	UNKNOWN = 'UNKNOWN',
+}
+
+export class FetchHttpStreamResponseError extends Error {
+	response: Response;
+
+	constructor(response: Response) {
+		super(`Fetch error, url=${response.url}`);
+		this.response = response;
+	}
 }
 
 // TODO couple it to broker's types
@@ -96,7 +109,7 @@ export class HttpUtil {
 	constructor(
 		@inject(AuthenticationInjectionToken)
 		authentication: Authentication,
-		@inject(LoggerFactory)
+		@inject(LoggerFactoryInjectionToken)
 		loggerFactory: LoggerFactory
 	) {
 		this.authentication = authentication;
@@ -105,18 +118,33 @@ export class HttpUtil {
 
 	async *fetchHttpStream(
 		url: string,
-		abortController = new AbortController()
-	): AsyncIterable<StreamMessage | RequestMetadata> {
+		abortSignal?: AbortSignal
+	): AsyncGenerator<string, void, undefined> {
+		this.logger.debug('Send HTTP request', { url });
+		const abortController = new AbortController();
+		const fetchAbortSignal = composeAbortSignals(
+			...compact([abortController.signal, abortSignal])
+		);
+
 		const { token: authToken } = await this.fetchAuthParams();
 
 		const response = await fetchResponse(url, this.logger, {
-			signal: abortController.signal,
+			// cast is needed until this is fixed: https://github.com/node-fetch/node-fetch/issues/1652
+			signal: fetchAbortSignal as FetchAbortSignal,
 			headers: {
 				Authorization: `Basic ${authToken}`,
 				// TODO: Implement proper support of SSE
 				// Accept: 'text/event-stream',
 			},
 		});
+
+		this.logger.debug('Received HTTP response', {
+			url,
+			status: response.status,
+		});
+		if (!response.ok) {
+			throw new FetchHttpStreamResponseError(response);
+		}
 		if (!response.body) {
 			throw new Error('No Response Body');
 		}
@@ -128,19 +156,7 @@ export class HttpUtil {
 				response.body as unknown as ReadableStream | Readable
 			);
 
-			stream = source.pipe(
-				split2((message: string) => {
-					const msgObject = JSON.parse(message);
-					if (Array.isArray(msgObject)) {
-						return StreamMessage.deserialize(msgObject);
-					}
-					// last message must be metadata
-					if (msgObject.type === 'metadata') {
-						return msgObject;
-					}
-					throw new Error('Invalid message');
-				})
-			);
+			stream = source.pipe(split2());
 
 			// TODO: Implement proper support of SSE
 			// stream = source.pipe(
@@ -158,6 +174,7 @@ export class HttpUtil {
 			// 	})
 			// );
 
+			source.on('error', (err: Error) => stream!.destroy(err));
 			stream.once('close', () => {
 				abortController.abort();
 			});
@@ -168,6 +185,7 @@ export class HttpUtil {
 			throw err;
 		} finally {
 			stream?.destroy();
+			fetchAbortSignal.destroy();
 		}
 	}
 
@@ -215,18 +233,17 @@ async function fetchResponse(
 		options.headers['Content-Type'] = 'application/json';
 	}
 
-	logger.debug('fetching %s with options %j', url, opts);
+	logger.debug('fetching', { url, opts });
 
 	const response: Response = await fetchFn(url, opts);
 	const timeEnd = Date.now();
-	logger.debug(
-		'%s responded with %d %s %s in %d ms',
+	logger.debug('responded with', {
 		url,
-		response.status,
-		response.statusText,
-		response.size,
-		timeEnd - timeStart
-	);
+		status: response.status,
+		statusText: response.statusText,
+		size: response.size,
+		ms: timeEnd - timeStart,
+	});
 
 	if (response.ok) {
 		return response;

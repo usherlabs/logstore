@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 
 import { Pulse } from '../../Pulse';
-import { getClient } from '../../utils/getClient';
+import { getClients } from '../../utils/getClient';
 import { devNetworkOption, privateKeyOption } from '../options';
 
 interface Options {
@@ -14,8 +14,11 @@ export const startCommand = new Command('start')
 	.addOption(devNetworkOption)
 	.addOption(privateKeyOption)
 	.action(async (options: Options) => {
-		const client = getClient(options.privateKey, options.devNetwork);
-		const pulse = new Pulse(client);
+		const { logStoreClient, streamrClient } = getClients(
+			options.privateKey,
+			options.devNetwork
+		);
+		const pulse = new Pulse(logStoreClient, streamrClient);
 		await pulse.init();
 		await pulse.start();
 	});

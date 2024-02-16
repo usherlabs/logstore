@@ -1,0 +1,25 @@
+{
+	"$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
+	"changelog": "@changesets/cli/changelog",
+	"commit": false,
+	"fixed": [
+		[
+			"@logsn/cli",
+			"@logsn/client",
+			"@logsn/contracts",
+			"@logsn/protocol",
+			"@logsn/shared",
+			"@logsn/storage-proxy"
+		]
+	],
+	"linked": [],
+	"access": "public",
+	"baseBranch": "master",
+	"updateInternalDependencies": "patch",
+	"ignore": [
+		"@logsn/benchmarks",
+		"@logsn/pulse",
+		"@logsn/subgraph",
+		"@logsn/validator"
+	]
+}

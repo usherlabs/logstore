@@ -1,7 +1,7 @@
 import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
+	getClientsFromOptions,
 	getCredentialsFromOptions,
-	getLogStoreClientFromOptions,
 } from '@/utils/logstore-client';
 import { keepRetryingWithIncreasedGasPrice } from '@/utils/speedupTx';
 import {
@@ -45,14 +45,21 @@ const stakeCommand = new Command()
 		});
 
 		try {
-			const logStoreClient = getLogStoreClientFromOptions();
+			const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.destroy();
+				streamrClient.destroy();
+			});
+
 			const amountToStakeInLSAN = cmdOptions.usd
 				? // todo this assumes the price is 1:1 (multiplier)
-				  await logStoreClient.convert({
+					await logStoreClient.convert({
 						amount: amt,
 						from: 'usd',
 						to: 'bytes',
-				  })
+					})
 				: amt;
 
 			const { signer } = getCredentialsFromOptions();
@@ -86,7 +93,10 @@ const stakeCommand = new Command()
 
 			const tx = await logStoreClient.stakeOrCreateStore(
 				streamId,
-				BigInt(amountToStakeInLSAN)
+				BigInt(amountToStakeInLSAN),
+				{
+					maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
+				}
 			);
 			const receipt = await firstValueFrom(
 				keepRetryingWithIncreasedGasPrice(signer, tx)

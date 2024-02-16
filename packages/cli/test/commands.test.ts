@@ -1,4 +1,3 @@
-import { LogStoreClient } from '@logsn/client';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { ethers } from 'ethers';
 import stripAnsi from 'strip-ansi';
@@ -11,25 +10,25 @@ const TEST_TIMEOUT = 90_000;
 
 const test = rawTest.extend<{
 	walletPrivateKey: string;
-	logstoreClient: LogStoreClient;
-	provider: ethers.providers.JsonRpcProvider;
+	clients: ReturnType<typeof getTestLogStoreClient>;
+	provider: ethers.providers.Provider;
 	credentialsString: string;
 }>({
 	walletPrivateKey: async ({}, use) => {
 		const privateKey = await fetchPrivateKeyWithGas();
 		await use(privateKey);
 	},
-	logstoreClient: async ({ walletPrivateKey }, use) => {
-		const logstoreClient = getTestLogStoreClient(walletPrivateKey);
-		await use(logstoreClient);
-		await logstoreClient.destroy();
+	clients: async ({ walletPrivateKey }, use) => {
+		const clients = getTestLogStoreClient(walletPrivateKey);
+		await use(clients);
+		await clients.streamrClient.destroy();
 	},
-	provider: async ({ logstoreClient }, use) => {
-		const config = logstoreClient.getConfig();
-		const provider = new ethers.providers.JsonRpcProvider(
-			config.contracts.streamRegistryChainRPCs.rpcs[0].url,
-			config.contracts.streamRegistryChainRPCs.chainId
-		);
+	provider: async ({ clients: { logStoreClient } }, use) => {
+		const signer = await logStoreClient.getSigner();
+		const provider = signer.provider;
+		if (!provider) {
+			throw new Error('No provider');
+		}
 		await use(provider);
 	},
 	credentialsString: async ({ walletPrivateKey }, use) => {
@@ -64,23 +63,26 @@ describe('direct cli call tests', function () {
 		TEST_TIMEOUT
 	);
 
-	test('list streams', async ({ credentialsString, logstoreClient }) => {
-		const { code, stdout, stderr } = await executeOnCli(
+	test('list streams', async ({
+		credentialsString,
+		clients: { streamrClient },
+	}) => {
+		const { code, stdout } = await executeOnCli(
 			`store list ${credentialsString}`
 		);
 
 		expect(code).toBe(0);
-		expect(stripAnsi(stdout)).toContain(await logstoreClient.getAddress());
+		expect(stripAnsi(stdout)).toContain(await streamrClient.getAddress());
 	});
 
 	test(
 		'mint',
-		async ({ credentialsString, logstoreClient }) => {
+		async ({ credentialsString, clients: { logStoreClient } }) => {
 			const MINT_AMOUNT = 100_000_000_000_000n;
 			const mintWei = MINT_AMOUNT;
 
-			const balance = await logstoreClient.getBalance();
-			const price = await logstoreClient.getPrice();
+			const balance = await logStoreClient.getBalance();
+			const price = await logStoreClient.getPrice();
 
 			const mintResult = mintWei / price;
 			const expectedBalance = balance + mintResult;
@@ -93,7 +95,7 @@ describe('direct cli call tests', function () {
 			expect(stdout).toContain('Successfully minted tokens to network');
 			expect(stdout).toContain('mint amount:');
 
-			const newBalance = await logstoreClient.getBalance();
+			const newBalance = await logStoreClient.getBalance();
 
 			expect(newBalance).toBe(expectedBalance);
 		},
@@ -102,15 +104,15 @@ describe('direct cli call tests', function () {
 
 	test(
 		'mint with usd',
-		async ({ credentialsString, logstoreClient }) => {
+		async ({ credentialsString, clients: { logStoreClient } }) => {
 			const MINT_AMOUNT_USD = '0.001';
-			const mintResult = await logstoreClient.convert({
+			const mintResult = await logStoreClient.convert({
 				amount: MINT_AMOUNT_USD,
 				from: 'usd',
 				to: 'bytes',
 			});
 
-			const balance = await logstoreClient.getBalance();
+			const balance = await logStoreClient.getBalance();
 
 			const expectedBalance = balance + BigInt(mintResult);
 
@@ -123,7 +125,7 @@ describe('direct cli call tests', function () {
 			expect(stdout).toContain('Successfully minted tokens to network');
 			expect(stdout).toContain('mint amount:');
 
-			const newBalance = await logstoreClient.getBalance();
+			const newBalance = await logStoreClient.getBalance();
 
 			expect(newBalance).toBe(BigInt(expectedBalance));
 		},
@@ -132,15 +134,15 @@ describe('direct cli call tests', function () {
 
 	test(
 		'mint big value with usd',
-		async ({ credentialsString, logstoreClient }) => {
+		async ({ credentialsString, clients: { logStoreClient } }) => {
 			const MINT_AMOUNT_USD = '999';
-			const mintResult = await logstoreClient.convert({
+			const mintResult = await logStoreClient.convert({
 				amount: MINT_AMOUNT_USD,
 				from: 'usd',
 				to: 'bytes',
 			});
 
-			const balance = await logstoreClient.getBalance();
+			const balance = await logStoreClient.getBalance();
 
 			const expectedBalance = balance + BigInt(mintResult);
 
@@ -154,7 +156,7 @@ describe('direct cli call tests', function () {
 			expect(output).toContain('Successfully minted tokens to network');
 			expect(output).toContain('mint amount:');
 
-			const newBalance = await logstoreClient.getBalance();
+			const newBalance = await logStoreClient.getBalance();
 
 			expect(newBalance).toBe(BigInt(expectedBalance));
 		},
@@ -163,8 +165,8 @@ describe('direct cli call tests', function () {
 
 	test(
 		'query stake',
-		async ({ logstoreClient, credentialsString }) => {
-			const previousQueryBalance = await logstoreClient.getQueryBalance();
+		async ({ clients: { logStoreClient }, credentialsString }) => {
+			const previousQueryBalance = await logStoreClient.getQueryBalance();
 
 			const STAKE_AMOUNT = 100_000_000_000_000n;
 
@@ -175,7 +177,7 @@ describe('direct cli call tests', function () {
 			expect(code).toBe(0);
 			expect(stdout).toContain('Successfully staked 100000000000000');
 
-			const queryBalance = await logstoreClient.getQueryBalance();
+			const queryBalance = await logStoreClient.getQueryBalance();
 
 			expect(queryBalance).toBe(previousQueryBalance + STAKE_AMOUNT);
 		},
@@ -184,11 +186,15 @@ describe('direct cli call tests', function () {
 
 	test(
 		'store stake',
-		async ({ credentialsString, logstoreClient }) => {
-			const previousStoreBalance = await logstoreClient.getStoreBalance();
+		async ({
+			credentialsString,
+			clients: { logStoreClient, streamrClient },
+		}) => {
+			const previousStoreBalance = await logStoreClient.getStoreBalance();
 			const STAKE_AMOUNT = 100_000_000_000_000n;
 
-			const stream = await createTestStream(logstoreClient, {
+			// @ts-expect-error its a hack to run without module
+			const stream = await createTestStream(streamrClient, {
 				filename: __filename,
 			});
 
@@ -200,8 +206,8 @@ describe('direct cli call tests', function () {
 			expect(code).toBe(0);
 			expect(stdout).toContain('Successfully staked 100000000000000 LSAN');
 
-			const storeBalance = await logstoreClient.getStoreBalance();
-			const streamStakeBalance = await logstoreClient.getStreamBalance(
+			const storeBalance = await logStoreClient.getStoreBalance();
+			const streamStakeBalance = await logStoreClient.getStreamBalance(
 				stream.id
 			);
 
@@ -240,7 +246,7 @@ describe('direct cli call tests', function () {
 	);
 
 	test('contract errors are printed', async ({ credentialsString }) => {
-		const { code, stdout, stderr } = await executeOnCli(
+		const { code, stdout } = await executeOnCli(
 			`mint 1 ${credentialsString}`
 		);
 		const output = stripAnsi(stdout);

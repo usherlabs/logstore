@@ -1,5 +1,5 @@
 import { readFeeMultiplier } from '@/configuration';
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
+import { getClientsFromOptions } from '@/utils/logstore-client';
 import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk, { bold } from 'chalk';
@@ -17,19 +17,28 @@ export const balanceCommand = new Command()
 	)
 	.action(async (cmdOptions) => {
 		try {
-			const client = getLogStoreClientFromOptions();
-			const balanceInLSAN = new Decimal((await client.getBalance()).toString());
-			const price = new Decimal((await client.getPrice()).toString());
+			const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.destroy();
+				streamrClient.destroy();
+			});
+
+			const balanceInLSAN = new Decimal(
+				(await logStoreClient.getBalance()).toString()
+			);
+			// const price = new Decimal((await logStoreClient.getPrice()).toString());
 
 			// TODO review this when multiplier from contract != 1
 			const availableStorage = balanceInLSAN;
 			const availableQueries = balanceInLSAN.div(readFeeMultiplier);
 
-			const msgSuffix = `are available to be staked on the Log Store Network.`;
+			// const msgSuffix = `are available to be staked on the Log Store Network.`;
 
 			console.log(
 				`The LSAN balance for address ${bold(
-					await client.getAddress()
+					await logStoreClient.getSigner().then((s) => s.getAddress())
 				)} is ${bold(balanceInLSAN.toString())}.`
 			);
 			console.log(

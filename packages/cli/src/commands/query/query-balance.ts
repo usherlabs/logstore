@@ -1,5 +1,5 @@
 import { readFeeMultiplier } from '@/configuration';
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
+import { getClientsFromOptions } from '@/utils/logstore-client';
 import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
@@ -10,10 +10,16 @@ const queryBalanceCommand = new Command()
 	.description('Check your balance staked for Query requests')
 	.action(async () => {
 		try {
-			const client = getLogStoreClientFromOptions();
+			const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.destroy();
+				streamrClient.destroy();
+			});
 
 			const queryBalance = new Decimal(
-				(await client.getQueryBalance()).toString()
+				(await logStoreClient.getQueryBalance()).toString()
 			);
 
 			const availableStorage = queryBalance.div(readFeeMultiplier);

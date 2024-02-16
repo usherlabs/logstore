@@ -7,5 +7,7 @@ export const credentials$ = defer(async () => getCredentialsFromOptions());
 
 export const isDevNetwork$ = credentials$.pipe(
 	// enough to validate?
-	map(({ provider }) => provider.connection.url.includes('localhost'))
+	map(({ provider }) =>
+		provider.connection.url.includes('localhost') ||
+		provider.connection.url.includes('sidechain'))
 );

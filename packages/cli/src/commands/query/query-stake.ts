@@ -1,8 +1,8 @@
 import { getRootOptions } from '@/commands/options';
 import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
+	getClientsFromOptions,
 	getCredentialsFromOptions,
-	getLogStoreClientFromOptions,
 } from '@/utils/logstore-client';
 import { keepRetryingWithIncreasedGasPrice } from '@/utils/speedupTx';
 import {
@@ -15,8 +15,8 @@ import {
 } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import {
-	getQueryManagerContract,
 	Manager,
+	getQueryManagerContract,
 	requestAllowanceIfNeeded,
 } from '@logsn/shared';
 import chalk from 'chalk';
@@ -37,11 +37,17 @@ const stakeCommand = new Command()
 	.option('-y, --assume-yes', 'Assume Yes to all queries and do not prompt')
 	.action(async (amt, cmdOptions) => {
 		const rootOptions = getRootOptions();
-		const logStoreClient = getLogStoreClientFromOptions();
+		const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+		using cleanup = new DisposableStack();
+		cleanup.defer(() => {
+			logStoreClient.destroy();
+			streamrClient.destroy();
+		});
 
 		const amountToStakeInLSAN = cmdOptions.usd
 			? // todo: 1 LSAN = 1 by here
-			  await logStoreClient
+				await logStoreClient
 					.convert({
 						amount: amt,
 						from: 'usd',

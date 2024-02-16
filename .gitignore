@@ -77,3 +77,6 @@ tsconfig.tsbuildinfo
 *.log
 .pnp.*
 coverage.json
+
+# data files of dev network
+/dev-network/assets/broker/data/logstore-node-*

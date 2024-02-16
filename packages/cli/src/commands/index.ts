@@ -12,6 +12,7 @@ import { appVersion } from '@/env-config';
 import { logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import jsonfile from 'jsonfile';
+import '../polyfill';
 
 export const rootProgram = new Command()
 	.name('logstore-cli')

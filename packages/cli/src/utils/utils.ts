@@ -1,5 +1,5 @@
 import { readFeeMultiplier } from '@/configuration';
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
+import { getClientsFromOptions } from '@/utils/logstore-client';
 import { allowanceConfirmFn } from '@logsn/shared';
 import chalk from 'chalk';
 import Decimal from 'decimal.js';
@@ -62,7 +62,7 @@ export const withRetry = async (
 	provider: ethers.providers.JsonRpcProvider,
 	fn: (estimate?: ethers.BigNumber) => Promise<ethers.ContractTransaction>
 ) => {
-	let tx: ethers.ContractTransaction;
+	let tx: ethers.ContractTransaction | undefined;
 	let estimate = await provider.getGasPrice();
 	let retryCount = 0;
 	while (!tx) {
@@ -91,13 +91,19 @@ export const withRetry = async (
 };
 
 export const getTransactionFee = async (receipt: ContractReceipt) => {
-	const client = getLogStoreClientFromOptions();
+	const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+	using cleanup = new DisposableStack();
+	cleanup.defer(() => {
+		logStoreClient.destroy();
+		streamrClient.destroy();
+	});
 
 	const gasUsed = receipt.gasUsed;
 	// in tests, effective gas price doesnt exist
 	const gasPrice = receipt.effectiveGasPrice ?? 0;
 	const feeWei = gasUsed.mul(gasPrice).toString();
-	const feeUsd = await client.convert({
+	const feeUsd = await logStoreClient.convert({
 		amount: feeWei,
 		from: 'wei',
 		to: 'usd',
@@ -111,12 +117,18 @@ export const getTransactionFee = async (receipt: ContractReceipt) => {
 type BaseAmount = 'byte' | 'query' | 'wei' | 'usd';
 
 export async function printPrices(base: BaseAmount = 'byte') {
-	const client = getLogStoreClientFromOptions();
+	const { streamrClient, logStoreClient } = getClientsFromOptions();
 
-	const weiPerBytePrice = await client
+	using cleanup = new DisposableStack();
+	cleanup.defer(() => {
+		logStoreClient.destroy();
+		streamrClient.destroy();
+	});
+
+	const weiPerBytePrice = await logStoreClient
 		.getPrice()
 		.then((c) => new Decimal('0x' + c.toString(16)));
-	const usdPerByte = await client
+	const usdPerByte = await logStoreClient
 		.convert({
 			amount: '1',
 			from: 'bytes',
@@ -132,12 +144,12 @@ export async function printPrices(base: BaseAmount = 'byte') {
 		base === 'byte'
 			? storagePrice
 			: base === 'query'
-			? queryBytes
-			: base === 'wei'
-			? weiPerBytePrice
-			: base === 'usd'
-			? usdPerByte
-			: new Error('Invalid base amount');
+				? queryBytes
+				: base === 'wei'
+					? weiPerBytePrice
+					: base === 'usd'
+						? usdPerByte
+						: new Error('Invalid base amount');
 
 	if (baseAmount instanceof Error) {
 		throw baseAmount;
@@ -157,7 +169,6 @@ export async function printPrices(base: BaseAmount = 'byte') {
 
 // TODO: maybe from client we could get the network name?
 export async function printTransactionLink(receipt: ContractReceipt) {
-	const client = getLogStoreClientFromOptions();
 	const polyScanUrl = `https://polygonscan.com/tx/${receipt.transactionHash}`;
 	console.info(chalk.bold(`View transaction:`));
 	console.info(polyScanUrl);
@@ -200,8 +211,15 @@ export async function getTransferAmountFromEcr2Transfer(
 
 export async function checkLSANFunds(_triedUsing: Decimal.Value) {
 	const triedUsing = new Decimal(_triedUsing);
-	const client = getLogStoreClientFromOptions();
-	const balance = await client.getBalance().then(String);
+	const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+	using cleanup = new DisposableStack();
+	cleanup.defer(() => {
+		logStoreClient.destroy();
+		streamrClient.destroy();
+	});
+
+	const balance = await logStoreClient.getBalance().then(String);
 
 	if (triedUsing.greaterThan(balance)) {
 		throw new Error(

@@ -10,49 +10,13 @@
 		"strictBindCallApply": true,
 		"baseUrl": ".",
 		"paths": {
-			"@logsn/streamr-client": [
-				"../../modules/streamr-network/packages/client/src/exports-browser.ts"
-			],
-			"@logsn/streamr-client/*": [
-				"../../modules/streamr-network/packages/client/*"
-			],
 			"stream": ["readable-stream"],
 			"util": ["util"],
-			"http": [
-				"../../modules/streamr-network/packages/client/src/shim/http-https.js"
-			],
 			"@ethersproject/wordlists": [
 				"@ethersproject/wordlists/lib.esm/browser-wordlists.js"
 			],
-			"https": [
-				"../../modules/streamr-network/packages/client/src/shim/http-https.js"
-			],
 			"crypto": ["crypto-browserify"],
 			"buffer": ["buffer/"],
-			"node-fetch": [
-				"../../modules/streamr-network/packages/client/src/shim/node-fetch.ts"
-			],
-			"@streamr/protocol/*": [
-				"../../modules/streamr-network/packages/protocol/src/*"
-			],
-			"@streamr/protocol": [
-				"../../modules/streamr-network/packages/protocol/src/index.ts"
-			],
-			"@streamr/network-node": [
-				"../../modules/streamr-network/packages/network/src/browser.ts"
-			],
-			"@streamr/network-node/src/connection/NodeWebRtcConnection.ts": [
-				"../../modules/streamr-network/packages/network/src/connection/BrowserWebRtcConnection.ts"
-			],
-			"@streamr/network-node/src/connection/ws/NodeClientWsEndpoint.ts": [
-				"../../modules/streamr-network/packages/network/src/connection/ws/BrowserClientWsEndpoint.ts"
-			],
-			"@streamr/network-node/src/connection/ws/NodeClientWsConnection.ts": [
-				"../../modules/streamr-network/packages/network/src/connection/ws/BrowserClientWsConnection.ts"
-			],
-			"@streamr/network-node/src/helpers/logger/LoggerNode.ts": [
-				"../../modules/streamr-network/packages/network/src/helpers/logger/LoggerBrowser.ts"
-			]
 		}
 	},
 	"include": [

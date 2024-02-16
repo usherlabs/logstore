@@ -1,4 +1,4 @@
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
+import { getClientsFromOptions } from '@/utils/logstore-client';
 import { logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
@@ -8,10 +8,15 @@ const listCommand = new Command()
 	.description('List your streams')
 	.action(async () => {
 		try {
-			const client = getLogStoreClientFromOptions();
+			const { streamrClient } = getClientsFromOptions();
 
-			const streams = client.searchStreams(
-				await client.getAddress(),
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				streamrClient.destroy();
+			});
+
+			const streams = streamrClient.searchStreams(
+				await streamrClient.getAddress(),
 				undefined
 			);
 

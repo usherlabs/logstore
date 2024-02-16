@@ -1,7 +1,11 @@
-import type { StreamrClientConfig } from '@logsn/streamr-client';
+import { LogLevel } from 'streamr-client';
 
-export interface LogStoreClientConfig extends StreamrClientConfig {
-	contracts?: StreamrClientConfig['contracts'] & {
+export interface LogStoreClientConfig {
+	/** Custom human-readable debug id for client. Used in logging. */
+	id?: string;
+	logLevel?: LogLevel;
+	nodeUrl?: string;
+	contracts?: {
 		logStoreNodeManagerChainAddress?: string;
 		logStoreStoreManagerChainAddress?: string;
 		logStoreQueryManagerChainAddress?: string;

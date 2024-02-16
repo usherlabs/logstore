@@ -1,4 +1,4 @@
-import { getLogStoreClientFromOptions } from '@/utils/logstore-client';
+import { getClientsFromOptions } from '@/utils/logstore-client';
 import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
@@ -9,10 +9,16 @@ const balanceCommand = new Command()
 	.description('Check your balance staked for Storage')
 	.action(async () => {
 		try {
-			const client = getLogStoreClientFromOptions();
+			const { streamrClient, logStoreClient } = getClientsFromOptions();
+
+			using cleanup = new DisposableStack();
+			cleanup.defer(() => {
+				logStoreClient.destroy();
+				streamrClient.destroy();
+			});
 
 			const storeBalance = new Decimal(
-				(await client.getStoreBalance()).toString()
+				(await logStoreClient.getStoreBalance()).toString()
 			);
 
 			const availableStorage = storeBalance;
