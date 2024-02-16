@@ -1,7 +1,8 @@
 FROM node:18.18-buster
 
 RUN apt update
-RUN apt install -y libsecret-1-dev
+RUN apt install -y libsecret-1-dev clang
+
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 RUN wget -O - https://bootstrap.pypa.io/get-pip.py | python
@@ -9,6 +10,15 @@ RUN wget -O - https://bootstrap.pypa.io/get-pip.py | python
 RUN npm i -g pnpm
 
 USER node
+
+# Get Rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+ENV PATH="/home/node/.cargo/bin:${PATH}"
+RUN rustup component add rust-src --toolchain stable-x86_64-unknown-linux-gnu
+
+# smoke test
+RUN cargo --version
+RUN rustc --version
 
 WORKDIR /home/node/logstore
 
