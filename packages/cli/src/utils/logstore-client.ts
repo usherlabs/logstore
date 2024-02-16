@@ -38,8 +38,8 @@ export function getLogstoreClientForCredentials({
 			...additionalConfig?.contracts,
 			streamRegistryChainRPCs: {
 				rpcs: [provider.connection],
-				chainId: 8997,
-				name: 'streamr',
+				chainId: USE_TEST_CONFIG ? 8997 : 137,
+				name: USE_TEST_CONFIG ? 'streamr' : 'polygon',
 			},
 		},
 	});
