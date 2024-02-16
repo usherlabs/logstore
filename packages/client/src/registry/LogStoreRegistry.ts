@@ -202,7 +202,7 @@ export class LogStoreRegistry {
 		// @dev depending on if a pk was passed into the contract
 		const chainSigner =
 			await this.authentication.getStreamRegistryChainSigner();
-		const mergedOverrides = {
+		const { gasPrice: _unusedGasPrice, ...mergedOverrides } = {
 			...getStreamRegistryOverrides(this.streamrClientConfig),
 			...overrides,
 		};
