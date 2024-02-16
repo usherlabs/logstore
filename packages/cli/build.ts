@@ -15,6 +15,7 @@ const build = async () => {
 		platform: 'node',
 		target: 'node12',
 		sourcemap: 'inline',
+		inject: ['./src/injects.ts'],
 		plugins: [
 			nodeExternalsPlugin(),
 			nodeResolvePlugin({
