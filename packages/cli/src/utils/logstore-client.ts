@@ -9,6 +9,7 @@ import { ethers } from 'ethers';
 import {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	StreamrClient,
+	StreamrClientConfig,
 } from 'streamr-client';
 
 function getCredentialsFrom(host: string, wallet: string) {
@@ -29,7 +30,6 @@ export function getClientsForCredentials({
 	host: string;
 	wallet: string;
 }) {
-	const { provider } = getCredentialsFrom(host, wallet);
 	const { logLevel: _unused, ...streamrConfig } = USE_TEST_CONFIG
 		? STREAMR_CONFIG_TEST
 		: ({} as never);
@@ -39,19 +39,27 @@ export function getClientsForCredentials({
 	if (!('LOG_LEVEL' in process.env)) {
 		process.env.LOG_LEVEL = logLevel;
 	}
-	const streamrClient = new StreamrClient({
+	let config = {
 		...streamrConfig,
 		logLevel: logLevel,
 		auth: { privateKey: wallet },
-		contracts: {
-			...streamrConfig?.contracts,
-			streamRegistryChainRPCs: {
-				rpcs: [provider.connection],
-				chainId: USE_TEST_CONFIG ? 8997 : 137,
-				name: USE_TEST_CONFIG ? 'streamr' : 'polygon',
+	} as StreamrClientConfig;
+	if (USE_TEST_CONFIG || host) {
+		config = {
+			...config,
+			contracts: {
+				...streamrConfig?.contracts,
+				streamRegistryChainRPCs: {
+					rpcs: [{
+						url: host
+					}],
+					chainId: USE_TEST_CONFIG ? 8997 : 137,
+					name: USE_TEST_CONFIG ? 'streamr' : 'polygon',
+				},
 			},
-		},
-	});
+		};
+	}
+	const streamrClient = new StreamrClient(config);
 
 	let logStoreClient: LogStoreClient | undefined;
 

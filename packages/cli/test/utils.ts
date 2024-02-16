@@ -36,7 +36,7 @@ export const executeOnCli = async (
 		(resolve) => {
 			exec(execCommand, (error, stdout, stderr) => {
 				if (error) {
-					resolve({ stdout, stderr, code: Number( error.code ) });
+					resolve({ stdout, stderr, code: Number(error.code) });
 				} else {
 					resolve({ stdout, stderr, code: 0 });
 				}

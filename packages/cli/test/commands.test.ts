@@ -246,9 +246,7 @@ describe('direct cli call tests', function () {
 	);
 
 	test('contract errors are printed', async ({ credentialsString }) => {
-		const { code, stdout } = await executeOnCli(
-			`mint 1 ${credentialsString}`
-		);
+		const { code, stdout } = await executeOnCli(`mint 1 ${credentialsString}`);
 		const output = stripAnsi(stdout);
 		expect(code).toBe(0); // it actually fails, but the code remains 0
 		expect(output).toContain('cannot estimate gas');
