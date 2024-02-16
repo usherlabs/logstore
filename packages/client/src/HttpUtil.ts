@@ -25,9 +25,10 @@ export enum ErrorCode {
 }
 
 export class FetchHttpStreamResponseError extends Error {
-	response: Response;
-
-	constructor(response: Response) {
+	constructor(
+		public response: Omit<Response, 'text' | 'body'>, // it was already consumed
+		public body: any
+	) {
 		super(`Fetch error, url=${response.url}`);
 		this.response = response;
 	}
@@ -136,14 +137,27 @@ export class HttpUtil {
 				// TODO: Implement proper support of SSE
 				// Accept: 'text/event-stream',
 			},
+		}).catch((err) => {
+			// `fetchResponse` throws this error, and we make that explicit here
+			if (err instanceof HttpError) {
+				return err;
+			}
+			throw err;
 		});
+
+		if (response instanceof HttpError) {
+			if (!response.response) {
+				throw response;
+			}
+			throw new FetchHttpStreamResponseError(response.response, response.body);
+		}
 
 		this.logger.debug('Received HTTP response', {
 			url,
 			status: response.status,
 		});
 		if (!response.ok) {
-			throw new FetchHttpStreamResponseError(response);
+			throw new FetchHttpStreamResponseError(response, await response.text());
 		}
 		if (!response.body) {
 			throw new Error('No Response Body');

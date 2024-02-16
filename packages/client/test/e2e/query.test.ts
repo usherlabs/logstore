@@ -21,12 +21,12 @@ import axios from 'axios';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
 import * as fetch from 'node-fetch';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, from } from 'rxjs';
 import { Transform, TransformCallback } from 'stream';
 import StreamrClient, {
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	Stream,
 	StreamPermission,
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
 } from 'streamr-client';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
@@ -516,7 +516,7 @@ describe('query', () => {
 									? new MessageRef(
 											prevMsgRef?.timestamp,
 											prevMsgRef?.sequenceNumber
-									  )
+										)
 									: undefined,
 								contentType,
 								messageType,
@@ -576,5 +576,38 @@ describe('query', () => {
 				nodeUrl: 'http://127.0.0.1:7171',
 			});
 		});
+	});
+
+	test('Querying without stake causes good and explicit error', async () => {
+		await using cleanup = new AsyncDisposableStack();
+		const streamrClient = new StreamrClient({
+			...STREAMR_CONFIG_TEST,
+			auth: {
+				// key that sure doesn't have stake
+				privateKey:
+					'0x0000000000000000000000000000000000000000000000000000000000002222',
+			},
+		});
+		const logStoreClient = new LogStoreClient(streamrClient, {
+			...LOGSTORE_CONFIG_TEST,
+		});
+
+		cleanup.defer(async () => {
+			await streamrClient.destroy();
+			logStoreClient.destroy();
+		});
+
+		const randomStreamId = (await streamrClient.getAddress()) + '/doesnt_exist';
+		const messagesQuery = await logStoreClient.query(
+			{
+				streamId: randomStreamId,
+				partition: 0,
+			},
+			{ last: 1 }
+		);
+
+		await expect(firstValueFrom(from(messagesQuery))).rejects.toThrow(
+			'Storage node fetch failed: Not enough balance staked for query, httpStatus=400'
+		);
 	});
 });
