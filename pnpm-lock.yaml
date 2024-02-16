@@ -1,9 +1,5 @@
 lockfileVersion: '6.0'
 
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false
-
 importers:
 
   .:
@@ -437,8 +433,8 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1
       reflect-metadata:
-        specifier: ^0.1.13
-        version: 0.1.13
+        specifier: ^0.2.1
+        version: 0.2.1
       rxjs:
         specifier: 8.0.0-alpha.12
         version: 8.0.0-alpha.12
@@ -479,9 +475,6 @@ importers:
       '@babel/plugin-proposal-decorators':
         specifier: ^7.16.4
         version: 7.16.4(@babel/core@7.23.9)
-      '@babel/plugin-proposal-explicit-resource-management':
-        specifier: ^7.23.9
-        version: 7.23.9(@babel/core@7.23.9)
       '@babel/plugin-transform-modules-commonjs':
         specifier: ^7.16.0
         version: 7.16.0(@babel/core@7.23.9)
@@ -1509,17 +1502,6 @@ packages:
       '@babel/plugin-syntax-dynamic-import': 7.8.3(@babel/core@7.23.9)
     dev: true
 
-  /@babel/plugin-proposal-explicit-resource-management@7.23.9(@babel/core@7.23.9):
-    resolution: {integrity: sha512-D0mkTJZ3p2+yS282sFRQvH+L1uHJt+LD2RdkQoGIFknyTUbqzUnrX1OEDPzMIOuoED4XnLcn+2W2uAoHdcRhBw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/core': 7.23.9
-      '@babel/helper-plugin-utils': 7.22.5
-      '@babel/plugin-syntax-explicit-resource-management': 7.23.3(@babel/core@7.23.9)
-    dev: true
-
   /@babel/plugin-proposal-export-namespace-from@7.18.9(@babel/core@7.23.9):
     resolution: {integrity: sha512-k1NtHyOMvlDDFeb9G5PhUXuGj8m/wiwojgQVEhJ/fsVsMCpLyOP4h0uGEjYJKrRI+EVPlb5Jk+Gt9P97lOGwtA==}
     engines: {node: '>=6.9.0'}
@@ -1707,16 +1689,6 @@ packages:
 
   /@babel/plugin-syntax-dynamic-import@7.8.3(@babel/core@7.23.9):
     resolution: {integrity: sha512-5gdGbFon+PszYzqs83S3E5mpi7/y/8M9eC90MRTZfduQOYW76ig6SOSPNe41IG5LoP3FGBn2N0RjVDSQiS94kQ==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/core': 7.23.9
-      '@babel/helper-plugin-utils': 7.22.5
-    dev: true
-
-  /@babel/plugin-syntax-explicit-resource-management@7.23.3(@babel/core@7.23.9):
-    resolution: {integrity: sha512-qEWlrWWQsVr4mbGxT9vgQSS/65YXoOgfg5NFJOYn48OM2C09g2dkA8qBUylNx6FVA1AtVBfC85+Q1Gg+WvnkSA==}
-    engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -17942,6 +17914,10 @@ packages:
     resolution: {integrity: sha512-Ts1Y/anZELhSsjMcU605fU9RE4Oi3p5ORujwbIKXfWa+0Zxs510Qrmrce5/Jowq3cHSZSJqBjypxmHarc+vEWg==}
     dev: false
 
+  /reflect-metadata@0.2.1:
+    resolution: {integrity: sha512-i5lLI6iw9AU3Uu4szRNPPEkomnkjRTaVt9hy/bn5g/oSzekBSMeLZblcjP74AW0vBabqERLLIrz+gR8QYR54Tw==}
+    dev: false
+
   /regenerate-unicode-properties@10.1.1:
     resolution: {integrity: sha512-X007RyZLsCJVVrjgEFVpLUTZwyOZk3oiL75ZcuYjlIWd6rNJtOjkBwQc5AsRrpbKVkxN6sklw/k/9m2jJYOf8Q==}
     engines: {node: '>=4'}
@@ -21656,3 +21632,7 @@ packages:
     transitivePeerDependencies:
       - debug
     dev: false
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false

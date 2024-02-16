@@ -1,6 +1,6 @@
 {
 	"name": "@logsn/cli",
-	"version": "0.0.14",
+	"version": "0.0.17",
 	"author": "Ryan Soury <ryan@usher.so>",
 	"license": "GPL-3.0",
 	"description": "The Log Store Network CLI",
@@ -14,8 +14,6 @@
 	},
 	"scripts": {
 		"build": "del dist && tsc -noEmit && tsx build.ts",
-		"bin": "del out && pkg --no-bytecode --public-packages '*' --output out/logstore package.json",
-		"build:binaries": "run-s build bin",
 		"start": "node ./dist/src/index.js",
 		"format": "prettier --write .",
 		"test": "vitest --",

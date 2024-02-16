@@ -4,7 +4,17 @@
 
 1. Install and start Docker service.
 
-2. Clone `streamr-docker-dev` repo: `git clone https://github.com/usherlabs/streamr-docker-dev.git`, change into that directory `cd streamr-docker-dev`
+2. Clone `streamr-docker-dev` repo:
+
+   ```bash
+   git clone https://github.com/usherlabs/streamr-docker-dev.git
+   ```
+
+   change into that directory:
+
+   ```bash
+   cd streamr-docker-dev
+   ```
 
 3. Add `streamr-docker-dev` into a suitable directory in your PATH (run from repository root), e.g.:
 
@@ -12,7 +22,17 @@
    ln -sf $(pwd)/streamr-docker-dev/bin.sh /usr/local/bin/streamr-docker-dev
    ```
 
-4. Clone this repo: `git clone git@github.com:usherlabs/logstore.git`, change into that directory `cd logstore`
+4. Clone `logstore` repo:
+
+   ```bash
+   git clone git@github.com:usherlabs/logstore.git
+   ```
+
+   change into that directory:
+
+   ```bash
+   cd logstore
+   ```
 
 5. Add `dev-network` into a suitable directory in your PATH (run from repository root), e.g.:
 
@@ -22,11 +42,15 @@
 
 6. Ensure that `ifconfig` is installed - [https://linuxhint.com/fix-ifconfig-command-not-found-linux/](https://linuxhint.com/fix-ifconfig-command-not-found-linux/)
 
-7. Ensure that legacy `docker-compose` is installed for compatibility with `streamr-docker-dev` - `sudo apt get docker-compose`
+7. Ensure that [`docker`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04) and [`docker compose`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-22-04) are installed and that Docker can be [managed as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/).
 
-8. Ensure that [`docker`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04) and [`docker compose`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-22-04) are installed and that Docker can be [managed as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/).
+8. Build Parity Node with pre-deployed Contracts:
 
-9. Run the DevNetwork
+   ```bash
+   dev-network build -l
+   ```
+
+9. Run the DevNetwork:
 
    ```bash
    dev-network start -l
@@ -34,7 +58,17 @@
 
 ## On a developer's machine
 
-1. Clone this repo: `git clone git@github.com:usherlabs/logstore.git`, change into that directory `cd logstore`
+1. Clone `logstore` repo
+
+   ```bash
+   git clone git@github.com:usherlabs/logstore.git
+   ```
+
+   change into that directory
+
+   ```bash
+   cd logstore
+   ```
 
 2. Add `dev-network` into a suitable directory in your PATH (run from repository root), e.g.:
 
@@ -77,3 +111,24 @@
    ```bash
    dev-network connect
    ```
+
+## Manage the DevNetwork running on a VPS
+
+If you are connecting to the DevNetwokr running on a VPS, it is possible to manage it right from a developer's machine. To do that you need to follow the steps explained above, and run a corresponding subcommand:
+
+- Start:
+  ```bash
+  dev-network start
+  ```
+- Stop:
+  ```bash
+  dev-network stop
+  ```
+- Restart:
+  ```bash
+  dev-network restart
+  ```
+- Build the ParityNode docker image if there are any changes to the contracts. The DevNetwork has to be restarted then to use the new image:
+  ```bash
+  dev-network build
+  ```

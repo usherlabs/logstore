@@ -6,7 +6,6 @@ printf "
 Connecting to the DevNetwork...
 
 \thttp://localhost:80\t\t\tStreamr APP
-\thttp://localhost:8801/#/pools/0/\tKYVE APP - Log Store pull
 \thttp://localhost:8802\t\t\tEVM Explorer
 
 Keep the script running.
