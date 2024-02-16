@@ -39,10 +39,10 @@ const stakeCommand = new Command()
 		const rootOptions = getRootOptions();
 		const { streamrClient, logStoreClient } = getClientsFromOptions();
 
-		using cleanup = new DisposableStack();
-		cleanup.defer(() => {
+		await using cleanup = new AsyncDisposableStack();
+		cleanup.defer(async () => {
 			logStoreClient.destroy();
-			streamrClient.destroy();
+			await streamrClient.destroy();
 		});
 
 		const amountToStakeInLSAN = cmdOptions.usd

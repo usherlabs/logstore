@@ -93,10 +93,10 @@ export const withRetry = async (
 export const getTransactionFee = async (receipt: ContractReceipt) => {
 	const { streamrClient, logStoreClient } = getClientsFromOptions();
 
-	using cleanup = new DisposableStack();
-	cleanup.defer(() => {
+	await using cleanup = new AsyncDisposableStack();
+	cleanup.defer(async () => {
 		logStoreClient.destroy();
-		streamrClient.destroy();
+		await streamrClient.destroy();
 	});
 
 	const gasUsed = receipt.gasUsed;
@@ -119,10 +119,10 @@ type BaseAmount = 'byte' | 'query' | 'wei' | 'usd';
 export async function printPrices(base: BaseAmount = 'byte') {
 	const { streamrClient, logStoreClient } = getClientsFromOptions();
 
-	using cleanup = new DisposableStack();
-	cleanup.defer(() => {
+	await using cleanup = new AsyncDisposableStack();
+	cleanup.defer(async () => {
 		logStoreClient.destroy();
-		streamrClient.destroy();
+		await streamrClient.destroy();
 	});
 
 	const weiPerBytePrice = await logStoreClient
@@ -213,10 +213,10 @@ export async function checkLSANFunds(_triedUsing: Decimal.Value) {
 	const triedUsing = new Decimal(_triedUsing);
 	const { streamrClient, logStoreClient } = getClientsFromOptions();
 
-	using cleanup = new DisposableStack();
-	cleanup.defer(() => {
+	await using cleanup = new AsyncDisposableStack();
+	cleanup.defer(async () => {
 		logStoreClient.destroy();
-		streamrClient.destroy();
+		await streamrClient.destroy();
 	});
 
 	const balance = await logStoreClient.getBalance().then(String);

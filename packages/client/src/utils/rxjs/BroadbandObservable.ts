@@ -19,18 +19,20 @@ export const createBroadbandObservable = (
 		const subscriber = new BroadbandSubscriber(client, stream);
 
 		// Notifies the observer about new messages, as they arrive to the subscriber
-		subscriber.subscribe((content, metadata) => {
-			observer.next([content, metadata]);
-		}).catch((e) => {
-			// If the subscription fails with the error containing "Client is destroyed" we called destroy already, then complete.
-			// Otherwise, we throw the error.
-			// Handling it another way is harder as we should make all new promises canceable, and it wouldn't guarantee.
-			if (e.message.includes('Client is destroyed')) {
-				observer.complete();
-			} else {
-				observer.error(e);
-			}
-		});
+		subscriber
+			.subscribe((content, metadata) => {
+				observer.next([content, metadata]);
+			})
+			.catch((e) => {
+				// If the subscription fails with the error containing "Client is destroyed" we called destroy already, then complete.
+				// Otherwise, we throw the error.
+				// Handling it another way is harder as we should make all new promises canceable, and it wouldn't guarantee.
+				if (e.message.includes('Client is destroyed')) {
+					observer.complete();
+				} else {
+					observer.error(e);
+				}
+			});
 
 		// Triggers BroadbandSubscriber#unsubscribe when the observable is unsubscribed
 		return () => {
