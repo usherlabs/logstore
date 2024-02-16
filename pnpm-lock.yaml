@@ -256,9 +256,6 @@ importers:
       eslint:
         specifier: ^8.56.0
         version: 8.56.0
-      eslint-config-logstore:
-        specifier: workspace:*
-        version: link:../eslint-config-logstore
       eslint-plugin-immutable:
         specifier: ^1.0.0
         version: 1.0.0
@@ -774,8 +771,6 @@ importers:
       typescript:
         specifier: ^4.9.5
         version: 4.9.5
-
-  packages/eslint-config-logstore: {}
 
   packages/protocol:
     dependencies:
