@@ -50,9 +50,11 @@ export function getClientsForCredentials({
 			contracts: {
 				...streamrConfig?.contracts,
 				streamRegistryChainRPCs: {
-					rpcs: [{
-						url: host
-					}],
+					rpcs: [
+						{
+							url: host,
+						},
+					],
 					chainId: USE_TEST_CONFIG ? 8997 : 137,
 					name: USE_TEST_CONFIG ? 'streamr' : 'polygon',
 				},
