@@ -1,5 +1,5 @@
 import { getRootOptions } from '@/commands/options';
-import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
+// import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
 	getClientsFromOptions,
 	getCredentialsFromOptions,
@@ -68,9 +68,9 @@ export const mintCommand = new Command()
 			console.log(`Minting ${amountInToken} wei...`);
 			const result = await logStoreClient.mint(
 				BigInt(new Decimal(amountInToken).toHex()),
-				{
-					maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-				}
+				// {
+				// 	maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
+				// }
 			);
 
 			console.log(
