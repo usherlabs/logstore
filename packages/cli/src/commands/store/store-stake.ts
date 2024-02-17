@@ -74,9 +74,7 @@ const stakeCommand = new Command()
 				BigInt(hexValue),
 				signer,
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined,
-				{
-					maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-				}
+				await firstValueFrom(fastPriorityIfMainNet$)
 			);
 
 			if (allowanceTx) {
@@ -94,9 +92,7 @@ const stakeCommand = new Command()
 			const tx = await logStoreClient.stakeOrCreateStore(
 				streamId,
 				BigInt(amountToStakeInLSAN),
-				{
-					maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-				}
+				await firstValueFrom(fastPriorityIfMainNet$)
 			);
 			const receipt = await firstValueFrom(
 				keepRetryingWithIncreasedGasPrice(signer, tx)

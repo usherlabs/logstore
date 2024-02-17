@@ -74,9 +74,7 @@ const stakeCommand = new Command()
 				BigInt(hexValue),
 				signer,
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined,
-				{
-					maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-				}
+				await firstValueFrom(fastPriorityIfMainNet$)
 			);
 
 			if (allowanceTx) {
@@ -95,9 +93,10 @@ const stakeCommand = new Command()
 			const queryManagerContract = await getQueryManagerContract(signer);
 			console.info(`Staking ${amountToStakeInLSAN} LSAN...`);
 
-			const tx = await queryManagerContract.stake(hexValue, {
-				maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-			});
+			const tx = await queryManagerContract.stake(
+				hexValue,
+				await firstValueFrom(fastPriorityIfMainNet$)
+			);
 
 			const receipt = await firstValueFrom(
 				keepRetryingWithIncreasedGasPrice(signer, tx)
