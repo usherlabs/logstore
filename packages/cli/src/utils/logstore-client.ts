@@ -37,6 +37,7 @@ export function getClientsForCredentials({
 
 	const logLevel = logger.settings.minLevel === 3 ? 'warn' : 'debug';
 	if (!('LOG_LEVEL' in process.env)) {
+		// eslint-disable-next-line immutable/no-mutation
 		process.env.LOG_LEVEL = logLevel;
 	}
 	let config = {
