@@ -12,7 +12,7 @@ done
 
 if [ -n "$LOCAL" ];
 then
-  BRANCH=${1:-origin/develop}
+  BRANCH=${1:-develop}
 
   echo Stopping the DevNetwork...
   "$DEV_NETWORK_SCRIPTS_DIR/stop.sh" -l
@@ -20,7 +20,8 @@ then
   echo Pulling branch $BRANCH...
   cd "$DEV_NETWORK_DIR/.."
   git fetch
-  git checkout $BRANCH
+  git reset --hard
+  git switch $BRANCH
   git pull 
   git submodule update
 
