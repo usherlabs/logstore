@@ -30,10 +30,10 @@
 | 8030  |                                 | streamr-dev-thegraph-node            | Streamr  |
 | 8040  |                                 | streamr-dev-thegraph-node            | Streamr  |
 | 8081  |                                 | streamr-dev-core-api                 | Streamr  |
+| 8450  | EVM Main Chain (Chain ID: 8995) | streamr-dev-parity-node0             | Streamr  |
+| 8451  | EVM Side Chain (Chain ID: 8997) | logstore-dev-parity-sidechain-node0  | Streamr  |
 | 8545  | EVM Main Chain (Chain ID: 8995) | streamr-dev-parity-node0             | Streamr  |
 | 8546  | EVM Side Chain (Chain ID: 8997) | logstore-dev-parity-sidechain-node0  | Streamr  |
-| 8451  | EVM Side Chain (Chain ID: 8997) | logstore-dev-parity-sidechain-node0  | Streamr  |
-| 8450  | EVM Main Chain (Chain ID: 8995) | streamr-dev-parity-node0             | Streamr  |
 | 8690  | Streamr Broker (no storage) #2  | streamr-dev-broker-node-no-storage-2 | Streamr  |
 | 8691  | Streamr Broker (no storage) #2  | streamr-dev-broker-node-no-storage-2 | Streamr  |
 | 8790  | Streamr Broker (no storage) #1  | streamr-dev-broker-node-no-storage-1 | Streamr  |

@@ -21,7 +21,8 @@ then
   cd "$DEV_NETWORK_DIR/.."
   git fetch
   git checkout $BRANCH
-  git pull || echo "Continuing..."
+  git pull 
+  git submodule update
 
   echo Starting the DevNetwork...
   "$DEV_NETWORK_SCRIPTS_DIR/start.sh" -l
