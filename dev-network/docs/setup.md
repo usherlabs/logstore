@@ -7,7 +7,7 @@
 2. Clone `streamr-docker-dev` repo:
 
    ```bash
-   git clone https://github.com/usherlabs/streamr-docker-dev.git
+   git clone git@github.com:usherlabs/streamr-docker-dev.git
    ```
 
    change into that directory:
@@ -34,6 +34,18 @@
    cd logstore
    ```
 
+   switch to `develop` branch:
+
+   ```bash
+   git switch develop
+   ```
+
+   init and update git submodules:
+
+   ```bash
+   git submodule init && git submodule update
+   ```
+
 5. Add `dev-network` into a suitable directory in your PATH (run from repository root), e.g.:
 
    ```bash
@@ -44,17 +56,34 @@
 
 7. Ensure that [`docker`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04) and [`docker compose`](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-22-04) are installed and that Docker can be [managed as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/).
 
-8. Build Parity Node with pre-deployed Contracts:
+8. Bind the internal IP address 10.200.10.1 to the loopback interface by modifying `netplan` configuration file located in `/etc/netplan/` directory. You'll find one or more YAML files in this directory. Choose the appropriate file to edit. The file might have a name like `01-netcfg.yaml`, `50-cloud-init.yaml`, or something similar. It's recommended to choose the file that ends with `.yaml`. Inside the YAML file, you'll see network configurations. Add a new section for the loopback interface `lo:` as in the examle:
+
+   ```yaml
+   network:
+     ethernets:
+       lo:
+         addresses:
+           - 10.200.10.1/32:
+               label: 'lo:1'
+   ```
+
+   Apply the changes by running:
+
+   ```bash
+   sudo netplan apply
+   ```
+
+9. Build Parity Node with pre-deployed Contracts:
 
    ```bash
    dev-network build -l
    ```
 
-9. Run the DevNetwork:
+10. Run the DevNetwork:
 
-   ```bash
-   dev-network start -l
-   ```
+    ```bash
+    dev-network start -l
+    ```
 
 ## On a developer's machine
 
