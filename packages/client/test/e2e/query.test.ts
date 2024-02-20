@@ -22,7 +22,7 @@ import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
 import * as fetch from 'node-fetch';
 import { firstValueFrom, from } from 'rxjs';
-import { Transform, TransformCallback } from 'stream';
+import { TransformCallback } from 'stream';
 import StreamrClient, {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	Stream,
@@ -119,6 +119,66 @@ describe('query', () => {
 	afterEach(async () => {
 		jest.clearAllMocks();
 	});
+
+	it(
+		'has the same data shape if consumed differently',
+		async () => {
+			const privateStream = await createTestStream(
+				publisherStreamrClient,
+				module,
+				{
+					partitions: 1,
+				}
+			);
+
+			await privateStream.grantPermissions({
+				user: await consumerStreamrClient.getAddress(),
+				permissions: [StreamPermission.SUBSCRIBE],
+			});
+			// stake
+			await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
+			await storeManager.stake(privateStream.id, STAKE_AMOUNT);
+
+			await sleep(2000);
+
+			// publish to the stream
+			await publisherStreamrClient.publish(
+				{
+					id: privateStream.id,
+					partition: 0,
+				},
+				{
+					messageNo: 1,
+				}
+			);
+
+			await sleep(2000);
+
+			const messages1: unknown[] = [];
+			const messages2: unknown[] = [];
+
+			const queryStream1 = await consumerLogStoreClient.query(
+				{
+					streamId: privateStream.id,
+					partition: 0,
+				},
+				{ last: 1 },
+				(content) => {
+					console.log('content', content);
+					messages1.push(content);
+				}
+			);
+
+			for await (const msg of queryStream1) {
+				console.log('msg', msg);
+				messages2.push(msg.content);
+			}
+
+			expect(messages1).toStrictEqual(messages2);
+			expect(messages1[0]).toStrictEqual({ messageNo: 1 });
+		},
+		TIMEOUT
+	);
 
 	describe('private stream', () => {
 		let stream: Stream;
