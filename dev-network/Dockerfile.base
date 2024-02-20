@@ -1,18 +1,33 @@
 FROM node:18.18-buster
 
 RUN apt update
-RUN apt install -y libsecret-1-dev clang llvm-dev libclang-dev
+RUN apt install -y libsecret-1-dev lsb-release wget software-properties-common gnupg
+
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 RUN wget -O - https://bootstrap.pypa.io/get-pip.py | python
 
 RUN npm i -g pnpm
+
+RUN wget https://apt.llvm.org/llvm.sh
+RUN chmod +x llvm.sh
+# minimum clang by tlsn-js is specified to be 16
+# https://github.com/tlsnotary/tlsn-js#development
+# we could improve size by installing less packages instead of whole llvm
+RUN ./llvm.sh 17
+
+# alias clang-17 to clang
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 100
+
+#smoke test
+RUN clang --version
 
 USER node
 
 # Get Rust
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/home/node/.cargo/bin:${PATH}"
-RUN rustup component add rust-src --toolchain stable-x86_64-unknown-linux-gnu
+RUN rustup toolchain install 1.75.0-x86_64-unknown-linux-gnu
+RUN rustup component add rust-src --toolchain 1.75.0-x86_64-unknown-linux-gnu
 
 # smoke test
 RUN cargo --version

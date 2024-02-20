@@ -1,6 +1,7 @@
 [toolchain]
 # channel = "nightly-2022-12-12"
- channel = "stable"
+ channel = "1.75.0"
+#channel = "stable"
 # channel = "nightly-x86_64-apple-darwin"
 #channel = "nightly-2024-02-07"
 #channel = "nightly"
