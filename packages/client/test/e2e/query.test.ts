@@ -21,12 +21,12 @@ import axios from 'axios';
 import { providers, Wallet } from 'ethers';
 import { range } from 'lodash';
 import * as fetch from 'node-fetch';
-import { firstValueFrom } from 'rxjs';
-import { Transform, TransformCallback } from 'stream';
+import { firstValueFrom, from } from 'rxjs';
+import { TransformCallback } from 'stream';
 import StreamrClient, {
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	Stream,
 	StreamPermission,
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
 } from 'streamr-client';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
@@ -105,6 +105,9 @@ describe('query', () => {
 			consumerStreamrClient,
 			LOGSTORE_CONFIG_TEST
 		);
+
+		await prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT);
+		await queryManager.stake(STAKE_AMOUNT);
 	}, TIMEOUT);
 
 	afterAll(async () => {
@@ -119,6 +122,66 @@ describe('query', () => {
 	afterEach(async () => {
 		jest.clearAllMocks();
 	});
+
+	it(
+		'has the same data shape if consumed differently',
+		async () => {
+			const privateStream = await createTestStream(
+				publisherStreamrClient,
+				module,
+				{
+					partitions: 1,
+				}
+			);
+
+			await privateStream.grantPermissions({
+				user: await consumerStreamrClient.getAddress(),
+				permissions: [StreamPermission.SUBSCRIBE],
+			});
+			// stake
+			await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
+			await storeManager.stake(privateStream.id, STAKE_AMOUNT);
+
+			await sleep(4000);
+
+			// publish to the stream
+			await publisherStreamrClient.publish(
+				{
+					id: privateStream.id,
+					partition: 0,
+				},
+				{
+					messageNo: 1,
+				}
+			);
+
+			await sleep(4000);
+
+			const messages1: unknown[] = [];
+			const messages2: unknown[] = [];
+
+			const queryStream1 = await consumerLogStoreClient.query(
+				{
+					streamId: privateStream.id,
+					partition: 0,
+				},
+				{ last: 1 },
+				(content) => {
+					console.log('content', content);
+					messages1.push(content);
+				}
+			);
+
+			for await (const msg of queryStream1) {
+				console.log('msg', msg);
+				messages2.push(msg.content);
+			}
+
+			expect(messages1).toStrictEqual(messages2);
+			expect(messages1[0]).toStrictEqual({ messageNo: 1 });
+		},
+		TIMEOUT
+	);
 
 	describe('private stream', () => {
 		let stream: Stream;
@@ -158,15 +221,8 @@ describe('query', () => {
 			// 	permissions: [StreamPermission.SUBSCRIBE],
 			// });
 
-			await Promise.all([
-				prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT),
-				prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT),
-			]);
-
-			await Promise.all([
-				storeManager.stake(stream.id, STAKE_AMOUNT),
-				queryManager.stake(STAKE_AMOUNT),
-			]);
+			await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
+			await storeManager.stake(stream.id, STAKE_AMOUNT);
 		}, TIMEOUT);
 
 		it(
@@ -516,7 +572,7 @@ describe('query', () => {
 									? new MessageRef(
 											prevMsgRef?.timestamp,
 											prevMsgRef?.sequenceNumber
-									  )
+										)
 									: undefined,
 								contentType,
 								messageType,
@@ -576,5 +632,38 @@ describe('query', () => {
 				nodeUrl: 'http://127.0.0.1:7171',
 			});
 		});
+	});
+
+	test('Querying without stake causes good and explicit error', async () => {
+		await using cleanup = new AsyncDisposableStack();
+		const streamrClient = new StreamrClient({
+			...STREAMR_CONFIG_TEST,
+			auth: {
+				// key that sure doesn't have stake
+				privateKey:
+					'0x0000000000000000000000000000000000000000000000000000000000002222',
+			},
+		});
+		const logStoreClient = new LogStoreClient(streamrClient, {
+			...LOGSTORE_CONFIG_TEST,
+		});
+
+		cleanup.defer(async () => {
+			await streamrClient.destroy();
+			logStoreClient.destroy();
+		});
+
+		const randomStreamId = (await streamrClient.getAddress()) + '/doesnt_exist';
+		const messagesQuery = await logStoreClient.query(
+			{
+				streamId: randomStreamId,
+				partition: 0,
+			},
+			{ last: 1 }
+		);
+
+		await expect(firstValueFrom(from(messagesQuery))).rejects.toThrow(
+			'Storage node fetch failed: Not enough balance staked for query, httpStatus=400'
+		);
 	});
 });

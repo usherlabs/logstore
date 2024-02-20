@@ -2,12 +2,8 @@ import { rootProgram } from '@/commands/index';
 import { Command } from '@commander-js/extra-typings';
 import { BehaviorSubject } from 'rxjs';
 
-type InferCommmandOptions<T extends Command> = T extends Command<
-	any,
-	infer Options
->
-	? Options
-	: never;
+type InferCommmandOptions<T extends Command> =
+	T extends Command<any, infer Options> ? Options : never;
 type RootOptions = Partial<InferCommmandOptions<typeof rootProgram>>;
 const rootOptions = new BehaviorSubject<RootOptions>({});
 export const setRootOptions = (

@@ -1,5 +1,5 @@
 import { getRootOptions } from '@/commands/options';
-// import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
+import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
 	getClientsFromOptions,
 	getCredentialsFromOptions,
@@ -15,8 +15,8 @@ import {
 } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import {
-	Manager,
 	getQueryManagerContract,
+	Manager,
 	requestAllowanceIfNeeded,
 } from '@logsn/shared';
 import chalk from 'chalk';
@@ -39,10 +39,10 @@ const stakeCommand = new Command()
 		const rootOptions = getRootOptions();
 		const { streamrClient, logStoreClient } = getClientsFromOptions();
 
-		using cleanup = new DisposableStack();
-		cleanup.defer(() => {
+		await using cleanup = new AsyncDisposableStack();
+		cleanup.defer(async () => {
 			logStoreClient.destroy();
-			streamrClient.destroy();
+			await streamrClient.destroy();
 		});
 
 		const amountToStakeInLSAN = cmdOptions.usd
@@ -69,14 +69,13 @@ const stakeCommand = new Command()
 			const { signer } = getCredentialsFromOptions();
 
 			console.log('Checking for available allowance...');
+			const overrides = await firstValueFrom(fastPriorityIfMainNet$);
 			const allowanceTx = await requestAllowanceIfNeeded(
 				Manager.QueryManager,
 				BigInt(hexValue),
 				signer,
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined,
-				// {
-				// 	maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-				// }
+				overrides
 			);
 
 			if (allowanceTx) {
@@ -95,11 +94,10 @@ const stakeCommand = new Command()
 			const queryManagerContract = await getQueryManagerContract(signer);
 			console.info(`Staking ${amountToStakeInLSAN} LSAN...`);
 
-			const tx = await queryManagerContract.stake(hexValue,
-			// 	{
-			// 	maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-			// }
-			);
+			const tx = await queryManagerContract.stake(hexValue, {
+				// NOTE: if we use the property directly, if its undefined it might fail on dev-network
+				...overrides,
+			});
 
 			const receipt = await firstValueFrom(
 				keepRetryingWithIncreasedGasPrice(signer, tx)

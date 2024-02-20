@@ -154,7 +154,7 @@ const getHttpErrorTransform = (): ((
 	return async (err: any) => {
 		let message;
 		if (err instanceof FetchHttpStreamResponseError) {
-			const body = await err.response.text();
+			const body = err.body;
 			let descriptionSnippet;
 			try {
 				const json = JSON.parse(body);
