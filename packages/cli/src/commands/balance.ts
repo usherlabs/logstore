@@ -19,10 +19,10 @@ export const balanceCommand = new Command()
 		try {
 			const { streamrClient, logStoreClient } = getClientsFromOptions();
 
-			using cleanup = new DisposableStack();
-			cleanup.defer(() => {
+			await using cleanup = new AsyncDisposableStack();
+			cleanup.defer(async () => {
 				logStoreClient.destroy();
-				streamrClient.destroy();
+				await streamrClient.destroy();
 			});
 
 			const balanceInLSAN = new Decimal(

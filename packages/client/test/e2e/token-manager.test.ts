@@ -7,7 +7,9 @@ import StreamrClient, { CONFIG_TEST } from 'streamr-client';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
+import * as contractPkg from '../../src/streamr/utils/contract';
 import { waitForTx } from '../../src/streamr/utils/contract';
+import { BigNumber } from '@ethersproject/bignumber';
 
 const MINT_AMOUNT = 100_000_000_000_000n;
 const TIMEOUT = 90 * 1000;
@@ -116,6 +118,12 @@ describe('Manage tokens', () => {
 
 			// deterministic, a reasonable price. would be the result of logStoreClient.price
 			const price = 652430556n;
+			// queryContractsSpy is used inside conversion fn to get the price
+			const queryContractsSpy = jest.spyOn(
+				contractPkg,
+				'queryAllReadonlyContracts'
+			);
+			queryContractsSpy.mockResolvedValue([BigNumber.from(price)]);
 
 			const inWei = new Decimal('1e18'); // 1 ether
 			const inBytes = inWei.div(price.toString()).floor();

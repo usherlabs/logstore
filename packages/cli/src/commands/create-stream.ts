@@ -12,9 +12,9 @@ export const createStreamCommand = new Command()
 		// const signer = new ethers.Wallet(rootOptions.wallet, provider);
 		const { streamrClient } = getClientsFromOptions();
 
-		using cleanup = new DisposableStack();
-		cleanup.defer(() => {
-			streamrClient.destroy();
+		await using cleanup = new AsyncDisposableStack();
+		cleanup.defer(async () => {
+			await streamrClient.destroy();
 		});
 
 		console.log('Creating a stream...');
