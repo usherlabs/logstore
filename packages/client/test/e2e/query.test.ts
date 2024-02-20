@@ -105,6 +105,9 @@ describe('query', () => {
 			consumerStreamrClient,
 			LOGSTORE_CONFIG_TEST
 		);
+
+		await prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT);
+		await queryManager.stake(STAKE_AMOUNT);
 	}, TIMEOUT);
 
 	afterAll(async () => {
@@ -139,7 +142,7 @@ describe('query', () => {
 			await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
 			await storeManager.stake(privateStream.id, STAKE_AMOUNT);
 
-			await sleep(2000);
+			await sleep(4000);
 
 			// publish to the stream
 			await publisherStreamrClient.publish(
@@ -152,7 +155,7 @@ describe('query', () => {
 				}
 			);
 
-			await sleep(2000);
+			await sleep(4000);
 
 			const messages1: unknown[] = [];
 			const messages2: unknown[] = [];
@@ -218,15 +221,8 @@ describe('query', () => {
 			// 	permissions: [StreamPermission.SUBSCRIBE],
 			// });
 
-			await Promise.all([
-				prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT),
-				prepareStakeForQueryManager(storeConsumerAccount, STAKE_AMOUNT),
-			]);
-
-			await Promise.all([
-				storeManager.stake(stream.id, STAKE_AMOUNT),
-				queryManager.stake(STAKE_AMOUNT),
-			]);
+			await prepareStakeForStoreManager(storeOwnerAccount, STAKE_AMOUNT);
+			await storeManager.stake(stream.id, STAKE_AMOUNT);
 		}, TIMEOUT);
 
 		it(
