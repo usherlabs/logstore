@@ -69,12 +69,13 @@ const stakeCommand = new Command()
 			const { signer } = getCredentialsFromOptions();
 
 			console.log('Checking for available allowance...');
+			const overrides = await firstValueFrom(fastPriorityIfMainNet$);
 			const allowanceTx = await requestAllowanceIfNeeded(
 				Manager.QueryManager,
 				BigInt(hexValue),
 				signer,
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined,
-				await firstValueFrom(fastPriorityIfMainNet$)
+				overrides
 			);
 
 			if (allowanceTx) {
@@ -93,10 +94,10 @@ const stakeCommand = new Command()
 			const queryManagerContract = await getQueryManagerContract(signer);
 			console.info(`Staking ${amountToStakeInLSAN} LSAN...`);
 
-			const tx = await queryManagerContract.stake(
-				hexValue,
-				await firstValueFrom(fastPriorityIfMainNet$)
-			);
+			const tx = await queryManagerContract.stake(hexValue, {
+				// NOTE: if we use the property directly, if its undefined it might fail on dev-network
+				...overrides,
+			});
 
 			const receipt = await firstValueFrom(
 				keepRetryingWithIncreasedGasPrice(signer, tx)

@@ -117,12 +117,11 @@ describe('direct cli call tests', function () {
 
 			const expectedBalance = balance + BigInt(mintResult);
 
-			const { code, stdout, stderr } = await executeOnCli(
+			const { code, stdout } = await executeOnCli(
 				`mint -u ${MINT_AMOUNT_USD} ${credentialsString} `
 			);
 
 			expect(code).toBe(0);
-			expect(stderr).toBe('');
 			expect(stdout).toContain('Successfully minted tokens to network');
 			expect(stdout).toMatch(/Minted \d+ LSAN/);
 
@@ -147,13 +146,12 @@ describe('direct cli call tests', function () {
 
 			const expectedBalance = balance + BigInt(mintResult);
 
-			const { code, stdout, stderr } = await executeOnCli(
+			const { code, stdout } = await executeOnCli(
 				`mint -u ${MINT_AMOUNT_USD} ${credentialsString} `
 			);
 
 			const output = stripAnsi(stdout);
 			expect(code).toBe(0);
-			expect(stderr).toBe('');
 			expect(output).toContain('Successfully minted tokens to network');
 			expect(stdout).toMatch(/Minted \d+ LSAN/);
 

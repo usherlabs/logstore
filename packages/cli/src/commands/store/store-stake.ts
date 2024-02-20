@@ -69,12 +69,13 @@ const stakeCommand = new Command()
 			await checkLSANFunds(hexValue);
 
 			console.log('Checking for available allowance...');
+			const overrides = await firstValueFrom(fastPriorityIfMainNet$);
 			const allowanceTx = await requestAllowanceIfNeeded(
 				Manager.StoreManager,
 				BigInt(hexValue),
 				signer,
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined,
-				await firstValueFrom(fastPriorityIfMainNet$)
+				overrides
 			);
 
 			if (allowanceTx) {
@@ -92,7 +93,8 @@ const stakeCommand = new Command()
 			const tx = await logStoreClient.stakeOrCreateStore(
 				streamId,
 				BigInt(amountToStakeInLSAN),
-				await firstValueFrom(fastPriorityIfMainNet$)
+				// NOTE: if we use the property directly, if its undefined it might fail on dev-network
+				{ ...overrides }
 			);
 			const receipt = await firstValueFrom(
 				keepRetryingWithIncreasedGasPrice(signer, tx)
