@@ -24,6 +24,7 @@ Before starting, ensure you have a clean git state. This helps in accurately ide
 
     - Choose packages needing detailed changelogs. Others will simply note "dependencies updated".
     - Modify the generated changeset file if necessary.
+    - This step creates necessary files in the **`.changeset`** directory, later to be consumed by the version bumping process.
 
 2. **Version Bumping**
 
@@ -31,7 +32,7 @@ Before starting, ensure you have a clean git state. This helps in accurately ide
 	pnpm changeset version
 	```
 
-    - This step updates all relevant **`package.json`** files and amends changelogs.
+    - This step consumes the generated files, updates all relevant **`package.json`** files and amends changelogs.
 
 3. **Publishing Changes**
 

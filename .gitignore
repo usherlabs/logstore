@@ -80,3 +80,6 @@ coverage.json
 
 # data files of dev network
 /dev-network/assets/broker/data/logstore-node-*
+
+# Changeset related files we don't want to maitain for now
+CHANGELOG.md
