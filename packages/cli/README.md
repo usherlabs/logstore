@@ -49,12 +49,18 @@ Commands:
 
 ```
 $ logstore query stake --amount 1000000000000000000 --usd -h https://polygon_rpc_url
-
 ```
 
 1. In order to enable data from a stream to be stored, some [amount of LSAN](https://docs.logstore.usher.so/network/cli/mint-lsan) needs to be staked against that Streamr Network stream/topic:
 
 ```
 $ logstore store stake <streamId> --amount 1000000000000000000 -h https://polygon_rpc_url -w ...
-
 ```
+
+Note: to use the CLI with the dev-network, it's important to set the environment variable `USE_TEST_CONFIG=true` before running the CLI commands. This will use the correct configuration and addresses for the dev-network.
+
+```shell
+export USE_TEST_CONFIG="true"
+logstore balance
+```
+
