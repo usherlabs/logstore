@@ -19,8 +19,9 @@ export const createRelativeTestStreamId = (
 	module: NodeModule,
 	suffix?: string
 ): string => {
+	const randomBit = crypto.randomBytes(4).toString('hex');
 	return counterId(
-		`/test/${randomTestRunId}/${getTestName(module)}${
+		`/test/${randomTestRunId}${randomBit}/${getTestName(module)}${
 			suffix !== undefined ? '-' + suffix : ''
 		}`,
 		'-'

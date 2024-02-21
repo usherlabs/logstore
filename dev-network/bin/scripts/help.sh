@@ -9,6 +9,7 @@ Usage: dev-network [<command> [options]]
 Commands:
     help                show this screen
     config              сonfigure connection to the DevNetwork
+    build               build sidechain snapshot image 
     deploy              deploy the DevNetwork from a remote git branch
     connect             connect the required ports from the DevNetwork
     start               start the DevNetwork
@@ -41,6 +42,14 @@ Subcommands:
 
 Usage: dev-network config set -i 10.0.0.1 -u ubuntu -f /home/ubuntu/.ssh/id_rsa.pub
 Usage: dev-network config show
+"
+}
+
+build_help() {
+echo "
+Build the sidechan snapshot image with deployed contracts and funded accounts.
+
+Usage: dev-network build
 "
 }
 
@@ -93,6 +102,9 @@ case $1 in
     ;;
 "config" )
     config_help
+    ;;
+"build" )
+    build_help
     ;;
 "start" )
     start_help

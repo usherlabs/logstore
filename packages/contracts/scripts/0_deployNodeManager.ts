@@ -26,11 +26,17 @@ async function main() {
 	let tokenManagerAddress: string = '';
 	const tokenManager = await hre.ethers.getContractFactory('LSAN');
 	const safeAddress =
-		hre.network.config.chainId === 137 ? SAFE_ADDRESS : signer.address;
+		hre.network.config.chainId === 137 // Polygon
+			? SAFE_ADDRESS
+			: signer.address;
 	console.log('Starting the LSAN deployment...');
 	while (!tokenManagerAddress) {
 		try {
-			const weiPerByte = await getWeiPerByte();
+			const weiPerByte =
+				hre.network.config.chainId === 8997 // DevNetwork
+					? hre.ethers.utils.parseUnits('1000000000', 'wei')
+					: await getWeiPerByte();
+
 			console.log('Wei Per Byte:', weiPerByte.toNumber());
 			console.log('MATIC Per Byte:', hre.ethers.utils.formatEther(weiPerByte));
 			tokenManagerContract = await hre.upgrades.deployProxy(tokenManager, [
@@ -207,8 +213,8 @@ async function main() {
 			'1111111111111111111111111111111111111111111111111111111111111111';
 		const STORAGE_PROXY_PK =
 			'0000000000000000000000000000000000000000000000000000000000000111';
-		const NUM_ACCOUNTS = 100;
-		const NUM_BROKERS = 3;
+		const NUM_ACCOUNTS = 1000;
+		const NUM_BROKERS = 10;
 		const NUM_VALIDATORS = 4;
 		const NUM_ACCOUNTS_IN_BATCH = 100;
 

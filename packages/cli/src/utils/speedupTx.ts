@@ -21,9 +21,16 @@ import {
 	Observable,
 	type ObservableInput,
 	of,
+	type OperatorFunction,
 	retry,
 	throwError,
 } from 'rxjs';
+
+interface TransactionError extends Error {
+	replacement: {
+		hash: string;
+	};
+}
 
 const createTransactionWithIncreasedTip = <T extends Transaction>(
 	signer: Signer,
@@ -46,7 +53,7 @@ const createTransactionWithIncreasedTip = <T extends Transaction>(
 	});
 };
 
-const errorIncludesMessages = (acceptedMessages: string[]) => (e: any) =>
+const errorIncludesMessages = (acceptedMessages: string[]) => (e: Error) =>
 	acceptedMessages.some((msg) => e.message.includes(msg));
 
 // const skipErrorMessagesContaining =
@@ -61,11 +68,11 @@ const errorIncludesMessages = (acceptedMessages: string[]) => (e: any) =>
 // 		}
 // 	};
 
-const handleError = (
+const handleError = <T, O>(
 	acceptedMessages: string[],
-	errorHandler: (e: any) => ObservableInput<any>
-) =>
-	catchError((e: any): ObservableInput<any> => {
+	errorHandler: (e: unknown) => ObservableInput<O>
+): OperatorFunction<T, T | O> =>
+	catchError((e: Error): ObservableInput<O> => {
 		if (acceptedMessages.some((msg) => e.message.includes(msg))) {
 			return errorHandler(e);
 		}
@@ -134,9 +141,12 @@ export const keepRetryingWithIncreasedGasPrice = (
 		of(currentTx)
 	).pipe(
 		mergeMap((tx) => tx.wait(1)),
-		handleError(['transaction was replaced', 'repriced'], (e) => {
-			return provider?.waitForTransaction(e.replacement.hash);
-		}),
+		handleError(
+			['transaction was replaced', 'repriced'],
+			(e: TransactionError) => {
+				return provider?.waitForTransaction(e.replacement.hash);
+			}
+		),
 		first()
 	);
 

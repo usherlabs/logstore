@@ -1,4 +1,4 @@
-// import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
+import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
 	getClientsFromOptions,
 	getCredentialsFromOptions,
@@ -47,10 +47,10 @@ const stakeCommand = new Command()
 		try {
 			const { streamrClient, logStoreClient } = getClientsFromOptions();
 
-			using cleanup = new DisposableStack();
-			cleanup.defer(() => {
+			await using cleanup = new AsyncDisposableStack();
+			cleanup.defer(async () => {
 				logStoreClient.destroy();
-				streamrClient.destroy();
+				await streamrClient.destroy();
 			});
 
 			const amountToStakeInLSAN = cmdOptions.usd
@@ -69,14 +69,13 @@ const stakeCommand = new Command()
 			await checkLSANFunds(hexValue);
 
 			console.log('Checking for available allowance...');
+			const overrides = await firstValueFrom(fastPriorityIfMainNet$);
 			const allowanceTx = await requestAllowanceIfNeeded(
 				Manager.StoreManager,
 				BigInt(hexValue),
 				signer,
 				!cmdOptions.assumeYes ? allowanceConfirm : undefined,
-				// {
-				// 	maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-				// }
+				overrides
 			);
 
 			if (allowanceTx) {
@@ -94,9 +93,8 @@ const stakeCommand = new Command()
 			const tx = await logStoreClient.stakeOrCreateStore(
 				streamId,
 				BigInt(amountToStakeInLSAN),
-				// {
-				// 	maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-				// }
+				// NOTE: if we use the property directly, if its undefined it might fail on dev-network
+				{ ...overrides }
 			);
 			const receipt = await firstValueFrom(
 				keepRetryingWithIncreasedGasPrice(signer, tx)

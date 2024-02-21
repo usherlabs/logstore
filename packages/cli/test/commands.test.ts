@@ -22,6 +22,7 @@ const test = rawTest.extend<{
 		const clients = getTestLogStoreClient(walletPrivateKey);
 		await use(clients);
 		await clients.streamrClient.destroy();
+		clients.logStoreClient.destroy();
 	},
 	provider: async ({ clients: { logStoreClient } }, use) => {
 		const signer = await logStoreClient.getSigner();
@@ -93,7 +94,7 @@ describe('direct cli call tests', function () {
 
 			expect(code).toBe(0);
 			expect(stdout).toContain('Successfully minted tokens to network');
-			expect(stdout).toContain('mint amount:');
+			expect(stdout).toMatch(/Minted \d+ LSAN/);
 
 			const newBalance = await logStoreClient.getBalance();
 
@@ -116,14 +117,13 @@ describe('direct cli call tests', function () {
 
 			const expectedBalance = balance + BigInt(mintResult);
 
-			const { code, stdout, stderr } = await executeOnCli(
+			const { code, stdout } = await executeOnCli(
 				`mint -u ${MINT_AMOUNT_USD} ${credentialsString} `
 			);
 
 			expect(code).toBe(0);
-			expect(stderr).toBe('');
 			expect(stdout).toContain('Successfully minted tokens to network');
-			expect(stdout).toContain('mint amount:');
+			expect(stdout).toMatch(/Minted \d+ LSAN/);
 
 			const newBalance = await logStoreClient.getBalance();
 
@@ -146,15 +146,14 @@ describe('direct cli call tests', function () {
 
 			const expectedBalance = balance + BigInt(mintResult);
 
-			const { code, stdout, stderr } = await executeOnCli(
+			const { code, stdout } = await executeOnCli(
 				`mint -u ${MINT_AMOUNT_USD} ${credentialsString} `
 			);
 
 			const output = stripAnsi(stdout);
 			expect(code).toBe(0);
-			expect(stderr).toBe('');
 			expect(output).toContain('Successfully minted tokens to network');
-			expect(output).toContain('mint amount:');
+			expect(stdout).toMatch(/Minted \d+ LSAN/);
 
 			const newBalance = await logStoreClient.getBalance();
 

@@ -1,5 +1,5 @@
 import { getRootOptions } from '@/commands/options';
-// import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
+import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
 	getClientsFromOptions,
 	getCredentialsFromOptions,
@@ -45,10 +45,10 @@ export const mintCommand = new Command()
 		try {
 			const { streamrClient, logStoreClient } = getClientsFromOptions();
 
-			using cleanup = new DisposableStack();
-			cleanup.defer(() => {
+			await using cleanup = new AsyncDisposableStack();
+			cleanup.defer(async () => {
 				logStoreClient.destroy();
-				streamrClient.destroy();
+				await streamrClient.destroy();
 			});
 
 			const mintType = cmdOptions.usd
@@ -68,9 +68,7 @@ export const mintCommand = new Command()
 			console.log(`Minting ${amountInToken} wei...`);
 			const result = await logStoreClient.mint(
 				BigInt(new Decimal(amountInToken).toHex()),
-				// {
-				// 	maxPriorityFeePerGas: await firstValueFrom(fastPriorityIfMainNet$),
-				// }
+				await firstValueFrom(fastPriorityIfMainNet$)
 			);
 
 			console.log(

@@ -1,4 +1,5 @@
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import * as sharedLib from '@logsn/shared';
 import { Logger } from '@streamr/utils';
 import Decimal from 'decimal.js';
 import { ethers, providers, Wallet } from 'ethers';
@@ -6,7 +7,9 @@ import StreamrClient, { CONFIG_TEST } from 'streamr-client';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
+import * as contractPkg from '../../src/streamr/utils/contract';
 import { waitForTx } from '../../src/streamr/utils/contract';
+import { BigNumber } from '@ethersproject/bignumber';
 
 const MINT_AMOUNT = 100_000_000_000_000n;
 const TIMEOUT = 90 * 1000;
@@ -38,6 +41,10 @@ describe('Manage tokens', () => {
 	afterAll(async () => {
 		await Promise.allSettled([streamrClient?.destroy()]);
 	}, TIMEOUT);
+
+	afterEach(() => {
+		jest.restoreAllMocks();
+	});
 
 	test(
 		'Gets balance',
@@ -100,10 +107,28 @@ describe('Manage tokens', () => {
 	test(
 		'Converts tokens',
 		async () => {
-			const price = await logStoreClient.getPrice();
+			// This test assumes that we're using a dev network that was not modified
+			// at the time of this test.
+			// If the price of LSAN changes, this test will fail, and should be updated.
 
-			const inWei = new Decimal('1e18');
+			// get matic is used inside conversion fn
+			const getMaticPriceSpy = jest.spyOn(sharedLib, 'getMaticPrice');
+			// make matic price return fixed value for deterministic tests
+			getMaticPriceSpy.mockResolvedValue(0.8453466722213528); // as in 09 fev 2024
+
+			// deterministic, a reasonable price. would be the result of logStoreClient.price
+			const price = 652430556n;
+			// queryContractsSpy is used inside conversion fn to get the price
+			const queryContractsSpy = jest.spyOn(
+				contractPkg,
+				'queryAllReadonlyContracts'
+			);
+			queryContractsSpy.mockResolvedValue([BigNumber.from(price)]);
+
+			const inWei = new Decimal('1e18'); // 1 ether
 			const inBytes = inWei.div(price.toString()).floor();
+
+			expect(+inBytes).toBe(1_532_730_174); // 1 ether = 1_532_730_174 bytes
 
 			logger.debug(`Converting ${inBytes} bytes to wei`);
 			logger.debug(`Converting ${inWei} wei to usd`);
@@ -120,17 +145,27 @@ describe('Manage tokens', () => {
 				amount: inWei.toString(),
 			});
 
-			expect(ethers.utils.formatEther(bytesToWei)).toMatchInlineSnapshot(
-				`"0.99999999864981264"`
+			// Showing that the conversion is aproximate, but is not exact due to roundings
+			const bytesToWeiAfterConversion = +ethers.utils.formatEther(bytesToWei);
+			expect(bytesToWeiAfterConversion).toBeCloseTo(
+				1,
+				8 // digits
+			);
+			expect(bytesToWeiAfterConversion).not.toBeCloseTo(
+				1,
+				10 // digits
 			);
 
 			// $0.709104 at 28/07/2023. We will assume that pricing will be between 0.3 and 1.5 USD
-			expect(+weiToUsd).toBeGreaterThan(0.3);
-			expect(+weiToUsd).toBeLessThan(1.5);
+			expect(+weiToUsd).toBe(0.8453466722213528); // 1 USD = 0.8453466722213528 wei
 
 			expect(
-				await logStoreClient.convert({ amount: '1', from: 'usd', to: 'bytes' })
-			).toBe('');
+				+(await logStoreClient.convert({
+					amount: '1',
+					from: 'usd',
+					to: 'bytes',
+				}))
+			).toBe(1813138000); // 1 USD = 1_813_138_000 bytes
 		},
 		TIMEOUT
 	);

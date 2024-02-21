@@ -10,9 +10,9 @@ const listCommand = new Command()
 		try {
 			const { streamrClient } = getClientsFromOptions();
 
-			using cleanup = new DisposableStack();
-			cleanup.defer(() => {
-				streamrClient.destroy();
+			await using cleanup = new AsyncDisposableStack();
+			cleanup.defer(async () => {
+				await streamrClient.destroy();
 			});
 
 			const streams = streamrClient.searchStreams(

@@ -11,6 +11,6 @@ export default defineConfig({
 	},
 	test: {
 		environment: 'node',
-		setupFiles: ['dotenv/config', 'disposablestack/auto'],
+		setupFiles: ['dotenv/config', 'disposablestack/auto', 'src/injects.ts'],
 	},
 });

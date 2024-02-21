@@ -6,7 +6,6 @@ import {
 	Logger,
 	toEthereumAddress,
 } from '@streamr/utils';
-import pThrottle from 'p-throttle';
 import {
 	auditTime,
 	defer,
@@ -24,6 +23,8 @@ import {
 } from 'rxjs';
 import StreamrClient from 'streamr-client';
 import { inject, Lifecycle, scoped } from 'tsyringe';
+import type * as lodash from 'lodash';
+import { throttle } from 'lodash';
 
 import {
 	LogStoreClientConfigInjectionToken,
@@ -77,7 +78,10 @@ export class NodeManager {
 	// replay subject emits the last value to new subscribers. But if there's no value, it won't emit until it does.
 	private readonly lastUrlList$ = new ReplaySubject<string[]>(1);
 	// throttledUpdateList will help us to update the lastUrlList$ with the node information output at most once every X minutes.
-	private throttledUpdateList = () => Promise<void>;
+	private throttledUpdateList: lodash.DebouncedFunc<() => unknown> = throttle(
+		() => {},
+		60_000
+	);
 
 	// ==================================
 
@@ -112,8 +116,10 @@ export class NodeManager {
 
 		// This function is throttled to run at most once every minute.
 		// Also, we're able to get the lastUrlList$ value instantly, as soon as the first heartbeat message arrives.
-		this.throttledUpdateList = pThrottle({ limit: 1, interval: 60_000 })(() =>
-			this.updateNodeUrlList()
+		this.throttledUpdateList = throttle(
+			() => this.updateNodeUrlList(),
+			60_000,
+			{ leading: true }
 		);
 		this.throttledUpdateList();
 	}
@@ -295,6 +301,7 @@ export class NodeManager {
 	public destroy() {
 		this.abort$.next(1);
 		this.lastUrlList$.complete();
+		this.throttledUpdateList.cancel();
 	}
 
 	[Symbol.dispose]() {

@@ -37,6 +37,7 @@ export function getClientsForCredentials({
 
 	const logLevel = logger.settings.minLevel === 3 ? 'warn' : 'debug';
 	if (!('LOG_LEVEL' in process.env)) {
+		// eslint-disable-next-line immutable/no-mutation
 		process.env.LOG_LEVEL = logLevel;
 	}
 	let config = {
@@ -50,9 +51,11 @@ export function getClientsForCredentials({
 			contracts: {
 				...streamrConfig?.contracts,
 				streamRegistryChainRPCs: {
-					rpcs: [{
-						url: host
-					}],
+					rpcs: [
+						{
+							url: host,
+						},
+					],
 					chainId: USE_TEST_CONFIG ? 8997 : 137,
 					name: USE_TEST_CONFIG ? 'streamr' : 'polygon',
 				},

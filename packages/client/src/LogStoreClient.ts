@@ -1,8 +1,10 @@
+// also imported here to ensure the polyfills are included on tests that import this file directly
+import './polyfills';
+
 import type { Overrides } from '@ethersproject/contracts';
 import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
 import type { Schema } from 'ajv';
 import { ContractTransaction, Signer } from 'ethers';
-import 'reflect-metadata';
 import { map, share, switchMap } from 'rxjs';
 import {
 	MessageListener,

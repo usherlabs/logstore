@@ -32,12 +32,14 @@ const gasStationFees$ = defer(() =>
 const mapGweiToBN = (gwei: number) =>
 	ethers.utils.parseUnits(gwei.toString(), 'gwei');
 
-const fastPriorityFee$ = gasStationFees$.pipe(
-	map((gasStationResponse) => gasStationResponse.fast.maxPriorityFee),
-	map(mapGweiToBN),
+const fastFee$ = gasStationFees$.pipe(
+	map(({ fast }) => ({
+		maxPriorityFeePerGas: mapGweiToBN(fast.maxPriorityFee),
+		maxFeePerGas: mapGweiToBN(fast.maxFee),
+	})),
 	share()
 );
 
 export const fastPriorityIfMainNet$ = isDevNetwork$.pipe(
-	switchMap((isDevNet) => (isDevNet ? of(undefined) : fastPriorityFee$))
+	switchMap((isDevNet) => (isDevNet ? of(undefined) : fastFee$))
 );

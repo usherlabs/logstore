@@ -44,9 +44,11 @@ export const rootProgram = new Command()
 			const newArgs = { ...args };
 
 			if (!args.wallet && configData.privateKey) {
+				// eslint-disable-next-line immutable/no-mutation
 				newArgs.wallet = configData.privateKey;
 			}
 			if (!args.host && configData.host) {
+				// eslint-disable-next-line immutable/no-mutation
 				newArgs.host = configData.host;
 			}
 

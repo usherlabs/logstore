@@ -48,6 +48,12 @@ export const initCommand = new Command('init')
 			options.privateKey,
 			options.devNetwork
 		);
-		const pulse = new Pulse(logStoreClient, streamrClient);
-		await pulse.createStream(amount);
+
+		try {
+			const pulse = new Pulse(logStoreClient, streamrClient);
+			await pulse.createStream(amount);
+		} finally {
+			logStoreClient.destroy();
+			streamrClient.destroy();
+		}
 	});
