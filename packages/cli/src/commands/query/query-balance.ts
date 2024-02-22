@@ -4,6 +4,7 @@ import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
 import Decimal from 'decimal.js';
+import { handleKnownError } from '@/utils/errors/handleErrors';
 
 const queryBalanceCommand = new Command()
 	.name('balance')
@@ -30,7 +31,8 @@ const queryBalanceCommand = new Command()
 				`${bytesToMessage(availableStorage)} of data is available for Queries.`
 			);
 		} catch (e) {
-			logger.info(chalk.red('Query Balance Check failed'));
+			logger.error(chalk.red('Query Balance Check failed'));
+			await handleKnownError(e);
 			logger.error(e);
 		}
 	});

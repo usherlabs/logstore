@@ -17,6 +17,7 @@ import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
 import Decimal from 'decimal.js';
 import { firstValueFrom } from 'rxjs';
+import { handleKnownError } from '@/utils/errors/handleErrors';
 
 export const mintCommand = new Command()
 	.command('mint')
@@ -95,8 +96,9 @@ export const mintCommand = new Command()
 
 			await printTransactionLink(receipt);
 		} catch (e: unknown) {
-			console.log(chalk.red('mint failed'));
+			logger.error(chalk.red('mint failed'));
 			printContractFailReason(e);
+			await handleKnownError(e);
 
 			logger.error(e);
 		}
