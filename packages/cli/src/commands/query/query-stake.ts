@@ -23,6 +23,8 @@ import chalk from 'chalk';
 import Decimal from 'decimal.js';
 import { firstValueFrom } from 'rxjs';
 
+import { handleKnownError } from '@/utils/errors/handleErrors';
+
 const stakeCommand = new Command()
 	.name('stake')
 	.description('Stake to submit Query requests to the Log Store Network')
@@ -113,6 +115,7 @@ const stakeCommand = new Command()
 			await printTransactionLink(receipt);
 		} catch (e) {
 			console.info(chalk.red('Stake failed'));
+			await handleKnownError(e);
 			printContractFailReason(e);
 			logger.error(e);
 		}

@@ -3,6 +3,7 @@ import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
 import Decimal from 'decimal.js';
+import { handleKnownError } from '@/utils/errors/handleErrors';
 
 const balanceCommand = new Command()
 	.name('balance')
@@ -30,6 +31,7 @@ const balanceCommand = new Command()
 			);
 		} catch (e) {
 			logger.info(chalk.red('Storage Balance Check failed'));
+			await handleKnownError(e);
 			logger.error(e);
 		}
 	});

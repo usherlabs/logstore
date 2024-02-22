@@ -16,7 +16,9 @@ import inquirer from 'inquirer';
 import _ from 'lodash';
 import { Logger } from 'tslog';
 
-export const logger = new Logger();
+export const logger = new Logger({
+	prettyLogTemplate: '[{{logLevelName}}] ',
+});
 
 export const allowanceConfirm: allowanceConfirmFn = async (
 	currentAllowance: bigint,

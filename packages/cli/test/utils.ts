@@ -1,6 +1,10 @@
 import { getClientsForCredentials } from '@/utils/logstore-client';
 import { exec } from 'child_process';
 import path from 'path';
+import { test as rawTest } from 'vitest';
+import { ethers } from 'ethers';
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import stripAnsi from 'strip-ansi';
 
 const getCliPath = async () => {
 	// gets package.json from the root of the project
@@ -24,7 +28,8 @@ const getTSCliPath = () => {
  */
 export const executeOnCli = async (
 	command: string,
-	type: 'build' | 'dev' = 'dev'
+	type: 'build' | 'dev' = 'dev',
+	env: Record<string, string> = {}
 ) => {
 	const cliPath = type === 'dev' ? getTSCliPath() : await getCliPath();
 	const execCommand =
@@ -34,13 +39,22 @@ export const executeOnCli = async (
 	console.log('executing: ', execCommand);
 	return new Promise<{ stdout: string; stderr: string; code: number }>(
 		(resolve) => {
-			exec(execCommand, (error, stdout, stderr) => {
-				if (error) {
-					resolve({ stdout, stderr, code: Number(error.code) });
-				} else {
-					resolve({ stdout, stderr, code: 0 });
+			exec(
+				execCommand,
+				{
+					env: {
+						...process.env,
+						...env,
+					},
+				},
+				(error, stdout, stderr) => {
+					resolve({
+						stdout: stripAnsi(stdout),
+						stderr: stripAnsi(stderr),
+						code: error ? Number(error.code) : 0,
+					});
 				}
-			});
+			);
 		}
 	);
 };
@@ -51,3 +65,33 @@ export function getTestLogStoreClient(privateKey: string) {
 		wallet: privateKey,
 	});
 }
+
+export const test = rawTest.extend<{
+	walletPrivateKey: string;
+	clients: ReturnType<typeof getTestLogStoreClient>;
+	provider: ethers.providers.Provider;
+	credentialsString: string;
+}>({
+	walletPrivateKey: async ({}, use) => {
+		const privateKey = await fetchPrivateKeyWithGas();
+		await use(privateKey);
+	},
+	clients: async ({ walletPrivateKey }, use) => {
+		const clients = getTestLogStoreClient(walletPrivateKey);
+		await use(clients);
+		await clients.streamrClient.destroy();
+		clients.logStoreClient.destroy();
+	},
+	provider: async ({ clients: { logStoreClient } }, use) => {
+		const signer = await logStoreClient.getSigner();
+		const provider = signer.provider;
+		if (!provider) {
+			throw new Error('No provider');
+		}
+		await use(provider);
+	},
+	credentialsString: async ({ walletPrivateKey }, use) => {
+		const credentialsString = `-h http://localhost:8546 -w ${walletPrivateKey}`;
+		await use(credentialsString);
+	},
+});

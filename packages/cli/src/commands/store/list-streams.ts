@@ -2,6 +2,7 @@ import { getClientsFromOptions } from '@/utils/logstore-client';
 import { logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
+import { handleKnownError } from '@/utils/errors/handleErrors';
 
 const listCommand = new Command()
 	.name('list')
@@ -25,6 +26,7 @@ const listCommand = new Command()
 			}
 		} catch (e) {
 			logger.info(chalk.red('Listing streams failed'));
+			await handleKnownError(e);
 			logger.error(e);
 		}
 	});
