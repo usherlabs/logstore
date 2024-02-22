@@ -1,42 +1,10 @@
-import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
-import { ethers } from 'ethers';
 import stripAnsi from 'strip-ansi';
-import { describe, expect, test as rawTest } from 'vitest';
+import { describe, expect } from 'vitest';
 
 import { createTestStream } from '../../client/test/test-utils/utils';
-import { executeOnCli, getTestLogStoreClient } from './utils';
+import { executeOnCli, test } from './utils';
 
 const TEST_TIMEOUT = 90_000;
-
-const test = rawTest.extend<{
-	walletPrivateKey: string;
-	clients: ReturnType<typeof getTestLogStoreClient>;
-	provider: ethers.providers.Provider;
-	credentialsString: string;
-}>({
-	walletPrivateKey: async ({}, use) => {
-		const privateKey = await fetchPrivateKeyWithGas();
-		await use(privateKey);
-	},
-	clients: async ({ walletPrivateKey }, use) => {
-		const clients = getTestLogStoreClient(walletPrivateKey);
-		await use(clients);
-		await clients.streamrClient.destroy();
-		clients.logStoreClient.destroy();
-	},
-	provider: async ({ clients: { logStoreClient } }, use) => {
-		const signer = await logStoreClient.getSigner();
-		const provider = signer.provider;
-		if (!provider) {
-			throw new Error('No provider');
-		}
-		await use(provider);
-	},
-	credentialsString: async ({ walletPrivateKey }, use) => {
-		const credentialsString = `-h http://localhost:8546 -w ${walletPrivateKey}`;
-		await use(credentialsString);
-	},
-});
 
 describe('direct cli call tests', function () {
 	test(

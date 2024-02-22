@@ -26,14 +26,16 @@ export function getCredentialsFromOptions() {
 export function getClientsForCredentials({
 	host,
 	wallet,
+	isTest = USE_TEST_CONFIG,
 }: {
 	host: string;
 	wallet: string;
+	isTest?: boolean;
 }) {
-	const { logLevel: _unused, ...streamrConfig } = USE_TEST_CONFIG
+	const { logLevel: _unused, ...streamrConfig } = isTest
 		? STREAMR_CONFIG_TEST
 		: ({} as never);
-	const logStoreConfig = USE_TEST_CONFIG ? LOGSTORE_CONFIG_TEST : {};
+	const logStoreConfig = isTest ? LOGSTORE_CONFIG_TEST : {};
 
 	const logLevel = logger.settings.minLevel === 3 ? 'warn' : 'debug';
 	if (!('LOG_LEVEL' in process.env)) {
@@ -45,7 +47,7 @@ export function getClientsForCredentials({
 		logLevel: logLevel,
 		auth: { privateKey: wallet },
 	} as StreamrClientConfig;
-	if (USE_TEST_CONFIG || host) {
+	if (isTest || host) {
 		config = {
 			...config,
 			contracts: {
@@ -56,8 +58,8 @@ export function getClientsForCredentials({
 							url: host,
 						},
 					],
-					chainId: USE_TEST_CONFIG ? 8997 : 137,
-					name: USE_TEST_CONFIG ? 'streamr' : 'polygon',
+					chainId: isTest ? 8997 : 137,
+					name: isTest ? 'streamr' : 'polygon',
 				},
 			},
 		};
