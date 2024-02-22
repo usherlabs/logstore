@@ -8,8 +8,7 @@
 			"@logsn/client",
 			"@logsn/contracts",
 			"@logsn/protocol",
-			"@logsn/shared",
-			"@logsn/storage-proxy"
+			"@logsn/shared"
 		]
 	],
 	"linked": [],
@@ -20,6 +19,7 @@
 		"@logsn/benchmarks",
 		"@logsn/pulse",
 		"@logsn/subgraph",
-		"@logsn/validator"
+		"@logsn/validator",
+		"@logsn/storage-proxy"
 	]
 }
