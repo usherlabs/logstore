@@ -73,14 +73,15 @@ const balanceFromWallet = (wallet: Wallet) =>
  * As these errors handling are not robust, it's better to maintain a suggestion tone.
  * */
 const knownTxErrorFilters = {
-	[KnownTxErrors.INSUFFICIENT_FUNDS]: or(
+	[KnownTxErrors.INSUFFICIENT_FUNDS]: or<TxError>(
 		// this is expected to usually happen
-		(err: TxError) => err.code === 'INSUFFICIENT_FUNDS',
+		(err) => err.code === 'INSUFFICIENT_FUNDS',
+
 		and(
 			// for some reason, some providers are returning this error instead
-			(err: TxError) => err.code === 'UNPREDICTABLE_GAS_LIMIT',
+			(err) => err.code === 'UNPREDICTABLE_GAS_LIMIT',
 			// but we are also checking if the balance is insufficient
-			(err: TxError) => {
+			(err) => {
 				const { signer } = getCredentialsFromOptions();
 				const maxFeePerGas$ = maxFeePerGasFromCtx(err);
 				const walletBalance$ = balanceFromWallet(signer);
