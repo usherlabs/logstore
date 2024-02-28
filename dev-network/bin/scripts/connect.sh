@@ -8,6 +8,8 @@ Connecting to the DevNetwork...
 \thttp://localhost:80\t\t\tStreamr APP
 \thttp://localhost:8802\t\t\tEVM Explorer
 
+... Many other ports connected - See ./dev-network/bin/scripts/connect.sh
+
 Keep the script running.
 Hit [Ctrl+C] to abort.
 "
