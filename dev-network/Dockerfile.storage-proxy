@@ -6,7 +6,7 @@ COPY --chown=node:node ./modules/logstore-node/packages/storage-proxy/package.js
 
 RUN pnpm install
 
-COPY --chown=node:node ./ ./
+COPY --chown=node:node ./modules/logstore-node/packages/storage-proxy/ ./
 
 RUN pnpm build
 
