@@ -5,8 +5,8 @@ source $DEV_NETWORK_SCRIPTS_DIR/config_load.sh
 printf "
 Connecting to the DevNetwork...
 
-\thttp://localhost:80\t\t\tStreamr APP
-\thttp://localhost:8802\t\t\tEVM Explorer
+\thttp://10.200.10.1:80\t\t\tStreamr APP
+\thttp://10.200.10.1:8802\t\t\tEVM Explorer
 
 Keep the script running.
 Hit [Ctrl+C] to abort.
@@ -15,22 +15,22 @@ Hit [Ctrl+C] to abort.
 $SSH \
 	-o ServerAliveInterval=60 \
   -N \
-  -L 80:localhost:80 \
-  -L 443:localhost:443 \
-  -L 1317:localhost:1317 \
-  -L 4001:localhost:4001 \
-  -L 5432:localhost:5432 \
-  -L 7771:localhost:7771 \
-  -L 7772:localhost:7772 \
-  -L 7773:localhost:7773 \
-  -L 8000:localhost:8000 \
-  -L 8081:localhost:8081 \
-  -L 8545:localhost:8545 \
-  -L 8546:localhost:8546 \
-  -L 8801:localhost:8801 \
-  -L 8802:localhost:8802 \
-  -L 9042:localhost:9042 \
-  -L 26657:localhost:26657 \
-  -L 30301:localhost:30301 \
-  -L 30302:localhost:30302 \
-  -L 30303:localhost:30303
+  -L *:80:10.200.10.1:80 \
+  -L *:443:10.200.10.1:443 \
+  -L *:1317:10.200.10.1:1317 \
+  -L *:4001:10.200.10.1:4001 \
+  -L *:5432:10.200.10.1:5432 \
+  -L *:7771:10.200.10.1:7771 \
+  -L *:7772:10.200.10.1:7772 \
+  -L *:7773:10.200.10.1:7773 \
+  -L *:8000:10.200.10.1:8000 \
+  -L *:8081:10.200.10.1:8081 \
+  -L *:8545:10.200.10.1:8545 \
+  -L *:8546:10.200.10.1:8546 \
+  -L *:8801:10.200.10.1:8801 \
+  -L *:8802:10.200.10.1:8802 \
+  -L *:9042:10.200.10.1:9042 \
+  -L *:26657:10.200.10.1:26657 \
+  -L *:30301:10.200.10.1:30301 \
+  -L *:30302:10.200.10.1:30302 \
+  -L *:30303:10.200.10.1:30303
