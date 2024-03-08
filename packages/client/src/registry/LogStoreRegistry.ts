@@ -10,6 +10,7 @@ import { ContractTransaction } from 'ethers';
 import { min } from 'lodash';
 import StreamrClient, { Stream } from 'streamr-client';
 import { inject, Lifecycle, scoped } from 'tsyringe';
+import pLimit from 'p-limit';
 
 import {
 	LogStoreClientConfigInjectionToken,
@@ -54,6 +55,8 @@ export interface LogStoreAssignmentEvent {
 	readonly amount: BigNumber;
 	readonly blockNumber: number;
 }
+
+const limit = pLimit(3); // Limit concurrency of Stream fetch
 
 /**
  * Stores storage node assignments (mapping of streamIds <-> storage nodes addresses)
@@ -258,9 +261,12 @@ export class LogStoreRegistry {
 	}> {
 		this.logger.debug('getting stored streams');
 		const blockNumbers: number[] = [];
-		// await collect(
-		const res = await collect(
-			this.graphQLClient.fetchPaginatedResults(
+
+		const res = await collect<{ store: string }>(
+			this.graphQLClient.fetchPaginatedResults<{
+				store: string;
+				id: string; // must conform to id extension...
+			}>(
 				(lastId: string, pageSize: number) => {
 					const query = `
 					{
@@ -283,19 +289,23 @@ export class LogStoreRegistry {
 				}
 			)
 		);
-		this.logger.debug('res: ', { res });
+		this.logger.debug('getStoredStreams() - res: ', { res });
+
 		const streams = (
 			await Promise.all(
-				res.map(async (storeUpdated: any) => {
-					try {
-						return await this.streamrClient.getStream(
-							toStreamID(storeUpdated.store)
-						);
-					} catch (err) {
-						this.logger.error(err);
-						return null;
-					}
-				})
+				res.map((storeUpdated) =>
+					limit(async (storeUpdated) => {
+						try {
+							return await this.streamrClient.getStream(
+								toStreamID(storeUpdated.store)
+							);
+						} catch (err) {
+							this.logger.warn(err);
+							this.logger.warn('Continuing to return stored streams...');
+							return null;
+						}
+					}, storeUpdated)
+				)
 			)
 		).filter((stream) => stream != null) as unknown as Stream[];
 
