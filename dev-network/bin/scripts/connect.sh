@@ -1,5 +1,32 @@
 #!/bin/bash
 
+ip_lines=$(/sbin/ifconfig | grep -c 10.200.10.1)
+if [ "$ip_lines" -eq "0" ]; then
+    echo "Binding the internal IP address 10.200.10.1 to the loopback interface."
+    echo "This requires sudo privileges, so please provide your password if requested"
+
+    # Binding the loopback address is OS-specific
+    case "$OSTYPE" in
+    darwin*)
+        sudo ifconfig lo0 alias 10.200.10.1/24
+    ;;
+    linux*)
+        sudo ip addr add 10.200.10.1 dev lo label lo:1
+    ;;
+    msys*|cygwin*) # windows
+        echo "It is required to bind a loopback interface manually on Windows."
+        echo "Please follow the links below for instructions on how to do it:"
+        echo "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/install-microsoft-loopback-adapter"
+        echo "https://academy.showcockpit.com/tutorials/networking/loopback-network-adapter"
+        exit 1
+    ;;
+    *)
+        echo "streamr-docker-dev: unknown operating system: $OSTYPE" 1>&2
+        exit 1
+    ;;
+    esac
+fi
+
 source $DEV_NETWORK_SCRIPTS_DIR/config_load.sh
 
 printf "
@@ -7,6 +34,8 @@ Connecting to the DevNetwork...
 
 \thttp://10.200.10.1:80\t\t\tStreamr APP
 \thttp://10.200.10.1:8802\t\t\tEVM Explorer
+
+... Many other ports connected - See ./dev-network/bin/scripts/connect.sh
 
 Keep the script running.
 Hit [Ctrl+C] to abort.

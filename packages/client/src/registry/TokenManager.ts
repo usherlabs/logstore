@@ -69,7 +69,6 @@ export class TokenManager {
 		this.logstoreTokenManagerContractsReadonly =
 			getStreamRegistryChainProviders(this.streamrClientConfig).map(
 				(provider: Provider) => {
-					this.logger.debug('provider: ' + provider);
 					const tokenManagerAddress = toEthereumAddress(
 						this.logStoreClientConfig.contracts.logStoreTokenManagerChainAddress
 					);
