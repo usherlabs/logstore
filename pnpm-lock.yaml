@@ -13,7 +13,7 @@ importers:
         version: 2.27.1
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^4.1.1
-        version: 4.1.1(prettier@3.2.5)
+        version: 4.1.1(prettier@2.8.8)
       '@tsconfig/node16':
         specifier: ^1.0.3
         version: 1.0.3
@@ -46,7 +46,7 @@ importers:
         version: 27.8.0(@typescript-eslint/eslint-plugin@7.0.1)(eslint@8.56.0)(typescript@5.3.3)
       eslint-plugin-prettier:
         specifier: ^5.1.3
-        version: 5.1.3(eslint-config-prettier@9.1.0)(eslint@8.56.0)(prettier@3.2.5)
+        version: 5.1.3(eslint-config-prettier@9.1.0)(eslint@8.56.0)(prettier@2.8.8)
       eslint-plugin-simple-import-sort:
         specifier: ^12.0.0
         version: 12.0.0(eslint@8.56.0)
@@ -63,17 +63,17 @@ importers:
         specifier: ^4.1.5
         version: 4.1.5
       prettier:
-        specifier: ^3.0.0
-        version: 3.2.5
+        specifier: ^2.8.8
+        version: 2.8.8
       prettier-2:
         specifier: npm:prettier@^2
         version: /prettier@2.6.2
       prettier-plugin-solidity:
         specifier: ^1.1.3
-        version: 1.3.1(prettier@3.2.5)
+        version: 1.3.1(prettier@2.8.8)
       turbo:
-        specifier: ^1.8.3
-        version: 1.8.3
+        specifier: ^1.12.4
+        version: 1.12.4
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
@@ -901,33 +901,11 @@ importers:
         specifier: ^4.9.5
         version: 4.9.5
 
-  packages/storage-proxy:
-    dependencies:
-      '@streamr/utils':
-        specifier: ^8.5.5
-        version: 8.5.5
-      commander:
-        specifier: ^11.1.0
-        version: 11.1.0
-      dotenv:
-        specifier: ^16.3.1
-        version: 16.3.1
-      streamr-client:
-        specifier: ^8.5.5
-        version: 8.5.5(@ethersproject/hash@5.7.0)(typescript@4.9.5)
-    devDependencies:
-      del-cli:
-        specifier: ^5.0.0
-        version: 5.0.0
-      typescript:
-        specifier: ^4.9.5
-        version: 4.9.5
-
   packages/subgraph:
     dependencies:
       '@graphprotocol/graph-cli':
         specifier: ^0.46.1
-        version: 0.46.1(@types/node@18.15.13)(node-fetch@2.7.0)(typescript@5.3.3)
+        version: 0.46.1(@types/node@18.15.13)(typescript@5.3.3)
       '@graphprotocol/graph-ts':
         specifier: ^0.29.3
         version: 0.29.3
@@ -3964,7 +3942,7 @@ packages:
     dev: false
     optional: true
 
-  /@graphprotocol/graph-cli@0.46.1(@types/node@18.15.13)(node-fetch@2.7.0)(typescript@5.3.3):
+  /@graphprotocol/graph-cli@0.46.1(@types/node@18.15.13)(typescript@5.3.3):
     resolution: {integrity: sha512-594BiH2m9gThP1xdvxguVzvVlOb1KzJyVdh2F4dV78NPfMRFY2fe1nakmadKcewc72VVLXNgfdBu/J4IPfo0eg==}
     engines: {node: '>=14'}
     hasBin: true
@@ -3984,7 +3962,7 @@ packages:
       gluegun: github.com/edgeandnode/gluegun/b34b9003d7bf556836da41b57ef36eb21570620a(debug@4.3.4)
       graphql: 15.5.0
       immutable: 4.2.1
-      ipfs-http-client: 55.0.0(node-fetch@2.7.0)
+      ipfs-http-client: 55.0.0
       jayson: 4.0.0
       js-yaml: 3.14.1
       prettier: 1.19.1
@@ -6429,7 +6407,7 @@ packages:
     engines: {node: '>= 10'}
     dev: true
 
-  /@trivago/prettier-plugin-sort-imports@4.1.1(prettier@3.2.5):
+  /@trivago/prettier-plugin-sort-imports@4.1.1(prettier@2.8.8):
     resolution: {integrity: sha512-dQ2r2uzNr1x6pJsuh/8x0IRA3CBUB+pWEW3J/7N98axqt7SQSm+2fy0FLNXvXGg77xEDC7KHxJlHfLYyi7PDcw==}
     peerDependencies:
       '@vue/compiler-sfc': 3.x
@@ -6444,7 +6422,7 @@ packages:
       '@babel/types': 7.17.0
       javascript-natural-sort: 0.7.1
       lodash: 4.17.21
-      prettier: 3.2.5
+      prettier: 2.8.8
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -11498,7 +11476,7 @@ packages:
       - typescript
     dev: true
 
-  /eslint-plugin-prettier@5.1.3(eslint-config-prettier@9.1.0)(eslint@8.56.0)(prettier@3.2.5):
+  /eslint-plugin-prettier@5.1.3(eslint-config-prettier@9.1.0)(eslint@8.56.0)(prettier@2.8.8):
     resolution: {integrity: sha512-C9GCVAs4Eq7ZC/XFQHITLiHJxQngdtraXaM+LoUFoFp/lHNl2Zn8f3WQbe9HvTBBQ9YnKFB0/2Ajdqwo5D1EAw==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
@@ -11514,7 +11492,7 @@ packages:
     dependencies:
       eslint: 8.56.0
       eslint-config-prettier: 9.1.0(eslint@8.56.0)
-      prettier: 3.2.5
+      prettier: 2.8.8
       prettier-linter-helpers: 1.0.0
       synckit: 0.8.8
     dev: true
@@ -13583,7 +13561,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-core-types@0.9.0(node-fetch@2.7.0):
+  /ipfs-core-types@0.9.0:
     resolution: {integrity: sha512-VJ8vJSHvI1Zm7/SxsZo03T+zzpsg8pkgiIi5hfwSJlsrJ1E2v68QPlnLshGHUSYw89Oxq0IbETYl2pGTFHTWfg==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
@@ -13595,7 +13573,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-core-utils@0.13.0(node-fetch@2.7.0):
+  /ipfs-core-utils@0.13.0:
     resolution: {integrity: sha512-HP5EafxU4/dLW3U13CFsgqVO5Ika8N4sRSIb/dTg16NjLOozMH31TXV0Grtu2ZWo1T10ahTzMvrfT5f4mhioXw==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
@@ -13604,7 +13582,7 @@ packages:
       browser-readablestream-to-it: 1.0.3
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0(node-fetch@2.7.0)
+      ipfs-core-types: 0.9.0
       ipfs-unixfs: 6.0.9
       ipfs-utils: 9.0.14
       it-all: 1.0.6
@@ -13655,7 +13633,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-http-client@55.0.0(node-fetch@2.7.0):
+  /ipfs-http-client@55.0.0:
     resolution: {integrity: sha512-GpvEs7C7WL9M6fN/kZbjeh4Y8YN7rY8b18tVWZnKxRsVwM25cIFrRI8CwNt3Ugin9yShieI3i9sPyzYGMrLNnQ==}
     engines: {node: '>=14.0.0', npm: '>=3.0.0'}
     dependencies:
@@ -13666,8 +13644,8 @@ packages:
       any-signal: 2.1.2
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0(node-fetch@2.7.0)
-      ipfs-core-utils: 0.13.0(node-fetch@2.7.0)
+      ipfs-core-types: 0.9.0
+      ipfs-core-utils: 0.13.0
       ipfs-utils: 9.0.14
       it-first: 1.0.7
       it-last: 1.0.6
@@ -14309,7 +14287,7 @@ packages:
       pretty-format: 29.7.0
       slash: 3.0.0
       strip-json-comments: 3.1.1
-      ts-node: 10.9.1(@types/node@18.15.10)(typescript@4.9.5)
+      ts-node: 10.9.1(@types/node@18.15.10)(typescript@5.3.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -14350,7 +14328,7 @@ packages:
       pretty-format: 29.7.0
       slash: 3.0.0
       strip-json-comments: 3.1.1
-      ts-node: 10.9.1(@types/node@18.15.10)(typescript@4.9.5)
+      ts-node: 10.9.1(@types/node@18.15.10)(typescript@5.3.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -17484,14 +17462,14 @@ packages:
       fast-diff: 1.3.0
     dev: true
 
-  /prettier-plugin-solidity@1.3.1(prettier@3.2.5):
+  /prettier-plugin-solidity@1.3.1(prettier@2.8.8):
     resolution: {integrity: sha512-MN4OP5I2gHAzHZG1wcuJl0FsLS3c4Cc5494bbg+6oQWBPuEamjwDvmGfFMZ6NFzsh3Efd9UUxeT7ImgjNH4ozA==}
     engines: {node: '>=16'}
     peerDependencies:
       prettier: '>=2.3.0'
     dependencies:
       '@solidity-parser/parser': 0.17.0
-      prettier: 3.2.5
+      prettier: 2.8.8
       semver: 7.5.4
       solidity-comments-extractor: 0.0.8
     dev: true
@@ -17513,12 +17491,6 @@ packages:
     engines: {node: '>=10.13.0'}
     hasBin: true
     requiresBuild: true
-    dev: true
-
-  /prettier@3.2.5:
-    resolution: {integrity: sha512-3/GWa9aOC0YeD7LUfvOG2NiDyhOWRvt1k+rcKhOuYnMY24iiCphgneUfJDyFXd6rZCAnuLBv6UeAULtrhT/F4A==}
-    engines: {node: '>=14'}
-    hasBin: true
     dev: true
 
   /pretty-format@27.5.1:
@@ -20315,65 +20287,64 @@ packages:
     dependencies:
       safe-buffer: 5.2.1
 
-  /turbo-darwin-64@1.8.3:
-    resolution: {integrity: sha512-bLM084Wr17VAAY/EvCWj7+OwYHvI9s/NdsvlqGp8iT5HEYVimcornCHespgJS/yvZDfC+mX9EQkn3V2JmYgGGw==}
+  /turbo-darwin-64@1.12.4:
+    resolution: {integrity: sha512-dBwFxhp9isTa9RS/fz2gDVk5wWhKQsPQMozYhjM7TT4jTrnYn0ZJMzr7V3B/M/T8QF65TbniW7w1gtgxQgX5Zg==}
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-darwin-arm64@1.8.3:
-    resolution: {integrity: sha512-4oZjXtzakopMK110kue3z/hqu3WLv+eDLZOX1NGdo49gqca9BeD8GbH+sXpAp6tqyeuzpss+PIliVYuyt7LgbA==}
+  /turbo-darwin-arm64@1.12.4:
+    resolution: {integrity: sha512-1Uo5iI6xsJ1j9ObsqxYRsa3W26mEbUe6fnj4rQYV6kDaqYD54oAMJ6hM53q9rB8JvFxwdrUXGp3PwTw9A0qqkA==}
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-linux-64@1.8.3:
-    resolution: {integrity: sha512-uvX2VKotf5PU14FCxJA5iHItPQno2JWzerMd+g3/h/Asay6dvxvtVjc39MQeGT0H5njSvzVKFkT+3/5q8lgOEg==}
+  /turbo-linux-64@1.12.4:
+    resolution: {integrity: sha512-ONg2aSqKP7LAQOg7ysmU5WpEQp4DGNxSlAiR7um+LKtbmC/UxogbR5+T+Uuq6zGuQ5kJyKjWJ4NhtvUswOqBsA==}
     cpu: [x64]
     os: [linux]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-linux-arm64@1.8.3:
-    resolution: {integrity: sha512-E1p+oH3XKMaPS4rqWhYsL4j2Pzc0d/9P5KU7Kn1kqVLo2T3iRA7n2KVULEieUNE0nTH+aIJPXYXOpqCI5wFJaA==}
+  /turbo-linux-arm64@1.12.4:
+    resolution: {integrity: sha512-9FPufkwdgfIKg/9jj87Cdtftw8o36y27/S2vLN7FTR2pp9c0MQiTBOLVYadUr1FlShupddmaMbTkXEhyt9SdrA==}
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-windows-64@1.8.3:
-    resolution: {integrity: sha512-cnzAytHtoLXd0J7aNzRpZFpL/GTjcBmkvAPlbOdf/Pl1iwS4qzGrudZQ+OM1lmLgLIfBPIavsGHBknTwTNib4A==}
+  /turbo-windows-64@1.12.4:
+    resolution: {integrity: sha512-2mOtxHW5Vjh/5rDVu/aFwsMzI+chs8XcEuJHlY1sYOpEymYTz+u6AXbnzRvwZFMrLKr7J7fQOGl+v96sLKbNdA==}
     cpu: [x64]
     os: [win32]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-windows-arm64@1.8.3:
-    resolution: {integrity: sha512-ulIiItNm2w/zYJdD5/oAzjzNns1IjbpweRzpsE8tLXaWwo6+fnXXkyloUug0IUhcd2k6fJXfoiDZfygqpOVuXg==}
+  /turbo-windows-arm64@1.12.4:
+    resolution: {integrity: sha512-nOY5wae9qnxPOpT1fRuYO0ks6dTwpKMPV6++VkDkamFDLFHUDVM/9kmD2UTeh1yyrKnrZksbb9zmShhmfj1wog==}
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo@1.8.3:
-    resolution: {integrity: sha512-zGrkU1EuNFmkq6iky6LcMqD4h0OLE8XysVFxQWRIZbcTNnf0XAycbsbeEyiJpiWeqb7qtg2bVuY9EYcNoNhVuQ==}
+  /turbo@1.12.4:
+    resolution: {integrity: sha512-yUJ7elEUSToiGwFZogXpYKJpQ0BvaMbkEuQECIWtkBLcmWzlMOt6bActsIm29oN83mRU0WbzGt4e8H1KHWedhg==}
     hasBin: true
-    requiresBuild: true
     optionalDependencies:
-      turbo-darwin-64: 1.8.3
-      turbo-darwin-arm64: 1.8.3
-      turbo-linux-64: 1.8.3
-      turbo-linux-arm64: 1.8.3
-      turbo-windows-64: 1.8.3
-      turbo-windows-arm64: 1.8.3
+      turbo-darwin-64: 1.12.4
+      turbo-darwin-arm64: 1.12.4
+      turbo-linux-64: 1.12.4
+      turbo-linux-arm64: 1.12.4
+      turbo-windows-64: 1.12.4
+      turbo-windows-arm64: 1.12.4
     dev: true
 
   /tweetnacl-util@0.13.5:

@@ -1,11 +1,22 @@
 FROM logstore-base
 
+WORKDIR /home/node/storage-proxy
+
+COPY --chown=node:node ./modules/logstore-node/packages/storage-proxy/package.json ./
+
+RUN pnpm install
+
+COPY --chown=node:node ./modules/logstore-node/packages/storage-proxy/ ./
+
+RUN pnpm build
+
+WORKDIR /home/node
+
 USER root
 RUN mkdir /firstrun && chown node:node /firstrun
 RUN npm i -g /home/node/logstore/packages/cli
-RUN npm i -g /home/node/logstore/packages/storage-proxy
+RUN npm i -g /home/node/storage-proxy
 
 USER node
-WORKDIR /home/node
 
 CMD [ "start-in-docker" ]

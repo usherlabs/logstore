@@ -238,7 +238,11 @@ export class NodeManager {
 					this.lastUrlList$.next(list);
 				},
 				error: (e) => {
-					this.logger.error('Error getting node URL list', e);
+					// Only log error if it's not a timeout error on a test.
+					this.logger.error(
+						"Error getting node URL list from Network's heartbeats",
+						e
+					);
 				},
 			});
 	}
