@@ -12,7 +12,9 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 			message.seqNum,
 			message.requestId,
 			message.requestPublisherId,
-			JSON.stringify(Array.from(message.hashMap.entries())),
+			message.hash,
+			// JSON.stringify(Array.from(message.hashMap.entries())),
+			message.bloomFilter,
 		];
 	}
 
@@ -23,7 +25,9 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 			seqNum,
 			requestId,
 			requestPublisherId,
-			hashMap,
+			hash,
+			// hashMap,
+			bloomFilter,
 		] = arr;
 
 		return new QueryResponse({
@@ -31,7 +35,9 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 			seqNum,
 			requestId,
 			requestPublisherId,
-			hashMap: new Map(JSON.parse(hashMap)),
+			hash,
+			// hashMap: new Map(JSON.parse(hashMap)),
+			bloomFilter,
 		});
 	}
 }
