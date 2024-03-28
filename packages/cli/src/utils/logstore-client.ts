@@ -5,12 +5,12 @@ import {
 	CONFIG_TEST as LOGSTORE_CONFIG_TEST,
 	LogStoreClient,
 } from '@logsn/client';
-import { ethers } from 'ethers';
 import {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	StreamrClient,
 	StreamrClientConfig,
-} from 'streamr-client';
+} from '@streamr/sdk';
+import { ethers } from 'ethers';
 
 function getCredentialsFrom(host: string, wallet: string) {
 	const provider = new ethers.providers.JsonRpcProvider(host);

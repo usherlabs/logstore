@@ -12,12 +12,12 @@
 	},
 	"scripts": {
 		"build": "tsc",
-		"start": "node dist/main.js"
+		"start": "node dist/src/main.js"
 	},
 	"dependencies": {
 		"@logsn/client": "workspace:*",
-		"commander": "^11.0.0",
-		"streamr-client": "^8.5.5"
+		"@streamr/sdk": "^100.1.2",
+		"commander": "^11.0.0"
 	},
 	"devDependencies": {
 		"@types/node": "^20.3.1"

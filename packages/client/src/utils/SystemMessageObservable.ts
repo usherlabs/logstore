@@ -3,8 +3,8 @@ import {
 	SystemMessageMap,
 	SystemMessageType,
 } from '@logsn/protocol';
+import { MessageListener, MessageMetadata } from '@streamr/sdk';
 import { Observable } from 'rxjs';
-import { MessageListener, MessageMetadata } from 'streamr-client';
 
 import { BroadbandSubscriber } from './BroadbandSubscriber';
 

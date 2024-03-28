@@ -1,5 +1,5 @@
 import { StreamMessage } from '@streamr/protocol';
-import { Message } from 'streamr-client';
+import { Message } from '@streamr/sdk';
 
 export const convertStreamMessageToMessage = (msg: StreamMessage): Message => {
 	return {

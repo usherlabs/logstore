@@ -1,9 +1,9 @@
-import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
-import { providers, Wallet } from 'ethers';
 import StreamrClient, {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
-} from 'streamr-client';
+} from '@streamr/sdk';
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { Duration, Schedule } from 'effect';
+import { providers, Wallet } from 'ethers';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';

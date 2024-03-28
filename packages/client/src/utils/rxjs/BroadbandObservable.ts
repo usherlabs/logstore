@@ -1,7 +1,7 @@
+import type { StreamrClient } from '@streamr/sdk';
+import { Stream } from '@streamr/sdk';
+import { MessageMetadata } from '@streamr/sdk/types/src/Message';
 import { Observable } from 'rxjs';
-import type { StreamrClient } from 'streamr-client';
-import { Stream } from 'streamr-client';
-import { MessageMetadata } from 'streamr-client/types/src/Message';
 
 import { BroadbandSubscriber } from '../BroadbandSubscriber';
 

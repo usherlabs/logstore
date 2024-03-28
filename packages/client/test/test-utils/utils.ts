@@ -1,5 +1,5 @@
+import StreamrClient, { Stream, StreamMetadata } from '@streamr/sdk';
 import crypto from 'crypto';
-import StreamrClient, { Stream, StreamMetadata } from 'streamr-client';
 
 import { counterId } from '../../src/utils/utils';
 

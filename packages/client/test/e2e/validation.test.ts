@@ -1,14 +1,14 @@
-import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
-import { providers, Wallet } from 'ethers';
-import { firstValueFrom, skip } from 'rxjs';
 import {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	StreamrClient,
-} from 'streamr-client';
+} from '@streamr/sdk';
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import { providers, Wallet } from 'ethers';
+import { firstValueFrom, skip } from 'rxjs';
 
 import { LogStoreClient } from '../../src';
-import { createTestStream } from '../test-utils/utils';
 import { sleep } from '../test-utils/sleep';
+import { createTestStream } from '../test-utils/utils';
 
 const TIMEOUT = 90 * 1000;
 describe('validations', () => {

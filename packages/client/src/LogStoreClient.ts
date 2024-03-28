@@ -2,16 +2,16 @@
 import './polyfills';
 
 import type { Overrides } from '@ethersproject/contracts';
-import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
-import type { Schema } from 'ajv';
-import { ContractTransaction, Signer } from 'ethers';
-import { map, share, switchMap } from 'rxjs';
 import {
 	MessageListener,
 	Stream,
 	StreamDefinition,
 	StreamrClient,
-} from 'streamr-client';
+} from '@streamr/sdk';
+import { EthereumAddress, toEthereumAddress } from '@streamr/utils';
+import type { Schema } from 'ajv';
+import { ContractTransaction, Signer } from 'ethers';
+import { map, share, switchMap } from 'rxjs';
 import { container as rootContainer } from 'tsyringe';
 
 import {
@@ -26,8 +26,8 @@ import {
 	HttpApiQueryDict,
 	Queries,
 	QueryInput,
-	type QueryOptions,
 	QueryType,
+	type QueryOptions,
 } from './Queries';
 import { LogStoreRegistry } from './registry/LogStoreRegistry';
 import { NodeManager } from './registry/NodeManager';

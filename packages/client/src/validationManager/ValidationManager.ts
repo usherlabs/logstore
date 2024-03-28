@@ -1,11 +1,11 @@
-import type { Schema } from 'ajv';
-import { Option } from 'effect';
 import {
+	StreamrClient,
 	type StreamID,
 	type StreamMetadata,
-	StreamrClient,
-} from 'streamr-client';
-import { inject, Lifecycle, scoped } from 'tsyringe';
+} from '@streamr/sdk';
+import type { Schema } from 'ajv';
+import { Option } from 'effect';
+import { Lifecycle, inject, scoped } from 'tsyringe';
 
 import { StreamrClientInjectionToken } from '../streamr/StreamrClient';
 import { defaultAjv, getSchemaFromMetadata } from './getStreamSchema';
@@ -17,7 +17,7 @@ export class ValidationManager {
 	constructor(
 		@inject(StreamrClientInjectionToken)
 		private streamrClient: StreamrClient
-	) {}
+	) { }
 
 	public async setValidationSchema({
 		schemaOrHash,

@@ -9,9 +9,9 @@ import {
 	MessageRef,
 	StreamMessage,
 } from '@streamr/protocol';
+import { Message, MessageListener } from '@streamr/sdk';
 import { omit } from 'lodash';
-import { defer, Observable, shareReplay, switchMap } from 'rxjs';
-import { Message, MessageListener } from 'streamr-client';
+import { Observable, defer, shareReplay, switchMap } from 'rxjs';
 
 import type { RequestMetadata } from './HttpUtil';
 import { IPushPipeline } from './streamr/utils/IPushPipeline';

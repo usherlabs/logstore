@@ -6,7 +6,7 @@ import {
 import StreamrClient, {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	StreamrClientConfig,
-} from 'streamr-client';
+} from '@streamr/sdk';
 
 export const getClients = (privateKey: string, dev: boolean = false) => {
 	const streamrConfig: StreamrClientConfig = {

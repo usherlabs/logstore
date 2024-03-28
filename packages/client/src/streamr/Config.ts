@@ -1,4 +1,4 @@
-import { StreamrClientConfig } from 'streamr-client';
+import { StreamrClientConfig } from '@streamr/sdk';
 import { DeepRequired, MarkOptional } from 'ts-essentials';
 
 export type StrictStreamrClientConfig = MarkOptional<

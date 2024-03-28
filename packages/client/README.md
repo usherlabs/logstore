@@ -7,7 +7,7 @@ The Logstore Client is a Javascript library which serves to adds functionality f
 This is the constructor for the `LogStoreClient` class. It takes an optional configuration object, `config` \*\*\*\*of type `LogStoreClientConfig`, which can be used to configure the client. .
 
 ```
-import { StreamrClientConfig } from 'streamr-client';
+import { StreamrClientConfig } from '@streamr/sdk;
 
 export interface LogStoreClientConfig extends StreamrClientConfig {
 	contracts?: StreamrClientConfig['contracts'] & {

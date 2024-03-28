@@ -1,4 +1,4 @@
-import { LogLevel } from 'streamr-client';
+import { LogLevel } from '@streamr/sdk';
 
 export interface LogStoreClientConfig {
 	/** Custom human-readable debug id for client. Used in logging. */

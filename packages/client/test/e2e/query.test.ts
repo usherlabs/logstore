@@ -11,23 +11,23 @@ import {
 	StreamMessage,
 	toStreamID,
 } from '@streamr/protocol';
-import {
-	fastWallet,
-	fetchPrivateKeyWithGas,
-	KeyServer,
-} from '@streamr/test-utils';
-import { toEthereumAddress, wait, waitForCondition } from '@streamr/utils';
-import axios from 'axios';
-import { providers, Wallet } from 'ethers';
-import { range } from 'lodash';
-import * as fetch from 'node-fetch';
-import { firstValueFrom, from } from 'rxjs';
-import { TransformCallback } from 'stream';
 import StreamrClient, {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	Stream,
 	StreamPermission,
-} from 'streamr-client';
+} from '@streamr/sdk';
+import {
+	KeyServer,
+	fastWallet,
+	fetchPrivateKeyWithGas,
+} from '@streamr/test-utils';
+import { toEthereumAddress, wait, waitForCondition } from '@streamr/utils';
+import axios from 'axios';
+import { Wallet, providers } from 'ethers';
+import { range } from 'lodash';
+import * as fetch from 'node-fetch';
+import { firstValueFrom, from } from 'rxjs';
+import { TransformCallback } from 'stream';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';

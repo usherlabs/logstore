@@ -1,7 +1,7 @@
 import { toStreamID } from '@streamr/protocol';
+import StreamrClient from '@streamr/sdk';
 import { toEthereumAddress } from '@streamr/utils';
 import { defer } from 'rxjs';
-import StreamrClient from 'streamr-client';
 
 import { StrictLogStoreClientConfig } from '../Config';
 

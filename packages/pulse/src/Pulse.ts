@@ -1,5 +1,5 @@
 import { LogStoreClient } from '@logsn/client';
-import { Stream, StreamPermission, StreamrClient } from 'streamr-client';
+import { Stream, StreamPermission, StreamrClient } from '@streamr/sdk';
 
 const PULSE_STREAM_ID = '/pulse';
 const PULSE_INTERVAL_MS = 1 * 1000;

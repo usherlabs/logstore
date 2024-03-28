@@ -1,15 +1,15 @@
-import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import * as sharedLib from '@logsn/shared';
+import StreamrClient, { CONFIG_TEST } from '@streamr/sdk';
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { Logger } from '@streamr/utils';
 import Decimal from 'decimal.js';
 import { ethers, providers, Wallet } from 'ethers';
-import StreamrClient, { CONFIG_TEST } from 'streamr-client';
 
+import { BigNumber } from '@ethersproject/bignumber';
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
 import * as contractPkg from '../../src/streamr/utils/contract';
 import { waitForTx } from '../../src/streamr/utils/contract';
-import { BigNumber } from '@ethersproject/bignumber';
 
 const MINT_AMOUNT = 100_000_000_000_000n;
 const TIMEOUT = 90 * 1000;

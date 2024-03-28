@@ -1,5 +1,10 @@
 import { Wallet } from '@ethersproject/wallet';
 import { StreamMessage } from '@streamr/protocol';
+import StreamrClient, {
+	StreamPermission,
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
+	type Stream,
+} from '@streamr/sdk';
 import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
 import { providers } from 'ethers';
 import type { Response } from 'node-fetch';
@@ -12,11 +17,6 @@ import {
 	toArray,
 } from 'rxjs';
 import { Readable } from 'stream';
-import StreamrClient, {
-	type Stream,
-	StreamPermission,
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
-} from 'streamr-client';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST, LogStoreClient } from '../../src';
 import { IPushPipeline } from '../../src/streamr/utils/IPushPipeline';

@@ -1,4 +1,4 @@
-import { StreamDefinition, StreamID, StreamPartID } from 'streamr-client';
+import { StreamDefinition, StreamID, StreamPartID } from '@streamr/sdk';
 
 export interface StreamIDBuilder {
 	toStreamID(streamIdOrPath: string): Promise<StreamID>;

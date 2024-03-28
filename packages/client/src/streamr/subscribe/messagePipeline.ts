@@ -1,4 +1,4 @@
-import { EthereumAddress, StreamID, StreamPartID } from 'streamr-client';
+import { EthereumAddress, StreamID, StreamPartID } from '@streamr/sdk';
 
 import { StrictStreamrClientConfig } from '../Config';
 import { DestroySignal } from '../DestroySignal';

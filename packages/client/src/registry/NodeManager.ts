@@ -1,30 +1,30 @@
 import { Provider } from '@ethersproject/providers';
 import { LogStoreNodeManager as LogStoreNodeManagerContract } from '@logsn/contracts';
 import { abi as LogStoreNodeManagerAbi } from '@logsn/contracts/artifacts/src/NodeManager.sol/LogStoreNodeManager.json';
+import StreamrClient from '@streamr/sdk';
 import {
-	type EthereumAddress,
 	Logger,
 	toEthereumAddress,
+	type EthereumAddress,
 } from '@streamr/utils';
+import type * as lodash from 'lodash';
+import { throttle } from 'lodash';
 import {
+	ReplaySubject,
+	Subject,
 	auditTime,
 	defer,
 	filter,
 	firstValueFrom,
 	map,
 	mergeMap,
-	ReplaySubject,
 	scan,
 	share,
-	Subject,
 	takeUntil,
 	timeout,
 	timer,
 } from 'rxjs';
-import StreamrClient from 'streamr-client';
-import { inject, Lifecycle, scoped } from 'tsyringe';
-import type * as lodash from 'lodash';
-import { throttle } from 'lodash';
+import { Lifecycle, inject, scoped } from 'tsyringe';
 
 import {
 	LogStoreClientConfigInjectionToken,
@@ -79,7 +79,7 @@ export class NodeManager {
 	private readonly lastUrlList$ = new ReplaySubject<string[]>(1);
 	// throttledUpdateList will help us to update the lastUrlList$ with the node information output at most once every X minutes.
 	private throttledUpdateList: lodash.DebouncedFunc<() => unknown> = throttle(
-		() => {},
+		() => { },
 		60_000
 	);
 
