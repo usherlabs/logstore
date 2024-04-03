@@ -12,7 +12,9 @@ export default class QueryPropagateSerializerV1 extends Serializer<QueryPropagat
 			message.seqNum,
 			message.requestId,
 			message.requestPublisherId,
-			message.payload,
+			message.payload.map(([id, blob]) =>
+				[id, Buffer.from(blob).toString('base64')]
+			),
 		];
 	}
 
@@ -31,7 +33,8 @@ export default class QueryPropagateSerializerV1 extends Serializer<QueryPropagat
 			seqNum,
 			requestId,
 			requestPublisherId,
-			payload,
+			payload: (payload as [string, string][]).map(([id, blob]) =>
+				[id, Buffer.from(blob, 'base64')]),
 		});
 	}
 }

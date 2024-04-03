@@ -7,7 +7,7 @@ import {
 interface QueryPropagateOptions extends SystemMessageOptions {
 	requestId: string;
 	requestPublisherId: string;
-	payload: [string, string][];
+	payload: [string, Uint8Array][];
 }
 
 let messageSeqNum = 0;
@@ -15,7 +15,7 @@ let messageSeqNum = 0;
 export class QueryPropagate extends SystemMessage {
 	requestId: string;
 	requestPublisherId: string;
-	payload: [string, string][];
+	payload: [string, Uint8Array][];
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,

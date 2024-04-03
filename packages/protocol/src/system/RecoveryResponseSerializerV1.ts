@@ -15,7 +15,8 @@ export default class RecoveryResponseSerializerV1 extends Serializer<RecoveryRes
 					metadata.streamPartition,
 					metadata.timestamp,
 					metadata.sequenceNumber,
-					metadata.signature,
+					Buffer.from(metadata.signature).toString('base64'),
+					metadata.signatureType,
 					metadata.publisherId,
 					metadata.msgChainId,
 				],
@@ -44,9 +45,10 @@ export default class RecoveryResponseSerializerV1 extends Serializer<RecoveryRes
 				streamPartition: metadatArr[1],
 				timestamp: metadatArr[2],
 				sequenceNumber: metadatArr[3],
-				signature: metadatArr[4],
-				publisherId: metadatArr[5],
-				msgChainId: metadatArr[6],
+				signature: Buffer.from(metadatArr[4] as string, 'base64'),
+				signatureType: metadatArr[5],
+				publisherId: metadatArr[6],
+				msgChainId: metadatArr[7],
 			} as MessageMetadata;
 			return [message, metadata];
 		});

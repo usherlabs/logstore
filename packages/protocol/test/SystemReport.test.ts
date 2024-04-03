@@ -19,7 +19,7 @@ const PAYLOAD: IReportV1 = {
 	treasury: BigNumber.from(0),
 	streams: [
 		{
-			id: '0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/pulse',
+			id: '0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/heartbeat',
 			capture: BigNumber.from('49462093025057900000000000'),
 			bytes: 49542,
 		},
@@ -55,7 +55,7 @@ const PAYLOAD: IReportV1 = {
 		],
 		storage: [
 			{
-				id: '0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/pulse',
+				id: '0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/heartbeat',
 				hash: 'helloworld_storage',
 				size: 49542,
 			},
@@ -114,7 +114,7 @@ const PAYLOAD_SERIALIZED: IReportV1Serialized = {
 const PAYLOAD_CONTRACT = [
 	'1687874606',
 	1295,
-	['0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/pulse'],
+	['0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a/heartbeat'],
 	[BigInt('49462093025057900000000000')],
 	[49542],
 	['0x3c9ef7f26d7c1de4e67580cdb26a10f9b9a8b8c8'],

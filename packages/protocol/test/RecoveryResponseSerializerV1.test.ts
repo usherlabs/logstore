@@ -50,7 +50,8 @@ const testOneMessagePayload = {
 					streamPartition: 42,
 					timestamp: 1234567890,
 					sequenceNumber: 100,
-					signature: 'SIGNATURE_0002',
+					signature: Buffer.from('SIGNATURE_0002'),
+					signatureType: 'ERC_1271',
 					publisherId: 'PUBLISHER_0001',
 					msgChainId: 'MSGCHAIN_0001',
 				} as MessageMetadata,
@@ -78,7 +79,8 @@ const testOneMessagePayload = {
 		`42,` +
 		`1234567890,` +
 		`100,` +
-		`"SIGNATURE_0002",` +
+		`"${Buffer.from('SIGNATURE_0002').toString('base64')}",` +
+		`"ERC_1271",` +
 		`"PUBLISHER_0001",` +
 		`"MSGCHAIN_0001"` +
 		`]` +
