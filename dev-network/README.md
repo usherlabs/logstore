@@ -19,6 +19,7 @@
 - [http://localhost:1984](http://localhost:1984) - ArWeave
 - [http://localhost:8545](http://localhost:8545) - EVM Main chain ( Chain ID: `8995` )
 - [http://localhost:8546](http://localhost:8546) - EVM Side chain ( Chain ID: `8997` )
+- [http://localhost:8546](http://localhost:8547) - EVM Fast chain ( Chain ID: `31337` )
 - [http://localhost:1317](http://localhost:1317) - KYVE REST API
 - [http://localhost:26657](http://localhost:26657) - KYVE RPC
 

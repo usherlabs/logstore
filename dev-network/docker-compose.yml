@@ -41,28 +41,28 @@ services:
   #   networks:
   #     - streamr-network
 
-  logstore-nginx:
-    container_name: logstore-nginx
-    hostname: logstore-nginx
-    image: logstore-nginx
-    build:
-      context: '.'
-      dockerfile: ./Dockerfile.nginx
-    restart: always
-    ports:
-      - '80:80'
-      - '443:443'
-      - '8801:8801'
-      - '1317:1317'
-      - '26657:26657'
-    networks:
-      streamr-network:
-        aliases:
-          - arweave.net
-          - sidechain
-    # depends_on:
-    #   - logstore-arweave
-    #   - logstore-kyve
+  # logstore-nginx:
+  #   container_name: logstore-nginx
+  #   hostname: logstore-nginx
+  #   image: logstore-nginx
+  #   build:
+  #     context: '.'
+  #     dockerfile: ./Dockerfile.nginx
+  #   restart: always
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #     - '8801:8801'
+  #     - '1317:1317'
+  #     - '26657:26657'
+  #   networks:
+  #     streamr-network:
+  #       aliases:
+  #         - arweave.net
+  #         - sidechain
+  #   # depends_on:
+  #   #   - logstore-arweave
+  #   #   - logstore-kyve
 
   logstore-base:
     container_name: logstore-base
@@ -71,13 +71,32 @@ services:
       context: ../
       dockerfile: ./dev-network/Dockerfile.base
 
+  logstore-deploy-contracts:
+    container_name: logstore-deploy-contracts
+    image: logstore-deploy-contracts
+    build:
+      context: ../
+      dockerfile: ./dev-network/Dockerfile.contracts
+    restart: on-failure # exits on success
+    networks:
+      - streamr-network
+    volumes:
+      - type: volume
+        source: data-logstore-deploy-contracts
+        target: /firstrun
+        volume:
+          nocopy: false
+    depends_on:
+      - logstore-base
+      # - logstore-nginx
+
   logstore-evm-explorer:
     image: appliedblockchain/b-explorer
     container_name: logstore-evm-explorer
     ports:
       - 8802:3000
     environment:
-      - ETHEREUM_JSONRPC_ENDPOINT=http://sidechain:8546/
+      - ETHEREUM_JSONRPC_ENDPOINT=http://10.200.10.1:8547/
       - CONFIG_FILE_PATH=/home/explorer/app/config.json
     networks:
       - streamr-network
@@ -123,7 +142,9 @@ services:
     env_file:
       - ./assets/storage-proxy/.env.storage-proxy
     depends_on:
-      logstore-base:
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
+      logstore-deploy-subgraph:
         condition: service_completed_successfully
 
   logstore-broker-1:
@@ -137,6 +158,7 @@ services:
     restart: always
     ports:
       - '7771:7771'
+      - "40801:40801"
     networks:
       - streamr-network
     volumes:
@@ -146,6 +168,8 @@ services:
     env_file:
       - ./assets/broker/.env.broker-1
     depends_on:
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
       logstore-deploy-subgraph:
         condition: service_completed_successfully
       logstore-deploy-storage-proxy:
@@ -162,6 +186,7 @@ services:
     restart: always
     ports:
       - '7772:7772'
+      - "40802:40802"
     networks:
       - streamr-network
     volumes:
@@ -171,6 +196,8 @@ services:
     env_file:
       - ./assets/broker/.env.broker-2
     depends_on:
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
       logstore-deploy-subgraph:
         condition: service_completed_successfully
 
@@ -185,6 +212,7 @@ services:
     restart: always
     ports:
       - '7773:7773'
+      - "40803:40803"
     networks:
       - streamr-network
     volumes:
@@ -197,6 +225,8 @@ services:
     env_file:
       - ./assets/broker/.env.broker-3
     depends_on:
+      logstore-deploy-contracts:
+        condition: service_completed_successfully
       logstore-deploy-subgraph:
         condition: service_completed_successfully
 
@@ -221,6 +251,8 @@ services:
   #       condition: service_completed_successfully
   #     logstore-kyve:
   #       condition: service_started
+  #     logstore-deploy-contracts:
+  #       condition: service_completed_successfully
   #     logstore-broker-1:
   #       condition: service_started
 
@@ -245,6 +277,8 @@ services:
   #       condition: service_completed_successfully
   #     logstore-kyve:
   #       condition: service_started
+  #     logstore-deploy-contracts:
+  #       condition: service_completed_successfully
   #     logstore-broker-2:
   #       condition: service_started
 
@@ -269,6 +303,8 @@ services:
   #       condition: service_completed_successfully
   #     logstore-kyve:
   #       condition: service_started
+  #     logstore-deploy-contracts:
+  #       condition: service_completed_successfully
   #     logstore-broker-3:
   #       condition: service_started
 
@@ -293,6 +329,8 @@ services:
   #       condition: service_completed_successfully
   #     logstore-kyve:
   #       condition: service_started
+  #     logstore-deploy-contracts:
+  #       condition: service_completed_successfully
   #     logstore-broker-3:
   #       condition: service_started
 
@@ -316,7 +354,7 @@ services:
         source: data-pulse
         target: /firstrun
     depends_on:
-      logstore-base:
+      logstore-deploy-contracts:
         condition: service_completed_successfully
       logstore-deploy-subgraph:
         condition: service_completed_successfully
@@ -345,5 +383,6 @@ networks:
 volumes:
   cassandra_init_scripts:
   data-pulse:
+  data-logstore-deploy-contracts:
   data-logstore-deploy-subgraph:
   data-logstore-deploy-storage-proxy:

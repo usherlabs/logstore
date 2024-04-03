@@ -73,17 +73,11 @@
    sudo netplan apply
    ```
 
-9. Build Parity Node with pre-deployed Contracts:
+9. Run the DevNetwork:
 
    ```bash
-   dev-network build -l
+   dev-network start -l
    ```
-
-10. Run the DevNetwork:
-
-    ```bash
-    dev-network start -l
-    ```
 
 ## On a developer's machine
 
@@ -114,29 +108,7 @@
    1. Change `10.0.0.1` to the IP of the VPS running the DevNetwork
    2. Change `/home/ubuntu/.ssh/id_rsa.pub` to your Public SSH Key. **Make sure to use an absolute path.**
 
-4. Add to `/etc/hosts` file the following line to redirect http requests to the DevNetwork
-
-   For Broker interactions:
-
-   ```bash
-   127.0.0.1 	logstore-broker-1
-   127.0.0.1 	logstore-broker-2
-   127.0.0.1 	logstore-broker-3
-   ```
-
-   For Validator interactions:
-
-   _Requires Broker interactions_
-
-   ```bash
-   127.0.0.1   arweave.net
-   127.0.0.1   sidechain
-   127.0.0.1   logstore-kyve
-   ```
-
-   To learn more about Local Validator operation and testing, read the [validators.md](./validators.md).
-
-5. Connect to the DevNetwork:
+4. Connect to the DevNetwork:
    ```bash
    dev-network connect
    ```
