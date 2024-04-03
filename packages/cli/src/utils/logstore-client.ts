@@ -58,7 +58,7 @@ export function getClientsForCredentials({
 							url: host,
 						},
 					],
-					chainId: isTest ? 8997 : 137,
+					chainId: isTest ? 31337 : 137,
 					name: isTest ? 'streamr' : 'polygon',
 				},
 			},

@@ -43,8 +43,7 @@ const chainIds = {
 	'polygon-mainnet': 137,
 	'polygon-mumbai': 80001,
 	sepolia: 11155111,
-	'streamr-dev': 8997,
-	'streamr-dev-docker': 8997,
+	'streamr-dev': 31337,
 };
 
 function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
@@ -57,10 +56,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
 			jsonRpcUrl = 'https://bsc-dataseed1.binance.org';
 			break;
 		case 'streamr-dev':
-			jsonRpcUrl = `http://${STREAMR_DOCKER_DEV_HOST}:8546`;
-			break;
-		case 'streamr-dev-docker':
-			jsonRpcUrl = 'http://10.200.10.1:8546';
+			jsonRpcUrl = 'http://10.200.10.1:8547';
 			break;
 		default:
 			jsonRpcUrl = process.env[snakeCase(chain).toUpperCase()] || '';
@@ -123,7 +119,6 @@ const config = {
 		'polygon-mainnet': getChainConfig('polygon-mainnet'),
 		'polygon-mumbai': getChainConfig('polygon-mumbai'),
 		'streamr-dev': getChainConfig('streamr-dev'),
-		'streamr-dev-docker': getChainConfig('streamr-dev-docker'),
 		// sepolia: getChainConfig('sepolia'),
 	},
 	paths: {

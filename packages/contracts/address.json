@@ -13,12 +13,12 @@
     "queryManagerAddress": "0xF609f73B908f39856659aEdc45C37513792ac4e5",
     "reportManagerAddress": "0xE50bC09764889C99f4d96C08f2A73D1693E96c2B"
   },
-  "8997": {
-    "nodeManagerAddress": "0x85ac4C8E780eae81Dd538053D596E382495f7Db9",
-    "storeManagerAddress": "0x8560200b8E7477FB09281A0566B50fa6E7a66a34",
-    "queryManagerAddress": "0x65d379f29BE436bD367699f3Dd7A436c54795a49",
-    "reportManagerAddress": "0x29DAE06145698A4Af8D54B91D0c6391C4B28102E",
-    "tokenManagerAddress": "0x62c82404c1937E27C92E24901979A4d9b1b9858e"
+  "31337": {
+    "tokenManagerAddress": "0x813cb73aaEcBE7df1879B454fDa23Ef3d979D22a",
+    "nodeManagerAddress": "0xB1a242e5eA2AaCC16E8DA85847adeCBa473e318F",
+    "storeManagerAddress": "0x29DAE06145698A4Af8D54B91D0c6391C4B28102E",
+    "queryManagerAddress": "0xCcdb958F7160ad3cEd9438596536fc214BBd1822",
+    "reportManagerAddress": "0x93E20Ed1C88cec5ae9F841663f2e256E2b6ffd74"
   },
   "80001": {
     "nodeManagerAddress": "0x98df193804F3fE221E419D93641B4Edb605F9de2",

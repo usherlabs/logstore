@@ -33,7 +33,7 @@ async function main() {
 	while (!tokenManagerAddress) {
 		try {
 			const weiPerByte =
-				hre.network.config.chainId === 8997 // DevNetwork
+				hre.network.config.chainId === 31337 // DevNetwork
 					? hre.ethers.utils.parseUnits('1000000000', 'wei')
 					: await getWeiPerByte();
 
@@ -197,7 +197,7 @@ async function main() {
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //
-	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
+	if ([5, 31337].includes(hre.network.config.chainId || 0)) {
 		console.log(
 			'-------- !!! Performing DEV TOKEN minting process for TEST accounts...'
 		);

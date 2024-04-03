@@ -10,6 +10,6 @@ export const isDevNetwork$ = credentials$.pipe(
 	map(
 		({ provider }) =>
 			provider.connection.url.includes('localhost') ||
-			provider.connection.url.includes('sidechain')
+			provider.connection.url.includes('10.200.10.1')
 	)
 );
