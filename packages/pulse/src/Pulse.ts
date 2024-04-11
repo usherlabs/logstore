@@ -37,7 +37,8 @@ export class Pulse {
 			permissions: [StreamPermission.SUBSCRIBE],
 		});
 
-		await this.logStoreClient.stakeOrCreateStore(this._stream.id, stakeAmount);
+		const tx = await this.logStoreClient.stakeOrCreateStore(this._stream.id, stakeAmount);
+		await tx.wait();
 	}
 
 	start() {
