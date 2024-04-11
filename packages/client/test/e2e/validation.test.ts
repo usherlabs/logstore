@@ -3,19 +3,16 @@ import {
 	StreamrClient,
 } from '@streamr/sdk';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
-import { providers, Wallet } from 'ethers';
+import { Wallet } from 'ethers';
 import { firstValueFrom, skip } from 'rxjs';
 
 import { LogStoreClient } from '../../src';
 import { sleep } from '../test-utils/sleep';
-import { createTestStream } from '../test-utils/utils';
+import { createTestStream, getProvider } from '../test-utils/utils';
 
 const TIMEOUT = 90 * 1000;
 describe('validations', () => {
-	const provider = new providers.JsonRpcProvider(
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	);
+	const provider = getProvider();
 
 	let account: Wallet;
 	let accountStreamrClient: StreamrClient;

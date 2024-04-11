@@ -3,13 +3,14 @@ import StreamrClient, { CONFIG_TEST } from '@streamr/sdk';
 import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { Logger } from '@streamr/utils';
 import Decimal from 'decimal.js';
-import { ethers, providers, Wallet } from 'ethers';
+import { ethers, Wallet } from 'ethers';
 
 import { BigNumber } from '@ethersproject/bignumber';
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
 import * as contractPkg from '../../src/streamr/utils/contract';
 import { waitForTx } from '../../src/streamr/utils/contract';
+import { getProvider } from '../test-utils/utils';
 
 const MINT_AMOUNT = 100_000_000_000_000n;
 const TIMEOUT = 90 * 1000;
@@ -17,10 +18,7 @@ const TIMEOUT = 90 * 1000;
 const logger = new Logger(module, undefined, 'trace');
 
 describe('Manage tokens', () => {
-	const provider = new providers.JsonRpcProvider(
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	);
+	const provider = getProvider();
 
 	let account: Wallet;
 	let streamrClient: StreamrClient;

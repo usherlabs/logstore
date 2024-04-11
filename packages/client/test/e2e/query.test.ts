@@ -21,13 +21,14 @@ import {
 	fastWallet,
 	fetchPrivateKeyWithGas,
 } from '@streamr/test-utils';
+import { convertBytesToStreamMessage, convertStreamMessageToBytes } from '@streamr/trackerless-network';
 import { toEthereumAddress, wait, waitForCondition } from '@streamr/utils';
 import axios from 'axios';
-import { Wallet, providers } from 'ethers';
+import { Wallet } from 'ethers';
 import { range } from 'lodash';
 import * as fetch from 'node-fetch';
 import { firstValueFrom, from } from 'rxjs';
-import { TransformCallback } from 'stream';
+import { Transform, TransformCallback } from 'stream';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
@@ -35,7 +36,7 @@ import { LogStoreMessage } from '../../src/LogStoreMessageStream';
 import type { StorageMatrix } from '../../src/utils/networkValidation/manageStorageMatrix';
 import * as verifyPkg from '../../src/utils/networkValidation/manageStorageMatrix';
 import { sleep } from '../test-utils/sleep';
-import { createTestStream } from '../test-utils/utils';
+import { createTestStream, getProvider } from '../test-utils/utils';
 
 const originalFetch = fetch.default;
 const fetchSpy = jest.spyOn(fetch, 'default');
@@ -50,10 +51,7 @@ const TIMEOUT = 90 * 1000;
 const BASE_NODE_URL = `http://localhost:7771`;
 
 describe('query', () => {
-	const provider = new providers.JsonRpcProvider(
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	);
+	const provider = getProvider();
 
 	// Accounts
 	let publisherAccount: Wallet;
@@ -350,7 +348,7 @@ describe('query', () => {
 
 				expect(messages).toHaveLength(numOfMessagesForThisTest);
 				expect(messages[0].content).toMatchObject({ messageNo: 0 });
-				const messagesId = messages.map((c) => c.metadata.id.serialize());
+				const messagesId = messages.map((c) => c.metadata.id);
 
 				expect(storageSpy).toBeCalledTimes(1);
 				const lastReturn = storageSpy.mock.results[0].value as StorageMatrix;
@@ -436,20 +434,19 @@ describe('query', () => {
 								done: TransformCallback
 							) {
 								try {
-									const streamMessage = StreamMessage.deserialize(
-										chunk.toString()
-									);
+									const streamMessage = convertBytesToStreamMessage(chunk);
 
 									if (msgCount === 0) {
 										// modifies message to make it fail
+
+										// @ts-expect-error Cannot assign to 'publisherId' because it is a read-only property.
 										streamMessage.messageId.publisherId = toEthereumAddress(
 											fastWallet().address
 										);
 									}
 
-									const altered = streamMessage.serialize();
-									const alteredBuffer = Buffer.from(altered, encoding);
-									this.push(alteredBuffer, encoding);
+									const altered = convertStreamMessageToBytes(streamMessage);
+									this.push(altered, encoding);
 								} catch (e) {
 									this.push(chunk, encoding);
 								} finally {
@@ -551,6 +548,7 @@ describe('query', () => {
 								encryptionType,
 								groupKeyId,
 								signature,
+								signatureType,
 							},
 							content,
 						}) =>
@@ -567,12 +565,13 @@ describe('query', () => {
 								encryptionType,
 								groupKeyId,
 								signature,
+								signatureType,
 								newGroupKey,
 								prevMsgRef: prevMsgRef
 									? new MessageRef(
-											prevMsgRef?.timestamp,
-											prevMsgRef?.sequenceNumber
-										)
+										prevMsgRef?.timestamp,
+										prevMsgRef?.sequenceNumber
+									)
 									: undefined,
 								contentType,
 								messageType,
