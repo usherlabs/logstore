@@ -6,17 +6,17 @@ import { LogStoreClientConfig } from './LogStoreClientConfig';
 export const CONFIG_TEST: LogStoreClientConfig = {
 	contracts: {
 		logStoreNodeManagerChainAddress:
-			'0x85ac4C8E780eae81Dd538053D596E382495f7Db9',
+			'0xB1a242e5eA2AaCC16E8DA85847adeCBa473e318F',
 		logStoreStoreManagerChainAddress:
-			'0x8560200b8E7477FB09281A0566B50fa6E7a66a34',
+			'0x29DAE06145698A4Af8D54B91D0c6391C4B28102E',
 		logStoreTokenManagerChainAddress:
-			'0x62c82404c1937E27C92E24901979A4d9b1b9858e',
+			'0x813cb73aaEcBE7df1879B454fDa23Ef3d979D22a',
 		logStoreQueryManagerChainAddress:
-			'0x65d379f29BE436bD367699f3Dd7A436c54795a49',
+			'0xCcdb958F7160ad3cEd9438596536fc214BBd1822',
 
 		logStoreTheGraphUrl: `http://${
 			process.env.STREAMR_DOCKER_DEV_HOST || '127.0.0.1'
-		}:8000/subgraphs/name/logstore-dev/network-contracts`,
+		}:8800/subgraphs/name/logstore-dev/network-contracts`,
 	},
 	// network: {
 	// 	...STREAMR_CONFIG_TEST.network,
