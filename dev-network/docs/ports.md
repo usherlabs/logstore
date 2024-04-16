@@ -17,6 +17,7 @@
 | 6695  |                                 | streamr-dev-ipfs                     | Streamr  |           |
 | 6688  |                                 | streamr-dev-chainlink-node           | Streamr  |           |
 | 6691  |                                 | streamr-dev-chainlink-adapter        | Streamr  |           |
+| 7047  | LogStore Broker #1              | logstore-broker-1                    | LogStore | &check;   |
 | 7000  | Cassandra                       | streamr-dev-cassandra                | Streamr  |           |
 | 7001  | Cassandra                       | streamr-dev-cassandra                | Streamr  |           |
 | 7199  | Cassandra                       | streamr-dev-cassandra                | Streamr  |           |
