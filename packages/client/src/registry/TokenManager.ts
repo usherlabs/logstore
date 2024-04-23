@@ -15,7 +15,7 @@ import {
 } from '../Config';
 import {
 	getStreamRegistryChainProviders,
-	getStreamRegistryOverrides,
+	getEthersOverrides,
 } from '../Ethereum';
 import {
 	Authentication,
@@ -128,7 +128,7 @@ export class TokenManager {
 		// gas price here should be omitted, its inclusion generates "eip-1559 transaction do not support gasPrice" error
 		// on the main net
 		const { gasPrice: _unusedGasPrice, ...mergedOverrides } = {
-			...getStreamRegistryOverrides(this.streamrClientConfig),
+			...getEthersOverrides(this.streamrClientConfig),
 			...overrides,
 		};
 		return this.logStoreTokenManagerContract!.mint({

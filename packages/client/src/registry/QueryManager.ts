@@ -14,7 +14,7 @@ import {
 } from '../Config';
 import {
 	getStreamRegistryChainProviders,
-	getStreamRegistryOverrides,
+	getEthersOverrides,
 } from '../Ethereum';
 import {
 	Authentication,
@@ -128,7 +128,7 @@ export class QueryManager {
 
 		await this.connectToContract();
 		const mergedOverrides = {
-			...getStreamRegistryOverrides(this.streamrClientConfig),
+			...getEthersOverrides(this.streamrClientConfig),
 			...overrides,
 		};
 		const stakeAmount = prepareStakeForQueryManager(

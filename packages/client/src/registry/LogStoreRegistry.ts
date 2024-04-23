@@ -18,7 +18,7 @@ import {
 } from '../Config';
 import {
 	getStreamRegistryChainProviders,
-	getStreamRegistryOverrides,
+	getEthersOverrides,
 } from '../Ethereum';
 import {
 	initEventGateway,
@@ -206,7 +206,7 @@ export class LogStoreRegistry {
 		const chainSigner =
 			await this.authentication.getStreamRegistryChainSigner();
 		const { gasPrice: _unusedGasPrice, ...mergedOverrides } = {
-			...getStreamRegistryOverrides(this.streamrClientConfig),
+			...getEthersOverrides(this.streamrClientConfig),
 			...overrides,
 		};
 		await prepareStakeForStoreManager(
