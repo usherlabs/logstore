@@ -6,7 +6,7 @@ import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreM
 import { prepareStakeForStoreManager } from '@logsn/shared';
 import { toStreamID } from '@streamr/protocol';
 import StreamrClient, { Stream } from '@streamr/sdk';
-import { collect, Logger, toEthereumAddress } from '@streamr/utils';
+import { collect, initEventGateway, Logger, toEthereumAddress } from '@streamr/utils';
 import { ContractTransaction } from 'ethers';
 import { min } from 'lodash';
 import pLimit from 'p-limit';
@@ -21,7 +21,6 @@ import {
 	getEthersOverrides,
 } from '../Ethereum';
 import {
-	initEventGateway,
 	LogStoreClientEventEmitter,
 	LogStoreClientEvents,
 } from '../events';
