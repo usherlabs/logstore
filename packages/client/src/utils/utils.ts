@@ -1,8 +1,21 @@
-import { randomString } from '@streamr/utils';
+import {
+	LengthPrefixedFrameDecoder,
+	Logger,
+	composeAbortSignals,
+	randomString
+} from '@streamr/utils';
+import fetch, { Response } from 'node-fetch';
+import { Readable } from 'stream';
 
+import { Base64 } from 'js-base64';
+import { compact } from 'lodash';
 import pkg from '../../package.json';
 import LRU from '../../vendor/quick-lru';
+import { Authentication } from '../streamr/Authentication';
+import { WebStreamToNodeStream } from '../streamr/utils/WebStreamToNodeStream';
 import { SEPARATOR } from './uuid';
+
+const logger = new Logger(module)
 
 /**
  * Generates counter-based ids.
@@ -116,4 +129,75 @@ export class MaxSizedSet<T> {
 
 export function generateClientId(): string {
 	return counterId(process.pid ? `${process.pid}` : randomString(4), '/');
+}
+
+export const fetchAuthParams = async (authentication: Authentication) => {
+	const user = await authentication.getAddress();
+	const signature = await authentication.createMessageSignature(Buffer.from(user));
+	const signatureStr = Buffer.from(signature).toString('base64');
+	const token = Base64.encode(`${user}:${signatureStr}`);
+
+	return {
+		user,
+		token,
+	};
+}
+
+export class FetchHttpStreamResponseError extends Error {
+
+	response: Response
+
+	constructor(response: Response) {
+		super(`Fetch error, url=${response.url}`)
+		this.response = response
+	}
+}
+
+export const fetchLengthPrefixedFrameHttpBinaryStream = async function* (
+	url: string,
+	headers: Record<string, string>,
+	abortSignal?: AbortSignal
+): AsyncGenerator<Uint8Array, void, undefined> {
+	logger.debug('Send HTTP request', { url })
+	const abortController = new AbortController()
+	const fetchAbortSignal = composeAbortSignals(...compact([abortController.signal, abortSignal]))
+	const response: Response = await fetch(url, {
+		headers,
+		signal: fetchAbortSignal
+	})
+	logger.debug('Received HTTP response', {
+		url,
+		status: response.status,
+	})
+	if (!response.ok) {
+		throw new FetchHttpStreamResponseError(response)
+	}
+	if (!response.body) {
+		throw new Error('No Response Body')
+	}
+
+	let stream: Readable | undefined
+	try {
+		// in the browser, response.body will be a web stream. Convert this into a node stream.
+		const source: Readable = WebStreamToNodeStream(response.body as unknown as (ReadableStream | Readable))
+		stream = source.pipe(new LengthPrefixedFrameDecoder())
+		source.on('error', (err: Error) => stream!.destroy(err))
+		stream.once('close', () => {
+			abortController.abort()
+		})
+		yield* stream
+	} catch (err) {
+		abortController.abort()
+		throw err
+	} finally {
+		stream?.destroy()
+		fetchAbortSignal.destroy()
+	}
+}
+
+export const createQueryString = (query: Record<string, any>): string => {
+	const withoutEmpty = Object.fromEntries(
+		Object.entries(query).filter(([_k, v]) => v != null)
+	);
+	return new URLSearchParams(withoutEmpty).toString();
 }

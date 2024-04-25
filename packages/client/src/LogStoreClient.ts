@@ -59,6 +59,7 @@ import {
 	LogStoreClientSystemMessagesInjectionToken,
 	systemStreamFromClient,
 } from './utils/systemStreamUtils';
+import { fetchAuthParams } from './utils/utils';
 import { ValidationManager } from './validationManager/ValidationManager';
 
 export class LogStoreClient implements Disposable {
@@ -261,7 +262,7 @@ export class LogStoreClient implements Disposable {
 	}
 
 	apiAuth() {
-		return this.logStoreQueries.getAuth();
+		return fetchAuthParams(this.authentication);
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -436,20 +437,6 @@ export class LogStoreClient implements Disposable {
 	getNodeUrl(address: string): Promise<string | null> {
 		const ethAddress = toEthereumAddress(address);
 		return this.logStoreNodeManager.getNodeUrl(ethAddress);
-	}
-
-	/**
-	 * Get node URLs list for LogStore, ordered by latency.
-	 */
-	public async getNodeUrlsByLatency() {
-		return this.logStoreNodeManager.getNodeUrlsByLatency();
-	}
-
-	/**
-	 * This observable emits lists of nodes information from the LogStore, ordered by latency, as heartbeat messages are received.
-	 */
-	public get nodesHeartbeatInformationListObservable() {
-		return this.logStoreNodeManager.nodeListByLatency$;
 	}
 
 	// --------------------------------------------------------------------------------------------
