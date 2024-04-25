@@ -34,16 +34,6 @@ export class FetchHttpStreamResponseError extends Error {
 	}
 }
 
-// TODO couple it to broker's types
-export type RequestMetadata = {
-	requestId?: string;
-	participatingNodesAddress?: string[];
-	type: 'metadata';
-	hasNext?: boolean;
-	nextTimestamp?: number;
-	nextSequenceNumber?: number;
-};
-
 export const DEFAULT_HEADERS = {
 	'LogStore-Client': `logstore-client-javascript/${getVersionString()}`,
 };

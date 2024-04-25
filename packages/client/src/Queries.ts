@@ -4,7 +4,7 @@ import {
 	StreamPartIDUtils,
 } from '@streamr/protocol';
 import { Logger, randomString, toEthereumAddress } from '@streamr/utils';
-import { defer, EMPTY, filter, map, partition, shareReplay } from 'rxjs';
+import { defer, filter, map, partition, shareReplay } from 'rxjs';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
@@ -205,7 +205,7 @@ export class Queries {
 		if (isQueryLast(input)) {
 			if (input.last <= 0) {
 				const emptyStream = new PushBuffer<StreamMessage<unknown>>();
-				return new LogStoreMessageStream(emptyStream, EMPTY);
+				return new LogStoreMessageStream(emptyStream);
 			}
 			return this.fetchStream(
 				QueryType.Last,
@@ -304,10 +304,6 @@ export class Queries {
 					}
 					return StreamMessage.deserialize(msgObject);
 				}
-				// last message must be metadata
-				if (msgObject.type === 'metadata') {
-					return msgObject as RequestMetadata;
-				}
 				throw new Error('Invalid message');
 			})
 		);
@@ -324,29 +320,7 @@ export class Queries {
 			await pull(messagesSource, messageStream);
 		});
 
-		const logStoreMessageStream = new LogStoreMessageStream(
-			messageStream,
-			metadataSource
-		);
-
-		if (options?.verifyNetworkResponses) {
-			await validateWithNetworkResponses({
-				queryInput: {
-					query,
-					queryType,
-					streamPartId,
-				},
-				responseStream: logStoreMessageStream,
-				systemMessages$: this.systemMessages$,
-				nodeManager: this.nodeManager,
-				logger: this.logger,
-				queryUrl: nodeUrl,
-				verificationOptions:
-					typeof options.verifyNetworkResponses === 'object'
-						? options.verifyNetworkResponses
-						: undefined,
-			});
-		}
+		const logStoreMessageStream = new LogStoreMessageStream(messageStream);
 
 		return logStoreMessageStream;
 	}

@@ -14,7 +14,6 @@ import { MessageListener } from '@streamr/sdk';
 import { omit } from 'lodash';
 import { Observable, defer, shareReplay, switchMap } from 'rxjs';
 
-import type { RequestMetadata } from './HttpUtil';
 import { convertStreamMessageToMessage } from './streamr/Message';
 import { IPushPipeline } from './streamr/utils/IPushPipeline';
 import { PushBuffer } from './streamr/utils/PushBuffer';
@@ -47,7 +46,6 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 		public messageStream:
 			| PushBuffer<Uint8Array | StreamMessage>
 			| IPushPipeline<StreamMessage, StreamMessage>,
-		public metadataStream: Observable<RequestMetadata>
 	) {
 		this.messages$ = defer(() => {
 			// @ts-expect-error Property 'iterate' does not exist on type 'IPushPipeline<StreamMessage<unknown>, StreamMessage<unknown>>'
