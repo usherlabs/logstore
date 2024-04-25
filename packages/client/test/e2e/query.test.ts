@@ -18,11 +18,11 @@ import StreamrClient, {
 } from '@streamr/sdk';
 import {
 	KeyServer,
-	fastWallet,
 	fetchPrivateKeyWithGas,
+	randomEthereumAddress
 } from '@streamr/test-utils';
 import { convertBytesToStreamMessage, convertStreamMessageToBytes } from '@streamr/trackerless-network';
-import { toEthereumAddress, wait, waitForCondition } from '@streamr/utils';
+import { LengthPrefixedFrameDecoder, toLengthPrefixedFrame, wait, waitForCondition } from '@streamr/utils';
 import axios from 'axios';
 import { Wallet } from 'ethers';
 import { range } from 'lodash';
@@ -33,8 +33,6 @@ import { Transform, TransformCallback } from 'stream';
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
 import { LogStoreMessage } from '../../src/LogStoreMessageStream';
-import type { StorageMatrix } from '../../src/utils/networkValidation/manageStorageMatrix';
-import * as verifyPkg from '../../src/utils/networkValidation/manageStorageMatrix';
 import { sleep } from '../test-utils/sleep';
 import { createTestStream, getProvider } from '../test-utils/utils';
 
@@ -48,7 +46,7 @@ const NUM_OF_RANGE_MESSAGES = 10;
 const MESSAGE_STORE_TIMEOUT = 15 * 1000;
 const TIMEOUT = 90 * 1000;
 
-const BASE_NODE_URL = `http://localhost:7771`;
+const BASE_NODE_URL = `http://10.200.10.1:7771`;
 
 describe('query', () => {
 	const provider = getProvider();
@@ -165,13 +163,11 @@ describe('query', () => {
 				},
 				{ last: 1 },
 				(content) => {
-					console.log('content', content);
 					messages1.push(content);
 				}
 			);
 
 			for await (const msg of queryStream1) {
-				console.log('msg', msg);
 				messages2.push(msg.content);
 			}
 
@@ -208,10 +204,6 @@ describe('query', () => {
 			// TODO: the consumer must have permission to subscribe to the stream or the strem have to be public
 			await stream.grantPermissions({
 				user: await consumerStreamrClient.getAddress(),
-				permissions: [StreamPermission.SUBSCRIBE],
-			});
-			await stream.grantPermissions({
-				public: true,
 				permissions: [StreamPermission.SUBSCRIBE],
 			});
 			// await stream.grantPermissions({
@@ -334,7 +326,7 @@ describe('query', () => {
 				fetchSpy.mockImplementation(async (_url, _init) => {
 					const response = await originalFetch(_url, _init);
 					// let's alter the first message from the body stream
-					const original = response.body;
+					const original = response.body.pipe(new LengthPrefixedFrameDecoder());
 					let msgCount = 0;
 					const transformed = original.pipe(
 						new Transform({
@@ -354,12 +346,10 @@ describe('query', () => {
 										// modifies message to make it fail
 
 										// @ts-expect-error Cannot assign to 'publisherId' because it is a read-only property.
-										streamMessage.messageId.publisherId = toEthereumAddress(
-											fastWallet().address
-										);
+										streamMessage.messageId.publisherId = randomEthereumAddress();
 									}
 
-									const altered = convertStreamMessageToBytes(streamMessage);
+									const altered = toLengthPrefixedFrame(convertStreamMessageToBytes(streamMessage));
 									this.push(altered, encoding);
 								} catch (e) {
 									this.push(chunk, encoding);
@@ -446,25 +436,21 @@ describe('query', () => {
 					expect(resp.messages).toHaveLength(NUM_OF_LAST_MESSAGES);
 					const _data = resp.messages.map(
 						({
-							metadata: {
-								id: {
-									streamId,
-									streamPartition,
-									timestamp,
-									sequenceNumber,
-									publisherId,
-									msgChainId,
-								},
-								newGroupKey,
-								prevMsgRef,
-								messageType,
-								contentType,
-								encryptionType,
-								groupKeyId,
-								signature,
-								signatureType,
-							},
+							streamId,
+							streamPartition,
+							timestamp,
+							sequenceNumber,
+							publisherId,
+							msgChainId,
+							prevMsgRef,
+							messageType,
 							content,
+							contentType,
+							signature,
+							signatureType,
+							encryptionType,
+							groupKeyId,
+							newGroupKey,
 						}) =>
 							new StreamMessage({
 								messageId: new MessageID(
