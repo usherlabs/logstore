@@ -1,11 +1,22 @@
 import { JsonRpcProvider, Provider } from '@ethersproject/providers';
 import { config as CHAIN_CONFIG } from '@streamr/config';
 import StreamrClient, { Stream, StreamMetadata } from '@streamr/sdk';
+import { Logger } from '@streamr/utils';
 import crypto from 'crypto';
 
+import { LoggerFactory } from '../../src/streamr/LoggerFactory';
 import { counterId } from '../../src/utils/utils';
 
 export const TEST_CHAIN_CONFIG = CHAIN_CONFIG.dev2;
+
+export function mockLoggerFactory(): LoggerFactory {
+	return {
+		createLogger(module: NodeJS.Module): Logger {
+			return new Logger(module, { id: 'TestCtx' }, 'info')
+		}
+
+	} as unknown as LoggerFactory
+}
 
 export const uid = (prefix?: string): string =>
 	counterId(`p${process.pid}${prefix ? '-' + prefix : ''}`);
