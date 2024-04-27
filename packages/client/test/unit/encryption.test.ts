@@ -7,6 +7,7 @@ import StreamrClient, {
 } from '@streamr/sdk';
 import { KeyServer, fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { convertStreamMessageToBytes } from '@streamr/trackerless-network';
+import { toLengthPrefixedFrame } from '@streamr/utils';
 import type { Response } from 'node-fetch';
 import * as nodeFetch from 'node-fetch';
 import {
@@ -335,9 +336,7 @@ describe('Encryption subleties', () => {
 			type: 'metadata',
 		};
 
-		const payload = [convertStreamMessageToBytes(streamMessage), JSON.stringify(metadata)].join(
-			'\n'
-		);
+		const payload = toLengthPrefixedFrame(convertStreamMessageToBytes(streamMessage));
 
 		fetchSpy.mockImplementationOnce(async (...args) => {
 			// FAKE_QUERY is included as the streamId to be fetched
