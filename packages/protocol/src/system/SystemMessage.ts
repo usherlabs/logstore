@@ -2,13 +2,9 @@ import { Serializer } from '../abstracts/Serializer';
 import UnsupportedTypeError from '../errors/UnsupportedTypeError';
 import UnsupportedVersionError from '../errors/UnsupportedVersionError';
 import { validateIsInteger } from '../utils/validations';
-import type { ProofOfReport } from './ProofOfReport';
 import type { QueryPropagate } from './QueryPropagate';
 import type { QueryRequest } from './QueryRequest';
 import type { QueryResponse } from './QueryResponse';
-import type { RecoveryComplete } from './RecoveryComplete';
-import type { RecoveryRequest } from './RecoveryRequest';
-import type { RecoveryResponse } from './RecoveryResponse';
 
 const serializerByVersionAndType: Record<
 	string,
@@ -20,20 +16,12 @@ export enum SystemMessageType {
 	QueryRequest = 1,
 	QueryResponse = 2,
 	QueryPropagate = 3,
-	ProofOfReport = 4,
-	RecoveryRequest = 5,
-	RecoveryResponse = 6,
-	RecoveryComplete = 7,
 }
 
 export type SystemMessageMap = {
 	[SystemMessageType.QueryRequest]: QueryRequest;
 	[SystemMessageType.QueryResponse]: QueryResponse;
 	[SystemMessageType.QueryPropagate]: QueryPropagate;
-	[SystemMessageType.ProofOfReport]: ProofOfReport;
-	[SystemMessageType.RecoveryRequest]: RecoveryRequest;
-	[SystemMessageType.RecoveryResponse]: RecoveryResponse;
-	[SystemMessageType.RecoveryComplete]: RecoveryComplete;
 };
 
 export interface SystemMessageOptions {

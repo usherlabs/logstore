@@ -5,8 +5,6 @@
 | 25    | SMTP                             | streamr-dev-smtp                     | Streamr  |           |
 | 80    | Streamr APP                      | streamr-dev-nginx                    | Streamr  | &check;   |
 | 443   | Streamr APP                      | streamr-dev-nginx                    | Streamr  | &check;   |
-| 1317  | KYVE REST API                    | logstore-nginx                       | LogStore | &check;   |
-| 1984  | Arweave                          | logstore-arweave                     | LogStore |           |
 | 3306  | MySql                            | streamr-dev-mysql                    | Streamr  |           |
 | 3333  |                                  | streamr-dev-platform                 | Streamr  |           |
 | 3334  |                                  | streamr-dev-network-explorer         | Streamr  |           |
@@ -41,14 +39,12 @@
 | 8791  | Streamr Broker (no storage) #1   | streamr-dev-broker-node-no-storage-1 | Streamr  |           |
 | 8890  | Streamr Broker (storage) #1      | streamr-dev-broker-node-storage-1    | Streamr  |           |
 | 8891  | Streamr Broker (storage) #1      | streamr-dev-broker-node-storage-1    | Streamr  |           |
-| 8801  | KYVE app                         | logstore-nginx                       | LogStore | &check;   |
 | 8802  | EVM Block Explorer               | logstore-b-explorer                  | LogStore | &check;   |
 | 9000  | Streamr Broker (storage) #1      | streamr-dev-broker-node-storage-1    | Streamr  |           |
 | 9042  | Cassandra                        | streamr-dev-cassandra                | Streamr  | &check;   |
 | 9100  | Streamr Broker (no storage) #1   | streamr-dev-broker-node-no-storage-1 | Streamr  |           |
 | 9160  | Cassandra                        | streamr-dev-cassandra                | Streamr  |           |
 | 9200  | Streamr Broker (no storage) #2   | streamr-dev-broker-node-no-storage-2 | Streamr  |           |
-| 26657 | KYVE RPC                         | logstore-nginx                       | LogStore | &check;   |
 | 30309 | EVM Main Chain (Chain ID: 8995)  | streamr-dev-parity-node0             | Streamr  |           |
 | 30310 | EVM Side Chain (Chain ID: 8997)  | logstore-dev-parity-sidechain-node0  | Streamr  |           |
 | 40401 | Streamr Broker (storage) #1      | streamr-dev-broker-node-storage-1    | Streamr  | &check;   |

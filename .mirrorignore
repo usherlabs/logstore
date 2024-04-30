@@ -7,5 +7,4 @@
 # glob pattern isn't supported.
 
 packages/broker
-packages/validator
 .github/workflows/public-mirror.yml

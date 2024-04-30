@@ -11,8 +11,7 @@
 	"scripts": {
 		"modules": "git submodule init && git submodule update",
 		"clean": "del packages/*/node_modules packages/*/dist node_modules",
-		"build": "npx turbo run build --force --filter=!./packages/validator",
-		"build:experimental": "npx turbo run build --force",
+		"build": "npx turbo run build --force",
 		"format": "node_modules/prettier/bin/prettier.cjs --write \"**/*.{js,jsx,mjs,ts,tsx,json,css,scss,md,sol}\""
 	},
 	"devDependencies": {
