@@ -6,7 +6,7 @@ const PULSE_INTERVAL_MS = 1 * 1000;
 
 export class Pulse {
 	private _stream: Stream | undefined;
-	private _interval: NodeJS.Timer | undefined;
+	private _interval: NodeJS.Timeout | undefined;
 
 	private get stream(): Stream {
 		if (!this._stream) {

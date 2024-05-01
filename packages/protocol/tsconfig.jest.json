@@ -1,7 +1,7 @@
 {
-	"extends": "./tsconfig.node.json",
+	"extends": "../../tsconfig.jest.json",
 	"compilerOptions": {
-		"types": ["node", "jest"],
-		"experimentalDecorators": true
-	}
+		"outDir": "dist"
+	},
+	"include": ["src/**/*", "test/**/*"]
 }

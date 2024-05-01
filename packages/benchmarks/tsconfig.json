@@ -20,10 +20,5 @@
 		"baseUrl": "."
 	},
 	"exclude": ["node_modules", "build", "dist"],
-	"include": ["**/*.ts"],
-	"references": [
-		{
-			"path": "../client/tsconfig.node.json"
-		}
-	]
+	"include": ["**/*.ts"]
 }

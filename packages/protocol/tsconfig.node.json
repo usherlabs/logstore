@@ -1,22 +1,7 @@
 {
-	"$schema": "https://json.schemastore.org/tsconfig",
-	"display": "Node 16 – Streamr",
-	"extends": "@tsconfig/node16/tsconfig.json",
+	"extends": "../../tsconfig.node.json",
 	"compilerOptions": {
-		"allowJs": true,
-		"composite": true,
-		"declaration": true,
-		"moduleResolution": "node",
-		"noImplicitOverride": true,
-		"resolveJsonModule": true,
-		"types": ["node"],
-		"incremental": true,
-		"sourceMap": true,
-		"stripInternal": true,
-		"useUnknownInCatchVariables": false,
-		"strictBindCallApply": true,
-		"suppressImplicitAnyIndexErrors": true
+		"outDir": "dist"
 	},
-	"lib": ["DOM"],
-	"exclude": ["node_modules", "dist"]
+	"include": ["src/**/*"]
 }
