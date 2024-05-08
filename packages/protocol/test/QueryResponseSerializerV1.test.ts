@@ -1,14 +1,15 @@
 import assert from 'assert';
 
+import { MessageRef } from '@streamr/protocol';
 import { SystemMessage, SystemMessageType } from '../src/system';
 import { QueryResponse } from '../src/system/QueryResponse';
 import '../src/system/QueryResponseSerializerV1';
 
 const VERSION = 1;
 
-const hashMap = new Map<string, string>();
-hashMap.set('firstMessageId', 'firstMessageHash');
-hashMap.set('secondeMessageId', 'secondeMessageHash');
+const messageRef: MessageRef[] = [];
+messageRef.push(new MessageRef(100200301, 1));
+messageRef.push(new MessageRef(100200302, 2));
 
 // Message definitions
 const message = new QueryResponse({
@@ -16,7 +17,8 @@ const message = new QueryResponse({
 	seqNum: 1234,
 	requestId: 'requestId',
 	requestPublisherId: 'requestPublisherId',
-	hashMap,
+	isFinal: true,
+	messageRefs: messageRef,
 });
 
 const serializedMessage = JSON.stringify([
@@ -25,7 +27,8 @@ const serializedMessage = JSON.stringify([
 	1234,
 	'requestId',
 	'requestPublisherId',
-	'[["firstMessageId","firstMessageHash"],["secondeMessageId","secondeMessageHash"]]',
+	true,
+	'[[100200301,1],[100200302,2]]',
 ]);
 
 describe('QueryResponseSerializerV1', () => {

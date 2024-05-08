@@ -32,9 +32,9 @@ export interface SystemMessageOptions {
 export class SystemMessage {
 	static LATEST_VERSION = LATEST_VERSION;
 
-	version: number;
-	messageType: SystemMessageType;
-	seqNum: number;
+	public readonly version: number;
+	public readonly messageType: SystemMessageType;
+	public readonly seqNum: number;
 
 	constructor(
 		version = LATEST_VERSION,

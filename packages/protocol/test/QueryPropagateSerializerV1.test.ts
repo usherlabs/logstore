@@ -6,9 +6,9 @@ import '../src/system/QueryPropagateSerializerV1';
 
 const VERSION = 1;
 
-const payload: [string, Uint8Array][] = [];
-payload.push(['firstMessageId', Buffer.from('firstMessageBlob')]);
-payload.push(['secondMessageId', Buffer.from('secondMessageBlob')]);
+const payload: Uint8Array[] = [];
+payload.push(new Uint8Array([1, 2, 3]));
+payload.push(new Uint8Array([3, 2, 1]));
 
 // Message definitions
 const message = new QueryPropagate({
@@ -26,8 +26,8 @@ const serializedMessage = JSON.stringify([
 	'requestId',
 	'requestPublisherId',
 	[
-		['firstMessageId', Buffer.from('firstMessageBlob').toString('base64')],
-		['secondMessageId', Buffer.from('secondMessageBlob').toString('base64')],
+		Buffer.from([1, 2, 3]).toString('base64'),
+		Buffer.from([3, 2, 1]).toString('base64'),
 	],
 ]);
 

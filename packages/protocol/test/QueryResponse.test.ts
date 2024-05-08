@@ -9,7 +9,8 @@ describe(QueryResponse, () => {
 			return new QueryResponse({
 				requestId: 'requestId',
 				requestPublisherId: 'requestPublisherId',
-				hashMap: new Map<string, string>(),
+				isFinal: true,
+				messageRefs: [],
 			});
 		};
 

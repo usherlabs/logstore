@@ -1,3 +1,4 @@
+import { MessageRef } from '@streamr/protocol';
 import {
 	SystemMessage,
 	SystemMessageOptions,
@@ -10,15 +11,11 @@ export enum QueryType {
 	Range = 'range',
 }
 
-export interface QueryRef {
-	timestamp: number;
-	sequenceNumber?: number;
-}
-
 /**
  * Query the latest "n" messages.
  */
 export interface QueryLastOptions {
+	queryType: QueryType.Last;
 	last: number;
 }
 
@@ -26,7 +23,8 @@ export interface QueryLastOptions {
  * Query messages starting from a given point in time.
  */
 export interface QueryFromOptions {
-	from: QueryRef;
+	queryType: QueryType.From;
+	from: MessageRef;
 	publisherId?: string;
 	limit?: number;
 }
@@ -35,8 +33,9 @@ export interface QueryFromOptions {
  * Query messages between two points in time.
  */
 export interface QueryRangeOptions {
-	from: QueryRef;
-	to: QueryRef;
+	queryType: QueryType.Range;
+	from: MessageRef;
+	to: MessageRef;
 	msgChainId?: string;
 	publisherId?: string;
 	limit?: number;
@@ -55,19 +54,17 @@ interface QueryRequestOptions extends SystemMessageOptions {
 	consumerId: string;
 	streamId: string;
 	partition: number;
-	queryType: QueryType;
 	queryOptions: QueryOptions;
 }
 
 let messageSeqNum = 0;
 
 export class QueryRequest extends SystemMessage {
-	requestId: string;
-	consumerId: string;
-	streamId: string;
-	partition: number;
-	queryType: QueryType;
-	queryOptions: QueryOptions;
+	public readonly requestId: string;
+	public readonly consumerId: string;
+	public readonly streamId: string;
+	public readonly partition: number;
+	public readonly queryOptions: QueryOptions;
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
@@ -76,7 +73,6 @@ export class QueryRequest extends SystemMessage {
 		consumerId,
 		streamId,
 		partition,
-		queryType,
 		queryOptions,
 	}: QueryRequestOptions) {
 		super(version, SystemMessageType.QueryRequest, seqNum);
@@ -86,7 +82,6 @@ export class QueryRequest extends SystemMessage {
 		this.consumerId = consumerId;
 		this.streamId = streamId;
 		this.partition = partition;
-		this.queryType = queryType;
 		this.queryOptions = queryOptions;
 	}
 }
