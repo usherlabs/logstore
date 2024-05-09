@@ -63,10 +63,8 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 		}
 
 		this.messageStream.onMessage.listen(async (streamMessage) => {
-			if (typeof streamMessage !== 'string') {
-				const msg = convertStreamMessageToMessage(streamMessage);
-				await onMessage(msg.content, omit(msg, 'content'));
-			}
+			const msg = convertStreamMessageToMessage(streamMessage);
+			await onMessage(msg.content, omit(msg, 'content'));
 		});
 		this.messageStream.flow();
 
