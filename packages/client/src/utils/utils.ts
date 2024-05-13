@@ -9,8 +9,6 @@ import { Readable } from 'stream';
 
 import { Base64 } from 'js-base64';
 import { compact } from 'lodash';
-import pkg from '../../package.json';
-import LRU from '../../vendor/quick-lru';
 import { Authentication } from '../streamr/Authentication';
 import { WebStreamToNodeStream } from '../streamr/utils/WebStreamToNodeStream';
 import { SEPARATOR } from './uuid';
@@ -79,53 +77,6 @@ export const CounterId = (
 };
 
 export const counterId = CounterId();
-
-export interface AnyInstance {
-	constructor: {
-		name: string;
-		prototype: null | AnyInstance;
-	};
-}
-export function instanceId(instance: AnyInstance, suffix = ''): string {
-	return counterId(instance.constructor.name) + suffix;
-}
-
-function getVersion() {
-	// dev deps are removed for production build
-	const hasDevDependencies = !!(
-		pkg.devDependencies && Object.keys(pkg.devDependencies).length
-	);
-	const isProduction =
-		process.env.NODE_ENV === 'production' || hasDevDependencies;
-	return `${pkg.version}${!isProduction ? 'dev' : ''}`;
-}
-
-// hardcode this at module exec time as can't change
-const versionString = getVersion();
-
-export function getVersionString(): string {
-	return versionString;
-}
-
-export class MaxSizedSet<T> {
-	private readonly delegate: LRU<T, true>;
-
-	constructor(maxSize: number) {
-		this.delegate = new LRU<T, true>({ maxSize });
-	}
-
-	add(value: T): void {
-		this.delegate.set(value, true);
-	}
-
-	has(value: T): boolean {
-		return this.delegate.has(value);
-	}
-
-	delete(value: T): void {
-		this.delegate.delete(value);
-	}
-}
 
 export function generateClientId(): string {
 	return counterId(process.pid ? `${process.pid}` : randomString(4), '/');
