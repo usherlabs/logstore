@@ -1,4 +1,5 @@
 import { getRootOptions } from '@/commands/options';
+import { handleKnownError } from '@/utils/errors/handleErrors';
 import { fastPriorityIfMainNet$ } from '@/utils/gasStation';
 import {
 	getClientsFromOptions,
@@ -17,7 +18,6 @@ import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
 import Decimal from 'decimal.js';
 import { firstValueFrom } from 'rxjs';
-import { handleKnownError } from '@/utils/errors/handleErrors';
 
 export const mintCommand = new Command()
 	.command('mint')
@@ -101,5 +101,6 @@ export const mintCommand = new Command()
 			await handleKnownError(e);
 
 			logger.error(e);
+			process.exit(1);
 		}
 	});

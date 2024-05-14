@@ -1,10 +1,10 @@
 import { readFeeMultiplier } from '@/configuration';
+import { handleKnownError } from '@/utils/errors/handleErrors';
 import { getClientsFromOptions } from '@/utils/logstore-client';
 import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk from 'chalk';
 import Decimal from 'decimal.js';
-import { handleKnownError } from '@/utils/errors/handleErrors';
 
 const queryBalanceCommand = new Command()
 	.name('balance')
@@ -33,7 +33,9 @@ const queryBalanceCommand = new Command()
 		} catch (e) {
 			logger.error(chalk.red('Query Balance Check failed'));
 			await handleKnownError(e);
+
 			logger.error(e);
+			process.exit(1);
 		}
 	});
 
