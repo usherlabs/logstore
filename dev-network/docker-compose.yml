@@ -109,7 +109,6 @@ services:
       dockerfile: ./Dockerfile
     restart: always
     ports:
-      - '7047:7047'
       - '7771:7771'
       - "40801:40801"
     networks:
