@@ -8,4 +8,3 @@ export { LogStoreClientConfig } from './LogStoreClientConfig';
 export { NodeMetadata } from './NodeMetadata';
 export { LogStoreClientEvents } from './events';
 export { LogStoreAssignmentEvent } from './registry/LogStoreRegistry';
-export { messageIdToStr } from "./streamr/MessageID";
