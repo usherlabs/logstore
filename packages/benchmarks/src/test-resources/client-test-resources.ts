@@ -6,15 +6,16 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
-import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
-import { providers, Wallet } from 'ethers';
-import { range } from 'lodash';
+import { config as CHAIN_CONFIG } from '@streamr/config';
 import StreamrClient, {
 	Message,
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	Stream,
 	StreamPermission,
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
-} from 'streamr-client';
+} from '@streamr/sdk';
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import { Wallet, providers } from 'ethers';
+import { range } from 'lodash';
 
 import { createTestStream } from '../utils/test-stream';
 
@@ -54,13 +55,10 @@ type Fixtures = {
 const useProvider: Resource<providers.JsonRpcProvider> = async (
 	// need to have empty object here not to use every variable
 	// eslint-disable-next-line no-empty-pattern
-	{},
+	{ },
 	use
 ) => {
-	const provider = new providers.JsonRpcProvider(
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	);
+	const provider = new providers.JsonRpcProvider(CHAIN_CONFIG.dev2.rpcEndpoints[0].url);
 	await use(provider);
 };
 

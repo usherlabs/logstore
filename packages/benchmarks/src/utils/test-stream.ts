@@ -1,5 +1,5 @@
+import type { Stream, StreamMetadata, StreamrClient } from '@streamr/sdk';
 import crypto from 'crypto';
-import type { Stream, StreamMetadata, StreamrClient } from 'streamr-client';
 
 // using relative otherwise won't work without messing with exports from client
 import { counterId } from '../../../client/src/utils/utils';
@@ -12,8 +12,7 @@ const randomTestRunId =
 
 export const createTestPath = (uniqueId: string, suffix?: string): string => {
 	return counterId(
-		`/test/${randomTestRunId}/${uniqueId}${
-			suffix !== undefined ? '-' + suffix : ''
+		`/test/${randomTestRunId}/${uniqueId}${suffix !== undefined ? '-' + suffix : ''
 		}`,
 		'-'
 	);

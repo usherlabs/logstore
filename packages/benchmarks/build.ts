@@ -10,7 +10,7 @@ const external = [
 	'vitest',
 	'commander',
 	'chalk',
-	'@streamr-client',
+	'@streamr/sdk',
 	'@logsn/client',
 ];
 

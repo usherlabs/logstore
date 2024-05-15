@@ -9,19 +9,20 @@ import {
 	prepareStakeForQueryManager,
 	prepareStakeForStoreManager,
 } from '@logsn/shared';
-import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
-import { providers, Wallet } from 'ethers';
-import _ from 'lodash';
-import { firstValueFrom, take, tap, toArray } from 'rxjs';
+import { config as CHAIN_CONFIG } from '@streamr/config';
 import StreamrClient, {
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	Message,
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	Stream,
 	StreamPermission,
-} from 'streamr-client';
+} from '@streamr/sdk';
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import { Wallet, providers } from 'ethers';
+import _ from 'lodash';
+import { firstValueFrom, take, tap, toArray } from 'rxjs';
 import Bench from 'tinybench';
 import { Logger } from 'tslog';
-import { afterAll, beforeAll, describe, expect, it, Test } from 'vitest';
+import { Test, afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // it's important to import CONFIG_TEST relatively, otherwise it won't work
 import {
@@ -45,10 +46,7 @@ const MESSAGE_STORE_TIMEOUT = 9 * 1000;
 
 describe('Client Package Benchmarks', () => {
 	const jsonReporter = createJsonReporter({ filename: 'client-package.json' });
-	const provider = new providers.JsonRpcProvider(
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	);
+	const provider = new providers.JsonRpcProvider(CHAIN_CONFIG.dev2.rpcEndpoints[0].url);
 
 	// Accounts
 	let publisherAccount: Wallet;

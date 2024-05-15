@@ -110,6 +110,12 @@ importers:
       '@logsn/shared':
         specifier: workspace:*
         version: link:../shared
+      '@streamr/config':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@streamr/sdk':
+        specifier: ^100.1.2
+        version: 100.1.2(@ethersproject/hash@5.7.0)(typescript@5.3.3)
       benchmark:
         specifier: ^2.1.4
         version: 2.1.4
@@ -137,9 +143,6 @@ importers:
       rxjs:
         specifier: ^7.8.1
         version: 7.8.1
-      streamr-client:
-        specifier: ^8.5.5
-        version: 8.5.5(@ethersproject/hash@5.7.0)(typescript@5.4.4)
       tinybench:
         specifier: ^2.5.0
         version: 2.5.0
@@ -151,8 +154,8 @@ importers:
         version: 0.32.0
     devDependencies:
       '@streamr/test-utils':
-        specifier: ^8.5.5
-        version: 8.5.5
+        specifier: ^100.1.2
+        version: 100.1.2
       '@types/benchmark':
         specifier: ^2.1.2
         version: 2.1.2
@@ -823,7 +826,7 @@ importers:
     dependencies:
       '@graphprotocol/graph-cli':
         specifier: ^0.46.1
-        version: 0.46.1(@types/node@20.12.4)(typescript@5.4.4)
+        version: 0.46.1(@types/node@20.12.4)(node-fetch@2.7.0)(typescript@5.4.4)
       '@graphprotocol/graph-ts':
         specifier: ^0.29.3
         version: 0.29.3
@@ -2090,14 +2093,6 @@ packages:
       regenerator-runtime: 0.13.11
     dev: false
 
-  /@babel/runtime-corejs3@7.23.7:
-    resolution: {integrity: sha512-ER55qzLREVA5YxeyQ3Qu48tgsF2ZrFjFjUS6V6wF0cikSw+goBJgB9PBRM1T6+Ah4iiM+sxmfS/Sy/jdzFfhiQ==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      core-js-pure: 3.33.0
-      regenerator-runtime: 0.14.0
-    dev: false
-
   /@babel/runtime-corejs3@7.24.1:
     resolution: {integrity: sha512-T9ko/35G+Bkl+win48GduaPlhSlOjjE5s1TeiEcD+QpxlLQnoEfb/nO/T+TQqkm+ipFwORn+rB8w14iJ/uD0bg==}
     engines: {node: '>=6.9.0'}
@@ -2118,6 +2113,7 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       regenerator-runtime: 0.14.0
+    dev: true
 
   /@babel/runtime@7.24.1:
     resolution: {integrity: sha512-+BIznRzyqBf+2wCTxcKE3wDjfGeCoVE61KSHGpkzqrLi8qxqFwBeUFyId2cxkTmm55fzDGnm0+yCxaxygrLUnQ==}
@@ -3475,7 +3471,7 @@ packages:
     dev: false
     optional: true
 
-  /@graphprotocol/graph-cli@0.46.1(@types/node@20.12.4)(typescript@5.4.4):
+  /@graphprotocol/graph-cli@0.46.1(@types/node@20.12.4)(node-fetch@2.7.0)(typescript@5.4.4):
     resolution: {integrity: sha512-594BiH2m9gThP1xdvxguVzvVlOb1KzJyVdh2F4dV78NPfMRFY2fe1nakmadKcewc72VVLXNgfdBu/J4IPfo0eg==}
     engines: {node: '>=14'}
     hasBin: true
@@ -3495,7 +3491,7 @@ packages:
       gluegun: github.com/edgeandnode/gluegun/b34b9003d7bf556836da41b57ef36eb21570620a(debug@4.3.4)
       graphql: 15.5.0
       immutable: 4.2.1
-      ipfs-http-client: 55.0.0
+      ipfs-http-client: 55.0.0(node-fetch@2.7.0)
       jayson: 4.0.0
       js-yaml: 3.14.1
       prettier: 1.19.1
@@ -3988,7 +3984,7 @@ packages:
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     dependencies:
       '@json-rpc-tools/utils': 1.7.6
-      axios: 0.21.4
+      axios: 0.21.4(debug@4.3.4)
       safe-json-utils: 1.1.1
       ws: 7.5.9
     transitivePeerDependencies:
@@ -5601,30 +5597,6 @@ packages:
       '@openzeppelin/contracts-upgradeable-4.4.2': /@openzeppelin/contracts-upgradeable@4.4.2
     dev: false
 
-  /@streamr/network-node@8.5.5:
-    resolution: {integrity: sha512-Buljwd+DnSr09FtBYYOitzpcotpT17wwMOozqM5VFtMHwKb2a6taFzpUD7KGcc8bpmdUZuDgQIz15OmxOVR5Ug==}
-    dependencies:
-      '@streamr/protocol': 8.5.5
-      '@streamr/utils': 8.5.5
-      cancelable-promise: 4.3.1
-      commander: 11.1.0
-      heap: 0.2.7
-      ipaddr.js: 2.0.1
-      lodash: 4.17.21
-      node-datachannel: 0.4.2
-      setimmediate: 1.0.5
-      strict-event-emitter-types: 2.0.0
-      uuid: 9.0.0
-      websocket: 1.0.34
-      ws: 8.14.2(bufferutil@4.0.8)(utf-8-validate@6.0.3)
-      yallist: 4.0.0
-    optionalDependencies:
-      bufferutil: 4.0.8
-      utf-8-validate: 6.0.3
-    transitivePeerDependencies:
-      - supports-color
-    dev: false
-
   /@streamr/proto-rpc@100.1.2:
     resolution: {integrity: sha512-aRGv2kb/QrnxRe53c7sJlPDlACLb30N7Zq4j7o++m498C8UC8711N3AEpRzSfAROGXn4AISGuQY3trU+V/3nfA==}
     dependencies:
@@ -5643,12 +5615,6 @@ packages:
     resolution: {integrity: sha512-HdzkO2VKp3ta1O5ph6TKzzo/KSOeAEbTWObHU2wgfv+QJFb/ZIpgzxnk41R9fHmSSxdm3AhPpAklOb43Sa/Kbw==}
     dependencies:
       '@streamr/utils': 100.1.2
-    dev: false
-
-  /@streamr/protocol@8.5.5:
-    resolution: {integrity: sha512-2om/TiT/EWLA2Uq2uWkdDy0lfmABDWmbJHju6Az7TsOW2X2PrNYqz4RQsYCFqXmjF45C/zIK5puj6XeGNyWGlw==}
-    dependencies:
-      '@streamr/utils': 8.5.5
     dev: false
 
   /@streamr/sdk@100.1.2(@ethersproject/hash@5.7.0)(typescript@5.3.3):
@@ -5814,6 +5780,7 @@ packages:
       lodash: 4.17.21
       pino: 8.19.0
       pino-pretty: 10.3.1
+    dev: true
 
   /@testim/chrome-version@1.1.4:
     resolution: {integrity: sha512-kIhULpw9TrGYnHp/8VfdcneIcxKnLixmADtukQRtJUmsVlMg0niMkwV0xZmi8hqa57xqilIHjWFA0GKvEjVU5g==}
@@ -7915,14 +7882,6 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-  /axios@0.21.4:
-    resolution: {integrity: sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==}
-    dependencies:
-      follow-redirects: 1.15.3
-    transitivePeerDependencies:
-      - debug
-    dev: false
-
   /axios@0.21.4(debug@4.3.4):
     resolution: {integrity: sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==}
     dependencies:
@@ -7941,7 +7900,7 @@ packages:
   /axios@1.4.0:
     resolution: {integrity: sha512-S4XCWMEmzvo64T9GfvQDOXgYRDJ/wsSZc7Jvdgx5u1sd0JwsuPLqb3SYmusag+edF6ziyMensPVqLTSc1PiSEA==}
     dependencies:
-      follow-redirects: 1.15.3
+      follow-redirects: 1.15.3(debug@4.3.4)
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -8544,10 +8503,6 @@ packages:
     resolution: {integrity: sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==}
     engines: {node: '>=10'}
 
-  /cancelable-promise@4.3.1:
-    resolution: {integrity: sha512-A/8PwLk/T7IJDfUdQ68NR24QHa8rIlnN/stiJEBo6dmVUkD4K14LswG0w3VwdeK/o7qOwRUR1k2MhK5Rpy2m7A==}
-    dev: false
-
   /caniuse-lite@1.0.30001584:
     resolution: {integrity: sha512-LOz7CCQ9M1G7OjJOF9/mzmqmj3jE/7VOmrfw6Mgs0E8cjOsbRXQJHsPBfmBOXDskXKrHLyyW3n7kpDW/4BsfpQ==}
     dev: true
@@ -8999,11 +8954,6 @@ packages:
     engines: {node: '>=16'}
     dev: false
 
-  /commander@11.1.0:
-    resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
-    engines: {node: '>=16'}
-    dev: false
-
   /commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
@@ -9132,11 +9082,6 @@ packages:
 
   /core-js-pure@3.33.0:
     resolution: {integrity: sha512-FKSIDtJnds/YFIEaZ4HszRX7hkxGpNKM7FC9aJ9WLJbSd3lD4vOltFuVIBLR8asSx9frkTSqL0dw90SKQxgKrg==}
-    requiresBuild: true
-    dev: false
-
-  /core-js@3.33.0:
-    resolution: {integrity: sha512-HoZr92+ZjFEKar5HS6MC776gYslNOKHt75mEBKWKnPeFDpZ6nH5OeF3S6HFT1mUAUZKrzkez05VboaX8myjSuw==}
     requiresBuild: true
     dev: false
 
@@ -11364,15 +11309,6 @@ packages:
       imul: 1.0.1
     dev: true
 
-  /follow-redirects@1.15.3:
-    resolution: {integrity: sha512-1VzOtuEM8pC9SFU1E+8KfTjZyMztRsgEfwQl44z8A25uy13jSzTj6dyK2Df52iV0vgHCfBwLhDWevLn95w5v6Q==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
-
   /follow-redirects@1.15.3(debug@4.3.4):
     resolution: {integrity: sha512-1VzOtuEM8pC9SFU1E+8KfTjZyMztRsgEfwQl44z8A25uy13jSzTj6dyK2Df52iV0vgHCfBwLhDWevLn95w5v6Q==}
     engines: {node: '>=4.0'}
@@ -12566,7 +12502,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-core-types@0.9.0:
+  /ipfs-core-types@0.9.0(node-fetch@2.7.0):
     resolution: {integrity: sha512-VJ8vJSHvI1Zm7/SxsZo03T+zzpsg8pkgiIi5hfwSJlsrJ1E2v68QPlnLshGHUSYw89Oxq0IbETYl2pGTFHTWfg==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
@@ -12578,7 +12514,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-core-utils@0.13.0:
+  /ipfs-core-utils@0.13.0(node-fetch@2.7.0):
     resolution: {integrity: sha512-HP5EafxU4/dLW3U13CFsgqVO5Ika8N4sRSIb/dTg16NjLOozMH31TXV0Grtu2ZWo1T10ahTzMvrfT5f4mhioXw==}
     deprecated: js-IPFS has been deprecated in favour of Helia - please see https://github.com/ipfs/js-ipfs/issues/4336 for details
     dependencies:
@@ -12587,7 +12523,7 @@ packages:
       browser-readablestream-to-it: 1.0.3
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0
+      ipfs-core-types: 0.9.0(node-fetch@2.7.0)
       ipfs-unixfs: 6.0.9
       ipfs-utils: 9.0.14
       it-all: 1.0.6
@@ -12638,7 +12574,7 @@ packages:
       - supports-color
     dev: false
 
-  /ipfs-http-client@55.0.0:
+  /ipfs-http-client@55.0.0(node-fetch@2.7.0):
     resolution: {integrity: sha512-GpvEs7C7WL9M6fN/kZbjeh4Y8YN7rY8b18tVWZnKxRsVwM25cIFrRI8CwNt3Ugin9yShieI3i9sPyzYGMrLNnQ==}
     engines: {node: '>=14.0.0', npm: '>=3.0.0'}
     dependencies:
@@ -12649,8 +12585,8 @@ packages:
       any-signal: 2.1.2
       debug: 4.3.4(supports-color@8.1.1)
       err-code: 3.0.1
-      ipfs-core-types: 0.9.0
-      ipfs-core-utils: 0.13.0
+      ipfs-core-types: 0.9.0(node-fetch@2.7.0)
+      ipfs-core-utils: 0.13.0(node-fetch@2.7.0)
       ipfs-utils: 9.0.14
       it-first: 1.0.7
       it-last: 1.0.6
@@ -15185,15 +15121,6 @@ packages:
     engines: {node: ^16 || ^18 || >= 20}
     dev: false
 
-  /node-datachannel@0.4.2:
-    resolution: {integrity: sha512-UZZl2LnSbGFRKpHhtObgpFfbVMa+LsuAruZRmqFBY75kSqJKOvQeaNBo0nXQbyeKx7ZL3zMlvwh7/531oS/CfQ==}
-    requiresBuild: true
-    dependencies:
-      prebuild-install: 7.1.1
-    dev: false
-    bundledDependencies:
-      - prebuild-install
-
   /node-datachannel@0.4.3:
     resolution: {integrity: sha512-I2SYzgqNd5gX8B+hQcff0qpGGwNiHZnXJNgsFyW0UXk1A3fbC/4L1PhSKGSuc7z0+Bk3raMN939E0KroJ5CJhA==}
     requiresBuild: true
@@ -16536,11 +16463,6 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /quick-lru@6.0.1:
-    resolution: {integrity: sha512-IE0DNgU7LWaVHB3KqPwWwZ9QiBK9HqZ1Au1uOcLkoosOzehlhOq/v1LA3TUUSzjA98CCOfhug74rWb0L7sGwdw==}
-    engines: {node: '>=12'}
-    dev: false
-
   /quick-lru@7.0.0:
     resolution: {integrity: sha512-MX8gB7cVYTrYcFfAnfLlhRd0+Toyl8yX8uBx1MrX7K0jegiz9TumwOK27ldXrgDlHRdVi+MqU9Ssw6dr4BNreg==}
     engines: {node: '>=18'}
@@ -16807,10 +16729,6 @@ packages:
     resolution: {integrity: sha512-EJ4UNY/U1t2P/2k6oqotuX2Cc3T6nxJwsM0N0asT7dhrtH1ltUxDn4NalSYmPE2rCkVpcf/X6R0wDwcFpzhd4w==}
     engines: {node: '>=6'}
     dev: true
-
-  /reflect-metadata@0.1.13:
-    resolution: {integrity: sha512-Ts1Y/anZELhSsjMcU605fU9RE4Oi3p5ORujwbIKXfWa+0Zxs510Qrmrce5/Jowq3cHSZSJqBjypxmHarc+vEWg==}
-    dev: false
 
   /reflect-metadata@0.2.1:
     resolution: {integrity: sha512-i5lLI6iw9AU3Uu4szRNPPEkomnkjRTaVt9hy/bn5g/oSzekBSMeLZblcjP74AW0vBabqERLLIrz+gR8QYR54Tw==}
@@ -17888,61 +17806,6 @@ packages:
       mixme: 0.5.10
     dev: true
 
-  /streamr-client@8.5.5(@ethersproject/hash@5.7.0)(typescript@5.4.4):
-    resolution: {integrity: sha512-FtGXkUr0oHkgQDqi7mGc8ZzOxlmU3FSqxoTgwFVIsmsP+UT9xfKZ61emgcwNaFv0pSSysv993mw6iLZVXmHlVw==}
-    dependencies:
-      '@babel/runtime': 7.23.4
-      '@babel/runtime-corejs3': 7.23.7
-      '@ethersproject/abi': 5.7.0
-      '@ethersproject/abstract-signer': 5.7.0
-      '@ethersproject/address': 5.7.0
-      '@ethersproject/bignumber': 5.7.0
-      '@ethersproject/bytes': 5.7.0
-      '@ethersproject/constants': 5.7.0
-      '@ethersproject/contracts': 5.7.0
-      '@ethersproject/providers': 5.7.2(bufferutil@4.0.8)(utf-8-validate@6.0.3)
-      '@ethersproject/transactions': 5.7.0
-      '@ethersproject/wallet': 5.7.0
-      '@ethersproject/web': 5.7.1
-      '@lit-protocol/core': 2.2.61(bufferutil@4.0.8)(utf-8-validate@6.0.3)
-      '@lit-protocol/uint8arrays': 2.2.61
-      '@streamr/network-node': 8.5.5
-      '@streamr/protocol': 8.5.5
-      '@streamr/utils': 8.5.5
-      core-js: 3.33.0
-      env-paths: 2.2.1
-      eventemitter3: 5.0.1
-      heap: 0.2.7
-      idb: 7.1.1
-      lit-siwe: 1.1.8(@ethersproject/contracts@5.7.0)(@ethersproject/hash@5.7.0)(@ethersproject/providers@5.7.2)(@ethersproject/wallet@5.7.0)
-      lodash: 4.17.21
-      node-fetch: 2.7.0
-      p-limit: 3.1.0
-      p-memoize: 4.0.4
-      p-throttle: 4.1.1
-      quick-lru: 6.0.1
-      readable-stream: 4.5.2
-      reflect-metadata: 0.1.13
-      secp256k1: 5.0.0
-      sha3: 2.1.4
-      split2: 4.2.0
-      sqlite: 4.1.2
-      sqlite3: 5.1.6
-      ts-essentials: 9.3.0(typescript@5.4.4)
-      ts-toolbelt: 9.6.0
-      tsyringe: 4.8.0
-      uuid: 9.0.0
-    optionalDependencies:
-      bufferutil: 4.0.8
-      utf-8-validate: 6.0.3
-    transitivePeerDependencies:
-      - '@ethersproject/hash'
-      - bluebird
-      - encoding
-      - supports-color
-      - typescript
-    dev: false
-
   /streamsearch@1.1.0:
     resolution: {integrity: sha512-Mcc5wHehp9aXz1ax6bZUyY5afg9u2rv5cqQI3mRrYkGC8rW2hM02jWuwjtL++LS5qinSyhj2QfLyNsuc+VsExg==}
     engines: {node: '>=10.0.0'}
@@ -18580,6 +18443,7 @@ packages:
       typescript: '>=4.1.0'
     dependencies:
       typescript: 5.4.4
+    dev: true
 
   /ts-essentials@9.4.1(typescript@5.3.3):
     resolution: {integrity: sha512-oke0rI2EN9pzHsesdmrOrnqv1eQODmJpd/noJjwj2ZPC3Z4N2wbjrOEqnsEgmvlO2+4fBb0a794DCna2elEVIQ==}
@@ -20042,22 +19906,6 @@ packages:
       utf-8-validate:
         optional: true
     dev: true
-
-  /ws@8.14.2(bufferutil@4.0.8)(utf-8-validate@6.0.3):
-    resolution: {integrity: sha512-wEBG1ftX4jcglPxgFCMJmZ2PLtSbJ2Peg6TmpJFTbe9GZYOQCDPdMYu/Tm0/bGZkw8paZnJY45J4K2PZrLYq8g==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-    dependencies:
-      bufferutil: 4.0.8
-      utf-8-validate: 6.0.3
-    dev: false
 
   /ws@8.16.0(bufferutil@4.0.8)(utf-8-validate@6.0.3):
     resolution: {integrity: sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==}

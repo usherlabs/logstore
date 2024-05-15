@@ -29,6 +29,8 @@
 		"@logsn/client": "workspace:*",
 		"@logsn/contracts": "workspace:*",
 		"@logsn/shared": "workspace:*",
+		"@streamr/config": "^5.2.7",
+		"@streamr/sdk": "^100.1.2",
 		"benchmark": "^2.1.4",
 		"chalk": "^4.1.2",
 		"commander": "^11.0.0",
@@ -38,13 +40,12 @@
 		"inquirer": "^9.2.7",
 		"lodash": "^4.17.21",
 		"rxjs": "^7.8.1",
-		"streamr-client": "^8.5.5",
 		"tinybench": "^2.5.0",
 		"tslog": "^4.8.2",
 		"vitest": "^0.32.0"
 	},
 	"devDependencies": {
-		"@streamr/test-utils": "^8.5.5",
+		"@streamr/test-utils": "^100.1.2",
 		"@types/benchmark": "^2.1.2",
 		"@types/lodash": "^4.14.195",
 		"del-cli": "^5.0.0",
