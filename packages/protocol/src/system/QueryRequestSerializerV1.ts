@@ -1,3 +1,4 @@
+import { MessageRef } from '@streamr/protocol';
 import { Serializer } from '../abstracts/Serializer';
 import {
 	QueryFromOptions,
@@ -21,10 +22,10 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 			message.consumerId,
 			message.streamId,
 			message.partition,
-			message.queryType,
+			message.queryOptions.queryType,
 		];
 
-		switch (message.queryType) {
+		switch (message.queryOptions.queryType) {
 			case QueryType.Last:
 				// eslint-disable-next-line no-case-declarations
 				const lastOptions = message.queryOptions as QueryLastOptions;
@@ -68,27 +69,23 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 		let queryOptions: QueryOptions;
 		switch (queryType as QueryType) {
 			case QueryType.Last:
-				queryOptions = { last: queryOptionsArr[0] };
+				queryOptions = {
+					queryType,
+					last: queryOptionsArr[0]
+				};
 				break;
 			case QueryType.From:
 				queryOptions = {
-					from: {
-						timestamp: queryOptionsArr[0],
-						sequenceNumber: queryOptionsArr[1],
-					},
+					queryType,
+					from: new MessageRef(queryOptionsArr[0], queryOptionsArr[1]),
 					publisherId: queryOptionsArr[2],
 				};
 				break;
 			case QueryType.Range:
 				queryOptions = {
-					from: {
-						timestamp: queryOptionsArr[0],
-						sequenceNumber: queryOptionsArr[1],
-					},
-					to: {
-						timestamp: queryOptionsArr[2],
-						sequenceNumber: queryOptionsArr[3],
-					},
+					queryType,
+					from: new MessageRef(queryOptionsArr[0], queryOptionsArr[1],),
+					to: new MessageRef(queryOptionsArr[2], queryOptionsArr[3]),
 					msgChainId: queryOptionsArr[4],
 					publisherId: queryOptionsArr[5],
 				};
@@ -102,7 +99,6 @@ export default class QueryRequestSerializerV1 extends Serializer<QueryRequest> {
 			consumerId,
 			streamId,
 			partition,
-			queryType,
 			queryOptions,
 		});
 	}

@@ -33,7 +33,7 @@ async function main() {
 	while (!tokenManagerAddress) {
 		try {
 			const weiPerByte =
-				hre.network.config.chainId === 8997 // DevNetwork
+				hre.network.config.chainId === 31337 // DevNetwork
 					? hre.ethers.utils.parseUnits('1000000000', 'wei')
 					: await getWeiPerByte();
 
@@ -197,7 +197,7 @@ async function main() {
 	// --------------------------- deploy the query manager contract --------------------------- //
 
 	// --------------------------- mint dev token to the test accounts ------------------------- //
-	if ([5, 8997].includes(hre.network.config.chainId || 0)) {
+	if ([5, 31337].includes(hre.network.config.chainId || 0)) {
 		console.log(
 			'-------- !!! Performing DEV TOKEN minting process for TEST accounts...'
 		);
@@ -208,14 +208,12 @@ async function main() {
 		const MINT_AMOUNT = '1000000000000000000000000000000000000';
 		const ACCOUNT_PK_PREFIX = '';
 		const BROKER_PK_PREFIX = 'bb';
-		const VALIDATOR_PK_PREFIX = 'cc';
 		const PULSE_PK =
 			'1111111111111111111111111111111111111111111111111111111111111111';
 		const STORAGE_PROXY_PK =
 			'0000000000000000000000000000000000000000000000000000000000000111';
 		const NUM_ACCOUNTS = 1000;
 		const NUM_BROKERS = 10;
-		const NUM_VALIDATORS = 4;
 		const NUM_ACCOUNTS_IN_BATCH = 100;
 
 		console.log();
@@ -302,37 +300,6 @@ async function main() {
 				);
 
 				wallets.splice(0);
-			}
-		}
-
-		console.log();
-		console.log(
-			`Minting native token and LSAN to ${NUM_VALIDATORS} validator accounts with Primary Keys:`
-		);
-		console.log('from: ', createPK(1, VALIDATOR_PK_PREFIX));
-		console.log('to: ', createPK(NUM_VALIDATORS, VALIDATOR_PK_PREFIX));
-		console.log(`Minting...`);
-		for (let accountIndex = 1; accountIndex <= NUM_VALIDATORS; accountIndex++) {
-			const privkey = createPK(accountIndex, VALIDATOR_PK_PREFIX);
-			const address = new Wallet(privkey).address;
-			wallets.push(address);
-
-			const tx = {
-				to: address,
-				value: hre.ethers.utils.parseEther('1'),
-			};
-			await (await signer.sendTransaction(tx)).wait();
-
-			// Call mintManyTokens with batches to speed up the process and not exceed the gas limit.
-			if (
-				accountIndex === NUM_VALIDATORS ||
-				wallets.length === NUM_ACCOUNTS_IN_BATCH
-			) {
-				await (await token.mintManyTokens(wallets, MINT_AMOUNT)).wait();
-				wallets.splice(0);
-				console.log(
-					`Minted to ${accountIndex} accounts out of ${NUM_VALIDATORS}`
-				);
 			}
 		}
 

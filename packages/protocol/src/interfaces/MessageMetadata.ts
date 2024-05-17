@@ -18,7 +18,11 @@ export interface MessageMetadata {
 	/**
 	 * Signature of message signed by publisher.
 	 */
-	signature: string;
+	signature: Uint8Array;
+	/**
+	 * Signature method used to sign message.
+	 */
+	signatureType: 'LEGACY_SECP256K1' | 'SECP256K1' | 'ERC_1271';
 	/**
 	 * Publisher of message.
 	 */

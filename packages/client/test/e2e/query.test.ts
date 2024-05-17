@@ -11,31 +11,30 @@ import {
 	StreamMessage,
 	toStreamID,
 } from '@streamr/protocol';
-import {
-	fastWallet,
-	fetchPrivateKeyWithGas,
-	KeyServer,
-} from '@streamr/test-utils';
-import { toEthereumAddress, wait, waitForCondition } from '@streamr/utils';
-import axios from 'axios';
-import { providers, Wallet } from 'ethers';
-import { range } from 'lodash';
-import * as fetch from 'node-fetch';
-import { firstValueFrom, from } from 'rxjs';
-import { TransformCallback } from 'stream';
 import StreamrClient, {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
 	Stream,
 	StreamPermission,
-} from 'streamr-client';
+} from '@streamr/sdk';
+import {
+	KeyServer,
+	fetchPrivateKeyWithGas,
+	randomEthereumAddress
+} from '@streamr/test-utils';
+import { convertBytesToStreamMessage, convertStreamMessageToBytes } from '@streamr/trackerless-network';
+import { LengthPrefixedFrameDecoder, toLengthPrefixedFrame, wait, waitForCondition } from '@streamr/utils';
+import axios from 'axios';
+import { Wallet } from 'ethers';
+import { range } from 'lodash';
+import * as fetch from 'node-fetch';
+import { firstValueFrom, from } from 'rxjs';
+import { Transform, TransformCallback } from 'stream';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
 import { LogStoreMessage } from '../../src/LogStoreMessageStream';
-import type { StorageMatrix } from '../../src/utils/networkValidation/manageStorageMatrix';
-import * as verifyPkg from '../../src/utils/networkValidation/manageStorageMatrix';
 import { sleep } from '../test-utils/sleep';
-import { createTestStream } from '../test-utils/utils';
+import { createTestStream, getProvider } from '../test-utils/utils';
 
 const originalFetch = fetch.default;
 const fetchSpy = jest.spyOn(fetch, 'default');
@@ -47,13 +46,10 @@ const NUM_OF_RANGE_MESSAGES = 10;
 const MESSAGE_STORE_TIMEOUT = 15 * 1000;
 const TIMEOUT = 90 * 1000;
 
-const BASE_NODE_URL = `http://localhost:7771`;
+const BASE_NODE_URL = `http://10.200.10.1:7771`;
 
 describe('query', () => {
-	const provider = new providers.JsonRpcProvider(
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	);
+	const provider = getProvider();
 
 	// Accounts
 	let publisherAccount: Wallet;
@@ -167,13 +163,11 @@ describe('query', () => {
 				},
 				{ last: 1 },
 				(content) => {
-					console.log('content', content);
 					messages1.push(content);
 				}
 			);
 
 			for await (const msg of queryStream1) {
-				console.log('msg', msg);
 				messages2.push(msg.content);
 			}
 
@@ -210,10 +204,6 @@ describe('query', () => {
 			// TODO: the consumer must have permission to subscribe to the stream or the strem have to be public
 			await stream.grantPermissions({
 				user: await consumerStreamrClient.getAddress(),
-				permissions: [StreamPermission.SUBSCRIBE],
-			});
-			await stream.grantPermissions({
-				public: true,
 				permissions: [StreamPermission.SUBSCRIBE],
 			});
 			// await stream.grantPermissions({
@@ -325,92 +315,6 @@ describe('query', () => {
 		);
 
 		it(
-			'can check the network state for a query',
-			async () => {
-				const numOfMessagesForThisTest = 2;
-				await publishMessages(numOfMessagesForThisTest);
-
-				const storageSpy = jest.spyOn(verifyPkg, 'convertToStorageMatrix');
-				const messages: LogStoreMessage[] = [];
-
-				const messagesQuery = await consumerLogStoreClient.query(
-					{
-						streamId: stream.id,
-						partition: 0,
-					},
-					{ last: numOfMessagesForThisTest },
-					undefined,
-					{ verifyNetworkResponses: true }
-				);
-
-				// using this form to ensure that the iterator is done before the test ends
-				for await (const message of messagesQuery) {
-					messages.push(message);
-				}
-
-				expect(messages).toHaveLength(numOfMessagesForThisTest);
-				expect(messages[0].content).toMatchObject({ messageNo: 0 });
-				const messagesId = messages.map((c) => c.metadata.id.serialize());
-
-				expect(storageSpy).toBeCalledTimes(1);
-				const lastReturn = storageSpy.mock.results[0].value as StorageMatrix;
-				// these are messageIds stringified
-				expect(lastReturn.size).toBe(numOfMessagesForThisTest);
-				lastReturn.forEach((value, key) => {
-					expect(value).toBeInstanceOf(Set);
-					expect(messagesId).toContain(key);
-					// more than one node contains it
-					expect(value.size).toBeGreaterThan(0);
-				});
-				const metadata = await firstValueFrom(messagesQuery.metadataStream);
-
-				expect(metadata.participatingNodesAddress?.length).toBeGreaterThan(1);
-			},
-			TIMEOUT
-		);
-
-		it(
-			'can do in parallel 3 queries with verifyNetworkResponses',
-			async () => {
-				const timesToTest = 3;
-				let initialNumberrOfMessagesToFetch = 2;
-				// const storageSpy = jest.spyOn(verifyPkg, 'convertToStorageMatrix');
-				const maxNumOfMessagesQueried =
-					initialNumberrOfMessagesToFetch + timesToTest;
-				await publishMessages(maxNumOfMessagesQueried);
-
-				const doTest = async () => {
-					// we're taking a different number of messages for each test to try getting edge cases
-					const numOfMessagesForThisTest = initialNumberrOfMessagesToFetch++;
-					const messages: LogStoreMessage[] = [];
-
-					const messagesQuery = await consumerLogStoreClient.query(
-						{
-							streamId: stream.id,
-							partition: 0,
-						},
-						{ last: numOfMessagesForThisTest },
-						undefined,
-						{ verifyNetworkResponses: true }
-					);
-
-					// using this form to ensure that the iterator is done before the test ends
-					for await (const message of messagesQuery) {
-						messages.push(message);
-					}
-
-					expect(messages).toHaveLength(numOfMessagesForThisTest);
-					expect(messages[0].content).toMatchObject({
-						messageNo: expect.any(Number),
-					});
-				};
-
-				await Promise.all(range(timesToTest).map(() => doTest()));
-			},
-			TIMEOUT
-		);
-
-		it(
 			'will error if a message is corrupted',
 			async () => {
 				const errorListener = jest.fn();
@@ -422,7 +326,7 @@ describe('query', () => {
 				fetchSpy.mockImplementation(async (_url, _init) => {
 					const response = await originalFetch(_url, _init);
 					// let's alter the first message from the body stream
-					const original = response.body;
+					const original = response.body.pipe(new LengthPrefixedFrameDecoder());
 					let msgCount = 0;
 					const transformed = original.pipe(
 						new Transform({
@@ -436,20 +340,17 @@ describe('query', () => {
 								done: TransformCallback
 							) {
 								try {
-									const streamMessage = StreamMessage.deserialize(
-										chunk.toString()
-									);
+									const streamMessage = convertBytesToStreamMessage(chunk);
 
 									if (msgCount === 0) {
 										// modifies message to make it fail
-										streamMessage.messageId.publisherId = toEthereumAddress(
-											fastWallet().address
-										);
+
+										// @ts-expect-error Cannot assign to 'publisherId' because it is a read-only property.
+										streamMessage.messageId.publisherId = randomEthereumAddress();
 									}
 
-									const altered = streamMessage.serialize();
-									const alteredBuffer = Buffer.from(altered, encoding);
-									this.push(alteredBuffer, encoding);
+									const altered = toLengthPrefixedFrame(convertStreamMessageToBytes(streamMessage));
+									this.push(altered, encoding);
 								} catch (e) {
 									this.push(chunk, encoding);
 								} finally {
@@ -535,24 +436,21 @@ describe('query', () => {
 					expect(resp.messages).toHaveLength(NUM_OF_LAST_MESSAGES);
 					const _data = resp.messages.map(
 						({
-							metadata: {
-								id: {
-									streamId,
-									streamPartition,
-									timestamp,
-									sequenceNumber,
-									publisherId,
-									msgChainId,
-								},
-								newGroupKey,
-								prevMsgRef,
-								messageType,
-								contentType,
-								encryptionType,
-								groupKeyId,
-								signature,
-							},
+							streamId,
+							streamPartition,
+							timestamp,
+							sequenceNumber,
+							publisherId,
+							msgChainId,
+							prevMsgRef,
+							messageType,
 							content,
+							contentType,
+							signature,
+							signatureType,
+							encryptionType,
+							groupKeyId,
+							newGroupKey,
 						}) =>
 							new StreamMessage({
 								messageId: new MessageID(
@@ -567,12 +465,13 @@ describe('query', () => {
 								encryptionType,
 								groupKeyId,
 								signature,
+								signatureType,
 								newGroupKey,
 								prevMsgRef: prevMsgRef
 									? new MessageRef(
-											prevMsgRef?.timestamp,
-											prevMsgRef?.sequenceNumber
-										)
+										prevMsgRef?.timestamp,
+										prevMsgRef?.sequenceNumber
+									)
 									: undefined,
 								contentType,
 								messageType,

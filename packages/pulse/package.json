@@ -11,15 +11,12 @@
 		"logstore-pulse": "./dist/bin/logstore-pulse.js"
 	},
 	"scripts": {
-		"build": "tsc",
-		"start": "node dist/main.js"
+		"build": "tsc -b tsconfig.json",
+		"start": "node dist/src/main.js"
 	},
 	"dependencies": {
 		"@logsn/client": "workspace:*",
-		"commander": "^11.0.0",
-		"streamr-client": "^8.5.5"
-	},
-	"devDependencies": {
-		"@types/node": "^20.3.1"
+		"@streamr/sdk": "^100.1.2",
+		"commander": "^11.0.0"
 	}
 }

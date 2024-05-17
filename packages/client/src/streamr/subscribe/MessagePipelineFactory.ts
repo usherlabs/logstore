@@ -10,6 +10,7 @@ type MessagePipelineFactoryOptions = MarkOptional<
 		| 'resends'
 		| 'groupKeyManager'
 		| 'streamRegistry'
+		| 'erc1271ContractFacade'
 		| 'destroySignal'
 		| 'loggerFactory'
 	>,

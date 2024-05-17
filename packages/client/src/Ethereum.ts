@@ -7,7 +7,7 @@ import type { Provider } from '@ethersproject/providers';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { Wallet } from '@ethersproject/wallet';
 import type { ConnectionInfo } from '@ethersproject/web';
-import { ChainConnectionInfo } from 'streamr-client';
+import { ChainConnectionInfo } from '@streamr/sdk';
 
 import { StrictStreamrClientConfig } from './streamr/Config';
 
@@ -25,46 +25,40 @@ export const generateEthereumAccount = (): {
 export const getStreamRegistryChainProviders = (
 	config: Pick<StrictStreamrClientConfig, 'contracts'>
 ): Provider[] => {
-	return getRpcProviders(config.contracts.streamRegistryChainRPCs);
+	return getRpcProviders(config.contracts.streamRegistryChainRPCs, config.contracts.pollInterval);
 };
 
-const getRpcProviders = (connectionInfo: ChainConnectionInfo): Provider[] => {
+const getRpcProviders = (
+	connectionInfo: ChainConnectionInfo,
+	pollInterval?: number
+): Provider[] => {
 	return connectionInfo.rpcs.map((c: ConnectionInfo) => {
-		return new JsonRpcProvider(c);
+		const provider = new JsonRpcProvider(c);
+		if (pollInterval !== undefined) {
+			provider.pollingInterval = pollInterval;
+		}
+		return provider;
 	});
-};
-
-export const getStreamRegistryOverrides = (
-	config: Pick<StrictStreamrClientConfig, 'contracts'>
-): Overrides => {
-	const primaryProvider = getStreamRegistryChainProviders(config)[0];
-	return getOverrides(
-		config.contracts.streamRegistryChainRPCs.name ?? 'polygon',
-		primaryProvider,
-		config
-	);
 };
 
 /**
  * Apply the gasPriceStrategy to the estimated gas price, if given
  * Ethers.js will resolve the gas price promise before sending the tx
  */
-const getOverrides = (
-	chainName: string,
-	provider: Provider,
+export const getEthersOverrides = (
 	config: Pick<StrictStreamrClientConfig, 'contracts'>
 ): Overrides => {
-	const chainConfig = config.contracts.ethereumNetworks[chainName];
-	if (chainConfig === undefined) {
-		return {};
-	}
+	const chainConfig = config.contracts.ethereumNetwork;
 	const overrides = chainConfig.overrides ?? {};
-	if (chainConfig.highGasPriceStrategy) {
-		const gasPriceStrategy = (estimatedGasPrice: BigNumber) =>
-			estimatedGasPrice.add('10000000000');
+	if ((chainConfig.highGasPriceStrategy) && (chainConfig.overrides?.gasPrice === undefined)) {
+		const primaryProvider = getStreamRegistryChainProviders(config)[0];
+		const gasPriceStrategy = (estimatedGasPrice: BigNumber) => {
+			const INCREASE_PERCENTAGE = 30;
+			return estimatedGasPrice.mul(100 + INCREASE_PERCENTAGE).div(100);
+		}
 		return {
 			...overrides,
-			gasPrice: provider.getGasPrice().then(gasPriceStrategy),
+			gasPrice: primaryProvider.getGasPrice().then(gasPriceStrategy)
 		};
 	}
 	return overrides;

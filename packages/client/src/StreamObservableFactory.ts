@@ -1,5 +1,5 @@
+import type { StreamMetadata } from '@streamr/sdk';
 import { distinctUntilChanged, filter, map, switchMap, timer } from 'rxjs';
-import type { StreamMetadata } from 'streamr-client';
 import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import { type GQtyClient } from './utils/gqty';

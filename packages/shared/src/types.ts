@@ -8,7 +8,7 @@ export enum Manager {
 
 export enum Network {
 	Local = 5,
-	Dev = 8997,
+	Dev = 31337,
 	Testnet = 80001,
 	Mainnet = 137,
 }

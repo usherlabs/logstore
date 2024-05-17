@@ -1,7 +1,13 @@
 import { Wallet } from '@ethersproject/wallet';
 import { StreamMessage } from '@streamr/protocol';
-import { fetchPrivateKeyWithGas, KeyServer } from '@streamr/test-utils';
-import { providers } from 'ethers';
+import StreamrClient, {
+	CONFIG_TEST as STREAMR_CONFIG_TEST,
+	StreamPermission,
+	type Stream,
+} from '@streamr/sdk';
+import { KeyServer, fetchPrivateKeyWithGas } from '@streamr/test-utils';
+import { convertStreamMessageToBytes } from '@streamr/trackerless-network';
+import { toLengthPrefixedFrame } from '@streamr/utils';
 import type { Response } from 'node-fetch';
 import * as nodeFetch from 'node-fetch';
 import {
@@ -12,15 +18,10 @@ import {
 	toArray,
 } from 'rxjs';
 import { Readable } from 'stream';
-import StreamrClient, {
-	type Stream,
-	StreamPermission,
-	CONFIG_TEST as STREAMR_CONFIG_TEST,
-} from 'streamr-client';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST, LogStoreClient } from '../../src';
 import { IPushPipeline } from '../../src/streamr/utils/IPushPipeline';
-import { createTestStream } from '../test-utils/utils';
+import { createTestStream, getProvider } from '../test-utils/utils';
 
 const TIMEOUT = 90 * 1000;
 
@@ -42,10 +43,7 @@ describe('Encryption subleties', () => {
 		advanceTimers: true,
 	});
 
-	const provider = new providers.JsonRpcProvider(
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	);
+	const provider = getProvider();
 
 	let publisherA_Account: Wallet;
 	let authorizedAccount: Wallet;
@@ -338,9 +336,7 @@ describe('Encryption subleties', () => {
 			type: 'metadata',
 		};
 
-		const payload = [streamMessage.serialize(), JSON.stringify(metadata)].join(
-			'\n'
-		);
+		const payload = toLengthPrefixedFrame(convertStreamMessageToBytes(streamMessage));
 
 		fetchSpy.mockImplementationOnce(async (...args) => {
 			// FAKE_QUERY is included as the streamId to be fetched

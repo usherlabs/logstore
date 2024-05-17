@@ -7,25 +7,27 @@ import {
 	EncryptedGroupKey,
 	MessageID,
 	MessageRef,
+	SignatureType,
 	StreamMessage,
 } from '@streamr/protocol';
+import { MessageListener } from '@streamr/sdk';
 import { omit } from 'lodash';
-import { defer, Observable, shareReplay, switchMap } from 'rxjs';
-import { Message, MessageListener } from 'streamr-client';
+import { Observable, defer, shareReplay, switchMap } from 'rxjs';
 
-import type { RequestMetadata } from './HttpUtil';
+import { convertStreamMessageToMessage } from './streamr/Message';
 import { IPushPipeline } from './streamr/utils/IPushPipeline';
 import { PushBuffer } from './streamr/utils/PushBuffer';
 
 export type LogStoreMessageMetadata = {
 	id: MessageID;
-	prevMsgRef: MessageRef | null;
+	prevMsgRef?: MessageRef;
 	messageType: number;
 	contentType: number;
 	encryptionType: number;
-	groupKeyId: string | null;
-	newGroupKey: EncryptedGroupKey | null;
-	signature: string;
+	groupKeyId?: string;
+	newGroupKey?: EncryptedGroupKey;
+	signature: Uint8Array;
+	signatureType: SignatureType;
 };
 
 export type LogStoreMessage = {
@@ -42,9 +44,8 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 
 	constructor(
 		public messageStream:
-			| PushBuffer<string | StreamMessage>
+			| PushBuffer<Uint8Array | StreamMessage>
 			| IPushPipeline<StreamMessage, StreamMessage>,
-		public metadataStream: Observable<RequestMetadata>
 	) {
 		this.messages$ = defer(() => {
 			// @ts-expect-error Property 'iterate' does not exist on type 'IPushPipeline<StreamMessage<unknown>, StreamMessage<unknown>>'
@@ -62,10 +63,8 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 		}
 
 		this.messageStream.onMessage.listen(async (streamMessage) => {
-			if (typeof streamMessage !== 'string') {
-				const msg = convertStreamMessageToMessage(streamMessage);
-				await onMessage(msg.content, omit(msg, 'content'));
-			}
+			const msg = convertStreamMessageToMessage(streamMessage);
+			await onMessage(msg.content, omit(msg, 'content'));
 		});
 		this.messageStream.flow();
 
@@ -87,36 +86,21 @@ export class LogStoreMessageStream implements AsyncIterable<LogStoreMessage> {
 	}
 }
 
-export const convertStreamMessageToMessage = (msg: StreamMessage): Message => {
-	return {
-		content: msg.getParsedContent(),
-		streamId: msg.getStreamId(),
-		streamPartition: msg.getStreamPartition(),
-		timestamp: msg.getTimestamp(),
-		sequenceNumber: msg.getSequenceNumber(),
-		signature: msg.signature,
-		publisherId: msg.getPublisherId(),
-		msgChainId: msg.getMsgChainId(),
-		// @ts-expect-error streamMessage is marked as internal in Message interface
-		streamMessage: msg,
-	};
-};
-
 export const convertStreamMessageToLogStoreMessage = (
 	msg: StreamMessage
 ): LogStoreMessage => {
 	return {
 		content: msg.getParsedContent(),
 		metadata: {
-			id: msg.getMessageID(),
-			prevMsgRef: msg.getPreviousMessageRef(),
-			newGroupKey: msg.getNewGroupKey(),
-			signature: msg.signature,
-			// I'm also including these for further usage:
+			id: msg.messageId,
+			prevMsgRef: msg.prevMsgRef,
 			messageType: msg.messageType,
 			contentType: msg.contentType,
+			signature: msg.signature,
+			signatureType: msg.signatureType,
 			encryptionType: msg.encryptionType,
 			groupKeyId: msg.groupKeyId,
+			newGroupKey: msg.newGroupKey,
 		},
 	};
 };

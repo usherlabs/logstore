@@ -5,12 +5,12 @@ import type { LogStoreManager as LogStoreManagerContract } from '@logsn/contract
 import { abi as LogStoreManagerAbi } from '@logsn/contracts/artifacts/src/StoreManager.sol/LogStoreManager.json';
 import { prepareStakeForStoreManager } from '@logsn/shared';
 import { toStreamID } from '@streamr/protocol';
-import { collect, Logger, toEthereumAddress } from '@streamr/utils';
+import StreamrClient, { Stream } from '@streamr/sdk';
+import { collect, initEventGateway, Logger, toEthereumAddress } from '@streamr/utils';
 import { ContractTransaction } from 'ethers';
 import { min } from 'lodash';
-import StreamrClient, { Stream } from 'streamr-client';
-import { inject, Lifecycle, scoped } from 'tsyringe';
 import pLimit from 'p-limit';
+import { inject, Lifecycle, scoped } from 'tsyringe';
 
 import {
 	LogStoreClientConfigInjectionToken,
@@ -18,10 +18,9 @@ import {
 } from '../Config';
 import {
 	getStreamRegistryChainProviders,
-	getStreamRegistryOverrides,
+	getEthersOverrides,
 } from '../Ethereum';
 import {
-	initEventGateway,
 	LogStoreClientEventEmitter,
 	LogStoreClientEvents,
 } from '../events';
@@ -206,7 +205,7 @@ export class LogStoreRegistry {
 		const chainSigner =
 			await this.authentication.getStreamRegistryChainSigner();
 		const { gasPrice: _unusedGasPrice, ...mergedOverrides } = {
-			...getStreamRegistryOverrides(this.streamrClientConfig),
+			...getEthersOverrides(this.streamrClientConfig),
 			...overrides,
 		};
 		await prepareStakeForStoreManager(

@@ -11,8 +11,10 @@ describe(QueryRequest, () => {
 				consumerId: 'consumerId',
 				streamId: 'streamId',
 				partition: 42,
-				queryType: QueryType.Last,
-				queryOptions: { last: 2 },
+				queryOptions: {
+					queryType: QueryType.Last,
+					last: 2
+				},
 			});
 		};
 

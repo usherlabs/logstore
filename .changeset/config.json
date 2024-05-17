@@ -18,8 +18,6 @@
 	"ignore": [
 		"@logsn/benchmarks",
 		"@logsn/pulse",
-		"@logsn/subgraph",
-		"@logsn/validator",
-		"@logsn/storage-proxy"
+		"@logsn/subgraph"
 	]
 }

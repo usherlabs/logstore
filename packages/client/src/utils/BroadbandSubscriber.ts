@@ -1,4 +1,4 @@
-import StreamrClient, { MessageListener, Stream, Subscription } from 'streamr-client';
+import StreamrClient, { MessageListener, Stream, Subscription } from '@streamr/sdk';
 
 
 /**

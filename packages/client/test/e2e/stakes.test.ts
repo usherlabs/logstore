@@ -1,23 +1,20 @@
-import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
-import { providers, Wallet } from 'ethers';
 import StreamrClient, {
 	CONFIG_TEST as STREAMR_CONFIG_TEST,
-} from 'streamr-client';
+} from '@streamr/sdk';
+import { fetchPrivateKeyWithGas } from '@streamr/test-utils';
 import { Duration, Schedule } from 'effect';
+import { Wallet } from 'ethers';
 
 import { CONFIG_TEST as LOGSTORE_CONFIG_TEST } from '../../src/ConfigTest';
 import { LogStoreClient } from '../../src/LogStoreClient';
-import { createTestStream } from '../test-utils/utils';
+import { createTestStream, getProvider } from '../test-utils/utils';
 import { retryAsyncFnWithStrategy } from '../utils/retryAsyncFnWithStrategy';
 
 const STAKE_AMOUNT = BigInt('1000000000');
 const TIMEOUT = 90 * 1000;
 
 describe('stakes', () => {
-	const provider = new providers.JsonRpcProvider(
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.rpcs[0].url,
-		STREAMR_CONFIG_TEST.contracts?.streamRegistryChainRPCs?.chainId
-	);
+	const provider = getProvider();
 
 	let account: Wallet;
 	let streamrClient: StreamrClient;

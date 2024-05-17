@@ -3,7 +3,6 @@ type = "docker_logs"
 include_containers = [
 	"logstore-pulse",
 	"logstore-broker-",
-	"logstore-validator-",
 	"logstore-deploy-contracts"
 ]
 

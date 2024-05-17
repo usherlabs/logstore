@@ -1,4 +1,3 @@
-import { ProofOfReport } from './ProofOfReport';
 import { QueryPropagate } from './QueryPropagate';
 import {
 	QueryFromOptions,
@@ -9,9 +8,6 @@ import {
 	QueryType,
 } from './QueryRequest';
 import { QueryResponse } from './QueryResponse';
-import { RecoveryComplete } from './RecoveryComplete';
-import { RecoveryRequest } from './RecoveryRequest';
-import { RecoveryResponse } from './RecoveryResponse';
 import {
 	SystemMessage,
 	SystemMessageMap,
@@ -19,7 +15,6 @@ import {
 } from './SystemMessage';
 
 export {
-	ProofOfReport,
 	QueryFromOptions,
 	QueryLastOptions,
 	QueryOptions,
@@ -28,9 +23,6 @@ export {
 	QueryRequest,
 	QueryResponse,
 	QueryType,
-	RecoveryComplete,
-	RecoveryRequest,
-	RecoveryResponse,
 	SystemMessage,
 	SystemMessageType,
 	SystemMessageMap,

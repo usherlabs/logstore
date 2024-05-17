@@ -1,11 +1,11 @@
 import { readFeeMultiplier } from '@/configuration';
+import { handleKnownError } from '@/utils/errors/handleErrors';
 import { getClientsFromOptions } from '@/utils/logstore-client';
 import { bytesToMessage, logger } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import chalk, { bold } from 'chalk';
 import Decimal from 'decimal.js';
 import { ethers } from 'ethers';
-import { handleKnownError } from '@/utils/errors/handleErrors';
 
 export const balanceCommand = new Command()
 	.command('balance')
@@ -78,6 +78,8 @@ export const balanceCommand = new Command()
 		} catch (e: unknown) {
 			logger.error(chalk.red('failed to check your balance'));
 			await handleKnownError(e);
+
 			logger.error(e);
+			process.exit(1);
 		}
 	});

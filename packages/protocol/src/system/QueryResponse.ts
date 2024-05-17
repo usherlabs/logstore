@@ -1,3 +1,4 @@
+import { MessageRef } from '@streamr/protocol';
 import {
 	SystemMessage,
 	SystemMessageOptions,
@@ -7,27 +8,31 @@ import {
 interface QueryResponseOptions extends SystemMessageOptions {
 	requestId: string;
 	requestPublisherId: string;
-	hashMap: Map<string, string>;
+	isFinal: boolean;
+	messageRefs: MessageRef[];
 }
 
 let messageSeqNum = 0;
 
 export class QueryResponse extends SystemMessage {
-	requestId: string;
-	requestPublisherId: string;
-	hashMap: Map<string, string>;
+	public readonly requestId: string;
+	public readonly requestPublisherId: string;
+	public readonly isFinal: boolean;
+	public readonly messageRefs: MessageRef[] = [];
 
 	constructor({
 		version = SystemMessage.LATEST_VERSION,
 		seqNum = messageSeqNum++,
 		requestId,
 		requestPublisherId,
-		hashMap,
+		isFinal,
+		messageRefs,
 	}: QueryResponseOptions) {
 		super(version, SystemMessageType.QueryResponse, seqNum);
 
 		this.requestId = requestId;
 		this.requestPublisherId = requestPublisherId;
-		this.hashMap = hashMap;
+		this.isFinal = isFinal;
+		this.messageRefs = messageRefs;
 	}
 }

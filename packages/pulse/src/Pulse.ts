@@ -1,12 +1,12 @@
 import { LogStoreClient } from '@logsn/client';
-import { Stream, StreamPermission, StreamrClient } from 'streamr-client';
+import { Stream, StreamPermission, StreamrClient } from '@streamr/sdk';
 
 const PULSE_STREAM_ID = '/pulse';
 const PULSE_INTERVAL_MS = 1 * 1000;
 
 export class Pulse {
 	private _stream: Stream | undefined;
-	private _interval: NodeJS.Timer | undefined;
+	private _interval: NodeJS.Timeout | undefined;
 
 	private get stream(): Stream {
 		if (!this._stream) {
@@ -37,7 +37,8 @@ export class Pulse {
 			permissions: [StreamPermission.SUBSCRIBE],
 		});
 
-		await this.logStoreClient.stakeOrCreateStore(this._stream.id, stakeAmount);
+		const tx = await this.logStoreClient.stakeOrCreateStore(this._stream.id, stakeAmount);
+		await tx.wait();
 	}
 
 	start() {

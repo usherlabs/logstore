@@ -15,7 +15,7 @@ then
 
   docker compose down -v
   streamr-docker-dev stop
-  docker compose -f ~/streamr-docker-dev/docker-compose.yml down -v
+  streamr-docker-dev wipe
 else
   source $DEV_NETWORK_SCRIPTS_DIR/config_load.sh
   $SSH dev-network stop -l
