@@ -12,7 +12,8 @@
 		"forceConsistentCasingInFileNames": true,
 		"sourceMap": true,
 		"noImplicitAny": true,
-		"removeComments": true
+		"removeComments": true,
+		"types": ["mocha"]
 	},
 	"exclude": ["node_modules"],
 	"include": ["./types"]

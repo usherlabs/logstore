@@ -1,7 +1,6 @@
 {
 	"eslint.workingDirectories": [
 		"./packages/contracts",
-		"./packages/validator",
 		"./packages/broker",
 		"./packages/subgraph",
 		"./packages/cli",

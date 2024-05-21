@@ -20,6 +20,8 @@ export const priceCommand = new Command()
 			await printPrices(cmdOptions.base as any);
 		} catch (e: unknown) {
 			console.info(chalk.red('Checking prices failed.'));
+
 			console.error(e);
+			process.exit(1);
 		}
 	});

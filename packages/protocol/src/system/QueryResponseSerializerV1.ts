@@ -1,3 +1,4 @@
+import { MessageRef } from '@streamr/protocol';
 import { Serializer } from '../abstracts/Serializer';
 import { QueryResponse } from './QueryResponse';
 import { SystemMessage, SystemMessageType } from './SystemMessage';
@@ -12,7 +13,9 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 			message.seqNum,
 			message.requestId,
 			message.requestPublisherId,
-			JSON.stringify(Array.from(message.hashMap.entries())),
+			message.isFinal,
+			JSON.stringify(
+				message.messageRefs.map(messageRef => [messageRef.timestamp, messageRef.sequenceNumber])),
 		];
 	}
 
@@ -23,7 +26,8 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 			seqNum,
 			requestId,
 			requestPublisherId,
-			hashMap,
+			isFinal,
+			messageRef,
 		] = arr;
 
 		return new QueryResponse({
@@ -31,7 +35,9 @@ export default class QueryResponseSerializerV1 extends Serializer<QueryResponse>
 			seqNum,
 			requestId,
 			requestPublisherId,
-			hashMap: new Map(JSON.parse(hashMap)),
+			isFinal,
+			messageRefs: (JSON.parse(messageRef) as [number, number][])
+				.map(([timestamp, sequenceNumber]) => new MessageRef(timestamp, sequenceNumber)),
 		});
 	}
 }

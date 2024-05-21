@@ -1,14 +1,10 @@
-import { StreamrClientConfig } from 'streamr-client';
+import { StreamrClientConfig } from '@streamr/sdk';
 import { DeepRequired, MarkOptional } from 'ts-essentials';
 
 export type StrictStreamrClientConfig = MarkOptional<
 	Required<StreamrClientConfig>,
 	'auth' | 'metrics'
 > & {
-	network: MarkOptional<
-		Exclude<Required<StreamrClientConfig['network']>, undefined>,
-		'location'
-	>;
 	contracts: Exclude<Required<StreamrClientConfig['contracts']>, undefined>;
 	encryption: Exclude<Required<StreamrClientConfig['encryption']>, undefined>;
 	cache: Exclude<Required<StreamrClientConfig['cache']>, undefined>;

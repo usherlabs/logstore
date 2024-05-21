@@ -3,21 +3,21 @@ import {
 	StreamPartID,
 	StreamPartIDUtils,
 } from '@streamr/protocol';
+import { convertBytesToStreamMessage } from '@streamr/trackerless-network';
 import { Logger, randomString, toEthereumAddress } from '@streamr/utils';
-import { defer, EMPTY, filter, map, partition, shareReplay } from 'rxjs';
-import { inject, Lifecycle, scoped } from 'tsyringe';
+import { defer, map, partition, shareReplay } from 'rxjs';
+import { Lifecycle, inject, scoped } from 'tsyringe';
 
 import {
 	LogStoreClientConfigInjectionToken,
 	type StrictLogStoreClientConfig,
 } from './Config';
-import {
-	FetchHttpStreamResponseError,
-	HttpUtil,
-	RequestMetadata,
-} from './HttpUtil';
 import { LogStoreMessageStream } from './LogStoreMessageStream';
 import { NodeManager } from './registry/NodeManager';
+import {
+	Authentication,
+	AuthenticationInjectionToken,
+} from './streamr/Authentication';
 import {
 	LoggerFactory,
 	LoggerFactoryInjectionToken,
@@ -28,13 +28,15 @@ import {
 	MessagePipelineFactoryInjectionToken,
 } from './streamr/subscribe/MessagePipelineFactory';
 import { transformError } from './streamr/utils/GeneratorUtils';
-import { pull, PushBuffer } from './streamr/utils/PushBuffer';
-import {
-	validateWithNetworkResponses,
-	type VerificationOptions,
-} from './utils/networkValidation/validateNetworkResponses';
+import { PushBuffer, pull } from './streamr/utils/PushBuffer';
 import { SystemMessageObservable } from './utils/SystemMessageObservable';
 import { LogStoreClientSystemMessagesInjectionToken } from './utils/systemStreamUtils';
+import {
+	FetchHttpStreamResponseError,
+	createQueryString,
+	fetchAuthParams,
+	fetchLengthPrefixedFrameHttpBinaryStream,
+} from './utils/utils';
 
 const MIN_SEQUENCE_NUMBER_VALUE = 0;
 
@@ -144,7 +146,6 @@ function isQueryRange<T extends QueryRangeOptions>(options: any): options is T {
 
 export type QueryOptions = {
 	abortSignal?: AbortSignal;
-	verifyNetworkResponses?: VerificationOptions | boolean;
 	raw?: boolean;
 };
 
@@ -154,7 +155,7 @@ const getHttpErrorTransform = (): ((
 	return async (err: any) => {
 		let message;
 		if (err instanceof FetchHttpStreamResponseError) {
-			const body = err.body;
+			const body = await err.response.text();
 			let descriptionSnippet;
 			try {
 				const json = JSON.parse(body);
@@ -173,15 +174,15 @@ const getHttpErrorTransform = (): ((
 @scoped(Lifecycle.ContainerScoped)
 export class Queries {
 	private readonly nodeManager: NodeManager;
-	private readonly httpUtil: HttpUtil;
+	private authentication: Authentication;
 	private readonly logger: Logger;
 	private readonly messagePipelineFactory: MessagePipelineFactory;
 
 	constructor(
 		@inject(NodeManager)
 		nodeManager: NodeManager,
-		@inject(HttpUtil)
-		httpUtil: HttpUtil,
+		@inject(AuthenticationInjectionToken)
+		authentication: Authentication,
 		@inject(LogStoreClientConfigInjectionToken)
 		private logStoreClientConfig: StrictLogStoreClientConfig,
 		@inject(LoggerFactoryInjectionToken)
@@ -192,7 +193,7 @@ export class Queries {
 		messagePipelineFactory: MessagePipelineFactory
 	) {
 		this.nodeManager = nodeManager;
-		this.httpUtil = httpUtil;
+		this.authentication = authentication;
 		this.logger = loggerFactory.createLogger(module);
 		this.messagePipelineFactory = messagePipelineFactory;
 	}
@@ -204,8 +205,8 @@ export class Queries {
 	): Promise<LogStoreMessageStream> {
 		if (isQueryLast(input)) {
 			if (input.last <= 0) {
-				const emptyStream = new PushBuffer<StreamMessage<unknown>>();
-				return new LogStoreMessageStream(emptyStream, EMPTY);
+				const emptyStream = new PushBuffer<StreamMessage>();
+				return new LogStoreMessageStream(emptyStream);
 			}
 			return this.fetchStream(
 				QueryType.Last,
@@ -274,19 +275,23 @@ export class Queries {
 		// TODO: make it more robust, dealing with staleness of first best url
 		const nodeUrl =
 			this.logStoreClientConfig.nodeUrl ??
-			(await this.nodeManager.getNodeUrlsByLatency())[0]; // first node is the best node
+			(await this.nodeManager.getRandomNodeUrl());
 		const url = this.createUrl(nodeUrl, queryType, streamPartId, {
 			...query,
 			// we will get raw request to desserialize and decrypt
 			format: 'raw',
-			verifyNetworkResponses: !!options?.verifyNetworkResponses,
 		});
 		const messageStream = options?.raw
-			? new PushBuffer<string | StreamMessage<unknown>>()
+			? new PushBuffer<Uint8Array | StreamMessage>()
 			: this.messagePipelineFactory.createMessagePipeline({ streamPartId });
 
+		const { token: authToken } = await fetchAuthParams(this.authentication);
+		const headers = {
+			Authorization: `Basic ${authToken}`,
+		};
+
 		const lines = transformError(
-			this.httpUtil.fetchHttpStream(url, options?.abortSignal),
+			fetchLengthPrefixedFrameHttpBinaryStream(url, headers, options?.abortSignal),
 			getHttpErrorTransform()
 		);
 
@@ -294,26 +299,19 @@ export class Queries {
 			shareReplay({
 				refCount: true,
 			}),
-			map((line: string) => line.trim()), // remove ' ' and '\n' from the end of the line
-			filter(Boolean), // remove empty lines
-			map((line: string) => {
-				const msgObject = JSON.parse(line);
-				if (Array.isArray(msgObject)) {
+			map((line: Uint8Array | string) => {
+				if (line instanceof Uint8Array) {
 					if (options?.raw) {
 						return line;
 					}
-					return StreamMessage.deserialize(msgObject);
-				}
-				// last message must be metadata
-				if (msgObject.type === 'metadata') {
-					return msgObject as RequestMetadata;
+					return convertBytesToStreamMessage(line);
 				}
 				throw new Error('Invalid message');
 			})
 		);
 
-		const isStreamMessage = (msg: any): msg is StreamMessage | string =>
-			msg instanceof StreamMessage || typeof msg === 'string';
+		const isStreamMessage = (msg: any): msg is StreamMessage | Uint8Array =>
+			msg instanceof StreamMessage || msg instanceof Uint8Array;
 
 		const [messagesSource, metadataSource] = partition(
 			dataStream,
@@ -324,29 +322,7 @@ export class Queries {
 			await pull(messagesSource, messageStream);
 		});
 
-		const logStoreMessageStream = new LogStoreMessageStream(
-			messageStream,
-			metadataSource
-		);
-
-		if (options?.verifyNetworkResponses) {
-			await validateWithNetworkResponses({
-				queryInput: {
-					query,
-					queryType,
-					streamPartId,
-				},
-				responseStream: logStoreMessageStream,
-				systemMessages$: this.systemMessages$,
-				nodeManager: this.nodeManager,
-				logger: this.logger,
-				queryUrl: nodeUrl,
-				verificationOptions:
-					typeof options.verifyNetworkResponses === 'object'
-						? options.verifyNetworkResponses
-						: undefined,
-			});
-		}
+		const logStoreMessageStream = new LogStoreMessageStream(messageStream);
 
 		return logStoreMessageStream;
 	}
@@ -359,13 +335,9 @@ export class Queries {
 	): string {
 		const [streamId, streamPartition] =
 			StreamPartIDUtils.getStreamIDAndPartition(streamPartId);
-		const queryString = this.httpUtil.createQueryString(query);
+		const queryString = createQueryString(query);
 		return `${baseUrl}/stores/${encodeURIComponent(
 			streamId
 		)}/data/partitions/${streamPartition}/${endpointSuffix}?${queryString}`;
-	}
-
-	getAuth() {
-		return this.httpUtil.fetchAuthParams();
 	}
 }

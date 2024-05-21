@@ -97,6 +97,8 @@ module.exports = (_, argv) => {
 				),
 				crypto: require.resolve('crypto-browserify'),
 				buffer: require.resolve('buffer/'),
+				'@streamr/autocertifier-client': false,
+				'@streamr/dht': false,
 			},
 			fallback: {
 				module: false,

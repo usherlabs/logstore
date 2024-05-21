@@ -1,4 +1,4 @@
-import StreamrClient from 'streamr-client';
+import StreamrClient from '@streamr/sdk';
 
 import { createStrictConfig } from '../../src/Config';
 import { generateEthereumAccount } from '../../src/Ethereum';

@@ -15,8 +15,8 @@ import {
 } from '@/utils/utils';
 import { Command } from '@commander-js/extra-typings';
 import {
-	getQueryManagerContract,
 	Manager,
+	getQueryManagerContract,
 	requestAllowanceIfNeeded,
 } from '@logsn/shared';
 import chalk from 'chalk';
@@ -117,7 +117,9 @@ const stakeCommand = new Command()
 			console.info(chalk.red('Stake failed'));
 			await handleKnownError(e);
 			printContractFailReason(e);
+
 			logger.error(e);
+			process.exit(1);
 		}
 	});
 

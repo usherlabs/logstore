@@ -26,4 +26,4 @@ RUN pnpm build
 
 WORKDIR /home/node/logstore/packages/contracts
 
-CMD npx hardhat run ./scripts/0_deployNodeManager.ts --network streamr-dev-docker
+CMD npx hardhat run ./scripts/0_deployNodeManager.ts --network streamr-dev

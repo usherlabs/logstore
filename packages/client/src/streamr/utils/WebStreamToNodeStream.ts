@@ -1,4 +1,5 @@
 import { once } from 'events';
+import WebStream from 'node:stream/web';
 import { PassThrough, Readable, TransformOptions } from 'stream';
 
 const ignoreAbort = (err: Error) => {
@@ -25,7 +26,7 @@ async function write(stream: PassThrough, data: any, ac: AbortController) {
  * Background async task to pull data from the browser stream and push it into the node stream.
  */
 async function pull(
-	fromBrowserStream: ReadableStream,
+	fromBrowserStream: ReadableStream | WebStream.ReadableStream,
 	toNodeStream: PassThrough
 ) {
 	const reader = fromBrowserStream.getReader();
@@ -66,7 +67,7 @@ async function pull(
  * Convert browser ReadableStream to Node stream.Readable.
  */
 export function WebStreamToNodeStream(
-	webStream: ReadableStream | Readable,
+	webStream: ReadableStream | Readable | WebStream.ReadableStream,
 	nodeStreamOptions?: TransformOptions
 ): Readable {
 	if ('pipe' in webStream) {

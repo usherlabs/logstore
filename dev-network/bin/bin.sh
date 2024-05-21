@@ -18,9 +18,6 @@ case $OPERATION in
 config )
     source "$DEV_NETWORK_SCRIPTS_DIR/config.sh"
     ;;
-build )
-    source "$DEV_NETWORK_SCRIPTS_DIR/build.sh"
-    ;;
 start )
     source "$DEV_NETWORK_SCRIPTS_DIR/start.sh"
     ;;

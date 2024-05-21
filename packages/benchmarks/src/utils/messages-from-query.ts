@@ -1,7 +1,7 @@
 import { LogStoreClient } from '@logsn/client';
 import type { QueryInput } from '@logsn/client/src/Queries';
+import { Stream } from '@streamr/sdk';
 import { Observable } from 'rxjs';
-import { Stream } from 'streamr-client';
 
 export const messagesFromQuery = (
 	client: LogStoreClient,

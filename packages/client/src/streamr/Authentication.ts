@@ -1,9 +1,9 @@
+import { EthereumAddress } from '@streamr/sdk';
 import { Signer } from 'ethers';
-import { EthereumAddress } from 'streamr-client';
 
 export interface Authentication {
 	getAddress: () => Promise<EthereumAddress>;
-	createMessageSignature: (payload: string) => Promise<string>;
+	createMessageSignature: (payload: Uint8Array) => Promise<Uint8Array>;
 	getStreamRegistryChainSigner: () => Promise<Signer>;
 }
 

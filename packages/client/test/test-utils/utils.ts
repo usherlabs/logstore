@@ -1,7 +1,22 @@
+import { JsonRpcProvider, Provider } from '@ethersproject/providers';
+import { config as CHAIN_CONFIG } from '@streamr/config';
+import StreamrClient, { Stream, StreamMetadata } from '@streamr/sdk';
+import { Logger } from '@streamr/utils';
 import crypto from 'crypto';
-import StreamrClient, { Stream, StreamMetadata } from 'streamr-client';
 
+import { LoggerFactory } from '../../src/streamr/LoggerFactory';
 import { counterId } from '../../src/utils/utils';
+
+export const TEST_CHAIN_CONFIG = CHAIN_CONFIG.dev2;
+
+export function mockLoggerFactory(): LoggerFactory {
+	return {
+		createLogger(module: NodeJS.Module): Logger {
+			return new Logger(module, { id: 'TestCtx' }, 'info')
+		}
+
+	} as unknown as LoggerFactory
+}
 
 export const uid = (prefix?: string): string =>
 	counterId(`p${process.pid}${prefix ? '-' + prefix : ''}`);
@@ -21,8 +36,7 @@ export const createRelativeTestStreamId = (
 ): string => {
 	const randomBit = crypto.randomBytes(4).toString('hex');
 	return counterId(
-		`/test/${randomTestRunId}${randomBit}/${getTestName(module)}${
-			suffix !== undefined ? '-' + suffix : ''
+		`/test/${randomTestRunId}${randomBit}/${getTestName(module)}${suffix !== undefined ? '-' + suffix : ''
 		}`,
 		'-'
 	);
@@ -39,3 +53,7 @@ export const createTestStream = async (
 	});
 	return stream;
 };
+
+export function getProvider(): Provider {
+	return new JsonRpcProvider(TEST_CHAIN_CONFIG.rpcEndpoints[0].url);
+}

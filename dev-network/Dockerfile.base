@@ -1,11 +1,5 @@
 FROM node:18.18-buster
 
-RUN apt update
-RUN apt install -y libsecret-1-dev
-
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
-RUN wget -O - https://bootstrap.pypa.io/get-pip.py | python
-
 RUN npm i -g pnpm
 
 USER node
@@ -23,7 +17,6 @@ COPY --chown=node:node ./packages/protocol/package.json ./packages/protocol/
 COPY --chown=node:node ./packages/shared/package.json ./packages/shared/
 COPY --chown=node:node ./packages/client/package.json ./packages/client/
 COPY --chown=node:node ./packages/cli/package.json ./packages/cli/
-COPY --chown=node:node ./packages/validator/package.json ./packages/validator/
 COPY --chown=node:node ./packages/pulse/package.json ./packages/pulse/
 COPY --chown=node:node ./packages/benchmarks/package.json ./packages/benchmarks/
 
