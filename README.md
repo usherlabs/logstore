@@ -71,7 +71,7 @@ Log Store employs a multi-layered architecture to achieve decentralized, secure,
 - **Data Reporting**: The nodes within the Broker Network read data Reports produced by Validators from the decentralized data lake, then push reports to the Polygon Smart Contract. Log Store takes inspiration from Chainlink’s Off-Chain Reporting strategy to optimize gas costs and maintain decentralization. This ensures data is not only secure but also efficiently managed.
 - **Verifying Custom Data**: Log Store allows for programming checks on data validity. These checks ensure that the data is tamper-proof and immutable. This process may take place within a zero-party environment, further bolstering data integrity and security.
 
-Learn in-depth by reading our 📘 [Log Store Network Primer](https://docs.logstore.usher.so/network/overview/primer).
+Learn in-depth by reading our 📘 [Log Store Network Primer](https://docs.logstore.usher.so/logstore/network/specifics/lightpaper).
 
 ## **🔐 AlphaNet: The Foundation**
 
@@ -81,7 +81,7 @@ AlphaNet serves as the foundational release of the Log Store Network. It enables
 - **Acquiring LSAN Tokens**: To participate in AlphaNet, users need to acquire LSAN tokens by depositing MATIC into the Log Store AlphaNet ERC20 Smart Contract. These tokens are essential for transacting within the network. The next section will guide you better through it.
 - **Community Involvement**: AlphaNet thrives on community participation. Users are encouraged to engage with the network, share experiences, report bugs, and contribute to its enhancement. This collaborative approach is critical for refining and preparing the network for future releases.
 
-We’ve prepared 🚀 [AlphaNet Overview](https://docs.logstore.usher.so/network/overview/alphanet) to navigate you through our expectations for it.
+We’ve prepared 🚀 [AlphaNet Overview](https://docs.logstore.usher.so/logstore/network/specifics/alphanet) to navigate you through our expectations for it.
 
 ## **👩‍💻 Getting Started**
 
@@ -94,7 +94,7 @@ LSAN tokens are the fuel for the Log Store network. They are necessary to perfor
 - **Free & Limited LSAN Tokens:** Head over to the Usher Labs Discord Server and request free LSAN tokens. A limited amount of tokens can be distributed to you on a monthly basis.
 - **Mint LSAN Tokens:** LSAN tokens are minted using MATIC tokens. Use Log Store CLI to mint LSAN tokens to secure all the storage and query capacity you require.
 
-  💰 **[Minting LSAN Tokens](https://docs.logstore.usher.so/network/cli/mint-lsan)**
+  💰 **[Minting LSAN Tokens](https://docs.logstore.usher.so/logstore/network/cli/mint-lsan)**
 
 Note: The number of LSAN tokens minted is calculated based on storage costs to ensure fair compensation for using the decentralized network.
 
@@ -102,11 +102,11 @@ Note: The number of LSAN tokens minted is calculated based on storage costs to e
 
 Staking LSAN tokens to enable data storage and querying services.
 
-Follow the instructions in the **[CLI documentation](https://docs.logstore.usher.so/network/cli/getting-started)** to learn how to stake your tokens.
+Follow the instructions in the **[CLI documentation](https://docs.logstore.usher.so/logstore/network/cli/getting-started)** to learn how to stake your tokens.
 
 By minting and staking LSAN tokens, you are now ready to store and query data on the Log Store network, leveraging these exciting new capabilities into your software application.
 
-Want to know more? Head up to 🤔 [Understanding LSAN Tokens](https://docs.logstore.usher.so/network/overview/lsan-token).
+Want to know more? Head up to 🤔 [Understanding LSAN Tokens](https://docs.logstore.usher.so/logstore/network/cli/getting-started).
 
 ## **🧰 Interfaces and Tools**
 
@@ -114,11 +114,11 @@ Log Store offers intuitive interfaces to streamline integration with your applic
 
 1. **SDK**: The Software Development Kit (SDK) is ideal for developers looking to integrate Log Store directly into their applications. By using the SDK, you can seamlessly stake tokens, store and query data within your software. Perfect to integrate into applications that require real-time data handling.
 
-   💻 **[SDK Getting Started Guide](https://docs.logstore.usher.so/network/sdk/getting-started)**
+   💻 **[SDK Getting Started Guide](https://docs.logstore.usher.so/logstore/network/sdk/getting-started)**
 
 2. **CLI**: Enables interacting with Log Store through the terminal. It's an efficient way to mint and stake LSAN tokens, manage balances, and interact with the Log Store Network. Suitable for scripting and automation tasks.
 
-   ⌨️ **[CLI Getting Started Guide](https://docs.logstore.usher.so/network/cli/getting-started)**
+   ⌨️ **[CLI Getting Started Guide](https://docs.logstore.usher.so/logstore/network/sdk/getting-started)**
 
 3. **HTTP API — _Coming soon_**: The HTTP API is suitable for applications that leverage languages not yet supported by our SDK or smart contracts that need to interact with Log Store over HTTP.
 
@@ -131,7 +131,7 @@ Here is an overview of the different packages:
 - **`benchmarks`** — Utils to measure the network efficiency
 - **`cli`** — A command-line tool for easy interaction with the Log Store Network.
 - **`client`** — A JavaScript library for simple and direct communication with the Log Store Network.
-- **`contracts`** — Smart contracts for secure participation and data management in the Log Store Network. See 🔗 [Log Store Smart Contracts](https://docs.logstore.usher.so/network/overview/contracts) for a helpful list of addresses.
+- **`contracts`** — Smart contracts for secure participation and data management in the Log Store Network. See 🔗 [Log Store Smart Contracts](https://docs.logstore.usher.so/logstore/network/specifics/contracts) for a helpful list of addresses.
 - **`pulse`** — Periodically ensures connectivity and monitors the Log Store Network.
 - **`protocol`** — Defines the core communication standards for the Log Store Network.
 - **`shared`** — Common utilities and resources for the Log Store Network.
